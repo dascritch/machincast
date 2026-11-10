@@ -23,14 +23,13 @@ def guarantee(connection: psycopg.Connection[TupleRow]) -> str | None:
 		).fetchone()
 		if existing is not None:
 			return None
-		taken = {
-			str(name)
-			for (name,) in connection.execute(
-				"SELECT internal_name FROM events WHERE (internal_name = %s OR internal_name LIKE %s || ' %%')"
-				" AND deleted_at IS NULL",
-				(NAME, NAME),
-			)
-		}
+		taken = set()
+		for (taken_name,) in connection.execute(
+			"SELECT internal_name FROM events WHERE (internal_name = %s OR internal_name LIKE %s || ' %%')"
+			" AND deleted_at IS NULL",
+			(NAME, NAME),
+		):
+			taken.add(str(taken_name))
 		name = NAME
 		number = 1
 		while name in taken:

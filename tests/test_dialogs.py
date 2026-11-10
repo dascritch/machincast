@@ -65,13 +65,20 @@ def answer(dialog: Dialog, qtbot: QtBot, gesture: str) -> None:
 		assert isinstance(modal, QMessageBox), modal
 		dialog.text = modal.text()
 		dialog.precision = modal.informativeText()
-		dialog.buttons = [button.text() for button in modal.buttons()]
+		button_list = []
+		for shown in modal.buttons():
+			button_list.append(shown.text())
+		dialog.buttons = button_list
 		keys = {"tape Échap": Qt.Key.Key_Escape, "tape Entrée": Qt.Key.Key_Return}
 		if gesture in keys:
 			qtbot.keyClick(modal, keys[gesture])
 			return
 		(name,) = NAME.findall(gesture)
-		(button,) = [button for button in modal.buttons() if button.text() == name]
+		named = []
+		for candidate in modal.buttons():
+			if candidate.text() == name:
+				named.append(candidate)
+		(button,) = named
 		button.click()
 
 	when_modal(make)
@@ -136,11 +143,11 @@ def maintenance_elsewhere(
 
 	def choose_location(modal: QWidget) -> None:
 		assert isinstance(modal, QMessageBox), modal
-		b_list = []
-		for b in modal.buttons():
-			if b.text() == dialogs.CHOOSE_LOCATION:
-				b_list.append(b)
-		(choice,) = b_list
+		named = []
+		for candidate in modal.buttons():
+			if candidate.text() == dialogs.CHOOSE_LOCATION:
+				named.append(candidate)
+		(choice,) = named
 		choice.click()
 		answer(dialog, qtbot, f"clique sur « {button} »")
 
@@ -238,7 +245,11 @@ def choice(dialog: Dialog, empty_database: Connection, category: str, remark: st
 		assert isinstance(modal, Choice), modal
 		dialog.title = modal.windowTitle()
 		buttons = (modal.list_.ui.new, modal.list_.ui.add_files)
-		dialog.actions = [button.text() for button in buttons if not button.isHidden()]
+		button_list = []
+		for shown in buttons:
+			if not shown.isHidden():
+				button_list.append(shown.text())
+		dialog.actions = button_list
 		dialog.actions += ["dépôt"] * modal.list_.table.acceptDrops()
 		dialog.menus = [modal.list_.line_menu(modal.list_.proxy.index(0, 0))]
 		dialog.text = modal.ui.explanation.text()

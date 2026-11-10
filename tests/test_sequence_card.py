@@ -196,12 +196,12 @@ def reorderable(interface: Context) -> None:
 			every_one = False
 			break
 	assert every_one
-	every_one_2 = True
+	all_draggable = True
 	for line in lines(interface):
 		if not (line.flags() & Qt.ItemFlag.ItemIsDragEnabled):
-			every_one_2 = False
+			all_draggable = False
 			break
-	assert every_one_2
+	assert all_draggable
 
 
 @then(
@@ -247,7 +247,7 @@ def items_in_database(interface: Context, empty_database: Connection, name: str,
 	expected_list = []
 	for category, item in IN_DATABASE.findall(items):
 		expected_list.append((category, interface.path(item)))
-	expected_list_2 = []
+	positioned = []
 	for position, expected in enumerate(expected_list, start=1):
-		expected_list_2.append((position, *expected))
-	assert lines == expected_list_2
+		positioned.append((position, *expected))
+	assert lines == positioned

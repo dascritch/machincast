@@ -149,9 +149,14 @@ def current_tab_key(key: str) -> str:
 	return OLD_TAB_KEYS.get(key, key)
 
 
-CARDS: dict[str, type[Card]] = {
-	card.category: card for card in (EventCard, SequenceCard, BankCard, SoundCard, FeedCard)
-}
+def _by_category(cards: tuple[type[Card], ...]) -> dict[str, type[Card]]:
+	cards_by_category = {}
+	for card in cards:
+		cards_by_category[card.category] = card
+	return cards_by_category
+
+
+CARDS = _by_category((EventCard, SequenceCard, BankCard, SoundCard, FeedCard))
 """Écrans de détail : les fiches, par genre."""
 INDEXING_TRACKING = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
@@ -244,7 +249,17 @@ def screen_category(screen: QWidget) -> str:
 LEFT_TAB, RIGHT_TAB, FIRST_TAB, LAST_TAB = "Ctrl+PgUp", "Ctrl+PgDown", "Ctrl+Home", "Ctrl+End"
 """Les raccourcis de l'onglet de gauche, de droite, du premier et du dernier
 (https://github.com/dascritch/machincast/issues/318)."""
-TAB_KEYS = frozenset(QKeySequence(keys).toString() for keys in (LEFT_TAB, RIGHT_TAB, FIRST_TAB, LAST_TAB))
+
+
+def _shortcut_texts(shortcuts: tuple[str, ...]) -> frozenset[str]:
+	"""Les raccourcis, écrits comme Qt les écrit."""
+	texts = set()
+	for keys in shortcuts:
+		texts.add(QKeySequence(keys).toString())
+	return frozenset(texts)
+
+
+TAB_KEYS = _shortcut_texts((LEFT_TAB, RIGHT_TAB, FIRST_TAB, LAST_TAB))
 
 
 class TabKey(QObject):
@@ -403,7 +418,7 @@ class MainWindow(QMainWindow):
 		self._keys: dict[QWidget, str] = {}
 		"""La clé de l'onglet de chaque liste, dans les réglages : son genre."""
 
-		def init_source(source: Source, title: str) -> None:
+		def create_list(source: Source, title: str) -> None:
 			list_ = List(source, connection)
 			list_.opened.connect(self._open)
 			list_.requested_creation.connect(lambda category: self._open_card(category, None))
@@ -427,7 +442,7 @@ class MainWindow(QMainWindow):
 			list_.hide()
 
 		for title, source in TABS:
-			init_source(source, title)
+			create_list(source, title)
 		self.incidents = IncidentScreen(connection)
 		self.incidents.opened.connect(self._open)
 		self._add_fixed(self.incidents, _("Incidents"))
@@ -481,7 +496,7 @@ class MainWindow(QMainWindow):
 		look_up.setShortcut(QKeySequence("Ctrl+F"))
 		look_up.triggered.connect(self._open_search)
 
-		def fill_source(source: Source, title: str) -> None:
+		def add_open_action(source: Source, title: str) -> None:
 			if source.category not in ON_DEMAND:
 				return
 			open_ = display_menu.addAction(
@@ -490,7 +505,7 @@ class MainWindow(QMainWindow):
 			open_.triggered.connect(lambda _ticked=False, title=title: self.open_list(title))
 
 		for title, source in TABS:
-			fill_source(source, title)
+			add_open_action(source, title)
 		grid = display_menu.addAction(icons.icon("grid"), _("Open the Time grid tab"))
 		grid.triggered.connect(self._open_calendar)
 		simulation = display_menu.addAction(icons.icon("simulation"), _("Open the Simulation tab"))
@@ -831,7 +846,9 @@ class MainWindow(QMainWindow):
 		for index in range(tabs.count()):
 			if (screen := tabs.widget(index)) is not None:
 				screens.append(screen)
-		by_key = {self.tab_key(screen): screen for screen in screens}
+		by_key = {}
+		for keyed in screens:
+			by_key[self.tab_key(keyed)] = keyed
 		key_list = []
 		for key in dict.fromkeys(order):
 			if key in by_key:
@@ -990,8 +1007,8 @@ class MainWindow(QMainWindow):
 				if not screen.can_close():
 					return
 				self._remove(screen)
-				continue
-			self._close(tabs.indexOf(screen))
+			else:
+				self._close(tabs.indexOf(screen))
 
 	def _remove_tab(self, index: int) -> None:
 		"""Un onglet fermé n'est plus ni l'origine ni le dernier ouvert d'aucun autre."""
@@ -1196,7 +1213,11 @@ class MainWindow(QMainWindow):
 		(https://github.com/dascritch/machincast/issues/405), ou la ramène au premier plan
 		(https://github.com/dascritch/machincast/issues/180). Elle se désigne par son titre, ou par son genre."""
 		tabs = self.ui.tabs
-		(list_,) = (list_ for list_ in self.lists if title in (self._titles[list_], self._keys[list_]))
+		titled = []
+		for candidate in self.lists:
+			if title in (self._titles[candidate], self._keys[candidate]):
+				titled.append(candidate)
+		(list_,) = titled
 		index = tabs.indexOf(list_)
 		if index < 0:
 			index = self._add_tab(list_, self._titles[list_])

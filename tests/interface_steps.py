@@ -553,12 +553,20 @@ def identifier(database: Connection, table: str, column: str, value: str) -> int
 
 
 def deletion_button(interface: Context) -> QPushButton:
-	(button,) = [button for button in opened_card(interface).findChildren(QPushButton) if button.text() == DELETE]
+	button_list = []
+	for candidate in opened_card(interface).findChildren(QPushButton):
+		if candidate.text() == DELETE:
+			button_list.append(candidate)
+	(button,) = button_list
 	return button
 
 
 def deletion_questions(interface: Context) -> list[str]:
-	return [question for question in interface.questions if question.startswith("suppression : ")]
+	deletion_questions = []
+	for question in interface.questions:
+		if question.startswith("suppression : "):
+			deletion_questions.append(question)
+	return deletion_questions
 
 
 def expected_lines(interface: Context, datatable: list[list[str]]) -> str:
@@ -591,26 +599,26 @@ def clock(interface: Context, instant: str) -> None:
 def sounds(interface: Context, empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	for values in rows:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		line = dict(zip(headers, v_list, strict=True))
+			cells.append(v.strip())
+		line = dict(zip(headers, cells, strict=True))
 		line["location"] = interface.path(line["location"])
 		stream = line["type"] == "stream"
 		if stream:
-			chosen = None
+			location = None
 		else:
-			chosen = line["location"]
-		chosen_2 = None
+			location = line["location"]
+		stream_url = None
 		if stream:
-			chosen_2 = line["location"]
+			stream_url = line["location"]
 		empty_database.execute(
 			"INSERT INTO sounds (type, location, stream_url, artist, title, state, duration)"
 			" VALUES (%s, %s, %s, %s, %s, %s, %s)",
 			(
 				line["type"],
-				chosen,
-				chosen_2,
+				location,
+				stream_url,
 				(line["artist"]) or (None),
 				(line["title"]) or (None),
 				line["state"],
@@ -811,10 +819,10 @@ def fake_sound(interface: Context, path: str) -> None:
 def events(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	for values in rows:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		line = dict(zip(headers, v_list, strict=True))
+			cells.append(v.strip())
+		line = dict(zip(headers, cells, strict=True))
 		day_list = []
 		for day in line["days"].split(","):
 			if day.strip():
@@ -1100,15 +1108,15 @@ def add_items(interface: Context, qtbot: QtBot, empty_database: Connection, cate
 				name_list.append(identifier(empty_database, "sounds", "title", name))
 			interface.chosen_sounds = name_list
 		case "banques":
-			name_list_2 = []
+			bank_identifiers = []
 			for name in NAME.findall(names):
-				name_list_2.append(identifier(empty_database, "banks", "internal_name", name))
-			interface.chosen_banks = name_list_2
+				bank_identifiers.append(identifier(empty_database, "banks", "internal_name", name))
+			interface.chosen_banks = bank_identifiers
 		case _:
-			name_list_3 = []
+			sequence_identifiers = []
 			for name in NAME.findall(names):
-				name_list_3.append(identifier(empty_database, "sequences", "internal_name", name))
-			interface.chosen_sequences = name_list_3
+				sequence_identifiers.append(identifier(empty_database, "sequences", "internal_name", name))
+			interface.chosen_sequences = sequence_identifiers
 	button = {"sonores": "add_sounds", "banques": "add_banks", "séquences": "add_sequences"}[category]
 	qtbot.mouseClick(getattr(ui, button), Qt.MouseButton.LeftButton)
 
@@ -1185,7 +1193,9 @@ def sort(interface: Context, qtbot: QtBot, title: str) -> None:
 	table = list_(interface).table
 	header = table.horizontalHeader()
 	model = table.model()
-	titles = [str(model.headerData(column, Qt.Orientation.Horizontal)) for column in range(model.columnCount())]
+	titles = []
+	for column_rank in range(model.columnCount()):
+		titles.append(str(model.headerData(column_rank, Qt.Orientation.Horizontal)))
 	column = titles.index(title)
 	position = QPoint(header.sectionViewportPosition(column) + header.sectionSize(column) // 2, header.height() // 2)
 	qtbot.mouseClick(header.viewport(), Qt.MouseButton.LeftButton, pos=position)
@@ -1256,10 +1266,10 @@ def opened_window(interface: Context, state: str) -> None:
 @then("la fiche fermée est libérée")
 def released(interface: Context) -> None:
 	QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-	closed_list_2 = []
+	valid_list = []
 	for closed in interface.closed_list:
-		closed_list_2.append(shiboken6.isValid(closed))
-	assert closed_list_2 == [False]
+		valid_list.append(shiboken6.isValid(closed))
+	assert valid_list == [False]
 
 
 @then(
@@ -1433,10 +1443,10 @@ def expected_entries(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	expected_list = []
 	for values in rows:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(interface.path(v.strip()))
-		expected_list.append(dict(zip(headers, v_list, strict=True)))
+			cells.append(interface.path(v.strip()))
+		expected_list.append(dict(zip(headers, cells, strict=True)))
 	assert lines(interface) == expected_list, lines(interface)
 
 
@@ -1623,12 +1633,12 @@ def open_menu(interface: Context, menu: str) -> None:
 def choose_in_menu(interface: Context, title: str, menu: str) -> None:
 	"""Le menu s'ouvre d'abord, comme sous la souris : il peut relire ce qu'il propose (aboutToShow)."""
 	named_menu(interface, menu).aboutToShow.emit()
-	chosen_list = []
+	titled = []
 	for action in actions(interface, menu):
 		if action.text() == title:
-			chosen_list.append(action)
-	assert len(chosen_list) == 1, f"« {title} » absent du menu « {menu} »"
-	chosen_list[0].trigger()
+			titled.append(action)
+	assert len(titled) == 1, f"« {title} » absent du menu « {menu} »"
+	titled[0].trigger()
 
 
 @when(parsers.parse("j'appuie sur « {keys} »"))
@@ -1805,7 +1815,9 @@ def in_database(empty_database: Connection, category: str, name: str, state: str
 @given("les périphériques audio du poste :")
 def station_devices(monkeypatch: pytest.MonkeyPatch, datatable: list[list[str]]) -> None:
 	"""Ceux que donnerait le fournisseur de périphériques de GStreamer, pour la pré-écoute et les préférences."""
-	found_list = [Device(identifier.strip(), name.strip()) for identifier, name in datatable[1:]]
+	found_list = []
+	for device_identifier, name in datatable[1:]:
+		found_list.append(Device(device_identifier.strip(), name.strip()))
 
 	def list_items(_output: AudioOutput) -> list[Device]:
 		return found_list
@@ -2009,10 +2021,10 @@ def insert_play(
 def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
 	for values in lines:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		line = dict(zip(headers, v_list, strict=True))
+			cells.append(v.strip())
+		line = dict(zip(headers, cells, strict=True))
 		insert_play(
 			empty_database,
 			hour(line["starts_at"]),
@@ -2096,14 +2108,14 @@ def not_rewritten(interface: Context, empty_database: Connection, name: str) -> 
 
 
 def _versions(connection: Connection, name: str) -> list[str]:
-	return [
-		str(version)
-		for (version,) in connection.execute(
-			"SELECT e.xmin::text FROM sequence_items e JOIN sequences q ON q.id = e.sequence_id"
-			" WHERE q.internal_name = %s ORDER BY e.position",
-			(name,),
-		)
-	]
+	versions = []
+	for (xmin,) in connection.execute(
+		"SELECT e.xmin::text FROM sequence_items e JOIN sequences q ON q.id = e.sequence_id"
+		" WHERE q.internal_name = %s ORDER BY e.position",
+		(name,),
+	):
+		versions.append(str(xmin))
+	return versions
 
 
 @then(parsers.parse("la liste des éléments de la fiche a pour titre « {title} »"))

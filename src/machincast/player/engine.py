@@ -496,21 +496,21 @@ class Track:
 			message = bus.pop_filtered(wanted)
 			if message is None:
 				return
-			if message.type == Gst.MessageType.BUFFERING:
-				self._fill(message.parse_buffering())
-				continue
-			structure = message.get_structure()
-			if message.type == Gst.MessageType.ELEMENT:
-				if (structure is not None) and (structure.get_name() == "level"):
-					self._measure(structure)
-				continue
-			if message.type == Gst.MessageType.ERROR:
-				error, _debug = message.parse_error()
-				self.state, self.error = "error", error.message
-			else:
-				self.state = "finished"
-				self.final_position = self.position()
-			self._player.set_state(Gst.State.NULL)
+			match message.type:
+				case Gst.MessageType.BUFFERING:
+					self._fill(message.parse_buffering())
+				case Gst.MessageType.ELEMENT:
+					structure = message.get_structure()
+					if (structure is not None) and (structure.get_name() == "level"):
+						self._measure(structure)
+				case Gst.MessageType.ERROR:
+					error, _debug = message.parse_error()
+					self.state, self.error = "error", error.message
+					self._player.set_state(Gst.State.NULL)
+				case _:
+					self.state = "finished"
+					self.final_position = self.position()
+					self._player.set_state(Gst.State.NULL)
 
 	def shut_down(self) -> None:
 		self._player.set_state(Gst.State.NULL)

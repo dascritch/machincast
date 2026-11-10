@@ -66,18 +66,18 @@ def read_airplay(
 		if not isinstance(start, datetime):
 			return
 		if isinstance(end, datetime):
-			chosen = end
+			known_end = end
 		else:
-			chosen = None
+			known_end = None
 		if isinstance(duration, timedelta):
-			duration_2 = duration
+			known_duration = duration
 		else:
-			duration_2 = None
+			known_duration = None
 		plays.append(
 			DisplayedPlay(
 				start=start,
-				end=chosen,
-				duration=duration_2,
+				end=known_end,
+				duration=known_duration,
 				artist=text_or_none(artist),
 				title=text_or_none(title),
 				event=text_or_none(event),

@@ -68,6 +68,27 @@ def _constant(node: ast.expr) -> str | None:
 	return None
 
 
+def _message(node: ast.AST) -> Message | None:
+	"""Le message d'un appel _(), N_(), ngettext(), counted(), N_counted() ou pgettext() ; None pour un autre nœud, ou
+	un appel dont le texte n'est pas une constante."""
+	if not ((isinstance(node, ast.Call)) and (isinstance(node.func, ast.Name)) and (node.func.id in KEYWORDS)):
+		return None
+	texts = []
+	for argument in node.args:
+		texts.append(_constant(argument))
+	match KEYWORDS[node.func.id]:
+		case "message":
+			if (texts) and (texts[0]):
+				return Message(texts[0])
+		case "plural":
+			if (len(texts) >= 2) and (texts[0]) and (texts[1]):
+				return Message(texts[0], plural=texts[1])
+		case "context":
+			if (len(texts) >= 2) and (texts[0]) and (texts[1]):
+				return Message(texts[1], context=texts[0])
+	return None
+
+
 def extract(package: Path = PACKAGE) -> dict[str, Message]:
 	"""Les messages du code et des écrans, dans l'ordre de leur première apparition."""
 	found: dict[str, Message] = {}
@@ -80,46 +101,33 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 
 	for path in sorted(package.rglob("*.py")):
 		relative = path.relative_to(package.parent).as_posix()
-		if "/ui/" in relative:
-			continue
-		for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-			if not ((isinstance(node, ast.Call)) and (isinstance(node.func, ast.Name)) and (node.func.id in KEYWORDS)):
-				continue
-			texts = []
-			for argument in node.args:
-				texts.append(_constant(argument))
-			kind = KEYWORDS[node.func.id]
-			# Le fichier seul, sans numéro de ligne : déplacer du code ne change pas le catalogue.
-			reference = relative
-			if (kind == "message") and (texts) and (texts[0]):
-				add(Message(texts[0]), reference)
-			else:
-				if (kind == "plural") and (len(texts) >= 2) and (texts[0]) and (texts[1]):
-					add(Message(texts[0], plural=texts[1]), reference)
-				else:
-					if (kind == "context") and (len(texts) >= 2) and (texts[0]) and (texts[1]):
-						add(Message(texts[1], context=texts[0]), reference)
+		if "/ui/" not in relative:
+			for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+				message = _message(node)
+				if message is not None:
+					# Le fichier seul, sans numéro de ligne : déplacer du code ne change pas le catalogue.
+					add(message, relative)
 	for path in sorted(package.rglob("*.ui")):
 		relative = path.relative_to(package.parent).as_posix()
 
-		def handle_element(element: ElementTree.Element, relative: str) -> None:
+		def add_screen_text(element: ElementTree.Element, relative: str) -> None:
 			if (element.get("notr") == "true") or (not element.text):
 				return
 			add(Message(element.text, context=(element.get("comment")) or (None)), relative)
 
 		for element in ElementTree.parse(path).iter("string"):
-			handle_element(element, relative)
+			add_screen_text(element, relative)
 	for script in scripts(package):
 		text = script.read_text(encoding="utf-8")
 
-		def handle_found_message(found_message: re.Match[str], script: Path, text: str) -> None:
+		def add_script_message(found_message: re.Match[str], script: Path, text: str) -> None:
 			start = text.rfind("\n", 0, found_message.start()) + 1
 			if text[start : found_message.start()].lstrip().startswith("#"):
 				return
 			add(Message(found_message.group(1)), script.relative_to(package.parent.parent).as_posix())
 
 		for found_message in BASH_MESSAGE.finditer(text):
-			handle_found_message(found_message, script, text)
+			add_script_message(found_message, script, text)
 	return found
 
 
@@ -174,13 +182,13 @@ def _quote(text: str, width: int = 76) -> str:
 	fichier, coupée après ses retours à la ligne et ses espaces, comme le fait msgmerge."""
 	escaped = text.replace("\\", "\\\\").replace('"', '\\"').replace("\t", "\\t").replace("\r", "\\r")
 	lines = escaped.split("\n")
-	chosen = []
+	unfinished = []
 	if lines[-1]:
-		chosen = [lines[-1]]
+		unfinished = [lines[-1]]
 	line_list = []
 	for line in lines[:-1]:
 		line_list.append(line + "\\n")
-	pieces = line_list + chosen
+	pieces = line_list + unfinished
 	if (len(pieces) <= 1) and (len(escaped) <= width - 8):
 		return f'"{"".join(pieces)}"'
 	parts = []
@@ -225,7 +233,10 @@ def write_catalog(code: str, messages: dict[str, Message], translations: dict[st
 				form_list.append(f"msgstr[{index}] {_quote(form)}")
 			lines.extend(form_list)
 		else:
-			lines.append(f"msgstr {_quote(known if isinstance(known, str) else '')}")
+			translated = ""
+			if isinstance(known, str):
+				translated = known
+			lines.append(f"msgstr {_quote(translated)}")
 		blocks.append("\n".join(lines) + "\n")
 	return "\n".join(blocks)
 
@@ -251,7 +262,7 @@ def main(arguments: list[str] | None = None) -> int:
 	if options.new is not None:
 		languages.append(options.new)
 
-	def handle_code(code: str) -> None:
+	def update_language(code: str) -> None:
 		nonlocal code_returned
 		if code == i18n.SOURCE:
 			return
@@ -284,7 +295,7 @@ def main(arguments: list[str] | None = None) -> int:
 		log.info(f"{file}: {len(messages)} messages, {len(missing)} untranslated")
 
 	for code in dict.fromkeys(languages):
-		handle_code(code)
+		update_language(code)
 	return code_returned
 
 

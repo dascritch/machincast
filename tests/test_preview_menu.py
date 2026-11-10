@@ -126,11 +126,16 @@ def list_menu(interface: Context, menu: Menu, title: str) -> None:
 def airplay_menu(interface: Context, menu: Menu, title: str) -> None:
 	home = window(interface).home
 	model = home.airplay_model
-	(row,) = [
-		row
-		for row in range(model.rowCount())
-		if any(model.index(row, column).data() == title for column in range(model.columnCount()))
-	]
+	row_list = []
+	for candidate_row in range(model.rowCount()):
+		found = False
+		for column in range(model.columnCount()):
+			if model.index(candidate_row, column).data() == title:
+				found = True
+				break
+		if found:
+			row_list.append(candidate_row)
+	(row,) = row_list
 	_retain(menu, home.airplay_menu(model.index(row, 0)))
 
 
@@ -159,7 +164,11 @@ def bank_menu(interface: Context, menu: Menu, title: str) -> None:
 @when(parsers.parse("je choisis « {entry} » dans le menu contextuel"))
 def choose(menu: Menu, entry: str) -> None:
 	assert menu.opened is not None, "aucun menu contextuel"
-	(action,) = [action for action in menu.opened.actions() if action.text() == entry]
+	action_list = []
+	for candidate in menu.opened.actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	assert isinstance(action, QAction)
 	action.trigger()
 
@@ -206,14 +215,22 @@ def _inactive(item: QAction | QAbstractButton, tooltip: str) -> None:
 @then(parsers.parse("l'entrée « {entry} » du menu contextuel est inactive, avec l'infobulle « {tooltip} »"))
 def contextual_inactive_entry(menu: Menu, entry: str, tooltip: str) -> None:
 	assert menu.opened is not None, "aucun menu contextuel"
-	(action,) = [action for action in menu.opened.actions() if action.text() == entry]
+	action_list = []
+	for candidate in menu.opened.actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	_inactive(action, tooltip)
 	assert menu.opened.toolTipsVisible()
 
 
 @then(parsers.parse("l'entrée « {entry} » du menu « {title} » est inactive, avec l'infobulle « {tooltip} »"))
 def inactive_entry(interface: Context, entry: str, title: str, tooltip: str) -> None:
-	(action,) = [action for action in actions(interface, title) if action.text() == entry]
+	action_list = []
+	for candidate in actions(interface, title):
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	_inactive(action, tooltip)
 
 

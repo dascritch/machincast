@@ -38,12 +38,10 @@ PROGRAMS = {
 
 
 def _pipewire_present() -> bool:
-	every_one = True
 	for tool in ("pipewire", "wireplumber", "pw-cli", "pw-dump", "pw-metadata"):
 		if not (shutil.which(tool)):
-			every_one = False
-			break
-	return every_one
+			return False
+	return True
 
 
 class PipeWireBench:
@@ -242,7 +240,9 @@ def without_lock(context: SimpleNamespace) -> None:
 	if output.find_property("stream-properties") is None:
 		return
 	properties = output.get_property("stream-properties")
-	assert (properties is None) or (not any(properties.has_field(key) for key in audio.LOCK))
+	if properties is not None:
+		for key in audio.LOCK:
+			assert not properties.has_field(key), key
 
 
 # ─── Comportement ──────────────────────────────────────────

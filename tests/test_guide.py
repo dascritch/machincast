@@ -55,14 +55,16 @@ def absent_list(guide: str, terms: set[str]) -> list[str]:
 
 	def cites(term: str) -> bool:
 		pattern = re.compile(rf"(?<![\w-]){re.escape(term)}(?![\w-])")
-		found = False
 		for code in codes:
 			if pattern.search(code):
-				found = True
-				break
-		return found
+				return True
+		return False
 
-	return sorted(term for term in terms if not cites(term))
+	term_list = []
+	for uncited in terms:
+		if not cites(uncited):
+			term_list.append(uncited)
+	return sorted(term_list)
 
 
 def options(help_: str) -> set[str]:

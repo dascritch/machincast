@@ -102,7 +102,10 @@ def offers(block: Block, name: str, datatable: list[list[str]]) -> None:
 	assert isinstance(model, QStandardItemModel)
 	shown_list = []
 	for index in range(choice.count()):
-		shown_list.append([choice.itemText(index), "active" if model.item(index).isEnabled() else "inactive"])
+		shown_state = "inactive"
+		if model.item(index).isEnabled():
+			shown_state = "active"
+		shown_list.append([choice.itemText(index), shown_state])
 	card_list = []
 	for card, state in datatable[1:]:
 		card_list.append([card.strip(), state.strip()])
@@ -160,10 +163,10 @@ def line_tooltip(block: Block, text: str, tooltip: str) -> None:
 def locked_on_air(block: Block, state: str, tooltip: str | None) -> None:
 	ui = opened(block).ui
 	items = (ui.on_air, ui.test_on_air, ui.output)
-	item_list_2 = []
+	enabled_list = []
 	for item in items:
-		item_list_2.append(item.isEnabled())
-	assert item_list_2 == [state == "actifs"] * 3
+		enabled_list.append(item.isEnabled())
+	assert enabled_list == [state == "actifs"] * 3
 	if tooltip is not None:
 		item_list = []
 		for item in items:

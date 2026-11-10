@@ -107,9 +107,9 @@ def http2_server(tmp_path: Path) -> Iterator[Server]:
 		while time.monotonic() - start < FREEZE:
 			if sent > time.monotonic() - start + 1.5:
 				await asyncio.sleep(0.05)
-				continue
-			await send({"type": "http.response.body", "body": SOUND, "more_body": True})
-			sent += 1.0
+			else:
+				await send({"type": "http.response.body", "body": SOUND, "more_body": True})
+				sent += 1.0
 		server.frozen_at = time.time()
 		while not stop.is_set():
 			await asyncio.sleep(0.1)

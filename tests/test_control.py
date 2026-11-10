@@ -173,7 +173,13 @@ def service_journal(tmp_path: Path, line: str) -> None:
 
 @then(parsers.parse("une alerte dit bientôt « {text} »"))
 def alert_soon(interface: Context, qtbot: QtBot, text: str) -> None:
-	qtbot.waitUntil(lambda: [said for said, _journal in interface.not_started] == [text], timeout=5000)
+	def said_alone() -> bool:
+		said_list = []
+		for said, _journal in interface.not_started:
+			said_list.append(said)
+		return said_list == [text]
+
+	qtbot.waitUntil(said_alone, timeout=5000)
 
 
 @then(parsers.parse("elle montre en détails les lignes du journal « {first} » et « {second} »"))
@@ -237,7 +243,9 @@ def received_call(station: Station, qtbot: QtBot, call: str) -> None:
 @then("systemctl n'a reçu que des demandes d'état")
 def state_requests(station: Station) -> None:
 	calls = station.calls()
-	assert (calls) and (all(call.startswith("show ") for call in calls)), calls
+	assert calls, calls
+	for call in calls:
+		assert call.startswith("show "), calls
 
 
 @then(parsers.parse("la barre d'état annonce bientôt « {text} »"))

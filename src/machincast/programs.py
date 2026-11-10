@@ -152,9 +152,9 @@ def ongoing(proc: Path = PROC, accounts: Callable[[int], str] = _account) -> lis
 	"""Les programmes de MachinCast en cours, sous tous les comptes, par pid ; jamais ce processus-ci."""
 	found_list = []
 	for process in proc.iterdir():
-		if (not process.name.isdigit()) or (int(process.name) == os.getpid()):
-			continue
-		program = _read(process, accounts)
+		program = None
+		if (process.name.isdigit()) and (int(process.name) != os.getpid()):
+			program = _read(process, accounts)
 		if program is not None:
 			found_list.append(program)
 	return sorted(found_list, key=lambda program: program.pid)
@@ -169,10 +169,12 @@ def _yes(true: bool) -> str:
 
 def list_items(programs: list[Program], current_account: str) -> str:
 	"""Les lignes pour install.sh : pid, du compte, service, et ce qu'il en affiche."""
-	p_list = []
-	for p in programs:
-		p_list.append(f"{p.pid}\t{_yes(p.account == current_account)}\t{_yes(p.service)}\t{p.label}\n")
-	return "".join(p_list)
+	lines = []
+	for program in programs:
+		lines.append(
+			f"{program.pid}\t{_yes(program.account == current_account)}\t{_yes(program.service)}\t{program.label}\n"
+		)
+	return "".join(lines)
 
 
 def save(programs: list[Program], state: Path) -> None:
@@ -237,7 +239,7 @@ def restart(
 	if simulation:
 		prefix = "[simulation] "
 
-	def handle_program(program: Program) -> None:
+	def describe_reopening(program: Program) -> None:
 		command = [str(MACHIN), program.name, *program.arguments]
 		if program.service:
 			return
@@ -277,7 +279,7 @@ def restart(
 						)
 
 	for program in programs:
-		handle_program(program)
+		describe_reopening(program)
 	return restarted_list + rest
 
 

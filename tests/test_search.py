@@ -70,7 +70,11 @@ def type_(interface: Context, text: str) -> None:
 @when(parsers.parse("j'ouvre le résultat « {name} »"))
 def open_result(interface: Context, name: str) -> None:
 	opened = screen(interface)
-	(row,) = [row for row, line in enumerate(lines(interface)) if line[1] == name]
+	line_list = []
+	for rank, line in enumerate(lines(interface)):
+		if line[1] == name:
+			line_list.append(rank)
+	(row,) = line_list
 	opened.table.activated.emit(opened.model.index(row, 0))
 
 

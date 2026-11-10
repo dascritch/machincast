@@ -19,12 +19,13 @@ from machincast.database import Role, open_connection
 from machincast.player.broadcast import Parameters, read_parameters
 from machincast.player.fades import LABELS, POSITIONS, Placement, Position, put
 from machincast.player.rundown import Choice
+from tests.categories import inverted
 from tests.database_fixtures import sample_database_parameters
 
 scenarios("fade_position.feature")
 
 Connection = psycopg.Connection[tuple[object, ...]]
-POSITION = {label: position for position, label in LABELS.items()}
+POSITION = inverted(LABELS)
 """Chaque position par ce qu'elle dit, « est en cours »."""
 
 

@@ -298,14 +298,14 @@ class Block:
 			return _("Plays in full")
 		if state == "faded":
 			return _("Hidden in full {mask}").format(mask=MASK)
-		d_list = []
+		moment_list = []
 		for d, f in self.plays:
-			d_list.append(
+			moment_list.append(
 				_("from {schedule} to {schedule2}").format(
 					schedule=schedule(self.day, d), schedule2=schedule(self.day, f)
 				)
 			)
-		moments = _(" and ").join(d_list)
+		moments = _(" and ").join(moment_list)
 		return _("Plays {moments}; hidden the rest of the time {mask}").format(moments=moments, mask=MASK)
 
 
@@ -358,7 +358,7 @@ def split(planned_list: Iterable[Planned], days: list[date], public_names: dict[
 	for planned in planned_list:
 		whole_day = (planned.occurrence.start is None) or (planned.end - planned.start >= ONE_DAY)
 
-		def handle_day(day: date, planned: Planned, whole_day: bool) -> None:
+		def add_block(day: date, planned: Planned, whole_day: bool) -> None:
 			start, end = max(planned.start, midnight(day)), min(planned.end, midnight(day + ONE_DAY))
 			if start >= end:
 				return
@@ -366,7 +366,7 @@ def split(planned_list: Iterable[Planned], days: list[date], public_names: dict[
 			blocks.append(Block(planned, day, start, end, _cross(planned.plays, start, end), whole_day, public_name))
 
 		for day in days:
-			handle_day(day, planned, whole_day)
+			add_block(day, planned, whole_day)
 	return sorted(blocks, key=lambda b: (b.day, b.start, RANKS[b.event.priority], b.event.id))
 
 
@@ -414,13 +414,13 @@ def strips(plays: list[Play], days: list[date], now: datetime) -> list[Strip]:
 		if (groups) and (groups[-1][0].id_event == play.id_event):
 			first, departure, _arrival, count = groups[-1]
 			groups[-1] = (first, departure, arrival, count + 1)
-			continue
-		groups.append((play, play.start, arrival, 1))
+		else:
+			groups.append((play, play.start, arrival, 1))
 	found_list = []
 	for play, departure, arrival, count in groups:
 		end = (arrival) or (now)
 
-		def handle_day_2(
+		def add_day(
 			day: date, arrival: datetime | None, count: int, departure: datetime, end: datetime, play: Play
 		) -> None:
 			day_start, day_end = max(departure, midnight(day)), min(end, midnight(day + ONE_DAY))
@@ -442,7 +442,7 @@ def strips(plays: list[Play], days: list[date], now: datetime) -> list[Strip]:
 			)
 
 		for day in days:
-			handle_day_2(day, arrival, count, departure, end, play)
+			add_day(day, arrival, count, departure, end, play)
 	return found_list
 
 
@@ -456,8 +456,14 @@ def columns(blocks: list[Block]) -> dict[Block, tuple[int, int]]:
 		if (group_end is not None) and (block.start >= group_end):
 			_put(group, places)
 			group, group_end = [], None
-		busy_list = {column for other, column in group if other.end > block.start}
-		column = next(number for number in range(len(group) + 1) if number not in busy_list)
+		busy = set()
+		for other, taken in group:
+			if other.end > block.start:
+				busy.add(taken)
+		# La première colonne libre.
+		column = 0
+		while column in busy:
+			column += 1
 		group.append((block, column))
 		group_end = max((group_end) or (block.end), block.end)
 	_put(group, places)
@@ -582,10 +588,10 @@ class Calendar(QWidget):
 
 	def zoom_in_notch(self, more_near: bool) -> None:
 		"""Le zoom voisin : moins d'heures, plus près, ou plus d'heures ; rien au-delà des bouts."""
-		chosen = 1
+		step = 1
 		if more_near:
-			chosen = -1
-		rank = ZOOMS.index(self.visible_hours) + chosen
+			step = -1
+		rank = ZOOMS.index(self.visible_hours) + step
 		if 0 <= rank < len(ZOOMS):
 			self.zoom_in(ZOOMS[rank])
 
@@ -867,11 +873,11 @@ class Header(QWidget):
 		days = self.calendar.days()
 		x = _day_x(self, len(days))
 		index = days.index(block.day)
-		b_list = []
+		same_day = []
 		for b in self.calendar.whole_day():
 			if b.day == block.day:
-				b_list.append(b)
-		rank = b_list.index(block)
+				same_day.append(b)
+		rank = same_day.index(block)
 		y = NAME_HEIGHT + rank * LINE_HEIGHT
 		return QRectF(x[index] + 1, y + 1, x[index + 1] - x[index] - 2, LINE_HEIGHT - 2)
 
@@ -955,11 +961,11 @@ class Grid(QWidget):
 		if isinstance(item, Strip):
 			left = x[index] + width * PLANNED_SHARE + GAP
 			return QRectF(left, top, x[index + 1] - GAP - left, bottom - top)
-		b_list = []
+		same_day = []
 		for b in self.calendar.blocks():
 			if b.day == item.day:
-				b_list.append(b)
-		column, count = columns(b_list)[item]
+				same_day.append(b)
+		column, count = columns(same_day)[item]
 		share = (width * PLANNED_SHARE - GAP) / count
 		return QRectF(x[index] + GAP + column * share, top, share - 1, bottom - top)
 

@@ -215,25 +215,30 @@ def index_directories(
 	attached: dict[int, set[str]] = {}
 	for bank, name, directory in directories:
 		path = Path(os.path.normpath(str(directory)))
-		if not path.is_absolute():
-			log.warning(
-				_("{directory}: relative directory, ignored for bank {name}").format(directory=directory, name=name)
-			)
-			continue
-		if not path.is_dir():
-			log.warning(_("{path}: directory not found, ignored for bank {name}").format(path=path, name=name))
-			continue
-		identifier = int(str(bank))
-		if identifier not in attached:
-			attached[identifier] = _attached_files(connection, identifier)
-		for file in sound_files(path):
-			if (stop is not None) and (stop.is_set()):
-				return scan
-			if str(file) in attached[identifier]:
-				continue
-			crash.note(ANALYSED, str(file))
-			_save(connection, identifier, str(name), str(file), report, scan)
+		if _readable_directory(path, directory, name):
+			identifier = int(str(bank))
+			if identifier not in attached:
+				attached[identifier] = _attached_files(connection, identifier)
+			for file in sound_files(path):
+				if (stop is not None) and (stop.is_set()):
+					return scan
+				if str(file) not in attached[identifier]:
+					crash.note(ANALYSED, str(file))
+					_save(connection, identifier, str(name), str(file), report, scan)
 	return scan
+
+
+def _readable_directory(path: Path, directory: object, name: object) -> bool:
+	"""Le répertoire d'une banque est absolu et existe ; sinon, il est ignoré, et le log le dit."""
+	if not path.is_absolute():
+		log.warning(
+			_("{directory}: relative directory, ignored for bank {name}").format(directory=directory, name=name)
+		)
+		return False
+	if not path.is_dir():
+		log.warning(_("{path}: directory not found, ignored for bank {name}").format(path=path, name=name))
+		return False
+	return True
 
 
 def _attached_files(connection: psycopg.Connection[TupleRow], bank: int) -> set[str]:

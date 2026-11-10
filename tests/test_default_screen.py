@@ -135,19 +135,19 @@ def socket(context: Context) -> StateSocket:
 
 def publish(context: Context, state: str = "playing") -> None:
 	assert context.clock is not None
-	chosen = None
+	current = None
 	if state == "playing":
-		chosen = context.ongoing
-	upcoming_2 = []
+		current = context.ongoing
+	upcoming = []
 	if state == "playing":
-		upcoming_2 = context.upcoming
+		upcoming = context.upcoming
 	socket(context).publish(
 		{
 			"timestamp": context.clock.now().isoformat(),
 			"state": state,
-			"current": chosen,
+			"current": current,
 			"next": context.next_,
-			"upcoming": upcoming_2,
+			"upcoming": upcoming,
 		}
 	)
 
@@ -271,12 +271,12 @@ def upcoming_sounds(context: Context, datatable: list[list[str]]) -> None:
 		for value in values:
 			value_list.append(value.strip())
 		line = dict(zip(headers, value_list, strict=True))
-		chosen = None
+		sequence = None
 		if line["sequence"]:
-			chosen = 60 + rank
-		chosen_2 = None
+			sequence = 60 + rank
+		bank = None
 		if line["bank"]:
-			chosen_2 = 70 + rank
+			bank = 70 + rank
 		context.upcoming.append(
 			{
 				"sound_id": 40 + rank,
@@ -286,9 +286,9 @@ def upcoming_sounds(context: Context, datatable: list[list[str]]) -> None:
 				"event": line["event"],
 				"event_id": 50 + rank,
 				"sequence": (line["sequence"]) or (None),
-				"sequence_id": chosen,
+				"sequence_id": sequence,
 				"bank": (line["bank"]) or (None),
-				"bank_id": chosen_2,
+				"bank_id": bank,
 				"estimated_start": a(line["start"]).isoformat(),
 				"duration": seconds(line["duration"]),
 				"estimated_end": a(line["end"]).isoformat(),
@@ -325,7 +325,10 @@ def sound_context(context: Context, which: str, datatable: list[list[str]]) -> N
 		sound = context.next_
 	assert sound is not None
 	_headers, *rows = datatable
-	for field_name, value in ((field_name.strip(), value.strip()) for field_name, value in rows):
+	field_name_list = []
+	for shown_name, value in rows:
+		field_name_list.append((shown_name.strip(), value.strip()))
+	for field_name, value in field_name_list:
 		lu: object = (value) or (None)
 		if (field_name.endswith("_id")) and (value != ""):
 			lu = int(value)
@@ -708,10 +711,10 @@ def bank_sequence_states(context: Context, states: str) -> None:
 	obtained_list = []
 	for which in ("ongoing", "next"):
 		for category in ("sequence", "bank"):
-			chosen = "inactif"
+			state = "inactif"
 			if getattr(ui, f"open_{which}_{category}").isEnabled():
-				chosen = "actif"
-			obtained_list.append(chosen)
+				state = "actif"
+			obtained_list.append(state)
 	assert obtained_list == states.split(", ")
 
 
@@ -726,7 +729,10 @@ def button_states(context: Context, states: str) -> None:
 	buttons = (ui.open_ongoing_sound, ui.open_ongoing_event, ui.open_next_sound)
 	obtained_list = []
 	for button in (*buttons, ui.open_next_event):
-		obtained_list.append("actif" if button.isEnabled() else "inactif")
+		state = "inactif"
+		if button.isEnabled():
+			state = "actif"
+		obtained_list.append(state)
 	assert obtained_list == states.split(", ")
 
 
@@ -802,10 +808,10 @@ def displayed_location(context: Context, which: str, text: str) -> None:
 	assert field.text() == text, field.text()
 	assert field.isReadOnly()
 	# Un long chemin dépasse le champ : l'infobulle le donne en entier.
-	chosen = text
+	expected_tooltip = text
 	if text == "—":
-		chosen = ""
-	assert field.toolTip() == chosen, field.toolTip()
+		expected_tooltip = ""
+	assert field.toolTip() == expected_tooltip, field.toolTip()
 	assert field.cursorPosition() == len(text), "la fin du chemin, le nom du fichier, doit rester visible"
 
 
@@ -866,10 +872,10 @@ def upcoming_expected_table(context: Context, qtbot: QtBot, datatable: list[list
 	headers, *lines = datatable
 	expected_list = []
 	for values in lines:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		expected_list.append(dict(zip(headers, v_list, strict=True)))
+			cells.append(v.strip())
+		expected_list.append(dict(zip(headers, cells, strict=True)))
 	wait(qtbot, lambda: len(upcoming_table(context)) == len(expected_list))
 	assert upcoming_table(context) == expected_list, upcoming_table(context)
 
@@ -912,14 +918,23 @@ def open_upcoming(context: Context, qtbot: QtBot, text: str) -> None:
 def upcoming_menu(context: Context, opened_folders: list[Path], entry: str, title: str) -> None:
 	opened = screen(context)
 	model = opened.upcoming_model
-	(row,) = [
-		row
-		for row in range(model.rowCount())
-		if any(model.index(row, column).data() == title for column in range(model.columnCount()))
-	]
+	row_list = []
+	for candidate_row in range(model.rowCount()):
+		found = False
+		for column in range(model.columnCount()):
+			if model.index(candidate_row, column).data() == title:
+				found = True
+				break
+		if found:
+			row_list.append(candidate_row)
+	(row,) = row_list
 	menu = opened.upcoming_sound_menu(model.index(row, 0))
 	assert menu is not None
-	(action,) = [action for action in menu.actions() if action.text() == entry]
+	action_list = []
+	for candidate in menu.actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
@@ -981,11 +996,11 @@ def airplay_lines(context: Context, count: int, first: str, last: str) -> None:
 
 
 def panel(context: Context, title: str) -> QGroupBox:
-	(group,) = [
-		group
-		for group in (screen(context).ui.upcoming_frame, screen(context).ui.airplay_frame)
-		if group.property(expandable.TITLE) == title
-	]
+	group_list = []
+	for candidate in (screen(context).ui.upcoming_frame, screen(context).ui.airplay_frame):
+		if candidate.property(expandable.TITLE) == title:
+			group_list.append(candidate)
+	(group,) = group_list
 	return group
 
 
@@ -1021,10 +1036,10 @@ def expected_table(context: Context, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
 	expected_list = []
 	for values in lines:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		expected_list.append(dict(zip(headers, v_list, strict=True)))
+			cells.append(v.strip())
+		expected_list.append(dict(zip(headers, cells, strict=True)))
 	assert table(context) == expected_list, table(context)
 
 
@@ -1447,11 +1462,16 @@ def _block_menu(context: Context, which: str) -> QMenu | None:
 
 
 def _row(model: QStandardItemModel, title: str) -> int:
-	(row,) = [
-		row
-		for row in range(model.rowCount())
-		if any(model.index(row, column).data() == title for column in range(model.columnCount()))
-	]
+	row_list = []
+	for candidate_row in range(model.rowCount()):
+		found = False
+		for column in range(model.columnCount()):
+			if model.index(candidate_row, column).data() == title:
+				found = True
+				break
+		if found:
+			row_list.append(candidate_row)
+	(row,) = row_list
 	return row
 
 
@@ -1464,7 +1484,11 @@ def _table_menu(context: Context, table: str, title: str) -> QMenu | None:
 
 def _choose(menu: QMenu | None, entry: str) -> None:
 	assert menu is not None
-	(action,) = [action for action in menu.actions() if action.text() == entry]
+	action_list = []
+	for candidate in menu.actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 

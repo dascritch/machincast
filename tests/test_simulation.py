@@ -28,7 +28,7 @@ from machincast.configuration import Crossfades, Metadata
 from machincast.database import Role, open_connection
 from machincast.player.saving import LEVELS
 from machincast.player.simulation import Result, read_only, simulate
-from tests.broadcast_steps import Bench, Connection, create_sound, event, hour, sound
+from tests.broadcast_steps import Bench, Connection, create_sound, event, hour, quoted_names, sound
 from tests.database_fixtures import CONFIGURATION_TEST, sample_database_parameters
 from tests.log_texts import shown
 
@@ -264,10 +264,10 @@ def simulate_broadcast(
 	context: Context, bench: Bench, empty_database: Connection, start: str, end: str, seed: str | None, name: str | None
 ) -> None:
 	if seed is None:
-		chosen = None
+		seed_number = None
 	else:
-		chosen = int(seed)
-	launch_simulation(context, empty_database, start, end, chosen, name, bench.crossfades)
+		seed_number = int(seed)
+	launch_simulation(context, empty_database, start, end, seed_number, name, bench.crossfades)
 
 
 @when(parsers.parse("je simule deux fois la diffusion du « {start} » au « {end} », avec la graine {seed:d}"))
@@ -345,10 +345,8 @@ def play_count(context: Context, count: int) -> None:
 
 @then(parsers.re(r"la simulation donne les titres (?P<list_>.+)"))
 def expected_titles(context: Context, list_: str) -> None:
-	n_list = []
-	for n in list_.split(","):
-		n_list.append(n.strip(" «»"))
-	assert titles(context) == n_list, titles(context)
+	expected_names = quoted_names(list_)
+	assert titles(context) == expected_names, titles(context)
 
 
 @then("la base n'a pas changé")
@@ -371,13 +369,13 @@ def cycles(context: Context) -> None:
 
 @then("les deux simulations donnent les mêmes passages")
 def same_plays(context: Context) -> None:
-	r_list = []
-	for r in context.results:
-		p_list = []
-		for p in r.plays:
-			p_list.append(str(p.title))
-		r_list.append(p_list)
-	first, second = r_list
+	titles_by_result = []
+	for result in context.results:
+		titles = []
+		for play in result.plays:
+			titles.append(str(play.title))
+		titles_by_result.append(titles)
+	first, second = titles_by_result
 	assert (first == second) and (len(set(first)) > 1), (first, second)
 
 

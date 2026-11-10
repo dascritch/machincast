@@ -88,10 +88,20 @@ METADATA: tuple[tuple[str, str], ...] = (
 """Clés de music_metadata tenues par l'indexeur (machincast.indexer.tags.KEYS), et leur nom à l'écran."""
 INTEGERS = frozenset({"year", "track"})
 """Clés dont la valeur est un nombre entier."""
+
+
+def _metadata_labels() -> dict[str, str]:
+	"""Le nom à l'écran de chaque champ de music_metadata."""
+	labels = {}
+	for key, name in METADATA:
+		labels[f"music_metadata.{key}"] = name
+	return labels
+
+
 LABELS: dict[str, str] = {
 	"artist": "artiste",
 	"title": "titre",
-	**{f"music_metadata.{key}": name for key, name in METADATA},
+	**_metadata_labels(),
 	"crossfade_start": _("start crossfade"),
 	"crossfade_end": _("end crossfade"),
 	"max_plays": _("maximum of plays"),
@@ -203,7 +213,10 @@ class SoundCard(Card):
 		self.ui = Ui_SoundCard()
 		self.ui.setupUi(self)
 		self.plug(self.ui.save, self.ui.cancel, self.ui.delete, self.ui.message)
-		self.metadata: dict[str, QLineEdit] = {key: getattr(self.ui, key) for key, _name in METADATA}
+		name_dict = {}
+		for key, _name in METADATA:
+			name_dict[key] = getattr(self.ui, key)
+		self.metadata: dict[str, QLineEdit] = name_dict
 		for key in INTEGERS:
 			self.metadata[key].setValidator(QIntValidator(0, 9999, self))
 		# Le pas et la durée maximale des préférences (https://github.com/dascritch/machincast/issues/145), sur un
@@ -367,10 +380,10 @@ class SoundCard(Card):
 			entered = (field in self._edited_fields) or (
 				(field in initial_list) and (inputs[field] != initial_list[field])
 			)
-			chosen = detected
+			shown = detected
 			if entered:
-				chosen = manual
-			box.setText(chosen)
+				shown = manual
+			box.setText(shown)
 
 	def _show_shape(self, path: Path | None) -> None:
 		"""La forme d'onde du fichier, calculée en tâche de fond, une fois par fichier."""
@@ -715,8 +728,12 @@ class SoundCard(Card):
 		for field in modified_list:
 			if not field.startswith("music_metadata."):
 				columns.append(field)
-		assignments: list[sql.Composable] = [sql.SQL("{} = %s").format(sql.Identifier(column)) for column in columns]
-		values: list[object] = [inputs[column] for column in columns]
+		assignments: list[sql.Composable] = []
+		for assigned in columns:
+			assignments.append(sql.SQL("{} = %s").format(sql.Identifier(assigned)))
+		values: list[object] = []
+		for given in columns:
+			values.append(inputs[given])
 		prefix = "music_metadata."
 		musical_list = {}
 		for field in modified_list:
@@ -901,10 +918,10 @@ class SoundCard(Card):
 			for name in (event, sequence, bank):
 				name_list.append(str((name) or ("")))
 			cells += name_list
-			h_list = []
+			incident_kinds = []
 			for _h, kind, _m in incidents:
-				h_list.append(logged(str(kind)))
-			cells.append(", ".join(h_list))
+				incident_kinds.append(logged(str(kind)))
+			cells.append(", ".join(incident_kinds))
 			items = []
 			for text in cells:
 				items.append(QTableWidgetItem(text))

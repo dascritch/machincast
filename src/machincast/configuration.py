@@ -408,7 +408,7 @@ class _Player:
 			maximum = timedelta(seconds=seconds)
 		durations: list[timedelta | None] = []
 
-		def handle_key(key: str | str) -> None:
+		def read_crossfade(key: str | str) -> None:
 			duration = self.optional_count("crossfades", key)
 			if duration is None:
 				durations.append(None)
@@ -426,7 +426,7 @@ class _Player:
 			durations.append(timedelta(seconds=duration))
 
 		for key in ("start", "end"):
-			handle_key(key)
+			read_crossfade(key)
 		positions: list[Position] = []
 		for key, default in (("fade_in_position", DEFAULT_ENTRY), ("fade_out_position", DEFAULT_OUTPUT)):
 			fetched = (self.optional_text("crossfades", key)) or (default)

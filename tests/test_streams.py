@@ -203,11 +203,11 @@ def fallback(empty_database: Connection, stream: str, event: str) -> None:
 
 @then(parsers.parse("le premier passage « {name} » a fini en incident"))
 def first_in_incident(empty_database: Connection, name: str) -> None:
-	p_list = []
-	for p in plays(empty_database):
-		if p[0] == name:
-			p_list.append(p)
-	first = p_list[0]
+	found = []
+	for played in plays(empty_database):
+		if played[0] == name:
+			found.append(played)
+	first = found[0]
 	assert (first[2] is not None) and (first[3] is False), first
 
 
@@ -225,10 +225,10 @@ def end_before_resumption(empty_database: Connection, moment: str) -> None:
 
 @then(parsers.parse("l'airplay montre {count:d} passage « {name} »"))
 def play_count(empty_database: Connection, count: int, name: str) -> None:
-	p_list = []
-	for p in plays(empty_database):
-		p_list.append(p[0])
-	assert p_list.count(name) == count, plays(empty_database)
+	titles = []
+	for played in plays(empty_database):
+		titles.append(played[0])
+	assert titles.count(name) == count, plays(empty_database)
 
 
 @then("le stream repris joue à plein volume")

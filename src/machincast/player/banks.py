@@ -100,12 +100,20 @@ def _read_candidates(
 	plays = history.plays(connection, line_list)
 	candidates = []
 	for sound, state, start, end, maximum in lines:
+		if isinstance(start, datetime):
+			known_start = start
+		else:
+			known_start = None
+		if isinstance(end, datetime):
+			known_end = end
+		else:
+			known_end = None
 		candidates.append(
 			Candidate(
 				sound=int(str(sound)),
 				state=str(state),
-				broadcast_start=start if isinstance(start, datetime) else None,
-				broadcast_end=end if isinstance(end, datetime) else None,
+				broadcast_start=known_start,
+				broadcast_end=known_end,
 				playback_max=integer_or_none(maximum),
 				plays=plays[int(str(sound))],
 			)
@@ -141,14 +149,14 @@ def _playable_list(
 	connection: psycopg.Connection[TupleRow], bank: int, instant: datetime, history: History
 ) -> tuple[list[int], set[int]]:
 	candidates = _candidates(connection, bank, history)
-	c_list = []
+	sounds = []
 	for c in candidates:
-		c_list.append(c.sound)
-	c_set = set()
+		sounds.append(c.sound)
+	playable_sounds = set()
 	for c in candidates:
 		if playable(c, instant):
-			c_set.add(c.sound)
-	return c_list, c_set
+			playable_sounds.add(c.sound)
+	return sounds, playable_sounds
 
 
 def remaining_list(
@@ -187,10 +195,10 @@ def choose_sound(
 	playable_list -= excluded_list
 	played_list = history.played_via_bank(connection, bank)
 	if line[0] == "sequential":
-		chosen = None
+		last_played = None
 		if played_list:
-			chosen = played_list[0]
-		return following_sequential(order, playable_list, chosen)
+			last_played = played_list[0]
+		return following_sequential(order, playable_list, last_played)
 	rest = cycle_rest(playable_list, played_list)
 	if not rest:
 		return None

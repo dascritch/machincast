@@ -5,7 +5,7 @@ celles-ci manipulent la fiche de l'événement, et lisent la base de test.
 """
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import datetime
 
 import pytest
@@ -46,8 +46,20 @@ def choose(interface: Context, name: str) -> None:
 
 def choose_text(choice: QComboBox, text: str) -> None:
 	index = choice.findText(text, Qt.MatchFlag.MatchFixedString)
-	assert index >= 0, f"« {text} » absent : {[choice.itemText(i) for i in range(choice.count())]}"
+	offered = []
+	for rank in range(choice.count()):
+		offered.append(choice.itemText(rank))
+	assert index >= 0, f"« {text} » absent : {offered}"
 	choice.setCurrentIndex(index)
+
+
+def _ticked_days(days: Iterable[QAbstractButton]) -> str:
+	"""Les jours cochés, séparés par des virgules."""
+	ticked = []
+	for day in days:
+		if day.isChecked():
+			ticked.append(day.text())
+	return ", ".join(ticked)
 
 
 def if_ticked(box: QAbstractButton, read: Callable[[], str]) -> Callable[[], str]:
@@ -83,7 +95,7 @@ def shows(event: EventCard) -> dict[str, Callable[[], str]]:
 		"Artiste et titre": lambda: ui.hiding.currentText().casefold(),
 		"Début": if_ticked(ui.has_start, ui.start.text),
 		"Fin": if_ticked(ui.has_end, ui.end.text),
-		"Jours": lambda: ", ".join(day.text() for day in event.days if day.isChecked()),
+		"Jours": lambda: _ticked_days(event.days),
 		# https://github.com/dascritch/machincast/issues/350
 		"Fin de la liste": _combo(ui.end_of_list),
 		"Secours de fin de liste": _combo(ui.end_fallback),
@@ -320,7 +332,9 @@ def grid(interface: Context, what: str) -> None:
 @then(parsers.parse("l'événement « {name} » a en base :"))
 def event_in_database(empty_database: Connection, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	expected_list = [(field.strip(), value.strip()) for field, value in rows]
+	expected_list = []
+	for field, expected_value in rows:
+		expected_list.append((field.strip(), expected_value.strip()))
 	fetched_list = []
 	for field, _value in expected_list:
 		column = {
@@ -357,10 +371,10 @@ def items_in_database(interface: Context, empty_database: Connection, name: str,
 	expected_list = []
 	for category, item in IN_DATABASE.findall(items):
 		expected_list.append((category, interface.path(item)))
-	expected_list_2 = []
+	positioned = []
 	for position, expected in enumerate(expected_list, start=1):
-		expected_list_2.append((position, *expected))
-	assert lines_in_database == expected_list_2
+		positioned.append((position, *expected))
+	assert lines_in_database == positioned
 
 
 @then(

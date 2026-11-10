@@ -257,7 +257,9 @@ class Plan:
 		if (position < de) or (position > a):
 			return 0.0
 		relative = position - de
-		points = [(moment.total_seconds(), volume) for moment, volume in self._points()]
+		points = []
+		for moment, point_volume in self._points():
+			points.append((moment.total_seconds(), point_volume))
 		for (before, since), (after, to) in zip(points, points[1:], strict=False):
 			if before <= relative <= after:
 				if after == before:

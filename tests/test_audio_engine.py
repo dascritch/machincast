@@ -245,7 +245,10 @@ def only_blocked(context: Context, name: str) -> None:
 	other_dict = {}
 	for other, track in context.tracks.items():
 		other_dict[other] = track.blocked()
-	assert other_dict == {other: other == name for other in context.tracks}
+	expected_dict = {}
+	for track_name in context.tracks:
+		expected_dict[track_name] = track_name == name
+	assert other_dict == expected_dict
 
 
 @when(parsers.parse("il joue le fichier de test « {name} »"))

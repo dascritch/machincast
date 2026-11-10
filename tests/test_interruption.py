@@ -83,12 +83,10 @@ def ask(bench: Bench, caplog: pytest.LogCaptureFixture, asks: str) -> None:
 	assert state is not None
 
 	def ignored() -> bool:
-		found = False
 		for r in caplog.records:
 			if IGNORED_REQUEST in r.getMessage():
-				found = True
-				break
-		return found
+				return True
+		return False
 
 	with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
 		client.connect(str(state.path))

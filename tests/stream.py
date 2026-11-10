@@ -112,19 +112,19 @@ class StreamServer:
 			# Pas plus de son que le temps écoulé, avance initiale comprise.
 			if sent > time.monotonic() - start:
 				time.sleep(1 / SLICES_PER_SECOND / 2)
-				continue
-			# Muet ou de nouveau sonore, le flux repart du début d'un fichier : d'une trame MP3 entière.
-			following_list = HEALTHY
-			if name in self.silent_list:
-				following_list = SILENT
-			if following_list is not data:
-				data, position = following_list, 0
-			slice_ = max(1, len(data) // SLICES_PER_SECOND)
-			piece = data[position : position + slice_]
-			output.write(piece)
-			output.flush()
-			sent += len(piece) / len(data)
-			position = (position + slice_) % len(data)
+			else:
+				# Muet ou de nouveau sonore, le flux repart du début d'un fichier : d'une trame MP3 entière.
+				following_list = HEALTHY
+				if name in self.silent_list:
+					following_list = SILENT
+				if following_list is not data:
+					data, position = following_list, 0
+				slice_ = max(1, len(data) // SLICES_PER_SECOND)
+				piece = data[position : position + slice_]
+				output.write(piece)
+				output.flush()
+				sent += len(piece) / len(data)
+				position = (position + slice_) % len(data)
 
 	def _freeze(self, name: str) -> None:
 		"""Plus rien sur cette connexion, qui reste ouverte tant que le flux est en ligne, même dégelé."""

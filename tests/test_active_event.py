@@ -67,11 +67,11 @@ def table(datatable: list[list[str]]) -> list[dict[str, str]]:
 
 
 def named(context: Context, name: str) -> Event:
-	e_list = []
-	for e in context.events:
-		if e.name == name:
-			e_list.append(e)
-	return e_list[0]
+	found = []
+	for event in context.events:
+		if event.name == name:
+			found.append(event)
+	return found[0]
 
 
 def active(context: Context, instant: datetime) -> str | None:
@@ -116,13 +116,13 @@ def events(context: Context, datatable: list[list[str]]) -> None:
 @given("ces événements enregistrés en base")
 def in_database(context: Context, empty_database: Connection) -> None:
 	for e in context.events:
-		j_list = []
-		for j in sorted(e.days):
-			j_list.append(DAYS[j])
+		day_names = []
+		for day in sorted(e.days):
+			day_names.append(DAYS[day])
 		empty_database.execute(
 			"INSERT INTO events (internal_name, priority, starts_at, ends_at, recurrence_days, modified_at)"
 			" VALUES (%s, %s, %s, %s, %s::weekday[], %s)",
-			(e.name, e.priority.value, e.start, e.end, j_list, e.modified_at),
+			(e.name, e.priority.value, e.start, e.end, day_names, e.modified_at),
 		)
 
 

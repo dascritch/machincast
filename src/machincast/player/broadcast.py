@@ -530,14 +530,14 @@ class Broadcast:
 		):
 			lender = None
 		if lender is None:
-			chosen = None
+			current_key = None
 		else:
-			chosen = lender.key
+			current_key = lender.key
 		if choice.lender is None:
 			lender_key = None
 		else:
 			lender_key = choice.lender.key
-		if chosen == lender_key:
+		if current_key == lender_key:
 			# Le même objet : le prochain sonore attendu se reconnaît à lui (_reserve).
 			return choice
 		return dataclasses.replace(choice, lender=lender)
@@ -547,14 +547,14 @@ class Broadcast:
 		et la socket d'état le disent dès l'heure, sans couper le sonore (https://github.com/dascritch/machincast/issues/399)."""
 		lender, announced = self.lender, self._announced_lender
 		if lender is None:
-			chosen = None
+			lender_key = None
 		else:
-			chosen = lender.key
+			lender_key = lender.key
 		if announced is None:
-			key_2 = None
+			announced_key = None
 		else:
-			key_2 = announced.key
-		if chosen == key_2:
+			announced_key = announced.key
+		if lender_key == announced_key:
 			return
 		self._announced_lender = lender
 		current = self.current
@@ -852,15 +852,16 @@ class Broadcast:
 		for rank, (choice, planned) in enumerate(candidates):
 			same_occurrence = previous.occurrence.key == choice.occurrence.key
 			if (after_sequence) and (same_occurrence) and (_continues_sequence(previous, choice)):
+				# Un sonore de la séquence est passé avec elle.
 				previous = choice
-				continue
-			if not self.scheduler.validate(choice, instant):
-				return None
-			if planned is not None:
-				self._engage(planned, instant)
-			self.upcoming = self.upcoming[rank:]
-			self._expected = choice
-			return choice
+			else:
+				if not self.scheduler.validate(choice, instant):
+					return None
+				if planned is not None:
+					self._engage(planned, instant)
+				self.upcoming = self.upcoming[rank:]
+				self._expected = choice
+				return choice
 		return None
 
 	def _sound_name(self, sound: int) -> str:
@@ -876,10 +877,10 @@ class Broadcast:
 
 	def _plays(self) -> list[Playback]:
 		if self.current is None:
-			chosen = []
+			ongoing = []
 		else:
-			chosen = [self.current]
-		return chosen + self.outgoing_list
+			ongoing = [self.current]
+		return ongoing + self.outgoing_list
 
 	def _finish_stopped_tracks(self, instant: datetime) -> None:
 		def finish_playback(playback: Playback) -> None:
@@ -897,11 +898,11 @@ class Broadcast:
 
 		for playback in self._plays():
 			finish_playback(playback)
-		s_list = []
+		outgoing_playing = []
 		for s in self.outgoing_list:
 			if s.track.state == "playing":
-				s_list.append(s)
-		self.outgoing_list = s_list
+				outgoing_playing.append(s)
+		self.outgoing_list = outgoing_playing
 		if (self.current is not None) and (self.current.track.state != "playing"):
 			self.current = None
 
@@ -1109,14 +1110,21 @@ class Broadcast:
 			self.upcoming = []
 			return
 		starts = self._starts()
-		string = [(reserve.choice, reserve.parameters)] + [
-			(planned.choice, planned.parameters) for planned in self.upcoming
-		]
-		if any(start is None for start in starts):
+		upcoming_list = []
+		for upcoming in self.upcoming:
+			upcoming_list.append((upcoming.choice, upcoming.parameters))
+		string = [(reserve.choice, reserve.parameters)] + upcoming_list
+		found = False
+		for known_start in starts:
+			if known_start is None:
+				found = True
+				break
+		if found:
 			return
-		planned_list = [
-			_planned_play(choice, start) for (choice, _), start in zip(string, starts, strict=True) if start
-		]
+		planned_list = []
+		for (planned_choice, _parameters), planned_start in zip(string, starts, strict=True):
+			if planned_start:
+				planned_list.append(_planned_play(planned_choice, planned_start))
 		previous, parameters = string[-1]
 		start = starts[-1]
 		finished_list: frozenset[tuple[int, datetime | None]] = frozenset()
@@ -1163,10 +1171,10 @@ class Broadcast:
 		for planned in self.upcoming:
 			planned_list.append((planned.choice, planned.parameters))
 		remainder = [(reserve.choice, reserve.parameters)] + planned_list
-		planned_list_2 = []
+		upcoming_cutoffs = []
 		for planned in self.upcoming:
-			planned_list_2.append(planned.cutoff)
-		cutoffs = [current.cutoff] + planned_list_2
+			upcoming_cutoffs.append(planned.cutoff)
+		cutoffs = [current.cutoff] + upcoming_cutoffs
 		start: datetime | None = current.play.start
 		parameters, occurrence = current.parameters, current.choice.occurrence
 		starts: list[datetime | None] = []
@@ -1301,7 +1309,11 @@ class Broadcast:
 			else:
 				playback.track.cut()
 				self._finish(playback.play, instant)
-		self.outgoing_list = [playback for playback in self._plays() if playback.track.state == "playing"]
+		playback_list = []
+		for ongoing in self._plays():
+			if ongoing.track.state == "playing":
+				playback_list.append(ongoing)
+		self.outgoing_list = playback_list
 		self.in_waiting, self.probe = None, None
 		self.scheduler.resume()
 		self.lender = self.scheduler.lender(instant)
@@ -1395,13 +1407,13 @@ class Broadcast:
 		self._note_on_air(choice, instant)
 		line = choice.line
 		if line is None:
-			chosen = None
+			sequence = None
 		else:
-			chosen = line.sequence
+			sequence = line.sequence
 		if line is None:
-			chosen_2 = None
+			sequence_item = None
 		else:
-			chosen_2 = line.id
+			sequence_item = line.id
 		play = self.history.begin_play(
 			self.connection,
 			choice.sound,
@@ -1409,8 +1421,8 @@ class Broadcast:
 			choice.occurrence.event.id,
 			_play_item(choice),
 			instant,
-			chosen,
-			chosen_2,
+			sequence,
+			sequence_item,
 			_lender_id(choice),
 		)
 		self._announced_lender = self.lender
@@ -1484,16 +1496,19 @@ class Broadcast:
 				planned_list.append(planned.cutoff)
 			cutoffs = planned_list + [None]
 			remainder = [(reserve.choice, reserve.parameters, reserve.healthy, self._reserved_details[1])]
-			planned_list_2 = []
+			upcoming_list = []
 			for planned in self.upcoming:
-				planned_list_2.append((planned.choice, planned.parameters, planned.healthy, planned.details))
-			remainder += planned_list_2
-			announcements = [
-				_announces(self._lent(choice, start), parameters, healthy, details, start, cutoff)
-				for (choice, parameters, healthy, details), start, cutoff in zip(
-					remainder, starts, cutoffs, strict=False
+				upcoming_list.append((planned.choice, planned.parameters, planned.healthy, planned.details))
+			remainder += upcoming_list
+			announcements = []
+			for (choice, announced_parameters, healthy, announced_details), start, cutoff in zip(
+				remainder, starts, cutoffs, strict=False
+			):
+				announcements.append(
+					_announces(
+						self._lent(choice, start), announced_parameters, healthy, announced_details, start, cutoff
+					)
 				)
-			]
 			next_, upcoming = announcements[0], announcements[1:]
 		if stop:
 			running = "stopped"
@@ -1610,16 +1625,16 @@ class Broadcast:
 
 
 def _display(choice: Choice, parameters: Parameters) -> dict[str, Any]:
-	chosen = "file"
+	kind = "file"
 	if parameters.stream:
-		chosen = "stream"
+		kind = "stream"
 	if choice.lender is None:
 		event_name = None
 	else:
 		event_name = choice.lender.event.name
 	return {
 		"sound_id": choice.sound,
-		"type": chosen,
+		"type": kind,
 		"artist": parameters.artist,
 		"title": parameters.title,
 		"location": parameters.location,
@@ -1706,7 +1721,10 @@ def _crash_line(label: str, sound: dict[str, Any] | None) -> str:
 		(title) or ("—"),
 		(sound.get("location")) or ("—"),
 	]
-	return f"{label} : {' / '.join(str(part) for part in parts)}"
+	texts = []
+	for part in parts:
+		texts.append(str(part))
+	return f"{label} : {' / '.join(texts)}"
 
 
 def crash_text(previous: dict[str, Any] | None, message: dict[str, Any]) -> str:
@@ -1747,13 +1765,13 @@ def _play_item(choice: Choice) -> int | None:
 def _planned_play(choice: Choice, start: datetime) -> Play:
 	line = choice.line
 	if line is None:
-		chosen = None
+		sequence = None
 	else:
-		chosen = line.sequence
+		sequence = line.sequence
 	if line is None:
-		chosen_2 = None
+		sequence_item = None
 	else:
-		chosen_2 = line.id
+		sequence_item = line.id
 	return Play(
 		uuid.uuid4(),
 		choice.sound,
@@ -1761,8 +1779,8 @@ def _planned_play(choice: Choice, start: datetime) -> Play:
 		choice.occurrence.event.id,
 		_play_item(choice),
 		start,
-		chosen,
-		chosen_2,
+		sequence,
+		sequence_item,
 	)
 
 

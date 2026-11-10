@@ -210,10 +210,10 @@ def acts_in_as_long_as_that(current_role: str, role: str) -> None:
 
 @then("les trois rôles existent toujours")
 def roles_exist(context: Context) -> None:
-	r_list = []
-	for r in Role:
-		r_list.append(str(r))
-	lines = context.connection.execute("SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)", (r_list,)).fetchall()
+	role_names = []
+	for role in Role:
+		role_names.append(str(role))
+	lines = context.connection.execute("SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)", (role_names,)).fetchall()
 	assert len(lines) == 3
 
 
@@ -252,4 +252,11 @@ def current_count(context: Context) -> None:
 			found = True
 			break
 	assert not found, lines
-	assert {str(name) for name, _, assumable in lines if assumable} == {str(role) for role in Role}, lines
+	item_set = set()
+	for role_name, _, assumable in lines:
+		if assumable:
+			item_set.add(str(role_name))
+	role_set = set()
+	for role in Role:
+		role_set.add(str(role))
+	assert item_set == role_set, lines

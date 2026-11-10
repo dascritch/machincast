@@ -23,13 +23,20 @@ DOMAIN = "machincast"
 LOCALE = Path(__file__).with_name("locale")
 SOURCE = "en"
 """Langue des messages dans le code, et de repli."""
-path_list = []
-for path in LOCALE.glob("*"):
-	if (path / "LC_MESSAGES" / "machincast.po").is_file():
-		path_list.append(path.name)
+
+
+def _catalogued() -> list[str]:
+	"""Les langues qui ont un catalogue."""
+	codes = []
+	for path in LOCALE.glob("*"):
+		if (path / "LC_MESSAGES" / "machincast.po").is_file():
+			codes.append(path.name)
+	return codes
+
+
 LANGUAGES = (
 	SOURCE,
-	*sorted(path_list),
+	*sorted(_catalogued()),
 )
 """Les langues de MachinCast : l'anglais, et celles qui ont un catalogue ; en ajouter une, c'est ajouter son
 catalogue."""
@@ -52,13 +59,18 @@ def language(environment: Mapping[str, str] | None = None) -> str:
 		values = environment
 	for variable in VARIABLES:
 		value = values.get(variable, "")
-		if not value:
-			continue
-		for candidate in value.split(":"):
-			code = re.split(r"[_.@-]", candidate, maxsplit=1)[0].lower()
-			if code in LANGUAGES:
-				return code
-		return SOURCE
+		# La première variable renseignée décide.
+		if value:
+			return _spoken(value)
+	return SOURCE
+
+
+def _spoken(value: str) -> str:
+	"""La première langue parlée d'une variable LANGUAGE, LC_ALL, LC_MESSAGES ou LANG, sinon l'anglais."""
+	for candidate in value.split(":"):
+		code = re.split(r"[_.@-]", candidate, maxsplit=1)[0].lower()
+		if code in LANGUAGES:
+			return code
 	return SOURCE
 
 
@@ -258,10 +270,10 @@ def N_(message: str) -> str:
 
 def N_counted(singular: str, plural: str, count: int) -> str:
 	"""Comme counted, mais en anglais, pour la table log ; le catalogue le connaît, logged() le traduira."""
-	chosen = plural
+	form = plural
 	if count == 1:
-		chosen = singular
-	return chosen.format(count=count)
+		form = singular
+	return form.format(count=count)
 
 
 def _pattern(msgid: str) -> tuple[int, re.Pattern[str]]:
@@ -311,9 +323,10 @@ def _templates() -> list[tuple[re.Pattern[str], str | tuple[str, ...], bool | No
 	« {line}, {empty} », est faible : il ne vient qu'après le découpage d'une énumération ; un gabarit sans rien que des
 	espaces hors de ses champs n'en est pas un."""
 	found = []
-	for msgid, msgstr in _catalog.entries.items():
+
+	def add_templates(msgid: str, msgstr: str | tuple[str, ...]) -> None:
 		if CONTEXT_SEPARATOR in msgid:
-			continue
+			return
 		sources = [msgid]
 		if (isinstance(msgstr, tuple)) and (msgid in _catalog.plurals):
 			sources.append(_catalog.plurals[msgid])
@@ -331,40 +344,52 @@ def _templates() -> list[tuple[re.Pattern[str], str | tuple[str, ...], bool | No
 				# Continue.
 				quoted = frozenset(re.findall(r"“\{(\w+)[^{}]*\}”", source))
 				found.append((literal, pattern, msgstr, weak, quoted))
+
+	for msgid, msgstr in _catalog.entries.items():
+		add_templates(msgid, msgstr)
 	found.sort(key=_order)
-	return [(pattern, msgstr, weak, quoted) for _literal, pattern, msgstr, weak, quoted in found]
+	templates = []
+	for _literal, pattern, msgstr, weak, quoted in found:
+		templates.append((pattern, msgstr, weak, quoted))
+	return templates
 
 
 def _fill(text: str, weak: bool | None) -> str | None:
 	"""Le message traduit par le premier gabarit qui lui correspond, parmi les forts (False), les faibles (True) ou
 	ceux d'une énumération (None) ; None sans gabarit."""
 	for pattern, msgstr, weak_template, quoted in _templates():
-		if weak_template != weak:
-			continue
-		found = pattern.fullmatch(text)
-		if found is None:
-			continue
-		values = {}
-		for name, value in found.groupdict().items():
-			values[name] = value
-			if name not in quoted:
-				values[name] = _local(logged(value))
-		form = msgstr
-		if isinstance(form, tuple):
-			count = found.groupdict().get("count", "")
-			chosen = 1
-			if count.lstrip("-").isdigit():
-				chosen = int(count)
-			form = _catalog.ngettext_forms(form, chosen)
-
-		def fill(field: re.Match[str], values: dict[str, str] = values) -> str:
-			name = field.group("name")
-			if name is None:
-				return field.group(0)[0]
-			return values.get(name, field.group(0))
-
-		return _PLACEHOLDER.sub(fill, form)
+		if weak_template == weak:
+			filled = _filled(text, pattern, msgstr, quoted)
+			if filled is not None:
+				return filled
 	return None
+
+
+def _filled(text: str, pattern: re.Pattern[str], msgstr: str | tuple[str, ...], quoted: frozenset[str]) -> str | None:
+	"""Le message traduit par un gabarit, None s'il ne lui correspond pas."""
+	found = pattern.fullmatch(text)
+	if found is None:
+		return None
+	values = {}
+	for name, value in found.groupdict().items():
+		values[name] = value
+		if name not in quoted:
+			values[name] = _local(logged(value))
+	form = msgstr
+	if isinstance(form, tuple):
+		count = found.groupdict().get("count", "")
+		quantity = 1
+		if count.lstrip("-").isdigit():
+			quantity = int(count)
+		form = _catalog.ngettext_forms(form, quantity)
+
+	def fill(field: re.Match[str]) -> str:
+		name = field.group("name")
+		if name is None:
+			return field.group(0)[0]
+		return values.get(name, field.group(0))
+
+	return _PLACEHOLDER.sub(fill, form)
 
 
 _DECIMAL = re.compile(r"(?<![\d.])\d+\.\d+(?![\d.])")

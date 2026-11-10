@@ -33,10 +33,10 @@ class FakeAppliance:
 	def __init__(self, type_gstreamer: str, name: str, node: str, internal: str) -> None:
 		self.__gtype__ = SimpleNamespace(name=type_gstreamer)
 		self.name = name
-		chosen = {}
+		properties = {}
 		if node:
-			chosen = {"node.name": node}
-		self.properties = Properties(chosen)
+			properties = {"node.name": node}
+		self.properties = Properties(properties)
 		self.internal = internal
 
 	def get_display_name(self) -> str:

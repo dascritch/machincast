@@ -105,10 +105,10 @@ def button(view: Calendar, text: str) -> QPushButton:
 	for b in view.findChildren(QPushButton):
 		if b.text() == text:
 			buttons.append(b)
-	b_list = []
+	texts = []
 	for b in view.findChildren(QPushButton):
-		b_list.append(b.text())
-	assert len(buttons) == 1, b_list
+		texts.append(b.text())
+	assert len(buttons) == 1, texts
 	return buttons[0]
 
 
@@ -128,7 +128,7 @@ def box(view: Calendar, text: str) -> QCheckBox:
 def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 	"""Une ligne de début, et une de fin quand le passage est terminé ; « (supprimé) » : sans événement."""
 
-	def handle_end(end, name, start) -> None:
+	def insert_play(end, name, start) -> None:
 		event = None
 		if name != DELETED:
 			event = identifier(empty_database, "events", "internal_name", name)
@@ -148,7 +148,7 @@ def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
 		)
 
 	for name, start, end in table(datatable):
-		handle_end(end, name, start)
+		insert_play(end, name, start)
 
 
 @given(parsers.parse("l'événement « {name} » supprimé le « {moment} »"))
@@ -234,7 +234,11 @@ def block_menu(view: Calendar, name: str, label: str, whole_day: bool) -> QMenu 
 def choose_to_right_click(interface: Context, entry: str, name: str, whole_day: str | None, day: str) -> None:
 	menu = block_menu(calendar(interface), name, day, whole_day is not None)
 	assert menu is not None
-	(action,) = [action for action in menu.actions() if action.text() == entry]
+	action_list = []
+	for candidate in menu.actions():
+		if candidate.text() == entry:
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
@@ -272,10 +276,10 @@ def blocks(interface: Context, datatable: list[list[str]]) -> None:
 @then("la bande de la journée entière montre :")
 def whole_day(interface: Context, datatable: list[list[str]]) -> None:
 	view = calendar(interface)
-	b_list = []
-	for b in view.whole_day():
-		b_list.append([day_label(b.day), b.event.name, _(b.state)])
-	assert b_list == table(datatable)
+	found = []
+	for drawn in view.whole_day():
+		found.append([day_label(drawn.day), drawn.event.name, _(drawn.state)])
+	assert found == table(datatable)
 	for block in view.whole_day():
 		assert view.header.rect().contains(view.header.rectangle(block).toRect()), block
 
@@ -362,11 +366,11 @@ def strip_tooltip(interface: Context, name: str, start: str, day: str, docstring
 @then(parsers.re(r"le calendrier a les cases cochées (?P<texts>«.+)"))
 def ticked_boxes(interface: Context, texts: str) -> None:
 	view = calendar(interface)
-	c_list = []
-	for c in view.findChildren(QCheckBox):
-		if c.isChecked():
-			c_list.append(c.text())
-	assert c_list == NAME.findall(texts)
+	ticked_texts = []
+	for checkbox in view.findChildren(QCheckBox):
+		if checkbox.isChecked():
+			ticked_texts.append(checkbox.text())
+	assert ticked_texts == NAME.findall(texts)
 
 
 @then(parsers.parse("la case « {box} » du calendrier porte un carré de la couleur du bloc « {name} » du {day}"))
@@ -374,11 +378,11 @@ def coloured_box(interface: Context, box: str, name: str, day: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/293 : la couleur de l'icône de la case, au milieu, est celle du
 	bloc dessiné, au milieu, là où il joue."""
 	view = calendar(interface)
-	c_list = []
-	for c in view.findChildren(QCheckBox):
-		if c.text() == box:
-			c_list.append(c)
-	(ticked,) = c_list
+	named_boxes = []
+	for candidate in view.findChildren(QCheckBox):
+		if candidate.text() == box:
+			named_boxes.append(candidate)
+	(ticked,) = named_boxes
 	icon = ticked.icon().pixmap(16, 16).toImage()
 	assert not icon.isNull()
 	middle = view.grid.rectangle(named_block(view, name, day)).center().toPoint()
@@ -391,11 +395,11 @@ def strip_colour(interface: Context, name: str, start: str, day: str, colour: st
 	"""Le milieu de la bande, dans le dessin de la grille, a la couleur de sa priorité assombrie, comme toute bande
 	d'airplay ; le dessin ne lève rien, ce que pytest-qt vérifie."""
 	view = calendar(interface)
-	s_list = []
-	for s in view.strips():
-		if (s.name == name) and (day_label(s.day) == day):
-			s_list.append(s)
-	(strip,) = s_list
+	found = []
+	for candidate in view.strips():
+		if (candidate.name == name) and (day_label(candidate.day) == day):
+			found.append(candidate)
+	(strip,) = found
 	assert schedule(strip.day, strip.start) == start
 	drawing = view.grid.grab().toImage()
 	assert drawing.pixelColor(view.grid.rectangle(strip).center().toPoint()).name() == QColor(colour).darker(130).name()
@@ -403,11 +407,11 @@ def strip_colour(interface: Context, name: str, start: str, day: str, colour: st
 
 @then(parsers.parse("la case « {box} » du calendrier a l'infobulle « {tooltip} »"))
 def box_tooltip(interface: Context, box: str, tooltip: str) -> None:
-	c_list = []
-	for c in calendar(interface).findChildren(QCheckBox):
-		if c.text() == box:
-			c_list.append(c)
-	(ticked,) = c_list
+	named_boxes = []
+	for candidate in calendar(interface).findChildren(QCheckBox):
+		if candidate.text() == box:
+			named_boxes.append(candidate)
+	(ticked,) = named_boxes
 	assert ticked.toolTip() == tooltip
 
 

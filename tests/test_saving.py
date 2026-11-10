@@ -184,7 +184,9 @@ def dates(empty_database: Connection, start: str, end: str) -> None:
 )
 def copies(empty_database: Connection, location: str, artist: str, title: str) -> None:
 	lines = airplay(empty_database)
-	assert (lines) and (all(line[3:6] == (location, artist, title) for line in lines)), lines
+	assert lines, lines
+	for line in lines:
+		assert line[3:6] == (location, artist, title), lines
 
 
 @then(

@@ -192,13 +192,13 @@ class ItemList(QObject):
 			column_list.append(f"e.{column}")
 		columns = ", ".join(column_list)
 		if rows is None:
-			chosen = None
+			limit = None
 		else:
-			chosen = rows + 1
+			limit = rows + 1
 		rows_read = self.card.connection.execute(
 			f"SELECT e.id, e.position, {columns} FROM {self.table} e"  # noqa: S608
 			f" WHERE e.{self.column_parent} = %s AND e.position > %s ORDER BY e.position LIMIT %s",
-			(self._parent, after, chosen),
+			(self._parent, after, limit),
 		).fetchall()
 		if (rows is not None) and (len(rows_read) > rows):
 			rows_read = rows_read[:rows]
@@ -214,13 +214,20 @@ class ItemList(QObject):
 		categories = list(self._columns())
 		items = []
 		for line_in_database, _position, *identifiers in rows_read:
-			g_list = []
+			given = []
 			for g, i in zip(categories, identifiers, strict=True):
 				if i is not None:
-					g_list.append((g, i))
-			((category, identifier),) = g_list
+					given.append((g, i))
+			((category, identifier),) = given
 			items.append((int(str(line_in_database)), category, int(str(identifier))))
-		fetched_list = self._read({category: [i for _l, g, i in items if g == category] for category in categories})
+		category_dict = {}
+		for wanted_category in categories:
+			wanted_identifiers = []
+			for _l, g, i in items:
+				if g == wanted_category:
+					wanted_identifiers.append(i)
+			category_dict[wanted_category] = wanted_identifiers
+		fetched_list = self._read(category_dict)
 		lines = []
 		for line_in_database, category, identifier in items:
 			# Un même élément peut revenir : chaque ligne a son exemplaire.
@@ -291,7 +298,9 @@ class ItemList(QObject):
 		sans boucler (https://github.com/dascritch/machincast/issues/383)."""
 		loop = (loop) and (self._after is None)
 		lines = self.lines()
-		edges = [(line.data(0, ENTRY), line.data(0, OUTPUT)) for line in lines]
+		edges = []
+		for edge_line in lines:
+			edges.append((edge_line.data(0, ENTRY), edge_line.data(0, OUTPUT)))
 		texts = []
 		for number in ignored_calls_to_edges(edges, self.marked_list, loop):
 			line = lines[number - 1]
@@ -330,58 +339,54 @@ class ItemList(QObject):
 		existing_list: set[tuple[str, int]] = set()
 		for category in self._columns():
 			requests = []
-			for _line, g, item_id in items:
-				if g == category:
+			for _line, item_category, item_id in items:
+				if item_category == category:
 					requests.append(item_id)
 			fetched_list = connection.execute(f"SELECT id FROM {TABLES[category]} WHERE id = ANY(%s)", (requests,))  # noqa: S608
-			existing_list |= {(category, int(str(identifier))) for (identifier,) in fetched_list}
+			for (identifier,) in fetched_list:
+				existing_list.add((category, int(str(identifier))))
 		kept_list = []
 		for line, category, item_id in items:
 			if (category, item_id) in existing_list:
 				kept_list.append((line, category, item_id))
-		in_database = []
-		for line, _category, _item in kept_list:
+		# Une requête pour les lignes gardées, une par genre pour les nouvelles, quel que soit leur nombre
+		# (https://github.com/dascritch/machincast/issues/383).
+		kept_lines = []
+		kept_positions = []
+		for position, (line, _category, _item) in enumerate(kept_list, start=1):
 			if line is not None:
-				in_database.append(line)
+				kept_lines.append(line)
+				kept_positions.append(position)
 		connection.execute(
 			f"DELETE FROM {self.table} WHERE {self.column_parent} = %s AND NOT (id = ANY(%s))",  # noqa: S608
-			(parent, in_database),
+			(parent, kept_lines),
 		)
-		# Une requête pour les lignes gardées, une par genre pour les nouvelles, quel que soit leur nombre (https://github.com/dascritch/machincast/issues/383).
-		kept = []
-		for position, (line, _g, _i) in enumerate(kept_list, start=1):
-			if line is not None:
-				kept.append((line, position))
 		# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
-		p_list_2 = []
-		for line, _p in kept:
-			p_list_2.append(line)
-		l_list = []
-		for _l, position in kept:
-			l_list.append(position)
 		connection.execute(
 			f"UPDATE {self.table} e SET position = v.position FROM unnest(%s::bigint[], %s::int[])"  # noqa: S608
 			f" AS v(id, position) WHERE e.id = v.id AND e.{self.column_parent} = %s",
-			(p_list_2, l_list, parent),
+			(kept_lines, kept_positions, parent),
 		)
 		for category, column in COLUMNS.items():
-			new = []
-			for position, (line, g, item_id) in enumerate(kept_list, start=1):
-				if (line is None) and (g == category):
-					new.append((position, item_id))
-			if new == []:
-				continue
-			i_list = []
-			for position, _i in new:
-				i_list.append(position)
-			p_list = []
-			for _p, item_id in new:
-				p_list.append(item_id)
-			connection.execute(
-				f"INSERT INTO {self.table} ({self.column_parent}, position, {column})"  # noqa: S608
-				" SELECT %s, v.position, v.item FROM unnest(%s::int[], %s::bigint[]) AS v(position, item)",
-				(parent, i_list, p_list),
-			)
+			self._insert_new(parent, kept_list, category, column)
+
+	def _insert_new(
+		self, parent: int, kept_list: list[tuple[int | None, str, int]], category: str, column: str
+	) -> None:
+		"""Les nouvelles lignes d'un genre, en une requête ; aucune s'il n'y en a pas."""
+		new_positions = []
+		new_items = []
+		for position, (line, line_category, item_id) in enumerate(kept_list, start=1):
+			if (line is None) and (line_category == category):
+				new_positions.append(position)
+				new_items.append(item_id)
+		if new_positions == []:
+			return
+		self.card.connection.execute(
+			f"INSERT INTO {self.table} ({self.column_parent}, position, {column})"  # noqa: S608
+			" SELECT %s, v.position, v.item FROM unnest(%s::int[], %s::bigint[]) AS v(position, item)",
+			(parent, new_positions, new_items),
+		)
 
 	def _save_stream(self, feed: int, name: str) -> int | None:
 		"""Dans la transaction d'« Enregistrer » : le stream qui suit le feed, créé s'il n'y en a pas, actif et
@@ -492,11 +497,11 @@ class ItemList(QObject):
 		with self.card.connection.transaction():
 			self._read_marked()
 			fetched_list = self._read({category: chosen_list})[category]
-		chosen_list_2 = []
+		chosen_lines = []
 		for chosen in chosen_list:
 			if chosen in fetched_list:
-				chosen_list_2.append(fetched_list[chosen])
-		self.list_.addTopLevelItems(chosen_list_2)
+				chosen_lines.append(fetched_list[chosen])
+		self.list_.addTopLevelItems(chosen_lines)
 		self._refresh_buttons()
 
 	def _add_feeds(self) -> None:

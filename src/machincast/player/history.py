@@ -234,7 +234,10 @@ class HistoryInDatabase:
 		counts = {}
 		for sound, count in lines:
 			counts[int(str(sound))] = int(str(count))
-		return {sound: counts.get(sound, 0) for sound in sounds}
+		plays = {}
+		for wanted in sounds:
+			plays[wanted] = counts.get(wanted, 0)
+		return plays
 
 	def played_via_bank(self, connection: Connection, bank: int) -> list[int]:
 		lines = connection.execute(
@@ -267,13 +270,13 @@ class HistoryInDatabase:
 			return None
 		play, bank, start, event, item, item_sequence = line
 		if isinstance(start, datetime):
-			chosen = start
+			known_start = start
 		else:
-			chosen = None
+			known_start = None
 		return LastPlay(
 			uuid.UUID(str(play)),
 			integer_or_none(bank),
-			chosen,
+			known_start,
 			integer_or_none(event),
 			integer_or_none(item),
 			integer_or_none(item_sequence),

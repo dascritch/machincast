@@ -52,7 +52,11 @@ def configure(executable: str) -> logging.Logger:
 	"""Prépare le journal « machincast » pour un exécutable ; sans effet cumulatif si appelé plusieurs fois. Le nom de
 	l'exécutable ne figure plus dans ses lignes, que son horodatage ouvre ; il reste celui de son journal."""
 	log = logging.getLogger(LOG)
-	for old in [handler for handler in log.handlers if isinstance(handler, _Outputs)]:
+	handler_list = []
+	for old_handler in log.handlers:
+		if isinstance(old_handler, _Outputs):
+			handler_list.append(old_handler)
+	for old in handler_list:
 		log.removeHandler(old)
 	handler = _Outputs()
 	handler.set_name(executable)

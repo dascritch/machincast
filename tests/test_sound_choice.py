@@ -237,10 +237,10 @@ def remaining_cycle(context: Context, empty_database: Connection, name: str, lis
 	socket, sample_database = sample_database_parameters()
 	with open_connection(socket, sample_database, Role.PLAYBACK) as connection:
 		rest = remaining_list(connection, playback_bank(connection, name), context.clock.now())
-	s_list = []
-	for s in rest:
-		s_list.append(sound_name(empty_database, s))
-	assert sorted(s_list) == sorted(names(list_))
+	rest_names = []
+	for sound in rest:
+		rest_names.append(sound_name(empty_database, sound))
+	assert sorted(rest_names) == sorted(names(list_))
 
 
 @then(parsers.parse("la banque « {name} » ne fournit aucun sonore"))

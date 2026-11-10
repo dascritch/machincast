@@ -224,6 +224,14 @@ class Decision:
 		return not ((self.cut) or (self.switch_off) or (self.play) or (self.dead_air))
 
 
+def _skips_event(skipped_list: list[Skip], event: int) -> bool:
+	"""Un des éléments sautés est de l'événement."""
+	for skip in skipped_list:
+		if skip.event == event:
+			return True
+	return False
+
+
 def items_to_try(items: list[Item], last: int | None, loop: bool) -> list[Item]:
 	"""Éléments à essayer dans l'ordre, à partir de celui qui suit le dernier joué.
 
@@ -366,10 +374,10 @@ def in_sequence(
 					position=line.position, name=sequence.name, name2=occurrence.event.name
 				)
 				skipped_list.append(Skip(("sequence_items", line.id), description, occurrence.event.id))
-			continue
-		sound = _provide(connection, line.sound, line.bank, instant, randomness, excluded_list, history)
-		if sound is not None:
-			return Choice(sound, item, line.bank, occurrence, line)
+		else:
+			sound = _provide(connection, line.sound, line.bank, instant, randomness, excluded_list, history)
+			if sound is not None:
+				return Choice(sound, item, line.bank, occurrence, line)
 	return None
 
 
@@ -676,7 +684,9 @@ class Scheduler:
 			events = read_grid(self.connection)
 			under = self._replace(events, instant, self._on_grid(events, instant))
 		cut_list = self.return_to_background_programming(instant)
-		ends = [occurrence.end for occurrence in cut_list]
+		ends = []
+		for cut in cut_list:
+			ends.append(cut.end)
 		until: datetime | None = None
 		if (ends != []) and (None not in ends):
 			end_list = []
@@ -870,7 +880,7 @@ class Scheduler:
 			# (https://github.com/dascritch/machincast/issues/253).
 			self.finished_list.add(active.key)
 			cut = switch_off = False
-			if (repetition is not None) and (any(skip.event == active.event.id for skip in skipped_list)):
+			if (repetition is not None) and (_skips_event(skipped_list, active.event.id)):
 				self.history.record(
 					self.connection,
 					"warning",

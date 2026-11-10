@@ -84,18 +84,23 @@ qu'il lance."""
 
 def directory() -> Path:
 	"""Le répertoire de ENVIRONMENT, sinon DIRECTORY, ou FALLBACK s'il ne peut pas être créé ou écrit."""
-	chosen = os.environ.get(ENVIRONMENT)
+	from_environment = os.environ.get(ENVIRONMENT)
 	candidates = [DIRECTORY, FALLBACK]
-	if chosen:
-		candidates = [Path(chosen), FALLBACK]
+	if from_environment:
+		candidates = [Path(from_environment), FALLBACK]
 	for candidate in candidates:
-		try:
-			candidate.mkdir(parents=True, exist_ok=True)
-		except OSError:
-			continue
-		if os.access(candidate, os.W_OK):
+		if _writable(candidate):
 			return candidate
 	return FALLBACK
+
+
+def _writable(candidate: Path) -> bool:
+	"""Le répertoire existe, ou a pu être créé, et peut être écrit."""
+	try:
+		candidate.mkdir(parents=True, exist_ok=True)
+	except OSError:
+		return False
+	return os.access(candidate, os.W_OK)
 
 
 def name(program: str, started: datetime, pid: int) -> str:
@@ -231,10 +236,10 @@ def completion(program: str, pid: int, configuration: Path | None) -> list[str]:
 	fichier de configuration et « wpctl status » pour les binaires qui jouent du son, puis les dernières lignes du
 	journal de ce pid."""
 	_load_libraries()
-	line_list_2 = []
+	indented_versions = []
 	for line in versions():
-		line_list_2.append(f"  {line}")
-	lines = ["", _("Versions, when the report was finished"), *line_list_2]
+		indented_versions.append(f"  {line}")
+	lines = ["", _("Versions, when the report was finished"), *indented_versions]
 	sections: list[tuple[str, str]] = []
 	if program in WITH_SOUND_CARDS:
 		try:
@@ -354,10 +359,10 @@ def _header(watch: Watch) -> list[str]:
 
 def _context(watch: Watch, live: bool) -> list[str]:
 	"""Les versions, puis ce que le binaire a noté et, en direct seulement, ce qu'il donne."""
-	line_list_3 = []
+	indented_versions = []
 	for line in versions():
-		line_list_3.append(f"  {line}")
-	lines = ["", _("Versions"), *line_list_3]
+		indented_versions.append(f"  {line}")
+	lines = ["", _("Versions"), *indented_versions]
 	for key, value in watch.notes.items():
 		line_list = []
 		for line in value.splitlines():
@@ -369,10 +374,10 @@ def _context(watch: Watch, live: bool) -> list[str]:
 				value = provider()
 			except Exception as error:  # noqa: BLE001 : un rapport ne doit pas planter
 				value = _("not available: {error}").format(error=error)
-			line_list_2 = []
+			indented_value = []
 			for line in value.splitlines():
-				line_list_2.append(f"  {line}")
-			lines += ["", key, *line_list_2]
+				indented_value.append(f"  {line}")
+			lines += ["", key, *indented_value]
 	return lines
 
 
@@ -383,15 +388,15 @@ def write_report(error: BaseException, instant: datetime | None = None) -> Path 
 	if watch is None:
 		return None
 	instant = (instant) or (SystemClock().now())
-	line_list_2 = []
+	stack = []
 	for line in traceback.format_exception(error):
-		line_list_2.append(line.rstrip("\n"))
+		stack.append(line.rstrip("\n"))
 	lines = [
 		*_header(watch),
 		_("Crash: {instant}").format(instant=instant.isoformat(timespec="seconds")),
 		"",
 		_("Python stack"),
-		*line_list_2,
+		*stack,
 	]
 	details = external(error)
 	if details:
@@ -474,7 +479,7 @@ def report_of(program: str, started: datetime, pid: int, place: Path | None = No
 	place = (place) or (directory())
 	best: tuple[float, Path] | None = None
 
-	def report_path_2(path: Path) -> None:
+	def weigh_report(path: Path) -> None:
 		nonlocal best
 		stamp = path.name.removeprefix(f"{program}-").removesuffix(f"-{pid}.txt")
 		try:
@@ -487,7 +492,7 @@ def report_of(program: str, started: datetime, pid: int, place: Path | None = No
 			best = (gap, path)
 
 	for path in place.glob(f"{program}-*-{pid}.txt"):
-		report_path_2(path)
+		weigh_report(path)
 	if best is None:
 		return None
 	return best[1]

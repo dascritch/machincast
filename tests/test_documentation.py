@@ -40,7 +40,7 @@ def commands(path: Path) -> list[list[str]]:
 	result = []
 	for block in blocks:
 
-		def handle_line(line) -> None:
+		def add_commands(line) -> None:
 			line = line.split(" #", 1)[0].strip()
 			if (not line) or (line.startswith("#")):
 				return
@@ -49,7 +49,7 @@ def commands(path: Path) -> list[list[str]]:
 					result.append(shlex.split(command))
 
 		for line in block.replace("\\\n", " ").splitlines():
-			handle_line(line)
+			add_commands(line)
 	return result
 
 

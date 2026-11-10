@@ -102,16 +102,16 @@ def _launch(
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = maintenance.run(configuration, options)
 		maintenance.after(options)
-	r_list = []
-	for r in caplog.records:
-		if r.levelno == logging.INFO:
-			r_list.append(r.getMessage())
-	execution.information = r_list
-	r_list_2 = []
-	for r in caplog.records:
-		if r.levelno >= logging.WARNING:
-			r_list_2.append(r.getMessage())
-	execution.errors = r_list_2
+	information = []
+	for record in caplog.records:
+		if record.levelno == logging.INFO:
+			information.append(record.getMessage())
+	execution.information = information
+	errors = []
+	for record in caplog.records:
+		if record.levelno >= logging.WARNING:
+			errors.append(record.getMessage())
+	execution.errors = errors
 
 
 @when(parsers.parse("je lance « {command} »"))
@@ -191,11 +191,11 @@ def announcements(configuration: Configuration, execution: Execution, datatable:
 	for line in execution.information:
 		if not line.startswith("sauvegarde faite"):
 			line_list.append(line)
-	line_list_2 = []
+	expected_lines = []
 	for line in expected_list:
 		if line != "sauvegarde faite":
-			line_list_2.append(line)
-	assert line_list == line_list_2
+			expected_lines.append(line)
+	assert line_list == expected_lines
 	found = False
 	for line in execution.information:
 		if line.startswith("sauvegarde faite"):

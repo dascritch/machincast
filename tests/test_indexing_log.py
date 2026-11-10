@@ -252,10 +252,10 @@ def bank_sounds(interface: Context, empty_database: Connection, name: str, datat
 		expected_list.append(tuple(value_list))
 	line_list = []
 	for line in fetched_list:
-		value_list_2 = []
+		texts = []
 		for value in line:
-			value_list_2.append(str(value))
-		line_list.append(tuple(value_list_2))
+			texts.append(str(value))
+		line_list.append(tuple(texts))
 	assert line_list == expected_list
 
 

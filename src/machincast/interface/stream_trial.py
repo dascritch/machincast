@@ -111,12 +111,11 @@ class StreamTrial(QObject):
 		bus = self._pipeline.get_bus()
 		# pop_filtered jette les messages d'autres types : les tags et les erreurs se lisent ensemble.
 		while (message := bus.pop_filtered(Gst.MessageType.TAG | Gst.MessageType.ERROR)) is not None:
-			if message.type == Gst.MessageType.TAG:
-				self._read_tags(message.parse_tag())
-				continue
-			error, _detail = message.parse_error()
-			self._finish(False, f"{error.message.rstrip('.')}.")
-			return
+			if message.type != Gst.MessageType.TAG:
+				error, _detail = message.parse_error()
+				self._finish(False, f"{error.message.rstrip('.')}.")
+				return
+			self._read_tags(message.parse_tag())
 		if self._sound >= EXPECTED_SOUND.total_seconds() * Gst.SECOND:
 			self._finish(True, _("sound arrives, {describe}.").format(describe=describe(self._type, self._bitrate)))
 

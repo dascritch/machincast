@@ -35,7 +35,11 @@ def screen(interface: Context) -> AirplayScreen:
 	screens = []
 	for index in range(tabs.count()):
 		screens.append(tabs.widget(index))
-	(found,) = [screen for screen in screens if isinstance(screen, AirplayScreen)]
+	screen_list = []
+	for candidate in screens:
+		if isinstance(candidate, AirplayScreen):
+			screen_list.append(candidate)
+	(found,) = screen_list
 	return found
 
 
@@ -114,10 +118,10 @@ def expected_table(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *lines = datatable
 	expected_list = []
 	for values in lines:
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		expected_list.append(dict(zip(headers, v_list, strict=True)))
+			cells.append(v.strip())
+		expected_list.append(dict(zip(headers, cells, strict=True)))
 	assert table(interface) == expected_list, table(interface)
 
 
@@ -130,11 +134,16 @@ def lines(interface: Context, count: str) -> None:
 def menu(interface: Context, title: str, entry: str) -> None:
 	opened = screen(interface)
 	model = opened.model
-	(row,) = [
-		row
-		for row in range(model.rowCount())
-		if any(model.index(row, column).data() == title for column in range(model.columnCount()))
-	]
+	row_list = []
+	for candidate_row in range(model.rowCount()):
+		found = False
+		for column in range(model.columnCount()):
+			if model.index(candidate_row, column).data() == title:
+				found = True
+				break
+		if found:
+			row_list.append(candidate_row)
+	(row,) = row_list
 	line_menu = opened.line_menu(model.index(row, 0))
 	assert line_menu is not None
 	action_list = []

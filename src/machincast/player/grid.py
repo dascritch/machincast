@@ -50,7 +50,15 @@ class Priority(StrEnum):
 	SPECIAL = "special"
 
 
-RANKS = {priority: rank for rank, priority in enumerate(Priority)}
+def ranks[T](ordered: Iterable[T]) -> dict[T, int]:
+	"""Le rang de chaque élément, dans l'ordre donné."""
+	found = {}
+	for rank, element in enumerate(ordered):
+		found[element] = rank
+	return found
+
+
+RANKS = ranks(Priority)
 
 NEVER = datetime.min.replace(tzinfo=UTC)
 """Date de modification d'un événement qui n'en a pas."""
@@ -146,17 +154,22 @@ def occurrence(event: Event, instant: datetime) -> Occurrence | None:
 		recoil = duration_in_days
 	for gap in range(recoil + 1):
 		day = moment.date() - timedelta(days=gap)
-		if (day < first_day) or ((day != first_day) and (day.weekday() not in event.days)):
-			continue
-		if day in event.skipped_list:
-			continue
-		departure = datetime.combine(day, start.time())
-		arrival = None
-		if (end is not None) and (duration_in_days is not None):
-			arrival = datetime.combine(day + timedelta(days=duration_in_days), end.time())
-		if _covers(departure, arrival, moment):
-			return Occurrence(event, departure, arrival)
+		if _starts_on(event, day, first_day):
+			departure = datetime.combine(day, start.time())
+			arrival = None
+			if (end is not None) and (duration_in_days is not None):
+				arrival = datetime.combine(day + timedelta(days=duration_in_days), end.time())
+			if _covers(departure, arrival, moment):
+				return Occurrence(event, departure, arrival)
 	return None
+
+
+def _starts_on(event: Event, day: date, first_day: date) -> bool:
+	"""Une occurrence de l'événement peut commencer ce jour : le premier, ou un jour de sa semaine après lui, s'il n'est
+	pas sauté."""
+	if (day < first_day) or ((day != first_day) and (day.weekday() not in event.days)):
+		return False
+	return day not in event.skipped_list
 
 
 def active_event(
@@ -178,13 +191,14 @@ def active_event(
 		and (wall_hour(instant) < advanced.start)
 	):
 		return advanced
-	candidates = [
-		o
-		for e in events
-		if (e.priority is not Priority.FALLBACK)
-		and ((o := occurrence(e, instant)) is not None)
-		and (o.key not in finished_list)
-	]
+	candidates = []
+	for e in events:
+		if (
+			(e.priority is not Priority.FALLBACK)
+			and ((o := occurrence(e, instant)) is not None)
+			and (o.key not in finished_list)
+		):
+			candidates.append(o)
 	return _winning(candidates)
 
 
@@ -192,9 +206,10 @@ def _yields(opened: Occurrence, others: Iterable[Occurrence]) -> bool:
 	"""Une occurrence sans fin, ou permanente, laisse la place à une occurrence qui a commencé après elle."""
 	if opened.end is not None:
 		return False
-	return any(
-		(other.start is not None) and ((opened.start is None) or (other.start > opened.start)) for other in others
-	)
+	for other in others:
+		if (other.start is not None) and ((opened.start is None) or (other.start > opened.start)):
+			return True
+	return False
 
 
 def sessions(event: Event, de: date, a: date) -> list[tuple[datetime, datetime | None]]:
@@ -216,7 +231,7 @@ def _occurrences(event: Event, de: date, a: date, with_skipped: bool = False) ->
 		duration_in_days = (end.date() - start.date()).days
 	found_list: list[tuple[datetime, datetime | None]] = []
 
-	def handle_gap(gap: int) -> None:
+	def add_day_occurrence(gap: int) -> None:
 		day = de + timedelta(days=gap)
 		if (day < start.date()) or ((day != start.date()) and (day.weekday() not in event.days)):
 			return
@@ -228,7 +243,7 @@ def _occurrences(event: Event, de: date, a: date, with_skipped: bool = False) ->
 		found_list.append((datetime.combine(day, start.time()), arrival))
 
 	for gap in range((a - de).days):
-		handle_gap(gap)
+		add_day_occurrence(gap)
 	return found_list
 
 
@@ -295,12 +310,11 @@ def overlap(event: Event, others: Iterable[Event], since: datetime | None = None
 		duration = _covered_days(event) + _covered_days(other)
 		pivot = max(wall_hour(event_start), wall_hour(other.start), (wall) or (datetime.min)).date()
 		de, a = pivot - timedelta(days=duration + 1), pivot + timedelta(days=duration + 8)
-		common_list = [
-			instant
-			for first in _to_leave_of(_occurrences(event, de, a), wall)
-			for second in _to_leave_of(_occurrences(other, de, a), wall)
-			if (instant := _common_instant(first, second)) is not None
-		]
+		common_list = []
+		for first in _to_leave_of(_occurrences(event, de, a), wall):
+			for second in _to_leave_of(_occurrences(other, de, a), wall):
+				if (instant := _common_instant(first, second)) is not None:
+					common_list.append(instant)
 		if common_list:
 			found_list.append((min(common_list), other.id, other))
 
@@ -335,7 +349,11 @@ def next_change(events: Iterable[Event], instant: datetime) -> datetime | None:
 		end = _wall_hour_or_none(event.end)
 		if not event.days:
 			if start.date() not in event.skipped_list:
-				candidates += [c for c in (start, end) if c is not None]
+				bounds = []
+				for c in (start, end):
+					if c is not None:
+						bounds.append(c)
+				candidates += bounds
 			return
 		duration_in_days: int | None = None
 		if end is not None:
@@ -358,7 +376,10 @@ def next_change(events: Iterable[Event], instant: datetime) -> datetime | None:
 
 	for event in events:
 		next_event(event)
-	after = [candidate for candidate in candidates if candidate > moment]
+	after = []
+	for candidate in candidates:
+		if candidate > moment:
+			after.append(candidate)
 	if not after:
 		return None
 	return min(after).astimezone()
@@ -425,11 +446,14 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 	(https://github.com/dascritch/machincast/issues/273).
 	"""
 	de, a = wall_hour(de), wall_hour(a)
-	grid = [event for event in events if event.priority is not Priority.FALLBACK]
+	grid = []
+	for candidate in events:
+		if candidate.priority is not Priority.FALLBACK:
+			grid.append(candidate)
 	occurrences: list[Occurrence] = []
 	skipped_list: list[Occurrence] = []
 
-	def handle_event(event: Event) -> None:
+	def add_occurrences(event: Event) -> None:
 		deleted = _wall_hour_or_none(event.deleted_at)
 		if event.start is None:
 			if (deleted is None) or (deleted > de):
@@ -438,7 +462,7 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 		# Une occurrence commencée avant la période peut encore la toucher : autant de jours qu'elle en couvre.
 		since = de.date() - timedelta(days=_covered_days(event) + 1)
 
-		def handle_end(end: datetime | None, start: datetime) -> None:
+		def add_occurrence(end: datetime | None, start: datetime) -> None:
 			if (deleted is not None) and (start >= deleted):
 				return
 			if start.date() in event.skipped_list:
@@ -447,26 +471,37 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 				occurrences.append(Occurrence(event, start, end))
 
 		for start, end in _occurrences(event, since, a.date() + timedelta(days=1), with_skipped=True):
-			handle_end(end, start)
+			add_occurrence(end, start)
 
 	for event in grid:
-		handle_event(event)
-	ends = {o.key: _drawn_end(o, occurrences, a) for o in occurrences}
+		add_occurrences(event)
+	ends = {}
+	for drawn in occurrences:
+		ends[drawn.key] = _drawn_end(drawn, occurrences, a)
 	for o in occurrences:
 		deleted = _wall_hour_or_none(o.event.deleted_at)
 		if deleted is not None:
 			ends[o.key] = min(ends[o.key], deleted)
 	# Une occurrence hors de la période n'y couvre aucun moment : elle n'y joue pas, et n'y est pas dessinée.
 	kept_list = occurrences
-	bounds = sorted(
-		{de, a}
-		| {o.start for o in kept_list if (o.start is not None) and (de < o.start < a)}
-		| {ends[o.key] for o in kept_list if de < ends[o.key] < a}
-	)
-	plays: dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]] = {o.key: [] for o in kept_list}
+	inner_starts = set()
+	for starting in kept_list:
+		if (starting.start is not None) and (de < starting.start < a):
+			inner_starts.add(starting.start)
+	inner_ends = set()
+	for ending in kept_list:
+		if de < ends[ending.key] < a:
+			inner_ends.add(ends[ending.key])
+	bounds = sorted({de, a} | inner_starts | inner_ends)
+	plays: dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]] = {}
+	for kept in kept_list:
+		plays[kept.key] = []
 
-	def handle_arrival(arrival: datetime, departure: datetime) -> None:
-		covering = [o for o in kept_list if ((o.start is None) or (o.start <= departure)) and (ends[o.key] > departure)]
+	def attribute_interval(arrival: datetime, departure: datetime) -> None:
+		covering = []
+		for o in kept_list:
+			if ((o.start is None) or (o.start <= departure)) and (ends[o.key] > departure):
+				covering.append(o)
 		winning = _winning(covering)
 		if winning is None:
 			return
@@ -477,11 +512,29 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 		moments.append((departure, arrival))
 
 	for departure, arrival in zip(bounds, bounds[1:], strict=False):
-		handle_arrival(arrival, departure)
-	planned_list = [Planned(o, (o.start) or (de), ends[o.key], tuple(plays[o.key])) for o in kept_list]
-	planned_list += [
-		Planned(o, (o.start) or (de), _drawn_end(o, occurrences, a), (), skipped=True) for o in skipped_list
-	]
+		attribute_interval(arrival, departure)
+	planned_list = []
+	for kept_occurrence in kept_list:
+		planned_list.append(
+			Planned(
+				kept_occurrence,
+				(kept_occurrence.start) or (de),
+				ends[kept_occurrence.key],
+				tuple(plays[kept_occurrence.key]),
+			)
+		)
+	skipped_planned = []
+	for skipped_occurrence in skipped_list:
+		skipped_planned.append(
+			Planned(
+				skipped_occurrence,
+				(skipped_occurrence.start) or (de),
+				_drawn_end(skipped_occurrence, occurrences, a),
+				(),
+				skipped=True,
+			)
+		)
+	planned_list += skipped_planned
 	return sorted(planned_list, key=lambda p: (p.start, RANKS[p.occurrence.event.priority], p.occurrence.event.id))
 
 
@@ -492,11 +545,10 @@ def _drawn_end(occurrence: Occurrence, all_: list[Occurrence], a: datetime) -> d
 		return occurrence.end
 	midnight = datetime.combine(occurrence.start.date() + timedelta(days=1), datetime.min.time())
 	rank = RANKS[occurrence.event.priority]
-	following_list = [
-		other.start
-		for other in all_
-		if (other.start is not None) and (other.start > occurrence.start) and (RANKS[other.event.priority] >= rank)
-	]
+	following_list = []
+	for other in all_:
+		if (other.start is not None) and (other.start > occurrence.start) and (RANKS[other.event.priority] >= rank):
+			following_list.append(other.start)
 	return min([midnight, *following_list])
 
 
@@ -504,9 +556,18 @@ def _winning(covering: list[Occurrence]) -> Occurrence | None:
 	"""Comme active_event : la plus haute priorité, puis ce qui ne cède pas, puis la dernière modifiée."""
 	if not covering:
 		return None
-	rank = max(RANKS[o.event.priority] for o in covering)
-	equal = [o for o in covering if RANKS[o.event.priority] == rank]
-	kept_list = [o for o in equal if not _yields(o, equal)]
+	ranks = []
+	for ranked in covering:
+		ranks.append(RANKS[ranked.event.priority])
+	rank = max(ranks)
+	equal = []
+	for candidate in covering:
+		if RANKS[candidate.event.priority] == rank:
+			equal.append(candidate)
+	kept_list = []
+	for equal_occurrence in equal:
+		if not _yields(equal_occurrence, equal):
+			kept_list.append(equal_occurrence)
 	return max(kept_list, key=lambda o: (o.event.modified_at, o.event.id))
 
 
@@ -541,35 +602,66 @@ def read_event(connection: psycopg.Connection[TupleRow], identifier: int) -> Eve
 
 
 def _events(lines: list[TupleRow]) -> list[Event]:
-	return [
-		Event(
-			id=int(str(identifier)),
-			name=str(name),
-			priority=Priority(str(priority)),
-			start=start if isinstance(start, datetime) else None,
-			end=end if isinstance(end, datetime) else None,
-			days=frozenset(DAYS.index(str(day)) for day in (days if isinstance(days, list) else [])),
-			modified_at=modified_at if isinstance(modified_at, datetime) else NEVER,
-			skipped_list=frozenset(
-				day for day in (skipped_list if isinstance(skipped_list, list) else []) if isinstance(day, date)
-			),
-			deleted_at=deleted_at if isinstance(deleted_at, datetime) else None,
-			end_of_list=str(end_of_list),
-			end_fallback=integer_or_none(end_fallback),
-			stream_fallback=integer_or_none(stream_fallback),
+	events = []
+	for (
+		identifier,
+		name,
+		priority,
+		start,
+		end,
+		days,
+		modified_at,
+		deleted_at,
+		skipped_list,
+		end_of_list,
+		end_fallback,
+		stream_fallback,
+	) in lines:
+		day_list = []
+		if isinstance(days, list):
+			day_names = days
+		else:
+			day_names = []
+		for day in day_names:
+			day_list.append(DAYS.index(str(day)))
+		skipped_days = []
+		if isinstance(skipped_list, list):
+			skipped_values = skipped_list
+		else:
+			skipped_values = []
+		for day in skipped_values:
+			if isinstance(day, date):
+				skipped_days.append(day)
+		if isinstance(start, datetime):
+			known_start = start
+		else:
+			known_start = None
+		if isinstance(end, datetime):
+			known_end = end
+		else:
+			known_end = None
+		if isinstance(modified_at, datetime):
+			known_modification = modified_at
+		else:
+			known_modification = NEVER
+		if isinstance(deleted_at, datetime):
+			known_deletion = deleted_at
+		else:
+			known_deletion = None
+		events.append(
+			Event(
+				id=int(str(identifier)),
+				name=str(name),
+				priority=Priority(str(priority)),
+				start=known_start,
+				end=known_end,
+				days=frozenset(day_list),
+				modified_at=known_modification,
+				skipped_list=frozenset(skipped_days),
+				deleted_at=known_deletion,
+				end_of_list=str(end_of_list),
+				end_fallback=integer_or_none(end_fallback),
+				stream_fallback=integer_or_none(stream_fallback),
+			)
 		)
-		for (
-			identifier,
-			name,
-			priority,
-			start,
-			end,
-			days,
-			modified_at,
-			deleted_at,
-			skipped_list,
-			end_of_list,
-			end_fallback,
-			stream_fallback,
-		) in lines
-	]
+	return events

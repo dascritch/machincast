@@ -131,16 +131,16 @@ def launch(
 	caplog.clear()
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		execution.code = BINARIES[binary](arguments)
-	r_list = []
-	for r in caplog.records:
-		if r.levelno == logging.INFO:
-			r_list.append(r.getMessage())
-	execution.information = r_list
-	r_list_2 = []
-	for r in caplog.records:
-		if r.levelno >= logging.WARNING:
-			r_list_2.append(r.getMessage())
-	execution.errors = r_list_2
+	information = []
+	for record in caplog.records:
+		if record.levelno == logging.INFO:
+			information.append(record.getMessage())
+	execution.information = information
+	errors = []
+	for record in caplog.records:
+		if record.levelno >= logging.WARNING:
+			errors.append(record.getMessage())
+	execution.errors = errors
 
 
 @then(parsers.parse("le lancement se termine avec le code {code:d}"))

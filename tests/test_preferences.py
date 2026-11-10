@@ -56,10 +56,10 @@ def settings(granularity: str, maximum: str, start: str | None, end: str | None)
 	duration = _seconds(maximum)
 	assert duration is not None
 	assert granularity in ("second", "tenth")
-	chosen = "tenth"
+	rounding = "tenth"
 	if granularity == "second":
-		chosen = "second"
-	return Crossfades(_seconds(start), _seconds(end), duration, chosen)
+		rounding = "second"
+	return Crossfades(_seconds(start), _seconds(end), duration, rounding)
 
 
 def read_settings(text: str) -> Crossfades:
@@ -798,10 +798,10 @@ def installed_shortcut(place: str) -> None:
 	path = _place(place)
 	path.parent.mkdir(parents=True, exist_ok=True)
 	path.write_text(shortcut.write(), encoding="utf-8")
-	chosen = 0o644
+	mode = 0o644
 	if place == "sur le bureau":
-		chosen = 0o755
-	path.chmod(chosen)
+		mode = 0o755
+	path.chmod(mode)
 
 
 def _shortcut_icon(path: Path) -> str:

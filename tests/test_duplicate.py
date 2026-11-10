@@ -75,7 +75,11 @@ def remove(interface: Context, qtbot: QtBot, names: str) -> None:
 	list_ = item_list(interface)
 	remove_item = opened_card(interface).ui.remove_item  # type: ignore[attr-defined]
 	for name in NAME.findall(names):
-		(row,) = [row for row, text in enumerate(lines(list_)) if text == name]
+		row_list = []
+		for rank, text in enumerate(lines(list_)):
+			if text == name:
+				row_list.append(rank)
+		(row,) = row_list
 		list_.setCurrentItem(list_.topLevelItem(row))
 		qtbot.mouseClick(remove_item, Qt.MouseButton.LeftButton)
 
@@ -101,7 +105,11 @@ def duplicate_to_right_click(interface: Context, name: str) -> None:
 	assert len(found_list) == 1, name
 	menu = list_.line_menu(found_list[0])
 	assert menu is not None
-	(action,) = [action for action in menu.actions() if action.text() == "Dupliquer"]
+	action_list = []
+	for candidate in menu.actions():
+		if candidate.text() == "Dupliquer":
+			action_list.append(candidate)
+	(action,) = action_list
 	action.trigger()
 
 
@@ -272,10 +280,10 @@ def bank_in_database(
 	directory_list = []
 	for (directory,) in fetched_list:
 		directory_list.append(str(directory))
-	r_list = []
-	for r in NAME.findall(directories):
-		r_list.append(interface.path(r))
-	assert directory_list == r_list
+	expected_directories = []
+	for directory_name in NAME.findall(directories):
+		expected_directories.append(interface.path(directory_name))
+	assert directory_list == expected_directories
 	titles = empty_database.execute(
 		"SELECT s.title FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
 		" WHERE bs.bank_id = %s ORDER BY bs.position",
@@ -300,8 +308,10 @@ def lists_who_duplicate(interface: Context, tabs: str) -> None:
 		list_.refresh()
 		assert list_.proxy.rowCount() > 0, tab_title(ui.tabs, row)
 		menu = list_.line_menu(list_.proxy.index(0, 0))
-		if (menu is not None) and (any(action.text() == "Dupliquer" for action in menu.actions())):
-			found_list.append(tab_title(ui.tabs, row))
+		if menu is not None:
+			for action in menu.actions():
+				if action.text() == "Dupliquer":
+					found_list.append(tab_title(ui.tabs, row))
 
 	for row in range(ui.tabs.count()):
 		lists_row(row)

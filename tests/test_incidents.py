@@ -43,7 +43,9 @@ def note(database: Connection, timestamp: str, level: str, kind: str, message: s
 		"bank": ("banks", "internal_name"),
 		"event": ("events", "internal_name"),
 	}
-	values = {key: None for key in ids}
+	values = {}
+	for identifier_key in ids:
+		values[identifier_key] = None
 	for key, (table, column) in ids.items():
 		if references.get(key, "") != "":
 			values[key] = identifier(database, table, column, references[key])
@@ -72,10 +74,10 @@ def log(empty_database: Connection, datatable: list[list[str]]) -> None:
 		header_list = []
 		for header in headers:
 			header_list.append(header.strip())
-		v_list = []
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		line = dict(zip(header_list, v_list, strict=True))
+			cells.append(v.strip())
+		line = dict(zip(header_list, cells, strict=True))
 		note(empty_database, line["logged_at"], line["level"], line["kind"], line["message"], line)
 
 
@@ -136,13 +138,13 @@ def shows(interface: Context, datatable: list[list[str]]) -> None:
 	headers, *rows = datatable
 	expected_list = []
 	for values in rows:
-		e_list = []
-		for e in headers:
-			e_list.append(e.strip())
-		v_list = []
+		keys = []
+		for header in headers:
+			keys.append(header.strip())
+		cells = []
 		for v in values:
-			v_list.append(v.strip())
-		expected_list.append(dict(zip(e_list, v_list, strict=True)))
+			cells.append(v.strip())
+		expected_list.append(dict(zip(keys, cells, strict=True)))
 	assert lines(interface) == expected_list
 
 

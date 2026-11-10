@@ -29,7 +29,7 @@ from machincast.i18n import _, short_date
 from machincast.interface import intents
 from machincast.interface.choice import Choice
 from machincast.interface.intents import label
-from machincast.interface.lists import BANKS, FEEDS, SEQUENCES, SOUNDS
+from machincast.interface.lists import BANKS, FEEDS, SEQUENCES, SOUNDS, Line
 from machincast.interface.preferences import PreferencesWindow, Settings
 from machincast.interface.suggestions import Response, Shortfalls, SuggestionsWindow
 from machincast.interface.version import News
@@ -291,9 +291,16 @@ def choose_banks(
 	source = BANKS
 	if among is not None:
 		offered_list = set(among)
-		source = dataclasses.replace(
-			BANKS, read=lambda fetched: [line for line in BANKS.read(fetched) if line.identifier in offered_list]
-		)
+
+		def read_offered(fetched: psycopg.Connection[TupleRow]) -> list[Line]:
+			"""Les banques en base qui sont parmi celles offertes."""
+			offered = []
+			for line in BANKS.read(fetched):
+				if line.identifier in offered_list:
+					offered.append(line)
+			return offered
+
+		source = dataclasses.replace(BANKS, read=read_offered)
 	return _choose(Choice(source, connection, remark, parent))
 
 
@@ -348,7 +355,10 @@ def version_window(parent: QWidget | None, text: str, news: News | None) -> QMes
 	l'auteur et la radio (https://github.com/dascritch/machincast/issues/332), et les nouveautés de la version
 	installée, si elle est publiée (https://github.com/dascritch/machincast/issues/208). Les liens s'ouvrent dans le
 	navigateur web."""
-	links = " · ".join(f"[{label}]({address})" for label, address in VERSION_LINKS)
+	address_list = []
+	for link_label, address in VERSION_LINKS:
+		address_list.append(f"[{link_label}]({address})")
+	links = " · ".join(address_list)
 	content = f"{text}\n\n{links}"
 	if news is not None:
 		content = _("{content}\n\n### What's new in version {version}\n\n{text}").format(
