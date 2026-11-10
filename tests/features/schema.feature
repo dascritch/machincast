@@ -4,9 +4,10 @@ Fonctionnalité: Schéma de la base de données
 	je veux que les migrations yoyo créent toutes les tables de la spécification,
 	afin que la base de production et la base de test aient un schéma strictement identique.
 
-	Un schéma initial, 0001.initial-schema, aux noms anglais (https://github.com/dascritch/machincast/issues/358), que
-	suivent les migrations d'après la première release, comme 0002.run-log. Une base de l'ancien schéma, aux noms
-	français, n'est plus reconnue (https://github.com/dascritch/machincast/issues/384) : elle se recrée.
+	Un schéma initial, 0001.initial-schema, aux noms anglais (https://github.com/dascritch/machincast/issues/358), seule
+	migration : les migrations 0002 à 0007 l'ont rejointe, MachinCast étant encore en alpha
+	(https://github.com/dascritch/machincast/issues/381). Une base de l'ancien schéma, aux noms français, n'est plus
+	reconnue (https://github.com/dascritch/machincast/issues/384) : elle se recrée.
 
 	Contexte:
 		Étant donné une base de test vide où les migrations sont appliquées
@@ -52,23 +53,12 @@ Fonctionnalité: Schéma de la base de données
 		Quand j'annule toutes les migrations
 		Alors la base ne contient plus aucune table ni aucun type de MachinCast
 
-	Scénario: Une base neuve reçoit le schéma initial, puis les migrations qui le suivent
-		https://github.com/dascritch/machincast/issues/341 : 0002.run-log, les démarrages et fins des binaires au log ;
-		https://github.com/dascritch/machincast/issues/399 : 0005.lend-name, dont l'annulation recrée le type end_of_list ;
-		https://github.com/dascritch/machincast/issues/342 : 0006.player-runs, la lecture retrouve son démarrage précédent ;
-		https://github.com/dascritch/machincast/issues/402 : 0007.breaking, la priorité « imprévu », au-dessus de « spécial ».
+	Scénario: Une base neuve reçoit le schéma, en une seule migration
+		https://github.com/dascritch/machincast/issues/381 : les migrations 0002 à 0007 ont rejoint 0001.initial-schema.
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 7 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.run-log, 0003.end-of-list, 0004.feed-buffer, 0005.lend-name, 0006.player-runs, 0007.breaking »
-
-	Scénario: Annuler la priorité « imprévu » rend spéciaux les événements imprévus
-		https://github.com/dascritch/machincast/issues/402 : PostgreSQL ne retire pas une valeur d'un type énuméré, l'annulation
-		recrée event_priority sans elle.
-
-		Quand j'enregistre dans "events" : internal_name = 'Alerte', priority = 'breaking', starts_at = '2026-11-10 09:00'
-		Et j'annule la migration « 0007.breaking »
-		Alors l'événement « Alerte » est de priorité « special »
+		Alors 1 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.

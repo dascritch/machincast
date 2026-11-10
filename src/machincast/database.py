@@ -1,8 +1,8 @@
 """Accès à la base PostgreSQL et application des migrations yoyo.
 
 Schéma initial, aux noms anglais (https://github.com/dascritch/machincast/issues/314,
-https://github.com/dascritch/machincast/issues/358) : 0001.initial-schema, puis les migrations qui le suivent, comme
-0002.run-log (https://github.com/dascritch/machincast/issues/341). Une base de l'ancien schéma, aux noms français,
+https://github.com/dascritch/machincast/issues/358) : 0001.initial-schema, seule migration, que les suivantes ont
+rejointe en alpha (https://github.com/dascritch/machincast/issues/381). Une base de l'ancien schéma, aux noms français,
 n'est plus reconnue (https://github.com/dascritch/machincast/issues/384) : aucune ne sera mise à jour avant la 1.0.0,
 elles se recréent.
 """
@@ -49,8 +49,7 @@ TYPES: tuple[str, ...] = (
 	"crossfade_rule",
 	"end_of_list",
 )
-"""Types énumérés créés par les migrations ; end_of_list depuis 0003.end-of-list
-(https://github.com/dascritch/machincast/issues/350)."""
+"""Types énumérés créés par la migration ; end_of_list depuis https://github.com/dascritch/machincast/issues/350."""
 
 
 class Role(StrEnum):
