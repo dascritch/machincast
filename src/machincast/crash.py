@@ -316,17 +316,20 @@ def external(error: BaseException) -> list[str]:
 					if value:
 						lines.append(f"  {attribute} : {value}")
 			lines.append(f"  {item}")
-		elif (hasattr(item, "domain")) and (hasattr(item, "code")) and (module.startswith("gi")):
-			lines.append(
-				f"GLib ({kind}) : domain {getattr(item, 'domain', '?')}, code {getattr(item, 'code', '?')},"
-				f" message {getattr(item, 'message', item)}"
-			)
-		elif isinstance(item, subprocess.CalledProcessError):
-			lines.append(f"{kind} : {item.cmd} → code {item.returncode}")
-			if item.stderr:
-				lines.append(f"  {item.stderr}")
-		elif isinstance(item, OSError):
-			lines.append(f"{kind} : errno {item.errno} ({item.strerror}), file {item.filename}")
+		else:
+			if (hasattr(item, "domain")) and (hasattr(item, "code")) and (module.startswith("gi")):
+				lines.append(
+					f"GLib ({kind}) : domain {getattr(item, 'domain', '?')}, code {getattr(item, 'code', '?')},"
+					f" message {getattr(item, 'message', item)}"
+				)
+			else:
+				if isinstance(item, subprocess.CalledProcessError):
+					lines.append(f"{kind} : {item.cmd} → code {item.returncode}")
+					if item.stderr:
+						lines.append(f"  {item.stderr}")
+				else:
+					if isinstance(item, OSError):
+						lines.append(f"{kind} : errno {item.errno} ({item.strerror}), file {item.filename}")
 	return lines
 
 
@@ -376,7 +379,9 @@ def write_report(error: BaseException, instant: datetime | None = None) -> Path 
 	path = watch.report_path
 	with _lock:
 		try:
-			mode = "a" if path in watch.written else "w"
+			mode = "w"
+			if path in watch.written:
+				mode = "a"
 			with path.open(mode, encoding="utf-8") as file:
 				if mode == "a":
 					file.write("\n" + "─" * 60 + "\n\n")
@@ -450,7 +455,9 @@ def report_of(program: str, started: datetime, pid: int, place: Path | None = No
 		gap = abs((instant - started).total_seconds())
 		if (gap <= LINK_DELAY) and ((best is None) or (gap < best[0])):
 			best = (gap, path)
-	return None if best is None else best[1]
+	if best is None:
+		return None
+	return best[1]
 
 
 def _running(pid: int) -> bool:

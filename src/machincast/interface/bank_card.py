@@ -313,7 +313,11 @@ class BankCard(Card):
 		"""Les sonores qui suivent la position, au plus rows, sans leur position ; note la position du dernier, s'il en
 		reste après, et les états de ceux qui restent. À lire dans une transaction."""
 		assert self.identifier is not None
-		lines = self.connection.execute(PAGE, (self.identifier, after, None if rows is None else rows + 1)).fetchall()
+		if rows is None:
+			chosen = None
+		else:
+			chosen = rows + 1
+		lines = self.connection.execute(PAGE, (self.identifier, after, chosen)).fetchall()
 		self._after = None
 		self._tail = {}
 		if (rows is not None) and (len(lines) > rows):
@@ -509,8 +513,9 @@ class BankCard(Card):
 		text = ""
 		if ("active" not in states) and (self._tail.get("active", 0) == 0):
 			text = BANK_WITHOUT_ACTIVE_SOUND
-		elif anomalies > 0:
-			text = bank_to_sounds_in_anomaly(anomalies)
+		else:
+			if anomalies > 0:
+				text = bank_to_sounds_in_anomaly(anomalies)
 		self.warn(text)
 
 	def _mark_outside_durations(self) -> None:
@@ -583,8 +588,9 @@ class BankCard(Card):
 		duration_text = ""
 		if file is None:
 			duration_text = display.duration(None)
-		elif isinstance(duration, timedelta):
-			duration_text = display.duration(duration)
+		else:
+			if isinstance(duration, timedelta):
+				duration_text = display.duration(duration)
 		text = display.artist_and_title(text_or_none(artist), text_or_none(title))
 		if (artist is None) and (title is None) and (file is not None):
 			# Pas encore décodé : le nom du fichier en attendant ses tags.
@@ -732,9 +738,10 @@ class BankCard(Card):
 			following = self.ui.sounds.currentItem()
 			if following is not None:
 				self.ui.sounds.setCurrentItem(following)
-		elif response is Removal.OPEN_FOLDER:
-			first, _directory = reinstated[0]
-			dialogs.open_folder(Path(str(first.data(0, FILE))).parent)
+		else:
+			if response is Removal.OPEN_FOLDER:
+				first, _directory = reinstated[0]
+				dialogs.open_folder(Path(str(first.data(0, FILE))).parent)
 		self._refresh_buttons()
 
 	def _directory_of(self, file: object) -> str | None:

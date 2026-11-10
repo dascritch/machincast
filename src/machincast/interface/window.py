@@ -717,7 +717,10 @@ class MainWindow(QMainWindow):
 
 	def _prelistened(self) -> str:
 		"""Le fichier ou le stream de la pré-écoute, s'il y en a un."""
-		source = None if self.preview is None else self.preview.player.source
+		if self.preview is None:
+			source = None
+		else:
+			source = self.preview.player.source
 		if source is None:
 			return "—"
 		return f"{source.title} : {source.address}"
@@ -814,25 +817,26 @@ class MainWindow(QMainWindow):
 	def _reopen(self, key: str) -> None:
 		"""Rouvre un onglet retenu ; un onglet fixe l'est déjà, une clé inconnue est ignorée."""
 		category, _separator, rest = key.partition(":")
-		if (category == "list") and (rest in ON_DEMAND):
-			self.open_list(rest)
-		elif category == "search":
-			self._open_search()
-		elif category == "simulation":
-			self._open_simulation()
-		elif category == "airplay":
-			self._open_airplay()
-		elif category == "card":
-			card_type, _separator, identifier = rest.partition(":")
-			if (card_type in CARD_TABLES) and (identifier.isdigit()):
-				if self._in_database(card_type, int(identifier)):
-					self._open_card(card_type, int(identifier))
-				else:
-					log.info(
-						_("card {card_type} {identifier} forgotten: the element is no longer in the database").format(
-							card_type=card_type, identifier=identifier
+		match category:
+			case _ if (category == "list") and (rest in ON_DEMAND):
+				self.open_list(rest)
+			case "search":
+				self._open_search()
+			case "simulation":
+				self._open_simulation()
+			case "airplay":
+				self._open_airplay()
+			case "card":
+				card_type, _separator, identifier = rest.partition(":")
+				if (card_type in CARD_TABLES) and (identifier.isdigit()):
+					if self._in_database(card_type, int(identifier)):
+						self._open_card(card_type, int(identifier))
+					else:
+						log.info(
+							_(
+								"card {card_type} {identifier} forgotten: the element is no longer in the database"
+							).format(card_type=card_type, identifier=identifier)
 						)
-					)
 
 	def _in_database(self, category: str, identifier: int) -> bool:
 		"""L'élément est en base, et n'est pas supprimé."""
@@ -1240,12 +1244,13 @@ class MainWindow(QMainWindow):
 		action = groups.action(list_.source.category, key)
 		banks: list[int] = []
 		try:
-			if action.choice == "toutes":
-				banks = dialogs.choose_banks(self, self.connection, ADDITION_TO_BANKS)
-			elif action.choice == "leurs":
-				with self.connection.transaction():
-					among = groups.sound_banks(self.connection, items)
-				banks = dialogs.choose_banks(self, self.connection, BANK_REMOVAL, among)
+			match action.choice:
+				case "toutes":
+					banks = dialogs.choose_banks(self, self.connection, ADDITION_TO_BANKS)
+				case "leurs":
+					with self.connection.transaction():
+						among = groups.sound_banks(self.connection, items)
+					banks = dialogs.choose_banks(self, self.connection, BANK_REMOVAL, among)
 			if (action.choice != "") and (banks == []):
 				return
 			with self.connection.transaction():

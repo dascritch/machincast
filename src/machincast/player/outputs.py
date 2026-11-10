@@ -154,7 +154,10 @@ def read_plays(
 	en cours, l'événement qui prête son nom à cet instant, ou (None,) sans prêt, à la place de celui qu'il avait à son
 	début (https://github.com/dascritch/machincast/issues/399)."""
 	override = ongoing_lender is not None
-	lender = None if ongoing_lender is None else ongoing_lender[0]
+	if ongoing_lender is None:
+		lender = None
+	else:
+		lender = ongoing_lender[0]
 	with connection.transaction():
 		lines = connection.execute(
 			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title, d.location,"
@@ -216,8 +219,14 @@ def read_plays(
 
 def public_page(lines: list[Line], metadata: Metadata, instant: datetime) -> str:
 	"""Page HTML publique : le sonore à l'antenne, puis les précédents, masquage appliqué."""
-	ongoing = lines[0] if (lines) and (lines[0].end is None) else None
-	previous_list = lines[1:] if ongoing is not None else lines
+	if (lines) and (lines[0].end is None):
+		ongoing = lines[0]
+	else:
+		ongoing = None
+	if ongoing is not None:
+		previous_list = lines[1:]
+	else:
+		previous_list = lines
 	name = html.escape(metadata.public_text)
 
 	def play(line: Line) -> str:
@@ -279,7 +288,10 @@ def playlist(lines: list[Line]) -> str:
 
 def csv_line(line: Line) -> str:
 	buffer = io.StringIO()
-	without_incident = "" if line.without_incident is None else YES_NO[line.without_incident]
+	if line.without_incident is None:
+		without_incident = ""
+	else:
+		without_incident = YES_NO[line.without_incident]
 	csv.writer(buffer, delimiter=";", lineterminator="\r\n").writerow(
 		[
 			_hour(line.start),
@@ -338,7 +350,9 @@ class Outputs:
 	def started_play(self, connection: psycopg.Connection[TupleRow], play: Play) -> None:
 		"""Annonce le passage dans le journal du binaire, puis met à jour la page publique et la playlist."""
 		for line in read_plays(connection, 1, play.id, ongoing_lender=self._lender):
-			place = f" ({line.event})" if line.event else ""
+			place = ""
+			if line.event:
+				place = f" ({line.event})"
 			log.info(
 				_("on air: {artist_and_title}{place}").format(
 					artist_and_title=(artist_and_title(line)) or (line.location), place=place
@@ -371,7 +385,10 @@ class Outputs:
 		check_writing(path)
 		path.parent.mkdir(parents=True, exist_ok=True)
 		new = not path.exists()
-		with path.open("a", encoding="utf-8-sig" if new else "utf-8", newline="") as file:
+		chosen = "utf-8"
+		if new:
+			chosen = "utf-8-sig"
+		with path.open("a", encoding=chosen, newline="") as file:
 			if new:
 				file.write(";".join(CSV_COLUMNS) + "\r\n")
 			file.write(csv_line(line))

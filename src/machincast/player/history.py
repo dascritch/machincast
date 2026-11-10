@@ -246,7 +246,9 @@ class HistoryInDatabase:
 			" ORDER BY logged_at DESC, id DESC LIMIT 1",
 			(event, since, since),
 		).fetchone()
-		return None if (line is None) or (line[0] is None) else int(str(line[0]))
+		if (line is None) or (line[0] is None):
+			return None
+		return int(str(line[0]))
 
 	def last_play(self, connection: Connection) -> LastPlay | None:
 		line = connection.execute(
@@ -256,10 +258,14 @@ class HistoryInDatabase:
 		if line is None:
 			return None
 		play, bank, start, event, item, item_sequence = line
+		if isinstance(start, datetime):
+			chosen = start
+		else:
+			chosen = None
 		return LastPlay(
 			uuid.UUID(str(play)),
 			integer_or_none(bank),
-			start if isinstance(start, datetime) else None,
+			chosen,
 			integer_or_none(event),
 			integer_or_none(item),
 			integer_or_none(item_sequence),

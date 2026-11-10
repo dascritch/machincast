@@ -52,7 +52,9 @@ def commands(path: Path) -> list[list[str]]:
 def apt_packages(path: Path) -> set[str]:
 	"""Paquets de la première commande apt install d'un fichier Markdown."""
 	for words in commands(path):
-		without_sudo = words[1:] if words[:1] == ["sudo"] else words
+		without_sudo = words
+		if words[:1] == ["sudo"]:
+			without_sudo = words[1:]
 		if without_sudo[:2] in (["apt", "install"], ["apt-get", "install"]):
 			return {word for word in without_sudo[2:] if not word.startswith("-")}
 	raise AssertionError(f"aucune commande apt install dans {path.name}")
@@ -121,7 +123,10 @@ def machin_commands(document: str) -> None:
 		# Options du wrapper avant le binaire : --config FICHIER ou --config=FICHIER.
 		while (arguments) and (arguments[0].startswith("-")):
 			assert arguments[0].split("=")[0] in options_wrapper, arguments
-			arguments = arguments[2:] if arguments[0] == "--config" else arguments[1:]
+			if arguments[0] == "--config":
+				arguments = arguments[2:]
+			else:
+				arguments = arguments[1:]
 		if (not arguments) or (arguments[0] == "logs"):
 			continue
 		binary, *options = arguments

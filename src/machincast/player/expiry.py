@@ -61,12 +61,16 @@ def expire(connection: psycopg.Connection[TupleRow], instant: datetime, sound: i
 		).fetchall()
 		expiries = []
 		for identifier, name, maximum, plays, end in lines:
+			if isinstance(end, datetime):
+				chosen = end
+			else:
+				chosen = None
 			expiry = Expiry(
 				int(str(identifier)),
 				_cause(
 					integer_or_none(maximum),
 					int(str(plays)),
-					end if isinstance(end, datetime) else None,
+					chosen,
 					instant,
 				),
 			)

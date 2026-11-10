@@ -121,7 +121,10 @@ def check_authorisations(connection: psycopg.Connection[tuple[object, ...]]) -> 
 	missing_list = sorted(set(roles) - {str(line[0]) for line in lines})
 	if missing_list:
 		count = connection.execute("SELECT current_user").fetchone()
-		name = count[0] if count is not None else "?"
+		if count is not None:
+			name = count[0]
+		else:
+			name = "?"
 		pytest.skip(
 			f"le compte {name} ne peut pas endosser {', '.join(missing_list)} : lancer ./install.sh, ou en tant que"
 			f' postgres : GRANT {", ".join(roles)} TO "{name}" WITH INHERIT FALSE, SET TRUE'

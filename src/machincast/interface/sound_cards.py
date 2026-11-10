@@ -290,13 +290,15 @@ def _fill(choice: QComboBox, current: str | None, found_list: list[audio_outputs
 	pas ; puis les autres cartes du poste ; puis la sortie factice, si elle n'est pas déjà en tête."""
 	if current is None:
 		choice.addItem(TO_FILL_IN, None)
-	elif current == DUMMY:
-		choice.addItem(DUMMY_OUTPUT, DUMMY)
 	else:
-		name = next(
-			(p.name for p in found_list if p.identifier == current), _("{device} (not found)").format(device=current)
-		)
-		choice.addItem(name, current)
+		if current == DUMMY:
+			choice.addItem(DUMMY_OUTPUT, DUMMY)
+		else:
+			name = next(
+				(p.name for p in found_list if p.identifier == current),
+				_("{device} (not found)").format(device=current),
+			)
+			choice.addItem(name, current)
 	for device in found_list:
 		if device.identifier != current:
 			choice.addItem(device.name, device.identifier)
@@ -324,9 +326,11 @@ def _set_button(button: QPushButton, card: str | None, ongoing: bool, locked: bo
 	tooltip = TEST
 	if locked:
 		tooltip = RUNNING_BROADCAST
-	elif card is None:
-		tooltip = WITHOUT_CARD
-	elif card == DUMMY:
-		tooltip = WITHOUT_SOUND
+	else:
+		if card is None:
+			tooltip = WITHOUT_CARD
+		else:
+			if card == DUMMY:
+				tooltip = WITHOUT_SOUND
 	button.setToolTip(tooltip)
 	button.setEnabled((tooltip == TEST) and (not ongoing))

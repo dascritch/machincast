@@ -265,44 +265,45 @@ def enter(interface: Context, qtbot: QtBot, datatable: list[list[str]]) -> None:
 	}
 	_headers, *rows = datatable
 	for field, raw in ((field.strip(), raw.strip().replace(SPACE, " ")) for field, raw in rows):
-		if field in free_texts:
-			type_(qtbot, free_texts[field], raw)
-		elif field in lists:
-			choose_text(lists[field], raw)
-		elif field in dates:
-			box, date = dates[field]
-			box.setChecked(raw != "")
-			if raw != "":
-				date.setDateTime(QDateTime.fromString(raw, DATE))
-		elif field in ("Crossfade de début", "Crossfade de fin"):
-			# Un crossfade vide n'est pas paramétré (https://github.com/dascritch/machincast/issues/145).
-			box, count = {
-				"Crossfade de début": (ui.has_start_crossfade, ui.start_crossfade),
-				"Crossfade de fin": (ui.has_end_crossfade, ui.end_crossfade),
-			}[field]
-			box.setChecked(raw != "")
-			if raw != "":
-				count.setValue(float(raw.replace(",", ".")))
-		elif field == "Maximum de lectures":
-			ui.playback_max.setValue(int(raw))
-		elif field == "Détection de silence":
-			ui.detection_silences.setChecked(raw == "oui")
-		elif field in ("Début détecté", "Fin détectée"):
-			# Un silence vide n'est pas détecté (https://github.com/dascritch/machincast/issues/146).
-			box, count = {
-				"Début détecté": (ui.has_detected_start, ui.detected_start),
-				"Fin détectée": (ui.has_detected_end, ui.detected_end),
-			}[field]
-			box.setChecked(raw != "")
-			if raw != "":
-				count.setValue(float(raw.replace(",", ".")))
-		elif field == "Adresse directe":
-			click_choice(qtbot, ui.by_address)
-			type_(qtbot, ui.url_stream, raw)
-		else:
-			assert field == "Feed", field
-			click_choice(qtbot, ui.by_feed)
-			choose_text(ui.feed, raw)
+		match field:
+			case _ if field in free_texts:
+				type_(qtbot, free_texts[field], raw)
+			case _ if field in lists:
+				choose_text(lists[field], raw)
+			case _ if field in dates:
+				box, date = dates[field]
+				box.setChecked(raw != "")
+				if raw != "":
+					date.setDateTime(QDateTime.fromString(raw, DATE))
+			case "Crossfade de début" | "Crossfade de fin":
+				# Un crossfade vide n'est pas paramétré (https://github.com/dascritch/machincast/issues/145).
+				box, count = {
+					"Crossfade de début": (ui.has_start_crossfade, ui.start_crossfade),
+					"Crossfade de fin": (ui.has_end_crossfade, ui.end_crossfade),
+				}[field]
+				box.setChecked(raw != "")
+				if raw != "":
+					count.setValue(float(raw.replace(",", ".")))
+			case "Maximum de lectures":
+				ui.playback_max.setValue(int(raw))
+			case "Détection de silence":
+				ui.detection_silences.setChecked(raw == "oui")
+			case "Début détecté" | "Fin détectée":
+				# Un silence vide n'est pas détecté (https://github.com/dascritch/machincast/issues/146).
+				box, count = {
+					"Début détecté": (ui.has_detected_start, ui.detected_start),
+					"Fin détectée": (ui.has_detected_end, ui.detected_end),
+				}[field]
+				box.setChecked(raw != "")
+				if raw != "":
+					count.setValue(float(raw.replace(",", ".")))
+			case "Adresse directe":
+				click_choice(qtbot, ui.by_address)
+				type_(qtbot, ui.url_stream, raw)
+			case _:
+				assert field == "Feed", field
+				click_choice(qtbot, ui.by_feed)
+				choose_text(ui.feed, raw)
 
 
 @when(parsers.parse("je coche « {box} » dans la fiche du sonore"))

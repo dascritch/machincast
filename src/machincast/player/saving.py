@@ -147,5 +147,6 @@ def finish_play(
 		references = {"sound": play.sound, "bank": play.bank, "event": play.event}
 		if error is not None:
 			record(connection, "incident", kind, error, instant, **references)
-		elif cut:
-			record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)
+		else:
+			if cut:
+				record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)

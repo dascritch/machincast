@@ -505,7 +505,11 @@ def checks_at(database: Connection, sound: int) -> object:
 def check_date(
 	empty_database: Connection, sound: int, indexings: list[tuple[datetime, datetime]], previous: str | None
 ) -> None:
-	start, end = indexings[-2 if previous is not None else -1]
+	if previous is not None:
+		chosen = -2
+	else:
+		chosen = -1
+	start, end = indexings[chosen]
 	date = checks_at(empty_database, sound)
 	assert isinstance(date, datetime)
 	assert start <= date <= end, (start, date, end)

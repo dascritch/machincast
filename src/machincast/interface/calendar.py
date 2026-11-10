@@ -181,8 +181,9 @@ def week_title(monday: date) -> str:
 	departure = number(monday)
 	if monday.year != sunday.year:
 		departure = _("{day} {month} {year}").format(day=departure, month=MONTH[monday.month - 1], year=monday.year)
-	elif monday.month != sunday.month:
-		departure = _("{day} {month}").format(day=departure, month=MONTH[monday.month - 1])
+	else:
+		if monday.month != sunday.month:
+			departure = _("{day} {month}").format(day=departure, month=MONTH[monday.month - 1])
 	return _("Week from Monday {start} to Sunday {day} {month} {year}").format(
 		start=departure, day=number(sunday), month=MONTH[sunday.month - 1], year=sunday.year
 	)
@@ -326,12 +327,11 @@ class Strip:
 			moments = _("{departure}since {departure2:%H:%M:%S}, ongoing").format(
 				departure=departure, departure2=self.departure
 			)
-		elif self.arrival.date() == self.departure.date():
-			moments = f"{departure}{self.departure:%H:%M:%S} – {self.arrival:%H:%M:%S}"
 		else:
-			moments = (
-				f"{departure}{self.departure:%H:%M:%S} – {day_and_month(self.arrival.date())}, {self.arrival:%H:%M:%S}"
-			)
+			if self.arrival.date() == self.departure.date():
+				moments = f"{departure}{self.departure:%H:%M:%S} – {self.arrival:%H:%M:%S}"
+			else:
+				moments = f"{departure}{self.departure:%H:%M:%S} – {day_and_month(self.arrival.date())}, {self.arrival:%H:%M:%S}"
 		plays = ngettext("{count} play", "{count} plays", self.plays).format(count=self.plays)
 		lines = [_("Played: {name}").format(name=self.name), moments, plays]
 		if self.id_event is not None:
@@ -556,7 +556,10 @@ class Calendar(QWidget):
 
 	def zoom_in_notch(self, more_near: bool) -> None:
 		"""Le zoom voisin : moins d'heures, plus près, ou plus d'heures ; rien au-delà des bouts."""
-		rank = ZOOMS.index(self.visible_hours) + (-1 if more_near else 1)
+		chosen = 1
+		if more_near:
+			chosen = -1
+		rank = ZOOMS.index(self.visible_hours) + chosen
 		if 0 <= rank < len(ZOOMS):
 			self.zoom_in(ZOOMS[rank])
 
@@ -668,8 +671,9 @@ class Calendar(QWidget):
 		today = self._today()
 		if week:
 			self._start = self._monday(self._start)
-		elif today in self.days():
-			self._start = today
+		else:
+			if today in self.days():
+				self._start = today
 		self._week = week
 		self.refresh()
 

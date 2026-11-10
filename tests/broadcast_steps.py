@@ -221,9 +221,12 @@ def feed(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, li
 def feed_with_bank(
 	bench: Bench, empty_database: Connection, tmp_path: Path, name: str, mode: str, bank: str, list_: str
 ) -> None:
+	chosen = "random"
+	if mode == "séquentielle":
+		chosen = "sequential"
 	created = empty_database.execute(
 		"INSERT INTO banks (internal_name, mode) VALUES (%s, %s) RETURNING id",
-		(bank, "sequential" if mode == "séquentielle" else "random"),
+		(bank, chosen),
 	).fetchone()
 	assert created is not None
 	for position, sound_name in enumerate((n.strip(" «»") for n in list_.split(",")), start=1):
@@ -257,12 +260,15 @@ def show(
 	end: str,
 	sound_name: str,
 ) -> None:
+	chosen = "special"
+	if category == "l'émission":
+		chosen = "show"
 	event(
 		bench,
 		empty_database,
 		tmp_path,
 		name,
-		"show" if category == "l'émission" else "special",
+		chosen,
 		hour(f"2026-10-14 {start}"),
 		hour(f"2026-10-14 {end}"),
 		[sound_name],
@@ -278,12 +284,15 @@ def show(
 def sound_show(
 	bench: Bench, empty_database: Connection, tmp_path: Path, category: str, name: str, start: str, end: str, list_: str
 ) -> None:
+	chosen = "special"
+	if category == "l'émission":
+		chosen = "show"
 	event(
 		bench,
 		empty_database,
 		tmp_path,
 		name,
-		"show" if category == "l'émission" else "special",
+		chosen,
 		hour(f"2026-10-14 {start}"),
 		hour(f"2026-10-14 {end}"),
 		[n.strip(" «»") for n in list_.split(",")],
@@ -645,13 +654,21 @@ def interrupt(bench: Bench, what: str) -> None:
 def cut_by_fallback(bench: Bench, empty_database: Connection, name: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/323 ; un secours absent a l'identifiant 0, qu'aucun n'a."""
 	line = empty_database.execute("SELECT id FROM events WHERE internal_name = %s", (name,)).fetchone()
-	broadcast(bench).cut_by_fallback(0 if line is None else int(str(line[0])))
+	if line is None:
+		chosen = 0
+	else:
+		chosen = int(str(line[0]))
+	broadcast(bench).cut_by_fallback(chosen)
 
 
 @when(parsers.parse("je coupe l'antenne par le feed « {name} »"))
 def cut_by_feed(bench: Bench, empty_database: Connection, name: str) -> None:
 	line = empty_database.execute("SELECT id FROM feeds WHERE name = %s", (name,)).fetchone()
-	broadcast(bench).cut_by_feed(0 if line is None else int(str(line[0])))
+	if line is None:
+		chosen = 0
+	else:
+		chosen = int(str(line[0]))
+	broadcast(bench).cut_by_feed(chosen)
 
 
 @given(parsers.parse("le stream « {name} » sur le feed « {feed} », à une adresse factice"))
@@ -887,12 +904,18 @@ def overlap(empty_database: Connection, following: str, moment: str, name: str) 
 	end = play(empty_database, name)[2]
 	start = play(empty_database, following)[1]
 	assert end is not None
-	assert (start < end) if moment == "avant" else (start >= end), (start, end)
+	if moment == "avant":
+		chosen = start < end
+	else:
+		chosen = start >= end
+	assert chosen, (start, end)
 
 
 @given(parsers.re(r"le sonore « (?P<name>[^»]+) » a (?P<duration>[\d,]+) seconde de crossfade de (?P<side>début|fin)"))
 def sound_crossfade(empty_database: Connection, name: str, duration: str, side: str) -> None:
-	column = "crossfade_start" if side == "début" else "crossfade_end"
+	column = "crossfade_end"
+	if side == "début":
+		column = "crossfade_start"
 	empty_database.execute(
 		f"UPDATE sounds SET {column} = %s WHERE id = %s",
 		(timedelta(seconds=seconds(duration)), sound(empty_database, name)),

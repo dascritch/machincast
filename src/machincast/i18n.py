@@ -43,7 +43,9 @@ def language(environment: Mapping[str, str] | None = None) -> str:
 
 	LANGUAGE peut donner plusieurs langues, séparées par « : » ; la première parlée l'emporte. « C » et « POSIX »
 	sont l'anglais."""
-	values = os.environ if environment is None else environment
+	values: Mapping[str, str] = os.environ
+	if environment is not None:
+		values = environment
 	for variable in VARIABLES:
 		value = values.get(variable, "")
 		if not value:
@@ -91,8 +93,9 @@ def read_catalog(text: str, plurals: dict[str, str] | None = None) -> dict[str, 
 				entries[key] = forms
 				if (plurals is not None) and ("msgid_plural" in fields):
 					plurals[key] = fields["msgid_plural"]
-			elif fields.get("msgstr"):
-				entries[key] = fields["msgstr"]
+			else:
+				if fields.get("msgstr"):
+					entries[key] = fields["msgstr"]
 		fields = {}
 		fuzzy = False
 
@@ -125,12 +128,17 @@ class Catalog(gettext.NullTranslations):
 		super().__init__()
 		self.code = code
 		self.entries = entries
-		self.plurals = {} if plurals is None else plurals
+		if plurals is None:
+			self.plurals = {}
+		else:
+			self.plurals = plurals
 		"""Le msgid_plural de chaque message au pluriel, par son msgid."""
 
 	def gettext(self, message: str) -> str:
 		found = self.entries.get(message)
-		return found if isinstance(found, str) else message
+		if isinstance(found, str):
+			return found
+		return message
 
 	def ngettext_forms(self, forms: tuple[str, ...], n: int) -> str:
 		"""La forme qui convient à n, selon la langue. Français : le singulier pour 0 et 1."""
@@ -141,11 +149,15 @@ class Catalog(gettext.NullTranslations):
 		found = self.entries.get(msgid1)
 		if isinstance(found, tuple):
 			return self.ngettext_forms(found, n)
-		return msgid1 if n == 1 else msgid2
+		if n == 1:
+			return msgid1
+		return msgid2
 
 	def pgettext(self, context: str, message: str) -> str:
 		found = self.entries.get(context + CONTEXT_SEPARATOR + message)
-		return found if isinstance(found, str) else message
+		if isinstance(found, str):
+			return found
+		return message
 
 
 def load(code: str) -> Catalog:
@@ -170,7 +182,9 @@ def activate(code: str) -> None:
 	"""Change la langue des messages, pour ceux traduits désormais ; ceux déjà traduits, comme les constantes des
 	modules, gardent la leur. Sert aux tests ; les exécutables prennent la langue de leur session."""
 	global _catalog, _language
-	_language = code if code in LANGUAGES else SOURCE
+	_language = SOURCE
+	if code in LANGUAGES:
+		_language = code
 	_catalog = load(_language)
 	_templates.cache_clear()
 
@@ -215,9 +229,14 @@ def decimal(number: str) -> str:
 
 def known(message: str, context: str | None = None) -> str | None:
 	"""La traduction d'un message que le catalogue de la langue connaît, même identique ; None sinon."""
-	key = message if context is None else context + CONTEXT_SEPARATOR + message
+	if context is None:
+		key = message
+	else:
+		key = context + CONTEXT_SEPARATOR + message
 	found = _catalog.entries.get(key)
-	return found if isinstance(found, str) else None
+	if isinstance(found, str):
+		return found
+	return None
 
 
 def N_(message: str) -> str:
@@ -227,7 +246,10 @@ def N_(message: str) -> str:
 
 def N_counted(singular: str, plural: str, count: int) -> str:
 	"""Comme counted, mais en anglais, pour la table log ; le catalogue le connaît, logged() le traduira."""
-	return (singular if count == 1 else plural).format(count=count)
+	chosen = plural
+	if count == 1:
+		chosen = singular
+	return chosen.format(count=count)
 
 
 def _pattern(msgid: str) -> tuple[int, re.Pattern[str]]:
@@ -241,18 +263,20 @@ def _pattern(msgid: str) -> tuple[int, re.Pattern[str]]:
 		name = field.group("name")
 		if name is None:
 			pattern.append(re.escape(field.group(0)[0]))
-		elif name in seen:
-			pattern.append(f"(?P={name})")
 		else:
-			seen.add(name)
-			# Un nombre accordé (counted) n'est fait que de chiffres : « 2 sounds, 1 bank » n'est pas un seul nombre.
-			value = r".+?"
-			if name == "count":
-				value = r"-?\d+"
-			elif (before.endswith("“")) and (msgid[field.end() :].startswith("”")):
-				# Un nom entre guillemets n'en contient pas : « of “{a}” by “{b}” » se coupe aux guillemets.
-				value = r"[^“”]+?"
-			pattern.append(f"(?P<{name}>{value})")
+			if name in seen:
+				pattern.append(f"(?P={name})")
+			else:
+				seen.add(name)
+				# Un nombre accordé (counted) n'est fait que de chiffres : « 2 sounds, 1 bank » n'est pas un seul nombre.
+				value = r".+?"
+				if name == "count":
+					value = r"-?\d+"
+				else:
+					if (before.endswith("“")) and (msgid[field.end() :].startswith("”")):
+						# Un nom entre guillemets n'en contient pas : « of “{a}” by “{b}” » se coupe aux guillemets.
+						value = r"[^“”]+?"
+				pattern.append(f"(?P<{name}>{value})")
 		position = field.end()
 	pattern.append(re.escape(msgid[position:]))
 	return len(_PLACEHOLDER.sub("", msgid)), re.compile("".join(pattern), re.DOTALL)
@@ -316,7 +340,10 @@ def _fill(text: str, weak: bool | None) -> str | None:
 		form = msgstr
 		if isinstance(form, tuple):
 			count = found.groupdict().get("count", "")
-			form = _catalog.ngettext_forms(form, int(count) if count.lstrip("-").isdigit() else 1)
+			chosen = 1
+			if count.lstrip("-").isdigit():
+				chosen = int(count)
+			form = _catalog.ngettext_forms(form, chosen)
 
 		def fill(field: re.Match[str], values: dict[str, str] = values) -> str:
 			name = field.group("name")

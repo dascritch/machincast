@@ -41,13 +41,21 @@ def broadcasts(
 ) -> None:
 	"""Un événement sans précision est une émission ; au nom d'une autre, elle lui prête son nom
 	(https://github.com/dascritch/machincast/issues/399)."""
+	if feed is None:
+		chosen = "show"
+	else:
+		chosen = "background_programming"
+	if lender is None:
+		chosen_2 = None
+	else:
+		chosen_2 = 9
 	ongoing = {
 		"sound_id": 12,
 		"type": "file",
 		"artist": None,
 		"title": title,
 		"event": event,
-		"event_priority": "show" if feed is None else "background_programming",
+		"event_priority": chosen,
 		"sequence": sequence,
 		"location": "/srv/musique/minuit.flac",
 		"start": "2026-10-21T08:59:00+02:00",
@@ -56,7 +64,7 @@ def broadcasts(
 		"position": 60.0,
 		"progress": 0.28,
 		"lender": lender,
-		"lender_id": None if lender is None else 9,
+		"lender_id": chosen_2,
 	}
 	publish(player, "playing", ongoing)
 
@@ -66,8 +74,11 @@ FOLLOWING_EVENT = 7
 
 
 def displayed_sound(title: str, event: str, start: str) -> dict[str, object]:
+	chosen = 13
+	if start == "debut":
+		chosen = 12
 	return {
-		"sound_id": 12 if start == "debut" else 13,
+		"sound_id": chosen,
 		"type": "file",
 		"artist": None,
 		"title": title,

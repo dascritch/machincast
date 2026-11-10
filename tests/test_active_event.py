@@ -66,7 +66,9 @@ def named(context: Context, name: str) -> Event:
 
 def active(context: Context, instant: datetime) -> str | None:
 	result = active_event(context.events, instant, frozenset(context.finished_list), context.advanced)
-	return None if result is None else result.event.name
+	if result is None:
+		return None
+	return result.event.name
 
 
 @given("aucun événement")

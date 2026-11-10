@@ -328,14 +328,26 @@ def _check_sound(
 	file_type, result = watched(lambda: _examine(path, check, audited, silence_threshold), AUDIT_LIMIT)
 	after = new_state(before, result.state)
 	file = file_state(path)
-	modified_at, size = file if file is not None else (None, None)
+	if file is not None:
+		modified_at, size = file
+	else:
+		modified_at, size = (None, None)
 	# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
 	healthy = result.state is FileState.HEALTHY
-	duration = result.duration if (healthy) and ("duration" not in edited_fields) else None
+	if (healthy) and ("duration" not in edited_fields):
+		duration = result.duration
+	else:
+		duration = None
 	# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
 	if healthy:
-		artist = artist if "artist" in edited_fields else result.tags.artist
-		title = title if "title" in edited_fields else result.tags.title
+		if "artist" in edited_fields:
+			artist = artist
+		else:
+			artist = result.tags.artist
+		if "title" in edited_fields:
+			title = title
+		else:
+			title = result.tags.title
 		metadata = merge(dict(metadata), result.tags.metadata, list(edited_fields))
 	# Les silences mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
 	if (healthy) and (result.silences is not None):
@@ -388,12 +400,15 @@ def _check_sound(
 	if after != before:
 		if after is SoundState.CORRUPT:
 			report.corrupt_list += 1
-		elif after is SoundState.UNSUPPORTED:
-			report.not_supported += 1
-		elif after is SoundState.DELETED:
-			report.deleted_list += 1
-		elif (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED)):
-			report.restored += 1
+		else:
+			if after is SoundState.UNSUPPORTED:
+				report.not_supported += 1
+			else:
+				if after is SoundState.DELETED:
+					report.deleted_list += 1
+				else:
+					if (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED)):
+						report.restored += 1
 	if result.state is not FileState.HEALTHY:
 		consequence = _consequence(before, after)
 		log.warning(_("  {problem}; {consequence}").format(problem=result.problem, consequence=consequence))

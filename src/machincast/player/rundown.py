@@ -268,7 +268,9 @@ def read_item(connection: psycopg.Connection[TupleRow], item: int) -> Item | Non
 			"SELECT id, position, sound_id, bank_id, sequence_id FROM event_items WHERE id = %s", (item,)
 		).fetchall()
 	)
-	return items[0] if items else None
+	if items:
+		return items[0]
+	return None
 
 
 def last_item(
@@ -320,16 +322,17 @@ def next_(
 			)
 			if choice is not None:
 				return choice
-		elif (item.bank is not None) and (item.bank == forbidden):
-			if skipped_list is not None:
-				description = N_("element {position} of “{name}”").format(
-					position=item.position, name=occurrence.event.name
-				)
-				skipped_list.append(Skip(("event_items", item.id), description, occurrence.event.id))
 		else:
-			sound = _provide(connection, item.sound, item.bank, instant, randomness, excluded_list, history)
-			if sound is not None:
-				return Choice(sound, item, item.bank, occurrence)
+			if (item.bank is not None) and (item.bank == forbidden):
+				if skipped_list is not None:
+					description = N_("element {position} of “{name}”").format(
+						position=item.position, name=occurrence.event.name
+					)
+					skipped_list.append(Skip(("event_items", item.id), description, occurrence.event.id))
+			else:
+				sound = _provide(connection, item.sound, item.bank, instant, randomness, excluded_list, history)
+				if sound is not None:
+					return Choice(sound, item, item.bank, occurrence)
 	return None
 
 
@@ -378,7 +381,9 @@ def _provide(
 	"""Le sonore, s'il est jouable, ou celui que la banque fournit ; None si rien n'est jouable."""
 	if sound is not None:
 		playable = (sound not in excluded_list) and (playable_sound(connection, sound, instant, history))
-		return sound if playable else None
+		if playable:
+			return sound
+		return None
 	if bank is not None:
 		return choose_sound(connection, bank, instant, randomness, excluded_list, history)
 	return None
@@ -796,16 +801,20 @@ class Scheduler:
 				if (active is not None) and (self._begins_after(active, ongoing)):
 					# Un événement a commencé pendant le sonore en cours : il le coupe net.
 					cut = True
-				elif ongoing.stream:
-					# Fin de l'événement du stream : il s'éteint, l'événement actif reprend.
-					switch_off = True
 				else:
-					# Fin d'événement sans successeur : le sonore va jusqu'au bout.
-					return Decision()
+					if ongoing.stream:
+						# Fin de l'événement du stream : il s'éteint, l'événement actif reprend.
+						switch_off = True
+					else:
+						# Fin d'événement sans successeur : le sonore va jusqu'au bout.
+						return Decision()
 			# Lu seulement quand il faut choisir : pas à chaque pas d'un sonore qui continue.
 			last = self.history.last_play(self.connection)
 			repetition = self._repetition(last)
-			forbidden = None if repetition is None else repetition.bank
+			if repetition is None:
+				forbidden = None
+			else:
+				forbidden = repetition.bank
 			skipped_list: list[Skip] = []
 			# Le stream d'un feed qui coupe l'antenne (https://github.com/dascritch/machincast/issues/323) ; sinon,
 			# d'abord la suite de la séquence en cours, s'il en reste ; sinon, l'élément suivant de l'événement actif.
@@ -883,11 +892,12 @@ class Scheduler:
 		occurrence = None
 		if (active is not None) and (active.event.id == last.event):
 			occurrence = active
-		elif last.event is not None:
-			# Son événement est fini : la séquence va jusqu'au bout en son nom.
-			event = read_event(self.connection, last.event)
-			if event is not None:
-				occurrence = Occurrence(event, None, None)
+		else:
+			if last.event is not None:
+				# Son événement est fini : la séquence va jusqu'au bout en son nom.
+				event = read_event(self.connection, last.event)
+				if event is not None:
+					occurrence = Occurrence(event, None, None)
 		if occurrence is None:
 			return None
 		return in_sequence(
@@ -935,7 +945,10 @@ class Scheduler:
 			return Decision(cut=cut, switch_off=switch_off, dead_air=True, occurrence=active)
 		if not self.in_dead_air:
 			self.in_dead_air = True
-			event = None if active is None else active.event.id
+			if active is None:
+				event = None
+			else:
+				event = active.event.id
 			self.history.record(self.connection, "warning", N_("dead air"), message, instant, event=event)
 		return Decision(cut=cut, switch_off=switch_off, dead_air=True, occurrence=active)
 

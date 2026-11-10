@@ -498,7 +498,11 @@ def database_migrations(context: Context) -> list[str]:
 @then(parsers.re(r"(?P<count>aucune|\d+) migrations? (?:n')?(?:a été appliquée|ont été appliquées)"))
 def applied_count(context: Context, count: str) -> None:
 	assert context.refusal is None, context.refusal
-	assert context.applied == (0 if count == "aucune" else int(count))
+	if count == "aucune":
+		chosen = 0
+	else:
+		chosen = int(count)
+	assert context.applied == chosen
 
 
 @then(parsers.parse("les migrations appliquées à la base de test sont « {migration} »"))

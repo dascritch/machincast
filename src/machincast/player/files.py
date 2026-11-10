@@ -30,7 +30,10 @@ def check_before_playback(
 		if (line is None) or (line[0] is None):
 			return None
 		path = Path(str(line[0]))
-		modified_at = line[1] if isinstance(line[1], datetime) else None
+		if isinstance(line[1], datetime):
+			modified_at = line[1]
+		else:
+			modified_at = None
 		size = integer_or_none(line[2])
 		try:
 			state = path.stat()

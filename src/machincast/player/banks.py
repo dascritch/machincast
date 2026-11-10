@@ -150,7 +150,9 @@ def remaining_list(
 def has_no_repeat(connection: psycopg.Connection[TupleRow], bank: int) -> str | None:
 	"""Nom de la banque si elle est marquée « ne pas répéter », sinon None."""
 	line = connection.execute("SELECT internal_name FROM banks WHERE id = %s AND no_repeat", (bank,)).fetchone()
-	return None if line is None else str(line[0])
+	if line is None:
+		return None
+	return str(line[0])
 
 
 def choose_sound(
@@ -173,7 +175,10 @@ def choose_sound(
 	playable_list -= excluded_list
 	played_list = history.played_via_bank(connection, bank)
 	if line[0] == "sequential":
-		return following_sequential(order, playable_list, played_list[0] if played_list else None)
+		chosen = None
+		if played_list:
+			chosen = played_list[0]
+		return following_sequential(order, playable_list, chosen)
 	rest = cycle_rest(playable_list, played_list)
 	if not rest:
 		return None

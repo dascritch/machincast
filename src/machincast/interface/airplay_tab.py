@@ -185,7 +185,9 @@ class AirplayScreen(QWidget):
 			content = contents[extension]()
 			check_writing(destination)
 			# Le BOM laisse les tableurs reconnaître l'UTF-8 du CSV.
-			encoding = "utf-8-sig" if extension == ".csv" else "utf-8"
+			encoding = "utf-8"
+			if extension == ".csv":
+				encoding = "utf-8-sig"
 			destination.write_text(content, encoding=encoding, newline="")
 		except (OSError, psycopg.Error) as error:
 			self.announces.emit(_("Export impossible: {error}").format(error=error))

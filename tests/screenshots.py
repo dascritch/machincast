@@ -312,6 +312,14 @@ def _events(connection: Connection, sounds: dict[str, int], banks: dict[str, int
 	def create(
 		name: str, public_name: str | None, priority: str, start: timedelta | None, end: timedelta | None, days: tuple
 	) -> int:
+		if start is None:
+			chosen = None
+		else:
+			chosen = day + start
+		if end is None:
+			chosen_2 = None
+		else:
+			chosen_2 = day + end
 		return _un(
 			connection,
 			"INSERT INTO events (internal_name, public_name, priority, starts_at, ends_at, recurrence_days)"
@@ -320,8 +328,8 @@ def _events(connection: Connection, sounds: dict[str, int], banks: dict[str, int
 				name,
 				public_name,
 				priority,
-				None if start is None else day + start,
-				None if end is None else day + end,
+				chosen,
+				chosen_2,
 				list(days),
 			),
 		)
@@ -426,10 +434,14 @@ def _history(
 	lines = []
 	for start, end, sound, bank, event in plays:
 		play = uuid.uuid4()
+		if bank is None:
+			chosen = None
+		else:
+			chosen = banks[bank]
 		common = (
 			play,
 			sounds[sound],
-			None if bank is None else banks[bank],
+			chosen,
 			events[event],
 			str(_location(sound)),
 			SOUNDS[sound].artist,
@@ -479,6 +491,10 @@ def _incidents(connection: Connection, sounds: dict[str, int], events: dict[str,
 		("2026-10-21T09:00:00", "info", "fin d'événement", "« Matinale »", None, "matinale"),
 	]
 	for timestamp, level, kind, message, sound, event in entries:
+		if sound is None:
+			chosen = None
+		else:
+			chosen = sounds[sound]
 		connection.execute(
 			"INSERT INTO log (logged_at, level, kind, message, sound_id, event_id) VALUES (%s, %s, %s, %s, %s, %s)",
 			(
@@ -486,7 +502,7 @@ def _incidents(connection: Connection, sounds: dict[str, int], events: dict[str,
 				level,
 				kind,
 				message,
-				None if sound is None else sounds[sound],
+				chosen,
 				events[event],
 			),
 		)
@@ -501,6 +517,14 @@ def _shows(demonstration: Demonstration, rank: int, start_key: str) -> dict[str,
 	text = model.title
 	if model.artist is not None:
 		text = f"{model.artist} – {model.title}"
+	if bank is None:
+		chosen = None
+	else:
+		chosen = BANKS[bank][0]
+	if bank is None:
+		banks_2 = None
+	else:
+		banks_2 = demonstration.banks[bank]
 	return {
 		"sound_id": demonstration.sounds[sound],
 		"type": "file",
@@ -513,8 +537,8 @@ def _shows(demonstration: Demonstration, rank: int, start_key: str) -> dict[str,
 		"event_end": None,
 		"sequence": None,
 		"sequence_id": None,
-		"bank": None if bank is None else BANKS[bank][0],
-		"bank_id": None if bank is None else demonstration.banks[bank],
+		"bank": chosen,
+		"bank_id": banks_2,
 		start_key: start.isoformat(),
 		"duration": float(model.duration),
 		"estimated_end": end.isoformat(),

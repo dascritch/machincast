@@ -137,19 +137,20 @@ def code(context: Context, code: str) -> None:
 def change_entry(context: Context, empty_database: Connection, name: str, change: str) -> None:
 	identifier = sound_of(empty_database, context, name)
 	state = re.fullmatch(r"passe à l'état « (\w+) »", change)
-	if state:
-		empty_database.execute("UPDATE sounds SET state = %s WHERE id = %s", (state.group(1), identifier))
-	elif change == "change d'emplacement":
-		empty_database.execute(
-			"UPDATE sounds SET location = %s WHERE id = %s",
-			(str(directory(context) / "ailleurs.flac"), identifier),
-		)
-	elif change == "change d'artiste et de titre":
-		empty_database.execute("UPDATE sounds SET artist = 'Autre', title = 'Autre' WHERE id = %s", (identifier,))
-	elif change == "est supprimée de la base":
-		empty_database.execute("DELETE FROM sounds WHERE id = %s", (identifier,))
-	else:
-		raise AssertionError(f"changement inconnu : {change}")
+	match change:
+		case _ if state:
+			empty_database.execute("UPDATE sounds SET state = %s WHERE id = %s", (state.group(1), identifier))
+		case "change d'emplacement":
+			empty_database.execute(
+				"UPDATE sounds SET location = %s WHERE id = %s",
+				(str(directory(context) / "ailleurs.flac"), identifier),
+			)
+		case "change d'artiste et de titre":
+			empty_database.execute("UPDATE sounds SET artist = 'Autre', title = 'Autre' WHERE id = %s", (identifier,))
+		case "est supprimée de la base":
+			empty_database.execute("DELETE FROM sounds WHERE id = %s", (identifier,))
+		case _:
+			raise AssertionError(f"changement inconnu : {change}")
 
 
 @when("l'indexeur fait une indexation rapide, puis un audit complet")

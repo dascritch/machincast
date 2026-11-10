@@ -191,6 +191,7 @@ def documentation() -> str:
 	if installed is None:
 		if of_the_version() is not None:
 			reference = f"v{__version__}"
-	elif installed.since_release == 0:
-		reference = f"v{__version__}"
+	else:
+		if installed.since_release == 0:
+			reference = f"v{__version__}"
 	return f"{DROP_IN_LINE}/blob/{reference}/{DOCUMENTATION}"

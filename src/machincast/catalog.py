@@ -57,7 +57,9 @@ class Message:
 
 	@property
 	def key(self) -> str:
-		return self.msgid if self.context is None else self.context + i18n.CONTEXT_SEPARATOR + self.msgid
+		if self.context is None:
+			return self.msgid
+		return self.context + i18n.CONTEXT_SEPARATOR + self.msgid
 
 
 def _constant(node: ast.expr) -> str | None:
@@ -89,10 +91,12 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 			reference = relative
 			if (kind == "message") and (texts) and (texts[0]):
 				add(Message(texts[0]), reference)
-			elif (kind == "plural") and (len(texts) >= 2) and (texts[0]) and (texts[1]):
-				add(Message(texts[0], plural=texts[1]), reference)
-			elif (kind == "context") and (len(texts) >= 2) and (texts[0]) and (texts[1]):
-				add(Message(texts[1], context=texts[0]), reference)
+			else:
+				if (kind == "plural") and (len(texts) >= 2) and (texts[0]) and (texts[1]):
+					add(Message(texts[0], plural=texts[1]), reference)
+				else:
+					if (kind == "context") and (len(texts) >= 2) and (texts[0]) and (texts[1]):
+						add(Message(texts[1], context=texts[0]), reference)
 	for path in sorted(package.rglob("*.ui")):
 		relative = path.relative_to(package.parent).as_posix()
 		for element in ElementTree.parse(path).iter("string"):
@@ -146,7 +150,10 @@ def _quote(text: str, width: int = 76) -> str:
 	fichier, coupée après ses retours à la ligne et ses espaces, comme le fait msgmerge."""
 	escaped = text.replace("\\", "\\\\").replace('"', '\\"').replace("\t", "\\t").replace("\r", "\\r")
 	lines = escaped.split("\n")
-	pieces = [line + "\\n" for line in lines[:-1]] + ([lines[-1]] if lines[-1] else [])
+	chosen = []
+	if lines[-1]:
+		chosen = [lines[-1]]
+	pieces = [line + "\\n" for line in lines[:-1]] + chosen
 	if (len(pieces) <= 1) and (len(escaped) <= width - 8):
 		return f'"{"".join(pieces)}"'
 	parts = []
@@ -177,7 +184,10 @@ def write_catalog(code: str, messages: dict[str, Message], translations: dict[st
 		known = translations.get(key)
 		if message.plural is not None:
 			lines.append(f"msgid_plural {_quote(message.plural)}")
-			forms = known if isinstance(known, tuple) else ("", "")
+			if isinstance(known, tuple):
+				forms = known
+			else:
+				forms = ("", "")
 			lines.extend(f"msgstr[{index}] {_quote(form)}" for index, form in enumerate(forms))
 		else:
 			lines.append(f"msgstr {_quote(known if isinstance(known, str) else '')}")

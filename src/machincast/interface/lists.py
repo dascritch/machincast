@@ -201,8 +201,9 @@ def sound_line(row: tuple[object, ...]) -> Line:
 	duration_text = ""
 	if sound_type == "stream":
 		duration_text = display.duration(None)
-	elif isinstance(duration, timedelta):
-		duration_text = display.duration(duration)
+	else:
+		if isinstance(duration, timedelta):
+			duration_text = display.duration(duration)
 	# Les durées d'une banque ne se signalent que dans sa fiche, et parmi les relations du sonore, jamais ici
 	# (https://github.com/dascritch/machincast/issues/210).
 	cells = [
@@ -218,8 +219,9 @@ def sound_line(row: tuple[object, ...]) -> Line:
 	duration_sort: float = WITHOUT_DURATION
 	if sound_type == "stream":
 		duration_sort = AFTER_ALL
-	elif isinstance(duration, timedelta):
-		duration_sort = duration.total_seconds()
+	else:
+		if isinstance(duration, timedelta):
+			duration_sort = duration.total_seconds()
 	sound_name = (_text(title)) or (_text(location))
 	anomaly = SOUND_IN_ANOMALY.get(str(state), "")
 	sorts: dict[int, int | float | str] = {DURATION_POSITION: duration_sort}
@@ -244,8 +246,9 @@ def read_banks(connection: Connection) -> list[Line]:
 		anomaly = ""
 		if without_active_sound:
 			anomaly = BANK_WITHOUT_ACTIVE_SOUND
-		elif int(str(in_anomaly)) > 0:
-			anomaly = bank_to_sounds_in_anomaly(int(str(in_anomaly)))
+		else:
+			if int(str(in_anomaly)) > 0:
+				anomaly = bank_to_sounds_in_anomaly(int(str(in_anomaly)))
 		lines.append(Line(int(str(identifier)), str(name), cells, anomaly))
 	return lines
 
@@ -530,7 +533,9 @@ class PagedSounds(QAbstractTableModel):
 		column = index.column()
 		if role == Qt.ItemDataRole.DisplayRole:
 			if column == 0:
-				return ANOMALY_COLUMN if line.anomaly else ""
+				if line.anomaly:
+					return ANOMALY_COLUMN
+				return ""
 			return line.cells[column - 1]
 		if role == Qt.ItemDataRole.ToolTipRole:
 			return (line.anomaly) or (None)
@@ -629,21 +634,22 @@ class PagedSounds(QAbstractTableModel):
 		column = self._column
 		keys: list[str] = []
 		values: list[object] = []
-		if column == 0:
-			keys = [f"(s.state::text = ANY(%s)) {direction}"]
-			values = [list(SOUND_IN_ANOMALY)]
-		elif column in (1, 2, len(self.titles) - 1):
-			expression = {1: "s.artist", 2: "s.title"}.get(column, SOUND_LOCATION)
-			keys = [f"lower(COALESCE({expression}, '')) COLLATE \"C\" {direction}"]
-		elif column == 3:
-			expression, values = _type_expression()
-			keys = [f'lower({expression}) COLLATE "C" {direction}']
-		elif column == 4:
-			expression, values = _state_expression()
-			keys = [f'lower({expression}) COLLATE "C" {direction}']
-		elif column == 5:
-			rank = "CASE WHEN s.type = 'stream' THEN 2 WHEN s.duration IS NULL THEN 1 ELSE 0 END"
-			keys = [f"{rank} {direction}", f"s.duration {direction}"]
+		match column:
+			case 0:
+				keys = [f"(s.state::text = ANY(%s)) {direction}"]
+				values = [list(SOUND_IN_ANOMALY)]
+			case _ if column in (1, 2, len(self.titles) - 1):
+				expression = {1: "s.artist", 2: "s.title"}.get(column, SOUND_LOCATION)
+				keys = [f"lower(COALESCE({expression}, '')) COLLATE \"C\" {direction}"]
+			case 3:
+				expression, values = _type_expression()
+				keys = [f'lower({expression}) COLLATE "C" {direction}']
+			case 4:
+				expression, values = _state_expression()
+				keys = [f'lower({expression}) COLLATE "C" {direction}']
+			case 5:
+				rank = "CASE WHEN s.type = 'stream' THEN 2 WHEN s.duration IS NULL THEN 1 ELSE 0 END"
+				keys = [f"{rank} {direction}", f"s.duration {direction}"]
 		return ", ".join([*keys, SOUND_ORDER]), values
 
 
@@ -785,11 +791,12 @@ class List(QWidget):
 	def _apply_filter(self, text: str) -> None:
 		if isinstance(self.proxy, FilterWithoutAccents):
 			self.proxy.apply_filter(text)
-		elif self.paged is not None:
-			try:
-				self.paged.set_filter(text)
-			except psycopg.Error as error:
-				log.error(_("unreadable list of {plural}: {error}").format(plural=self.source.plural, error=error))
+		else:
+			if self.paged is not None:
+				try:
+					self.paged.set_filter(text)
+				except psycopg.Error as error:
+					log.error(_("unreadable list of {plural}: {error}").format(plural=self.source.plural, error=error))
 		self._count()
 
 	def _count(self) -> None:
@@ -805,10 +812,11 @@ class List(QWidget):
 	def _show_count(self, total: int, visible_list: int, anomalies: int) -> None:
 		if self.filter_.text() != "":
 			text = _("{elements} out of {total}").format(elements=self.source.counting(visible_list), total=total)
-		elif total == 0:
-			text = self.source.no
 		else:
-			text = self.source.counting(total)
+			if total == 0:
+				text = self.source.no
+			else:
+				text = self.source.counting(total)
 		if anomalies > 0:
 			text = _("{text}, of which {anomalies} in anomaly").format(text=text, anomalies=anomalies)
 		self.count.setText(text)

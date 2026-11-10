@@ -135,13 +135,19 @@ def socket(context: Context) -> StateSocket:
 
 def publish(context: Context, state: str = "playing") -> None:
 	assert context.clock is not None
+	chosen = None
+	if state == "playing":
+		chosen = context.ongoing
+	upcoming_2 = []
+	if state == "playing":
+		upcoming_2 = context.upcoming
 	socket(context).publish(
 		{
 			"timestamp": context.clock.now().isoformat(),
 			"state": state,
-			"current": context.ongoing if state == "playing" else None,
+			"current": chosen,
 			"next": context.next_,
-			"upcoming": context.upcoming if state == "playing" else [],
+			"upcoming": upcoming_2,
 		}
 	)
 
@@ -262,6 +268,12 @@ def upcoming_sounds(context: Context, datatable: list[list[str]]) -> None:
 	context.upcoming = []
 	for rank, values in enumerate(rows, start=1):
 		line = dict(zip(headers, (value.strip() for value in values), strict=True))
+		chosen = None
+		if line["sequence"]:
+			chosen = 60 + rank
+		chosen_2 = None
+		if line["bank"]:
+			chosen_2 = 70 + rank
 		context.upcoming.append(
 			{
 				"sound_id": 40 + rank,
@@ -271,9 +283,9 @@ def upcoming_sounds(context: Context, datatable: list[list[str]]) -> None:
 				"event": line["event"],
 				"event_id": 50 + rank,
 				"sequence": (line["sequence"]) or (None),
-				"sequence_id": (60 + rank) if line["sequence"] else None,
+				"sequence_id": chosen,
 				"bank": (line["bank"]) or (None),
-				"bank_id": (70 + rank) if line["bank"] else None,
+				"bank_id": chosen_2,
 				"estimated_start": a(line["start"]).isoformat(),
 				"duration": seconds(line["duration"]),
 				"estimated_end": a(line["end"]).isoformat(),
@@ -304,7 +316,10 @@ def next_stream(context: Context, server: StreamServer, stream: str, event: str)
 @given(parsers.re(r"le (?P<which>sonore en cours|prochain sonore) a pour contexte :"))
 def sound_context(context: Context, which: str, datatable: list[list[str]]) -> None:
 	"""Les champs de contexte de la socket d'état (spec § 5.4) : identifiants en nombres, heures murales, textes."""
-	sound = context.ongoing if which == "sonore en cours" else context.next_
+	if which == "sonore en cours":
+		sound = context.ongoing
+	else:
+		sound = context.next_
 	assert sound is not None
 	_headers, *rows = datatable
 	for field_name, value in ((field_name.strip(), value.strip()) for field_name, value in rows):
@@ -681,7 +696,10 @@ def bank_sequence_states(context: Context, states: str) -> None:
 	obtained_list = []
 	for which in ("ongoing", "next"):
 		for category in ("sequence", "bank"):
-			obtained_list.append("actif" if getattr(ui, f"open_{which}_{category}").isEnabled() else "inactif")
+			chosen = "inactif"
+			if getattr(ui, f"open_{which}_{category}").isEnabled():
+				chosen = "actif"
+			obtained_list.append(chosen)
 	assert obtained_list == states.split(", ")
 
 
@@ -758,11 +776,17 @@ def halves(context: Context, qtbot: QtBot) -> None:
 @then(parsers.re(r"le (?P<which>sonore en cours|prochain sonore) a pour emplacement « (?P<text>[^»]+) »"))
 def displayed_location(context: Context, which: str, text: str) -> None:
 	ui = screen(context).ui
-	field = ui.ongoing_location if which == "sonore en cours" else ui.next_location
+	if which == "sonore en cours":
+		field = ui.ongoing_location
+	else:
+		field = ui.next_location
 	assert field.text() == text, field.text()
 	assert field.isReadOnly()
 	# Un long chemin dépasse le champ : l'infobulle le donne en entier.
-	assert field.toolTip() == ("" if text == "—" else text), field.toolTip()
+	chosen = text
+	if text == "—":
+		chosen = ""
+	assert field.toolTip() == chosen, field.toolTip()
 	assert field.cursorPosition() == len(text), "la fin du chemin, le nom du fichier, doit rester visible"
 
 
@@ -1412,7 +1436,9 @@ def choose_in_line(context: Context, opened_folders: list[Path], entry: str, tit
 @then(parsers.re(r"le (?P<which>sonore en cours|prochain sonore) n'a pas de ligne « Emplacement »"))
 def without_location(context: Context, which: str) -> None:
 	ui = screen(context).ui
-	prefix = "ongoing" if which == "sonore en cours" else "next"
+	prefix = "next"
+	if which == "sonore en cours":
+		prefix = "ongoing"
 	assert getattr(ui, f"{prefix}_location").isHidden()
 	assert getattr(ui, f"{prefix}_location_heading").isHidden()
 

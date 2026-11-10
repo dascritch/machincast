@@ -166,7 +166,9 @@ def rights(context: Context, role: str, datatable: list[list[str]]) -> None:
 		}
 		expected_list = {"lire": read, "inserer": insert_, "modifier": modify, "supprimer": delete_}
 		for operation, query in queries.items():
-			obtained = "oui" if allowed(context, role, query) else "non"
+			obtained = "non"
+			if allowed(context, role, query):
+				obtained = "oui"
 			if obtained != expected_list[operation]:
 				gaps.append(f"{table}.{operation} : attendu {expected_list[operation]}, obtenu {obtained}")
 	assert not gaps, f"droits de {role} :\n" + "\n".join(gaps)

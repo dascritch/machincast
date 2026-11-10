@@ -123,9 +123,10 @@ def preferences_to_tenth(monkeypatch: pytest.MonkeyPatch, maximum: int) -> None:
 )
 def push(interface: Context, qtbot: QtBot, side: str, notches: str) -> None:
 	ui = card(interface).ui
-	box, field = (
-		(ui.has_start_crossfade, ui.start_crossfade) if side == "début" else (ui.has_end_crossfade, ui.end_crossfade)
-	)
+	if side == "début":
+		box, field = (ui.has_start_crossfade, ui.start_crossfade)
+	else:
+		box, field = (ui.has_end_crossfade, ui.end_crossfade)
 	box.setChecked(True)
 	slider = field.findChild(QSlider)
 	assert slider is not None
@@ -270,7 +271,9 @@ def offered_states(interface: Context, datatable: list[list[str]]) -> None:
 	found_list = []
 	for rank in range(choice.count()):
 		active = bool(model.flags(model.index(rank, 0)) & Qt.ItemFlag.ItemIsEnabled)
-		state = "possible" if active else "grisé"
+		state = "grisé"
+		if active:
+			state = "possible"
 		if rank == choice.currentIndex():
 			state = "choisi"
 		found_list.append([choice.itemText(rank), state])

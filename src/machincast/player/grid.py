@@ -140,7 +140,10 @@ def occurrence(event: Event, instant: datetime) -> Occurrence | None:
 		duration_in_days = (end.date() - first_day).days
 	# Une occurrence avec fin a commencé au plus tôt autant de jours avant que dure la première ; une occurrence
 	# sans fin, dans la semaine qui précède.
-	recoil = 7 if duration_in_days is None else duration_in_days
+	if duration_in_days is None:
+		recoil = 7
+	else:
+		recoil = duration_in_days
 	for gap in range(recoil + 1):
 		day = moment.date() - timedelta(days=gap)
 		if (day < first_day) or ((day != first_day) and (day.weekday() not in event.days)):
@@ -259,8 +262,9 @@ def _to_leave_of(
 		if end is None:
 			if start >= since:
 				remaining_list.append((max(start, since), end))
-		elif end > since:
-			remaining_list.append((max(start, since), end))
+		else:
+			if end > since:
+				remaining_list.append((max(start, since), end))
 	return remaining_list
 
 

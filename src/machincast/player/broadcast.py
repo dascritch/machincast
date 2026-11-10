@@ -469,14 +469,17 @@ class Broadcast:
 			for asks in self.state.requests():
 				if asks.command == REREAD_GRID:
 					self.reread_grid()
-				elif asks.command == ADVANCE:
-					self.advance(asks.event)
-				elif asks.command == CUT_BY_FALLBACK:
-					self.cut_by_fallback(asks.event)
-				elif asks.command == CUT_BY_FEED:
-					self.cut_by_feed(asks.feed)
 				else:
-					self.interrupt(asks.item)
+					if asks.command == ADVANCE:
+						self.advance(asks.event)
+					else:
+						if asks.command == CUT_BY_FALLBACK:
+							self.cut_by_fallback(asks.event)
+						else:
+							if asks.command == CUT_BY_FEED:
+								self.cut_by_feed(asks.feed)
+							else:
+								self.interrupt(asks.item)
 		current = self.current
 		if current is not None:
 			decision = self._decide(instant, current.ongoing)
@@ -484,20 +487,23 @@ class Broadcast:
 				reserve = self.reserve
 				self._cut(instant)
 				self._play_decision(decision, reserve, instant)
-			elif decision.switch_off:
-				self._switch_off(current, (self._take_reserve(instant)) or (decision.play), instant)
-			elif (not current.following_requested) and (self._to_end_crossfade(current)):
-				current.following_requested = True
-				self._prepare_following(current, instant)
-		elif not self.outgoing_list:
-			# Rien sur la sortie ; tant qu'un stream s'éteint sans superposition, le suivant attend.
-			reserve = self.reserve
-			choice, self.in_waiting = self.in_waiting, None
-			choice = (choice) or (self._take_reserve(instant))
-			if choice is not None:
-				self._play(choice, instant)
 			else:
-				self._play_decision(self._decide(instant, None), reserve, instant)
+				if decision.switch_off:
+					self._switch_off(current, (self._take_reserve(instant)) or (decision.play), instant)
+				else:
+					if (not current.following_requested) and (self._to_end_crossfade(current)):
+						current.following_requested = True
+						self._prepare_following(current, instant)
+		else:
+			if not self.outgoing_list:
+				# Rien sur la sortie ; tant qu'un stream s'éteint sans superposition, le suivant attend.
+				reserve = self.reserve
+				choice, self.in_waiting = self.in_waiting, None
+				choice = (choice) or (self._take_reserve(instant))
+				if choice is not None:
+					self._play(choice, instant)
+				else:
+					self._play_decision(self._decide(instant, None), reserve, instant)
 		self._follow_probe(instant)
 		self._preload(instant)
 		self._follow_lender(instant)
@@ -523,7 +529,15 @@ class Broadcast:
 			and (wall_hour(start) >= lender.end)
 		):
 			lender = None
-		if (None if lender is None else lender.key) == (None if choice.lender is None else choice.lender.key):
+		if lender is None:
+			chosen = None
+		else:
+			chosen = lender.key
+		if choice.lender is None:
+			lender_key = None
+		else:
+			lender_key = choice.lender.key
+		if chosen == lender_key:
 			# Le même objet : le prochain sonore attendu se reconnaît à lui (_reserve).
 			return choice
 		return dataclasses.replace(choice, lender=lender)
@@ -532,7 +546,15 @@ class Broadcast:
 		"""Une occurrence commence ou cesse de prêter son nom pendant un sonore : le log, le journal, la page publique
 		et la socket d'état le disent dès l'heure, sans couper le sonore (https://github.com/dascritch/machincast/issues/399)."""
 		lender, announced = self.lender, self._announced_lender
-		if (None if lender is None else lender.key) == (None if announced is None else announced.key):
+		if lender is None:
+			chosen = None
+		else:
+			chosen = lender.key
+		if announced is None:
+			key_2 = None
+		else:
+			key_2 = announced.key
+		if chosen == key_2:
 			return
 		self._announced_lender = lender
 		current = self.current
@@ -638,7 +660,10 @@ class Broadcast:
 			name=following.event.name, start=following.start
 		)
 		current = self.current
-		sound = None if current is None else current.choice.sound
+		if current is None:
+			sound = None
+		else:
+			sound = current.choice.sound
 		self.history.record(
 			self.connection, "info", ADVANCED_EVENT, message, instant, sound=sound, event=following.event.id
 		)
@@ -843,7 +868,11 @@ class Broadcast:
 	# ─── Étapes ────────────────────────────────────────────
 
 	def _plays(self) -> list[Playback]:
-		return ([] if self.current is None else [self.current]) + self.outgoing_list
+		if self.current is None:
+			chosen = []
+		else:
+			chosen = [self.current]
+		return chosen + self.outgoing_list
 
 	def _finish_stopped_tracks(self, instant: datetime) -> None:
 		for playback in self._plays():
@@ -1053,7 +1082,9 @@ class Broadcast:
 	def _grid_fingerprint(self) -> str:
 		with self.connection.transaction():
 			line = self.connection.execute(GRID_FINGERPRINT).fetchone()
-		return "" if line is None else str(line[0])
+		if line is None:
+			return ""
+		return str(line[0])
 
 	def _extend(self, instant: datetime) -> None:
 		"""Prévoit les sonores à venir jusqu'à UPCOMING, au bout de la liste : chacun est choisi à l'heure où le
@@ -1237,8 +1268,9 @@ class Broadcast:
 			probe.track.shut_down()
 			probe.track = None
 			probe.next_attempt = instant + self.reconnection_delay
-		elif (probe.track.position() > timedelta(0)) and ((not probe.dead_air) or (probe.track.heard())):
-			self._resume(probe, probe.track, instant)
+		else:
+			if (probe.track.position() > timedelta(0)) and ((not probe.dead_air) or (probe.track.heard())):
+				self._resume(probe, probe.track, instant)
 
 	def _resume(self, probe: Probe, track: PlaybackTrack, instant: datetime) -> None:
 		"""Le flux est revenu : crossfade immédiat vers le stream, pendant son crossfade de début."""
@@ -1344,6 +1376,14 @@ class Broadcast:
 	def _begin(self, choice: Choice, instant: datetime) -> Play:
 		self._note_on_air(choice, instant)
 		line = choice.line
+		if line is None:
+			chosen = None
+		else:
+			chosen = line.sequence
+		if line is None:
+			chosen_2 = None
+		else:
+			chosen_2 = line.id
 		play = self.history.begin_play(
 			self.connection,
 			choice.sound,
@@ -1351,8 +1391,8 @@ class Broadcast:
 			choice.occurrence.event.id,
 			_play_item(choice),
 			instant,
-			None if line is None else line.sequence,
-			None if line is None else line.id,
+			chosen,
+			chosen_2,
 			_lender_id(choice),
 		)
 		self._announced_lender = self.lender
@@ -1433,7 +1473,13 @@ class Broadcast:
 				)
 			]
 			next_, upcoming = announcements[0], announcements[1:]
-		running = "stopped" if stop else ("playing" if (current is not None) or (self.outgoing_list) else "dead_air")
+		if stop:
+			running = "stopped"
+		else:
+			if (current is not None) or (self.outgoing_list):
+				running = "playing"
+			else:
+				running = "dead_air"
 		following = None
 		if not stop:
 			following = _event_announcement(self._the_following_event(instant))
@@ -1475,7 +1521,10 @@ class Broadcast:
 	def _note_events(self, choice: Choice | None, instant: datetime) -> None:
 		"""La fin de l'événement à l'antenne, puis le début du nouveau, s'il change : au début d'un passage, ou quand
 		une occurrence commence ou cesse de prêter son nom pendant un sonore."""
-		on_air = None if choice is None else ((choice.lender) or (choice.occurrence))
+		if choice is None:
+			on_air = None
+		else:
+			on_air = (choice.lender) or (choice.occurrence)
 		previous, self._on_air_occurrence = self._on_air_occurrence, on_air
 		same = (previous is not None) and (on_air is not None) and (previous.key == on_air.key)
 		if (previous is not None) and (not same):
@@ -1539,15 +1588,22 @@ class Broadcast:
 
 
 def _display(choice: Choice, parameters: Parameters) -> dict[str, Any]:
+	chosen = "file"
+	if parameters.stream:
+		chosen = "stream"
+	if choice.lender is None:
+		event_name = None
+	else:
+		event_name = choice.lender.event.name
 	return {
 		"sound_id": choice.sound,
-		"type": "stream" if parameters.stream else "file",
+		"type": chosen,
 		"artist": parameters.artist,
 		"title": parameters.title,
 		"location": parameters.location,
 		"event": choice.occurrence.event.name,
 		# https://github.com/dascritch/machincast/issues/399, sans changer la version.
-		"lender": None if choice.lender is None else choice.lender.event.name,
+		"lender": event_name,
 		"lender_id": _lender_id(choice),
 	}
 
@@ -1643,7 +1699,9 @@ def crash_text(previous: dict[str, Any] | None, message: dict[str, Any]) -> str:
 
 def _lender_id(choice: Choice) -> int | None:
 	"""L'événement au nom de qui le sonore passe (https://github.com/dascritch/machincast/issues/399)."""
-	return None if choice.lender is None else choice.lender.event.id
+	if choice.lender is None:
+		return None
+	return choice.lender.event.id
 
 
 def _play_item(choice: Choice) -> int | None:
@@ -1655,6 +1713,14 @@ def _play_item(choice: Choice) -> int | None:
 
 def _planned_play(choice: Choice, start: datetime) -> Play:
 	line = choice.line
+	if line is None:
+		chosen = None
+	else:
+		chosen = line.sequence
+	if line is None:
+		chosen_2 = None
+	else:
+		chosen_2 = line.id
 	return Play(
 		uuid.uuid4(),
 		choice.sound,
@@ -1662,8 +1728,8 @@ def _planned_play(choice: Choice, start: datetime) -> Play:
 		choice.occurrence.event.id,
 		_play_item(choice),
 		start,
-		None if line is None else line.sequence,
-		None if line is None else line.id,
+		chosen,
+		chosen_2,
 	)
 
 

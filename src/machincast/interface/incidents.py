@@ -108,12 +108,14 @@ class IncidentScreen(QWidget):
 		text = counted("{count} entry", "{count} entries", total)
 		if total == 0:
 			text = _("no entry")
-		elif self.ui.filter_.text() != "":
-			text = ngettext("{count} entry out of {total}", "{count} entries out of {total}", visible_list).format(
-				count=visible_list, total=total
-			)
-		elif self._reached_limit:
-			text = _("{text}, the most recent").format(text=text)
+		else:
+			if self.ui.filter_.text() != "":
+				text = ngettext("{count} entry out of {total}", "{count} entries out of {total}", visible_list).format(
+					count=visible_list, total=total
+				)
+			else:
+				if self._reached_limit:
+					text = _("{text}, the most recent").format(text=text)
 		self.ui.count.setText(text)
 
 	def _open(self, index: QModelIndex) -> None:

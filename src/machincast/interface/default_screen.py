@@ -542,7 +542,10 @@ class DefaultScreen(QWidget):
 		stream = (next_ is not None) and (next_.stream)
 		ui.test_next_stream.setVisible(stream)
 		ui.test_next_stream.setEnabled((stream) and (not self.stream_trial.ongoing()))
-		sound = None if next_ is None else next_.sound
+		if next_ is None:
+			sound = None
+		else:
+			sound = next_.sound
 		if sound != self._tested_stream:
 			self._tested_stream = None
 			ui.next_stream.clear()
@@ -673,6 +676,9 @@ def play_cells(play: DisplayedPlay) -> list[str]:
 	if play.end is not None:
 		end = display.hour(play.end)
 		duration = display.duration(play.duration)
+	chosen = ""
+	if play.without_incident is False:
+		chosen = INCIDENT
 	return [
 		display.hour(play.start),
 		end,
@@ -682,7 +688,7 @@ def play_cells(play: DisplayedPlay) -> list[str]:
 		(play.event) or (""),
 		(play.sequence) or (""),
 		(play.bank) or (""),
-		INCIDENT if play.without_incident is False else "",
+		chosen,
 	]
 
 
@@ -708,6 +714,9 @@ def _upcoming_cells(sound: DisplayedSound) -> list[str]:
 	duration = ""
 	if sound.duration is not None:
 		duration = display.duration(sound.duration)
+	chosen = ""
+	if sound.healthy is False:
+		chosen = NOT_HEALTHY
 	return [
 		display.hour(sound.start, ""),
 		display.hour(sound.estimated_end, ""),
@@ -717,7 +726,7 @@ def _upcoming_cells(sound: DisplayedSound) -> list[str]:
 		(sound.shown_event) or (""),
 		(sound.sequence) or (""),
 		(sound.bank) or (""),
-		NOT_HEALTHY if sound.healthy is False else "",
+		chosen,
 	]
 
 

@@ -587,13 +587,20 @@ def sounds(interface: Context, empty_database: Connection, datatable: list[list[
 		line = dict(zip(headers, (v.strip() for v in values), strict=True))
 		line["location"] = interface.path(line["location"])
 		stream = line["type"] == "stream"
+		if stream:
+			chosen = None
+		else:
+			chosen = line["location"]
+		chosen_2 = None
+		if stream:
+			chosen_2 = line["location"]
 		empty_database.execute(
 			"INSERT INTO sounds (type, location, stream_url, artist, title, state, duration)"
 			" VALUES (%s, %s, %s, %s, %s, %s, %s)",
 			(
 				line["type"],
-				None if stream else line["location"],
-				line["location"] if stream else None,
+				chosen,
+				chosen_2,
 				(line["artist"]) or (None),
 				(line["title"]) or (None),
 				line["state"],
@@ -1061,16 +1068,19 @@ def add_items(interface: Context, qtbot: QtBot, empty_database: Connection, cate
 	"""Le choix donnera ces sonores, par leur titre, ou ces banques ou ces séquences, par leur nom ; « aucun » : le
 	choix est abandonné."""
 	ui = opened_card(interface).ui  # type: ignore[attr-defined]
-	if category == "sonores":
-		interface.chosen_sounds = [identifier(empty_database, "sounds", "title", name) for name in NAME.findall(names)]
-	elif category == "banques":
-		interface.chosen_banks = [
-			identifier(empty_database, "banks", "internal_name", name) for name in NAME.findall(names)
-		]
-	else:
-		interface.chosen_sequences = [
-			identifier(empty_database, "sequences", "internal_name", name) for name in NAME.findall(names)
-		]
+	match category:
+		case "sonores":
+			interface.chosen_sounds = [
+				identifier(empty_database, "sounds", "title", name) for name in NAME.findall(names)
+			]
+		case "banques":
+			interface.chosen_banks = [
+				identifier(empty_database, "banks", "internal_name", name) for name in NAME.findall(names)
+			]
+		case _:
+			interface.chosen_sequences = [
+				identifier(empty_database, "sequences", "internal_name", name) for name in NAME.findall(names)
+			]
 	button = {"sonores": "add_sounds", "banques": "add_banks", "séquences": "add_sequences"}[category]
 	qtbot.mouseClick(getattr(ui, button), Qt.MouseButton.LeftButton)
 
@@ -1286,8 +1296,9 @@ def reported_fields(card: Card) -> list[str]:
 	for widget in card.findChildren(QWidget):
 		if (isinstance(widget, (QLabel, QAbstractButton))) and (widget is not card.error):
 			labels.append(widget.text())
-		elif isinstance(widget, QGroupBox):
-			labels.append(widget.title())
+		else:
+			if isinstance(widget, QGroupBox):
+				labels.append(widget.title())
 	return [text.removeprefix(REPORTED).replace("&", "") for text in labels if text.startswith(REPORTED)]
 
 
@@ -1644,12 +1655,13 @@ def in_database(empty_database: Connection, category: str, name: str, state: str
 		f"SELECT {marks} FROM {table} WHERE {column} = %s",  # noqa: S608
 		(name,),
 	).fetchall()
-	if state == "n'est plus":
-		assert lines == [], lines
-	elif state == "est toujours":
-		assert [line[0] for line in lines] == [None], lines
-	else:
-		assert (len(lines) == 1) and (lines[0][0] is not None), lines
+	match state:
+		case "n'est plus":
+			assert lines == [], lines
+		case "est toujours":
+			assert [line[0] for line in lines] == [None], lines
+		case _:
+			assert (len(lines) == 1) and (lines[0][0] is not None), lines
 
 
 @given("les périphériques audio du poste :")

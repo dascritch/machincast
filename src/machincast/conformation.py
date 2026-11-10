@@ -44,6 +44,7 @@ def conform(text: str) -> str:
 	for character in text:
 		if character.isspace():
 			kept_list.append(" ")
-		elif not _deleted(character):
-			kept_list.append(character)
+		else:
+			if not _deleted(character):
+				kept_list.append(character)
 	return " ".join(word for word in "".join(kept_list).split(" ") if word != "")

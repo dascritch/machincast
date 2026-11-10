@@ -230,27 +230,34 @@ def restart(
 					account=program.account, command=program.command
 				)
 			)
-		elif program.kind == "simulation":
-			rest.append(_("simulation interrupted: launch it again from the Simulation tab of the interface"))
-		elif program.name == "indexer":
-			rest.append(_("indexing interrupted: launch again {command}").format(command=program.command))
-		elif not graphic:
-			ou = _("a terminal")
-			if program.name == "interface":
-				ou = _("the graphical session")
-			rest.append(_("to reopen in {ou}: {command}").format(ou=ou, command=program.command))
-		elif program.name == "interface":
-			if not simulation:
-				launch(command, program.directory)
-			restarted_list.append(_("{prefix}relaunched: {command}").format(prefix=prefix, command=program.command))
-		elif terminal is None:
-			rest.append(_("to reopen in a terminal: {command}").format(command=program.command))
 		else:
-			if not simulation:
-				launch([terminal, "-e", *command], program.directory)
-			restarted_list.append(
-				_("{prefix}relaunched in a terminal: {command}").format(prefix=prefix, command=program.command)
-			)
+			if program.kind == "simulation":
+				rest.append(_("simulation interrupted: launch it again from the Simulation tab of the interface"))
+			else:
+				match program.name:
+					case "indexer":
+						rest.append(_("indexing interrupted: launch again {command}").format(command=program.command))
+					case _ if not graphic:
+						ou = _("a terminal")
+						if program.name == "interface":
+							ou = _("the graphical session")
+						rest.append(_("to reopen in {ou}: {command}").format(ou=ou, command=program.command))
+					case "interface":
+						if not simulation:
+							launch(command, program.directory)
+						restarted_list.append(
+							_("{prefix}relaunched: {command}").format(prefix=prefix, command=program.command)
+						)
+					case _ if terminal is None:
+						rest.append(_("to reopen in a terminal: {command}").format(command=program.command))
+					case _:
+						if not simulation:
+							launch([terminal, "-e", *command], program.directory)
+						restarted_list.append(
+							_("{prefix}relaunched in a terminal: {command}").format(
+								prefix=prefix, command=program.command
+							)
+						)
 	return restarted_list + rest
 
 
