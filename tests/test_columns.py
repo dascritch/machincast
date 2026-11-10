@@ -393,6 +393,11 @@ def content(interface: Context, file: str, docstring: str) -> None:
 	assert bytes_.decode("utf-8-sig") == f"{docstring}\n"
 
 
+@then(parsers.parse("le fichier « {file} » a {count:d} lignes, titres compris"))
+def line_count(interface: Context, file: str, count: int) -> None:
+	assert len((interface.directory / file).read_text(encoding="utf-8-sig").splitlines()) == count
+
+
 @then(parsers.parse("le fichier « {file} » contient la ligne « {line} »"))
 def contains_line(interface: Context, file: str, line: str) -> None:
 	assert line in (interface.directory / file).read_text(encoding="utf-8-sig").splitlines()

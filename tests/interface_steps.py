@@ -1112,6 +1112,36 @@ def apply_filter(interface: Context, qtbot: QtBot, text: str) -> None:
 	type_(qtbot, list_(interface).filter_, text)
 
 
+@given(parsers.parse("{count:d} sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/{last:d}.flac"))
+def many_sounds(empty_database: Connection, count: int, last: int) -> None:
+	"""https://github.com/dascritch/machincast/issues/383"""
+	assert count == last
+	empty_database.execute(
+		"INSERT INTO sounds (type, location, state, duration)"
+		" SELECT 'file', '/srv/grande/' || n || '.flac', 'active', '3 min' FROM generate_series(1, %s) n",
+		(count,),
+	)
+
+
+@then(parsers.parse("la table de la liste a {count:d} lignes"))
+def table_lines(interface: Context, count: int) -> None:
+	assert list_(interface).table.model().rowCount() == count
+
+
+@when("je descends au bas de la table de la liste")
+def list_to_bottom(interface: Context, qtbot: QtBot) -> None:
+	"""La vue demande la page suivante (fetchMore) en arrivant au bas de la table, une fois ses lignes disposées."""
+	qtbot.wait(10)
+	bar = list_(interface).table.verticalScrollBar()
+	bar.setValue(bar.maximum())
+	qtbot.wait(10)
+
+
+@then(parsers.parse("la première ligne de la liste a pour titre « {title} »"))
+def first_title(interface: Context, title: str) -> None:
+	assert lines(interface)[0]["Titre"] == title, lines(interface)[:3]
+
+
 @when(parsers.parse("je clique sur le titre de la colonne « {title} »"))
 def sort(interface: Context, qtbot: QtBot, title: str) -> None:
 	table = list_(interface).table

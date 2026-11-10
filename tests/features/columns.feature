@@ -175,6 +175,16 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 			"""
 		Et la barre d'état annonce que le tableau est exporté dans « sonores.csv »
 
+	Scénario: Un tableau lu par pages s'exporte en entier, pas seulement les lignes déjà lues
+		https://github.com/dascritch/machincast/issues/383
+
+		Étant donné 250 sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/250.flac
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je choisis « Exporter ce tableau… » au clic droit dans le tableau de l'onglet « Sonores », vers « sonores.csv »
+		Alors le fichier « sonores.csv » a 253 lignes, titres compris
+
 	Scénario: Seules les lignes que garde le filtre sont exportées
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre l'onglet « Banques »

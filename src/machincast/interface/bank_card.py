@@ -168,6 +168,7 @@ class BankCard(Card):
 		for _value, text in HIDINGS:
 			self.ui.hiding.addItem(text)
 		self.columns = Columns(self.ui.sounds, "fiche-banque-sonores")
+		self.columns.before_export = self.load_all
 		self._name = ""
 		self._loaded_list: set[int] = set()
 		self._bulk = False

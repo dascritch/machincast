@@ -25,12 +25,20 @@ from datetime import datetime, timedelta
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt, Signal
+from PySide6.QtCore import (
+	QAbstractTableModel,
+	QIdentityProxyModel,
+	QModelIndex,
+	QPersistentModelIndex,
+	QSortFilterProxyModel,
+	Qt,
+	Signal,
+)
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QLineEdit, QMenu, QTableView, QWidget
 
 from machincast.i18n import _, counted
-from machincast.interface import display, groups
+from machincast.interface import display, groups, preferences
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
 from machincast.interface.intents import ADD, label
@@ -144,6 +152,8 @@ class Source:
 	views: str = ""
 	"""La clé des réglages de ses vues, qui ne dépend pas de la langue : le pluriel français d'avant
 	https://github.com/dascritch/machincast/issues/360, pour garder les dispositions de colonnes déjà retenues."""
+	paged: bool = False
+	"""La liste se lit par pages, triée et filtrée par la base, la suite en descendant (PagedSounds, https://github.com/dascritch/machincast/issues/383)."""
 
 
 def _text(value: object) -> str:
@@ -162,47 +172,58 @@ SOUND_COLUMNS = (_("Artist"), _("Title"), _("Type"), _("State"), _("Duration"), 
 DURATION_POSITION = SOUND_COLUMNS.index(_("Duration"))
 
 
+SOUND_FIELDS = (
+	"s.id, s.artist, s.title, s.type::text, s.state::text, s.audit_requested, s.duration,"
+	" COALESCE(s.location, s.stream_url, m.url)"
+)
+SOUND_TABLES = "FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.deleted_at IS NULL"
+SOUND_ORDER = "s.artist NULLS LAST, s.title, s.id"
+"""L'ordre de la base, avant tout clic sur un titre de colonne."""
+
+
 def read_sounds(connection: Connection) -> list[Line]:
 	with connection.transaction():
-		rows = connection.execute(
-			"SELECT s.id, s.artist, s.title, s.type::text, s.state::text, s.audit_requested, s.duration,"
-			" COALESCE(s.location, s.stream_url, m.url)"
-			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.deleted_at IS NULL"
-			" ORDER BY s.artist NULLS LAST, s.title, s.id"
-		).fetchall()
-	lines = []
-	for identifier, artist, title, sound_type, state, requested_audit, duration, location in rows:
-		duration_text = ""
-		if sound_type == "stream":
-			duration_text = display.duration(None)
-		elif isinstance(duration, timedelta):
-			duration_text = display.duration(duration)
-		state_text = STATES.get(str(state), str(state))
-		if requested_audit is True:
-			# https://github.com/dascritch/machincast/issues/114
-			state_text = _("{state_text}, audit requested").format(state_text=state_text)
-		# Les durées d'une banque ne se signalent que dans sa fiche, et parmi les relations du sonore, jamais ici
-		# (https://github.com/dascritch/machincast/issues/210).
-		cells = [
-			_text(artist),
-			_text(title),
-			TYPES.get(str(sound_type), str(sound_type)),
-			state_text,
-			duration_text,
-		]
-		cells.append(_text(location))
-		# https://github.com/dascritch/machincast/issues/302 : par les secondes ; sans durée mesurée, après les durées
-		# connues ; un stream, sans fin, en dernier.
-		duration_sort: float = WITHOUT_DURATION
-		if sound_type == "stream":
-			duration_sort = AFTER_ALL
-		elif isinstance(duration, timedelta):
-			duration_sort = duration.total_seconds()
-		sound_name = (_text(title)) or (_text(location))
-		anomaly = SOUND_IN_ANOMALY.get(str(state), "")
-		sorts: dict[int, int | float | str] = {DURATION_POSITION: duration_sort}
-		lines.append(Line(int(str(identifier)), sound_name, cells, anomaly, sorts))
-	return lines
+		rows = connection.execute(f"SELECT {SOUND_FIELDS} {SOUND_TABLES} ORDER BY {SOUND_ORDER}").fetchall()  # noqa: S608
+	return [sound_line(row) for row in rows]
+
+
+def _state_text(state: str, requested_audit: bool) -> str:
+	state_text = STATES.get(state, state)
+	if requested_audit:
+		# https://github.com/dascritch/machincast/issues/114
+		state_text = _("{state_text}, audit requested").format(state_text=state_text)
+	return state_text
+
+
+def sound_line(row: tuple[object, ...]) -> Line:
+	"""La ligne d'un sonore, lu par SOUND_FIELDS."""
+	identifier, artist, title, sound_type, state, requested_audit, duration, location = row
+	duration_text = ""
+	if sound_type == "stream":
+		duration_text = display.duration(None)
+	elif isinstance(duration, timedelta):
+		duration_text = display.duration(duration)
+	# Les durées d'une banque ne se signalent que dans sa fiche, et parmi les relations du sonore, jamais ici
+	# (https://github.com/dascritch/machincast/issues/210).
+	cells = [
+		_text(artist),
+		_text(title),
+		TYPES.get(str(sound_type), str(sound_type)),
+		_state_text(str(state), requested_audit is True),
+		duration_text,
+	]
+	cells.append(_text(location))
+	# https://github.com/dascritch/machincast/issues/302 : par les secondes ; sans durée mesurée, après les durées
+	# connues ; un stream, sans fin, en dernier.
+	duration_sort: float = WITHOUT_DURATION
+	if sound_type == "stream":
+		duration_sort = AFTER_ALL
+	elif isinstance(duration, timedelta):
+		duration_sort = duration.total_seconds()
+	sound_name = (_text(title)) or (_text(location))
+	anomaly = SOUND_IN_ANOMALY.get(str(state), "")
+	sorts: dict[int, int | float | str] = {DURATION_POSITION: duration_sort}
+	return Line(int(str(identifier)), sound_name, cells, anomaly, sorts)
 
 
 def read_banks(connection: Connection) -> list[Line]:
@@ -326,6 +347,7 @@ SOUNDS = Source(
 	label(ADD, _("Add files…")),
 	anomalies=True,
 	views="sonores",
+	paged=True,
 )
 BANKS = Source(
 	"bank",
@@ -407,6 +429,224 @@ class FilterWithoutAccents(QSortFilterProxyModel):
 		return False
 
 
+def _folding() -> tuple[str, str]:
+	"""Les lettres accentuées latines, et leur lettre sans accent en minuscule, comme les donne without_accents :
+	pour que la base filtre comme FilterWithoutAccents (https://github.com/dascritch/machincast/issues/383)."""
+	accented, plain = "", ""
+	for code in range(0xC0, 0x250):
+		letter = chr(code)
+		folded = without_accents(letter)
+		if (len(folded) == 1) and (folded.isascii()) and (folded.isalpha()) and (folded != letter):
+			accented += letter
+			plain += folded
+	return accented, plain
+
+
+ACCENTED, PLAIN = _folding()
+
+
+def _fold(expression: str) -> str:
+	"""L'expression SQL en minuscules, sans accents latins : à comparer à un texte passé par without_accents."""
+	return f"lower(translate({expression}, %s, %s))"
+
+
+SOUND_LOCATION = "COALESCE(s.location, s.stream_url, m.url)"
+DURATION_SECONDS = "floor(extract(epoch FROM s.duration))::bigint"
+DURATION_TEXT = (
+	"CASE WHEN s.type = 'stream' THEN %s WHEN s.duration IS NULL THEN ''"
+	f" WHEN {DURATION_SECONDS} >= 3600 THEN ({DURATION_SECONDS} / 3600)::text || ':'"
+	f" || lpad((mod({DURATION_SECONDS}, 3600) / 60)::text, 2, '0') || ':' || lpad(mod({DURATION_SECONDS}, 60)::text, 2, '0')"
+	f" ELSE ({DURATION_SECONDS} / 60)::text || ':' || lpad(mod({DURATION_SECONDS}, 60)::text, 2, '0') END"
+)
+"""La durée comme display.duration : « 3:34 », « 1:02:05 », « inconnue » pour un stream, rien sans durée mesurée."""
+
+
+def _state_expression() -> tuple[str, list[object]]:
+	"""Le texte de l'état d'un sonore, comme _state_text, en SQL, et ses paramètres."""
+	parts: list[str] = []
+	values: list[object] = []
+	for state, text in STATES.items():
+		parts.append("WHEN s.state::text = %s AND s.audit_requested THEN %s WHEN s.state::text = %s THEN %s")
+		values += [state, _state_text(state, True), state, text]
+	return f"CASE {' '.join(parts)} ELSE s.state::text END", values
+
+
+def _type_expression() -> tuple[str, list[object]]:
+	parts: list[str] = []
+	values: list[object] = []
+	for sound_type, text in TYPES.items():
+		parts.append("WHEN s.type::text = %s THEN %s")
+		values += [sound_type, text]
+	return f"CASE {' '.join(parts)} ELSE s.type::text END", values
+
+
+class PagedSounds(QAbstractTableModel):
+	"""Les sonores de la liste, lus par pages de preferences.table_rows, triés et filtrés par la base : la vue lit la
+	page suivante en arrivant au bas de la table (canFetchMore, fetchMore). Trier ou filtrer relit la première page.
+	Les tris et le filtre suivent ceux de FilterWithoutAccents et du tri par SORT, sur les textes montrés
+	(https://github.com/dascritch/machincast/issues/383)."""
+
+	def __init__(self, connection: Connection, titles: list[str], parent: QWidget | None = None) -> None:
+		super().__init__(parent)
+		self.connection = connection
+		self.titles = titles
+		self._lines: list[Line] = []
+		self.total = 0
+		"""Les sonores qui passent le filtre."""
+		self.overall = 0
+		"""Tous les sonores."""
+		self.anomalies = 0
+		"""Les sonores en anomalie qui passent le filtre."""
+		self._text = ""
+		self._column = -1
+		self._order = Qt.SortOrder.AscendingOrder
+		self._read = False
+
+	def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008, N802
+		if parent.isValid():
+			return 0
+		return len(self._lines)
+
+	def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008, N802
+		if parent.isValid():
+			return 0
+		return len(self.titles)
+
+	def headerData(  # noqa: N802
+		self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
+	) -> object:
+		if orientation != Qt.Orientation.Horizontal:
+			return None
+		if role == Qt.ItemDataRole.DisplayRole:
+			return self.titles[section]
+		if (role == Qt.ItemDataRole.ToolTipRole) and (section == 0):
+			return ANOMALY_TOOLTIP
+		return None
+
+	def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> object:
+		if (not index.isValid()) or (index.row() >= len(self._lines)):
+			return None
+		line = self._lines[index.row()]
+		column = index.column()
+		if role == Qt.ItemDataRole.DisplayRole:
+			if column == 0:
+				return ANOMALY_COLUMN if line.anomaly else ""
+			return line.cells[column - 1]
+		if role == Qt.ItemDataRole.ToolTipRole:
+			return (line.anomaly) or (None)
+		if (role == Qt.ItemDataRole.TextAlignmentRole) and (column == 0):
+			return Qt.AlignmentFlag.AlignCenter
+		if (role == IDENTIFIER) and (column == 0):
+			return line.identifier
+		if (role == IDENTIFIER + 1) and (column == 0):
+			return line.name
+		return None
+
+	def canFetchMore(self, parent: QModelIndex | QPersistentModelIndex) -> bool:  # noqa: N802
+		return (not parent.isValid()) and (len(self._lines) < self.total)
+
+	def fetchMore(self, parent: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
+		if not self.canFetchMore(parent):
+			return
+		lines = self._page(len(self._lines))
+		if lines == []:
+			self.total = len(self._lines)
+			return
+		self.beginInsertRows(QModelIndex(), len(self._lines), len(self._lines) + len(lines) - 1)
+		self._lines += lines
+		self.endInsertRows()
+
+	def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+		self._column, self._order = column, order
+		if self._read:
+			self.reload()
+
+	def set_filter(self, text: str) -> None:
+		self._text = without_accents(text)
+		self.reload()
+
+	def reload(self) -> None:
+		"""Les comptes, et la première page ; psycopg.Error laisse la liste telle qu'elle était."""
+		where, values = self._filter()
+		anomaly = "s.state::text = ANY(%s)"
+		with self.connection.transaction():
+			counts = self.connection.execute(
+				f"SELECT count(*) FILTER (WHERE {where}), count(*) FILTER (WHERE ({where}) AND {anomaly}), count(*)"  # noqa: S608
+				f" {SOUND_TABLES}",
+				[*values, *values, list(SOUND_IN_ANOMALY)],
+			).fetchone()
+			assert counts is not None
+			self.total, self.anomalies, self.overall = (int(str(count)) for count in counts)
+			lines = self._page(0)
+		self.beginResetModel()
+		self._lines = lines
+		self._read = True
+		self.endResetModel()
+
+	def _page(self, offset: int) -> list[Line]:
+		where, values = self._filter()
+		order, order_values = self._ordering()
+		rows = self.connection.execute(
+			f"SELECT {SOUND_FIELDS} {SOUND_TABLES} AND ({where}) ORDER BY {order} LIMIT %s OFFSET %s",  # noqa: S608
+			[*values, *order_values, preferences.table_rows(), offset],
+		).fetchall()
+		return [sound_line(row) for row in rows]
+
+	def _filter(self) -> tuple[str, list[object]]:
+		"""La condition du filtre, sur chaque colonne montrée, et ses paramètres ; vraie sans filtre."""
+		if self._text == "":
+			return "true", []
+		text = self._text
+		escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		pattern = f"%{escaped}%"
+		parts: list[str] = []
+		values: list[object] = []
+		for expression in ("COALESCE(s.artist, '')", "COALESCE(s.title, '')", f"COALESCE({SOUND_LOCATION}, '')"):
+			parts.append(f"{_fold(expression)} LIKE %s ESCAPE '\\'")
+			values += [ACCENTED, PLAIN, pattern]
+		parts.append(f"{_fold(DURATION_TEXT)} LIKE %s ESCAPE '\\'")
+		values += [display.duration(None), ACCENTED, PLAIN, pattern]
+		types = [sound_type for sound_type, label_ in TYPES.items() if text in without_accents(label_)]
+		plain = [state for state in STATES if text in without_accents(_state_text(state, False))]
+		audited = [state for state in STATES if text in without_accents(_state_text(state, True))]
+		parts += [
+			"s.type::text = ANY(%s)",
+			"s.state::text = ANY(%s)",
+			"(s.audit_requested AND s.state::text = ANY(%s))",
+		]
+		values += [types, plain, audited]
+		if text in without_accents(ANOMALY_COLUMN):
+			parts.append("s.state::text = ANY(%s)")
+			values.append(list(SOUND_IN_ANOMALY))
+		return " OR ".join(f"({part})" for part in parts), values
+
+	def _ordering(self) -> tuple[str, list[object]]:
+		"""L'ordre de la colonne choisie, comme le tri de la table par SORT, puis l'ordre de la base ; celui de la
+		base seul sans colonne choisie."""
+		direction = "ASC"
+		if self._order == Qt.SortOrder.DescendingOrder:
+			direction = "DESC"
+		column = self._column
+		keys: list[str] = []
+		values: list[object] = []
+		if column == 0:
+			keys = [f"(s.state::text = ANY(%s)) {direction}"]
+			values = [list(SOUND_IN_ANOMALY)]
+		elif column in (1, 2, len(self.titles) - 1):
+			expression = {1: "s.artist", 2: "s.title"}.get(column, SOUND_LOCATION)
+			keys = [f"lower(COALESCE({expression}, '')) COLLATE \"C\" {direction}"]
+		elif column == 3:
+			expression, values = _type_expression()
+			keys = [f'lower({expression}) COLLATE "C" {direction}']
+		elif column == 4:
+			expression, values = _state_expression()
+			keys = [f'lower({expression}) COLLATE "C" {direction}']
+		elif column == 5:
+			rank = "CASE WHEN s.type = 'stream' THEN 2 WHEN s.duration IS NULL THEN 1 ELSE 0 END"
+			keys = [f"{rank} {direction}", f"s.duration {direction}"]
+		return ", ".join([*keys, SOUND_ORDER]), values
+
+
 class List(QWidget):
 	opened = Signal(str, int, str)
 	"""Ligne ouverte : genre, identifiant et nom de l'élément."""
@@ -443,14 +683,27 @@ class List(QWidget):
 		titles = list(source.columns)
 		if source.anomalies:
 			titles.insert(0, ANOMALY_COLUMN)
-		self.model = QStandardItemModel(0, len(titles), self)
-		self.model.setHorizontalHeaderLabels(titles)
-		if source.anomalies:
-			self.model.setHeaderData(0, Qt.Orientation.Horizontal, ANOMALY_TOOLTIP, Qt.ItemDataRole.ToolTipRole)
-		self.proxy = FilterWithoutAccents(self)
-		self.proxy.setSourceModel(self.model)
-		self.proxy.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-		self.proxy.setSortRole(SORT)
+		self.model: QStandardItemModel | PagedSounds
+		self.proxy: FilterWithoutAccents | QIdentityProxyModel
+		self.paged: PagedSounds | None = None
+		if source.paged:
+			# Triée et filtrée par la base, par pages (https://github.com/dascritch/machincast/issues/383) : la vue
+			# passe le tri à PagedSounds à travers le proxy, et lui demande la page suivante en descendant.
+			self.paged = PagedSounds(connection, titles, self)
+			self.model = self.paged
+			self.proxy = QIdentityProxyModel(self)
+			self.proxy.setSourceModel(self.model)
+		else:
+			standard = QStandardItemModel(0, len(titles), self)
+			standard.setHorizontalHeaderLabels(titles)
+			if source.anomalies:
+				standard.setHeaderData(0, Qt.Orientation.Horizontal, ANOMALY_TOOLTIP, Qt.ItemDataRole.ToolTipRole)
+			self.model = standard
+			filtering = FilterWithoutAccents(self)
+			filtering.setSourceModel(standard)
+			filtering.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+			filtering.setSortRole(SORT)
+			self.proxy = filtering
 		self.table.setModel(self.proxy)
 		header = self.table.horizontalHeader()
 		if view is None:
@@ -500,10 +753,15 @@ class List(QWidget):
 	def refresh(self) -> None:
 		"""Relit la liste en base ; une base injoignable laisse la liste telle qu'elle était."""
 		try:
+			if self.paged is not None:
+				self.paged.reload()
+				self._count()
+				return
 			lines = self.source.read(self.connection)
 		except psycopg.Error as error:
 			log.error(_("unreadable list of {plural}: {error}").format(plural=self.source.plural, error=error))
 			return
+		assert isinstance(self.model, QStandardItemModel)
 		self.model.setRowCount(0)
 		for line in lines:
 			cells = [QStandardItem(text) for text in line.cells]
@@ -525,20 +783,32 @@ class List(QWidget):
 		self._count()
 
 	def _apply_filter(self, text: str) -> None:
-		self.proxy.apply_filter(text)
+		if isinstance(self.proxy, FilterWithoutAccents):
+			self.proxy.apply_filter(text)
+		elif self.paged is not None:
+			try:
+				self.paged.set_filter(text)
+			except psycopg.Error as error:
+				log.error(_("unreadable list of {plural}: {error}").format(plural=self.source.plural, error=error))
 		self._count()
 
 	def _count(self) -> None:
+		if self.paged is not None:
+			self._show_count(self.paged.overall, self.paged.total, self.paged.anomalies)
+			return
 		total = self.model.rowCount()
 		visible_list = self.proxy.rowCount()
+		# Les lignes en anomalie parmi celles que montre le filtre.
+		anomalies = sum(1 for row in range(visible_list) if self.proxy.index(row, 0).data(Qt.ItemDataRole.ToolTipRole))
+		self._show_count(total, visible_list, anomalies)
+
+	def _show_count(self, total: int, visible_list: int, anomalies: int) -> None:
 		if self.filter_.text() != "":
 			text = _("{elements} out of {total}").format(elements=self.source.counting(visible_list), total=total)
 		elif total == 0:
 			text = self.source.no
 		else:
 			text = self.source.counting(total)
-		# Les lignes en anomalie parmi celles que montre le filtre.
-		anomalies = sum(1 for row in range(visible_list) if self.proxy.index(row, 0).data(Qt.ItemDataRole.ToolTipRole))
 		if anomalies > 0:
 			text = _("{text}, of which {anomalies} in anomaly").format(text=text, anomalies=anomalies)
 		self.count.setText(text)

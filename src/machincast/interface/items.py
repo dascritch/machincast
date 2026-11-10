@@ -138,6 +138,7 @@ class ItemList(QObject):
 		self.marked_list: dict[int, str] = {}
 		"""Banques « ne pas répéter », par identifiant, avec leur nom."""
 		self.columns = Columns(list_, VIEWS[table])
+		self.columns.before_export = self.load_all
 		list_.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 		self.drop = FileDrop(list_)
 		self.drop.dropped.connect(self._drop_in)

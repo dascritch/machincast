@@ -298,6 +298,45 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand je clique sur le titre de la colonne « Titre »
 		Alors la liste montre les titres « Avril », « Café à minuit », « Matin clair »
 
+	# ─── Pages de la liste des sonores (https://github.com/dascritch/machincast/issues/383) ───
+
+	Scénario: La liste des sonores ne lit d'abord que sa première page, et la suite en descendant
+		Étant donné 250 sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/250.flac
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Alors la table de la liste a 100 lignes
+		Et le compte de la liste est « 250 sonores »
+		Quand je descends au bas de la table de la liste
+		Alors la table de la liste a 200 lignes
+		Quand je descends au bas de la table de la liste
+		Alors la table de la liste a 250 lignes
+
+	Scénario: Le tri d'une colonne porte sur tous les sonores, pas seulement ceux déjà lus
+		Étant donné 250 sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/250.flac
+		Et les sonores :
+			| artist  | title | type | state  | duration | location                |
+			| Zébulon | Avril | file | active | 100      | /srv/musique/avril.flac |
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je clique sur le titre de la colonne « Emplacement »
+		Et je clique sur le titre de la colonne « Emplacement »
+		Alors la première ligne de la liste a pour titre « Avril »
+		Et la table de la liste a 100 lignes
+
+	Scénario: Le filtre cherche parmi tous les sonores, sans tenir compte des accents, et le compte les dit tous
+		Étant donné 250 sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/250.flac
+		Et les sonores :
+			| artist  | title | type | state   | duration | location                |
+			| Zébulon | Avril | file | corrupt | 100      | /srv/musique/avril.flac |
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je tape « zebu » dans le filtre de la liste
+		Alors la liste montre les titres « Avril »
+		Et le compte de la liste est « 1 sonore sur 251, dont 1 en anomalie »
+
 	Scénario: Un clic sur le titre « Priorité » classe les événements par importance, pas par ordre alphabétique
 		https://github.com/dascritch/machincast/issues/272 : spécial, émission, fil musical, secours ; un second clic
 		inverse l'ordre.

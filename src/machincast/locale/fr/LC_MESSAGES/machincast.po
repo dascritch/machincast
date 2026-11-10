@@ -3841,16 +3841,16 @@ msgid "empty event"
 msgstr "événement vide"
 
 #: machincast/interface/lists.py
+#, python-brace-format
+msgid "{state_text}, audit requested"
+msgstr "{state_text}, audit demandé"
+
+#: machincast/interface/lists.py
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui
 #: machincast/interface/ui/sequence_card.ui
 msgid "Duplicate"
 msgstr "Dupliquer"
-
-#: machincast/interface/lists.py
-#, python-brace-format
-msgid "{state_text}, audit requested"
-msgstr "{state_text}, audit demandé"
 
 #: machincast/interface/lists.py
 #, python-brace-format
@@ -6762,15 +6762,15 @@ msgstr "&Lignes chargées à la fois"
 
 #: machincast/interface/ui/preferences.ui
 msgid ""
-"The sounds of a bank, and the items of a sequence or an event, are loaded "
-"this many at a time in their card: the rest comes as you scroll down. A "
-"higher number can strongly slow down the interface for a bank with a very "
-"large number of sounds."
+"The sounds of a bank, the items of a sequence or an event, and the Sounds "
+"list are loaded this many at a time: the rest comes as you scroll down. A "
+"higher number can strongly slow down the interface with a very large number "
+"of sounds."
 msgstr ""
-"Les sonores d'une banque, et les éléments d'une séquence ou d'un événement, "
-"se chargent dans leur fiche par ce nombre de lignes à la fois : la suite "
-"vient en descendant dans la liste. Un nombre plus grand peut fortement "
-"ralentir l'interface pour une banque qui a un très grand nombre de sonores."
+"Les sonores d'une banque, les éléments d'une séquence ou d'un événement, et "
+"la liste des sonores se chargent par ce nombre de lignes à la fois : la "
+"suite vient en descendant dans la liste. Un nombre plus grand peut "
+"fortement ralentir l'interface avec un très grand nombre de sonores."
 
 #: machincast/interface/ui/preferences.ui
 msgid ""
