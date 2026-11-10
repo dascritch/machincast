@@ -25,6 +25,10 @@ depuis https://github.com/dascritch/machincast/issues/284, mais qui reste un fic
 
 MARK = "fichier de MachinCast :"
 """Justification d'une suppression, d'un renommage ou d'un remplacement de fichier dans le code."""
+CONSENT_MARK = "sonore déplacé avec accord :"
+"""La seule exception à https://github.com/dascritch/machincast/issues/96 : le déplacement d'un sonore hors d'un
+répertoire personnel, accepté explicitement à install.sh --service (https://github.com/dascritch/machincast/issues/381,
+machincast.personal)."""
 
 _PYTHON = re.compile(
 	r"\.(?:unlink|rmdir|rename)\(|\b(?:os\.(?:remove|unlink|rmdir|removedirs|rename|renames|replace)|shutil\.(?:rmtree|move))\("
@@ -54,7 +58,8 @@ def unjustified(text: str, bash: bool = False) -> list[tuple[int, str]]:
 	faults = []
 	previous = ""
 	for number, line in enumerate(text.splitlines(), start=1):
-		if (pattern.search(line)) and (MARK not in line) and (MARK not in previous):
+		justified = (MARK in line) or (MARK in previous) or (CONSENT_MARK in line) or (CONSENT_MARK in previous)
+		if (pattern.search(line)) and (not justified):
 			faults.append((number, line))
 		previous = line
 	return faults

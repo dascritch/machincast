@@ -1,21 +1,28 @@
 """Lecture des sonores par le service de diffusion : Machin grant-read (https://github.com/dascritch/machincast/issues/381).
 
 Le service de diffusion tourne sous son propre compte, machincast (machincast.service.ACCOUNT) : il lit les sonores
-des banques et les fichiers ajoutés, qui sont souvent dans le répertoire personnel du compte de MachinCast, privé.
-Ce module dit si le compte du service peut lire un fichier ou un répertoire, et le lui permet :
+des banques et les fichiers ajoutés. Ce module dit si le compte du service peut lire un fichier ou un répertoire, et
+le lui permet, hors des arborescences sensibles :
 
+- arborescences sensibles (sensitive_tree) : les répertoires personnels (personal_home : /home, sauf le répertoire
+  d'accueil des sonores, /home/machincast, et le répertoire personnel de tout compte humain, /root compris), et les
+  arborescences du système (SYSTEM_TREES : /etc, /bin, /sbin, /usr, /var, /media, /mnt, /opt…). MachinCast n'y change
+  jamais aucun droit ; le service n'y lit que ce que les droits en place lui laissent lire, et jamais un répertoire
+  personnel ;
 - lire : les répertoires parents se traversent (x), le fichier se lit (r), un répertoire se lit et se traverse (rx).
   Les droits se calculent comme le noyau, d'après le propriétaire, le groupe, les autres, et les ACL POSIX
   (attribut system.posix_acl_access) : entrée nommée du compte, groupes du compte, masque ;
-- donner la lecture : par des ACL (setfacl, paquet acl), sans changer ni le propriétaire ni le mode, ni le contenu
-  d'aucun fichier (https://github.com/dascritch/machincast/issues/96) : u:machincast:x sur les répertoires parents qui
-  ne se traversent pas, u:machincast:rX sur la cible, récursivement pour un répertoire, avec l'ACL par défaut
-  d:u:machincast:rX, que reçoivent les fichiers qui s'y ajoutent. setfacl ne change que les fichiers dont le compte
-  qui le lance est propriétaire : un autre répertoire est signalé, avec la commande qu'un administrateur lance.
+- donner la lecture : par des ACL (setfacl, paquet acl), sans changer ni le propriétaire, ni les droits du groupe et
+  des autres, ni le contenu d'aucun fichier (https://github.com/dascritch/machincast/issues/96) : u:machincast:x sur
+  les répertoires parents qui ne se traversent pas, u:machincast:rX sur la cible, récursivement pour un répertoire,
+  avec l'ACL par défaut d:u:machincast:rX, que reçoivent les fichiers qui s'y ajoutent. Un changement qui toucherait
+  une arborescence sensible est refusé, et rien n'est changé. setfacl ne change que les fichiers dont le compte qui le
+  lance est propriétaire : un autre répertoire est signalé, avec la commande qu'un administrateur lance.
 
 	Machin grant-read [CHEMIN…]
 
-donne au service la lecture de ces chemins ; sans chemin, celle des répertoires des banques et des fichiers ajoutés de la base de production.
+donne au service la lecture de ces chemins ; sans chemin, celle des répertoires des banques et des fichiers ajoutés de
+la base de production.
 
 Le code de sortie est 0 quand le service lit tout, 1 sinon, ou sans compte du service.
 """
@@ -53,6 +60,93 @@ USER_OBJ, USER, GROUP_OBJ, GROUP, MASK, OTHER = 0x01, 0x02, 0x04, 0x08, 0x10, 0x
 READ, EXECUTE = 4, 1
 
 log = logging.getLogger("machincast.access")
+
+WELCOME = Path("/home/machincast")
+"""Le répertoire d'accueil des sonores, créé par install.sh --service, au compte de MachinCast et au groupe machincast
+(mode 2750) : le service le lit sans qu'aucun droit ne change."""
+WELCOME_ENVIRONMENT = "MACHINCAST_WELCOME"
+PERSONAL_ENVIRONMENT = "MACHINCAST_PERSONAL_HOMES"
+"""Des répertoires personnels de plus, séparés par « : » : les scénarios en simulent, sans en retirer aucun."""
+HOMES = Path("/home")
+SYSTEM_TREES = (
+	Path("/bin"),
+	Path("/boot"),
+	Path("/dev"),
+	Path("/etc"),
+	Path("/home"),
+	Path("/lib"),
+	Path("/lib32"),
+	Path("/lib64"),
+	Path("/libx32"),
+	Path("/lost+found"),
+	Path("/media"),
+	Path("/mnt"),
+	Path("/opt"),
+	Path("/proc"),
+	Path("/root"),
+	Path("/run"),
+	Path("/sbin"),
+	Path("/snap"),
+	Path("/srv"),
+	Path("/sys"),
+	Path("/usr"),
+	Path("/var"),
+)
+"""Les arborescences du système, et celle des répertoires personnels : MachinCast n'y change jamais de droits."""
+HUMAN_UID = 1000
+
+
+def welcome() -> Path:
+	return Path((os.environ.get(WELCOME_ENVIRONMENT)) or (str(WELCOME)))
+
+
+def _real(path: Path) -> Path:
+	"""Le chemin absolu, liens symboliques résolus : un lien vers un répertoire personnel y mène."""
+	return Path(os.path.realpath(path))
+
+
+def _homes() -> list[Path]:
+	"""Les répertoires personnels : /home et ses répertoires, celui de root, ceux des comptes humains."""
+	found = [HOMES, Path("/root")]
+	for entry in pwd.getpwall():
+		if (entry.pw_uid >= HUMAN_UID) and (entry.pw_dir not in ("", "/", "/nonexistent")):
+			found.append(Path(entry.pw_dir))
+	for extra in os.environ.get(PERSONAL_ENVIRONMENT, "").split(":"):
+		if extra:
+			found.append(Path(extra))
+	return found
+
+
+def personal_home(path: Path) -> Path | None:
+	"""Le répertoire personnel où est le chemin, liens résolus ; None hors de tout répertoire personnel, et dans le
+	répertoire d'accueil des sonores."""
+	real = _real(path)
+	reception = _real(welcome())
+	if (real == reception) or (reception in real.parents):
+		return None
+	for home in _homes():
+		home = _real(home)
+		if ((real == home) or (home in real.parents)) and (home == HOMES) and (real != HOMES):
+			# Le répertoire personnel lui-même, /home/<compte>, plutôt que /home.
+			return HOMES / real.relative_to(HOMES).parts[0]
+		if (real == home) or (home in real.parents):
+			return home
+	return None
+
+
+def sensitive_tree(path: Path) -> Path | None:
+	"""L'arborescence sensible où est le chemin, liens résolus : où MachinCast ne change jamais de droits. La racine
+	« / » elle-même en est une ; None ailleurs."""
+	real = _real(path)
+	home = personal_home(real)
+	if home is not None:
+		return home
+	if real == Path("/"):
+		return real
+	for tree in SYSTEM_TREES:
+		if (real == tree) or (tree in real.parents):
+			return tree
+	return None
 
 
 @dataclass(frozen=True)
@@ -192,13 +286,30 @@ def _setfacl(arguments: list[str]) -> str | None:
 def grant(path: Path, account: Account) -> Grant:
 	"""Donne au compte la lecture du chemin : la traversée de ses répertoires parents qui en manquent, et la lecture du
 	chemin, récursive pour un répertoire, avec l'ACL par défaut des fichiers qui s'y ajouteront."""
-	path = Path(os.path.abspath(path))
+	path = _real(path)
 	changed: list[Path] = []
 	problems: list[str] = []
-	uid = os.getuid()
+	crossings = []
 	for parent in reversed(path.parents):
 		if not _allows(parent, account, EXECUTE):
-			_grant_traversal(parent, account, uid, changed, problems)
+			crossings.append(parent)
+	# Rien ne change dans une arborescence sensible : un seul refus, et aucun droit modifié.
+	for target in [*crossings, path]:
+		tree = sensitive_tree(target)
+		if tree is not None:
+			problems.append(
+				_("{path}: refused, it is in {tree}, where MachinCast never changes any right").format(
+					path=target, tree=tree
+				)
+			)
+	if problems != []:
+		problems.append(
+			_("put the sound files in {welcome}, which the broadcast service reads").format(welcome=welcome())
+		)
+		return Grant(changed, problems)
+	uid = os.getuid()
+	for parent in crossings:
+		_grant_traversal(parent, account, uid, changed, problems)
 	entry = f"u:{account.name}:rX"
 	arguments = [f"--modify={entry}", str(path)]
 	if path.is_dir():

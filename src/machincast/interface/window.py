@@ -1367,20 +1367,22 @@ class MainWindow(QMainWindow):
 		"""Les fichiers entrent en base à l'état aperçu, puis l'indexeur les vérifie, en tâche de fond."""
 		if paths == []:
 			return
+		# Le service de diffusion, sous son propre compte, doit pouvoir les lire ; jamais dans un répertoire
+		# personnel (https://github.com/dascritch/machincast/issues/381).
+		screening = service_access.screen(self, paths)
+		paths = screening.accepted
+		if paths == []:
+			self.ui.state_bar.showMessage(screening.text())
+			return
 		try:
 			adding = add_files(self.connection, paths)
 		except psycopg.Error as error:
 			log.error(_("addition of files impossible: {error}").format(error=error))
 			self.ui.state_bar.showMessage(_("Addition impossible: {error}").format(error=error))
 			return
-		self.ui.state_bar.showMessage(adding.text())
+		self.ui.state_bar.showMessage(" ".join([adding.text(), *screening.messages]))
 		list_.refresh()
 		self.checker.check(adding.added_list)
-		# Le service de diffusion, sous son propre compte, doit pouvoir les lire
-		# (https://github.com/dascritch/machincast/issues/381).
-		reading = service_access.offer(self, paths)
-		if reading != "":
-			self.ui.state_bar.showMessage(f"{adding.text()} {reading}")
 
 	def offer_to_launching(self) -> None:
 		"""Une fois la fenêtre montrée : les nouveautés d'une version publiée, si elles n'ont pas encore été montrées

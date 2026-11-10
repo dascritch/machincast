@@ -41,10 +41,12 @@ def root() -> Iterator[Path]:
 
 @pytest.fixture
 def context() -> SimpleNamespace:
-	return SimpleNamespace(before={}, result=None, command=None, asked=[], said="")
+	return SimpleNamespace(before={}, result=None, command=None, asked=[], said="", accepted=[], setfacl=[])
 
 
 def _path(root: Path, text: str) -> Path:
+	if text.startswith("/"):
+		return Path(text)
 	return root / text.removeprefix("…/")
 
 
@@ -138,17 +140,9 @@ def unchanged(context: SimpleNamespace) -> None:
 		assert (group, state.st_mode & 7) == ((rights >> 3) & 7, rights & 7), item
 
 
-@given("un répertoire d'un autre compte, que le service ne traverse pas")
-def foreign(context: SimpleNamespace) -> None:
-	foreign = Path("/root")
-	if (os.getuid() == 0) or (access._rights(foreign, _account()) & access.EXECUTE):
-		pytest.skip("/root se traverse sur ce poste")
-	context.foreign = foreign
-
-
-@when("la lecture d'un répertoire qui s'y trouve est donnée au service")
-def granted_inside(context: SimpleNamespace) -> None:
-	context.result = access.grant(context.foreign / "banque", _account())
+@given(parsers.parse("un compte qui n'est pas le propriétaire de « {path} »"))
+def not_owner(root: Path, monkeypatch: pytest.MonkeyPatch, path: str) -> None:
+	monkeypatch.setattr(access.os, "getuid", lambda: _path(root, path).stat().st_uid + 1)
 
 
 @then(parsers.parse("la lecture n'est pas donnée, et le problème dit « {text} »"))
@@ -190,7 +184,9 @@ def interface_adds(
 	monkeypatch.setattr(dialogs, "confirm_action", confirm)
 	parent = QWidget()
 	qtbot.addWidget(parent)
-	context.said = service_access.offer(parent, [_path(root, path)])
+	screening = service_access.screen(parent, [_path(root, path)])
+	context.said = screening.text()
+	context.accepted = screening.accepted
 
 
 @then(parsers.parse("l'interface a demandé si le service peut lire « {path} »"))
@@ -207,3 +203,71 @@ def said(context: SimpleNamespace, text: str) -> None:
 @then("l'interface n'a rien demandé")
 def nothing_asked(context: SimpleNamespace) -> None:
 	assert (context.asked, context.said) == ([], "")
+
+
+@given(parsers.parse("le répertoire personnel « {path} »"))
+def personal_home(root: Path, monkeypatch: pytest.MonkeyPatch, path: str) -> None:
+	monkeypatch.setenv(access.PERSONAL_ENVIRONMENT, str(_path(root, path)))
+
+
+@given(parsers.parse("le lien « {link} » vers « {target} »"))
+def link(root: Path, link: str, target: str) -> None:
+	_path(root, link).symlink_to(_path(root, target))
+
+
+@given(parsers.parse("le fichier « {path} » lisible par tous"))
+def readable_by_all(path: str) -> None:
+	assert Path(path).stat().st_mode & 0o004
+
+
+@then(
+	parsers.re(
+		r"« (?P<path>[^»]+) » est dans le répertoire personnel (?P<home>« [^»]+ »|aucun), et dans l'arborescence sensible (?P<tree>« [^»]+ »|aucune)"
+	)
+)
+def trees(path: str, home: str, tree: str) -> None:
+	expected_home = None
+	if home != "aucun":
+		expected_home = Path(home.strip("« »"))
+	expected_tree = None
+	if tree != "aucune":
+		expected_tree = Path(tree.strip("« »"))
+	assert (access.personal_home(Path(path)), access.sensitive_tree(Path(path))) == (expected_home, expected_tree)
+
+
+@then(parsers.parse("« {path} » est dans un répertoire personnel"))
+def in_personal(root: Path, path: str) -> None:
+	assert access.personal_home(_path(root, path)) is not None
+
+
+@when(parsers.parse("la lecture de « {path} » est demandée pour le service"))
+def asked_grant(root: Path, context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, path: str) -> None:
+	def recorded(arguments: list[str]) -> None:
+		context.setfacl.append(arguments)
+
+	monkeypatch.setattr(access, "_setfacl", recorded)
+	context.result = access.grant(_path(root, path), _account())
+
+
+@then("setfacl n'a pas été lancé")
+def no_setfacl(context: SimpleNamespace) -> None:
+	assert context.setfacl == []
+
+
+@then(parsers.re(r"l'interface n'a rien demandé, et (?P<verdict>refuse|accepte) « (?P<path>[^»]+) »"))
+def screened(root: Path, context: SimpleNamespace, verdict: str, path: str) -> None:
+	assert context.asked == []
+	assert (_path(root, path) in context.accepted) is (verdict == "accepte")
+
+
+@then(parsers.parse("elle annonce, entre autres, « {text} »"))
+def said_among(context: SimpleNamespace, text: str) -> None:
+	assert text in context.said, context.said
+
+
+@then(parsers.parse("setfacl n'a été lancé que pour « {path} »"))
+def setfacl_only(root: Path, context: SimpleNamespace, path: str) -> None:
+	targets = []
+	for arguments in context.setfacl:
+		targets.append(arguments[-1])
+	assert targets == [str(_path(root, path))]

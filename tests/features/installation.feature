@@ -317,8 +317,26 @@ Fonctionnalité: Vérifications de l'installation
 			| purge-timer         | FICHIER_MINUTEUR_PURGE      |
 			| rule                | FICHIER_REGLE               |
 
-	Scénario: install.sh --service fait lire MachinCast au compte du service, et --remove-service le lui retire
-		Alors install.sh donne au compte du service la lecture du répertoire de MachinCast, et la lui retire avec le service
+	Scénario: install.sh --service demande d'abord de dédier le poste à l'antenne, puis de sortir MachinCast d'un répertoire personnel
+		Alors install.sh, avec --service, demande de dédier le poste puis déplace MachinCast, avant toute autre étape
+
+	Scénario: install.sh ne change jamais les droits d'un répertoire personnel
+		Alors install.sh ne lance jamais setfacl, ni chmod, ni chown
+
+	Plan du scénario: install.sh reconnaît un répertoire personnel
+		Alors pour install.sh, « <chemin> » <verdict> dans un répertoire personnel
+
+		Exemples:
+			| chemin                       | verdict      |
+			| /home/radio/machincast       | est          |
+			| /root/machincast             | est          |
+			| ~/machincast                 | est          |
+			| /home/machincast/jingles     | n'est pas    |
+			| /usr/local/machincast        | n'est pas    |
+			| /srv/sons                    | n'est pas    |
+
+	Scénario: Le répertoire d'accueil des sonores est au compte de MachinCast et au groupe du service
+		Alors install.sh crée « /home/machincast » au compte de MachinCast, au groupe « machincast », en mode 2750
 
 	# ─── Purge quotidienne (https://github.com/dascritch/machincast/issues/268) ─────
 	# install.sh --service installe aussi le minuteur de la purge : chaque jour à midi, Machin purge efface de la base

@@ -59,6 +59,11 @@ FICHIER_TMPFILES="/etc/tmpfiles.d/machincast.conf"
 FICHIER_LOGROTATE="/etc/logrotate.d/machincast"
 DOSSIER_WIREPLUMBER_SERVICE="/etc/machincast"
 FICHIER_WIREPLUMBER_SERVICE="${DOSSIER_WIREPLUMBER_SERVICE}/wireplumber/wireplumber.conf.d/50-machincast.conf"
+# Le répertoire d'accueil des sonores (machincast.access.WELCOME) : les répertoires personnels restent fermés au
+# service, et leurs droits ne changent jamais.
+ACCUEIL="/home/machincast"
+# Accepte, sans question, de dédier le poste à l'antenne : --dedicated.
+DEDIE=false
 # La carte de l'antenne, cachée aux sessions du poste : elle est au PipeWire du service.
 FICHIER_WIREPLUMBER_BUREAU="/etc/wireplumber/wireplumber.conf.d/50-machincast.conf"
 # Raccourci de l'interface (https://github.com/dascritch/machincast/issues/62) : dans le menu des applications du
@@ -113,7 +118,7 @@ RESEAU=true
 UTILISATEUR="$(id -un)"
 
 aide() {
-	tf 'Usage: ./install.sh [--simulation] [--dev] [--service | --remove-service] [--desktop | --no-desktop]
+	tf 'Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] | --remove-service] [--desktop | --no-desktop]
                     [--stop-programs | --leave-programs]
 
 Installs MachinCast in place, from this directory (%s), after checking the network access, without
@@ -140,10 +145,13 @@ With --dev, also the tools of the development computer: %s (apt) and the
 test dependencies (pip, extra [dev]), for Machin dev and Machin dev-test.
 With --service, also the broadcast service %s, only for a computer dedicated to the
 on-air output, whose on-air output is a sound card, through the PipeWire or ALSA output (otherwise
-install.sh stops and recommends another one): Machin player starts with the computer, under its
+install.sh stops and recommends another one). install.sh first asks to dedicate the computer, then
+to move MachinCast out of a personal directory, to /opt/machincast: the service never reads the
+personal directories, whose rights never change. Machin player starts with the computer, under its
 own account %s, with its own PipeWire, and restarts after a crash. %s joins the group %s, which
-reads its logs (%s) and pre-listens to the on-air output; the service reads MachinCast, and the
-on-air card is hidden from the sessions of the computer. A polkit rule lets it start, stop and
+reads its logs (%s) and pre-listens to the on-air output; the on-air card is reserved for the
+service. The sound files go in /home/machincast: those of the database in a personal directory
+are moved there, removed from the database, or left, not played, as chosen. A polkit rule lets it start, stop and
 restart with the password of an administrator; a systemd timer, %s, launches every day at noon
 Machin purge, which erases from the database what exceeds the expiry duration. Without --service, none
 of this is installed: the broadcast and the purge are launched by hand. A service installed before is
@@ -158,7 +166,9 @@ Options:
   --service     also installs the broadcast service (computer dedicated to the on-air output only)
   --remove-service
                 removes the broadcast service, its PipeWire, its account, its polkit rule and the purge
-                timer; the logs stay
+                timer; the logs and /home/machincast stay
+  --dedicated   with --service, dedicates the computer and moves MachinCast to /opt/machincast,
+                without asking
   --desktop      also puts the shortcut of the interface on the desktop, without asking
   --no-desktop does not put it on the desktop, without asking
   --stop-programs
@@ -179,6 +189,13 @@ etape() {
 
 info() {
 	printf '    '
+	tf "$@"
+	printf '\n'
+}
+
+# Un avertissement : ce qui va changer, ou ce qui ne marchera pas.
+avertissement() {
+	printf '  ! '
 	tf "$@"
 	printf '\n'
 }
@@ -525,7 +542,10 @@ relier() {
 
 installer_liens() {
 	etape 'Links'
-	relier "${RACINE}" "${LIEN_INSTALLATION}"
+	# Déplacé en /opt/machincast pour le service, MachinCast y est lui-même : pas de lien.
+	if [[ "${RACINE}" != "${LIEN_INSTALLATION}" ]]; then
+		relier "${RACINE}" "${LIEN_INSTALLATION}"
+	fi
 	relier "${LIEN_INSTALLATION}/bin/Machin" "${LIEN_WRAPPER}"
 	relier "${LIEN_INSTALLATION}/bash-completion/Machin" "${LIEN_COMPLETION}"
 }
@@ -746,34 +766,126 @@ autoriser_le_service_en_base() {
 	info '%s can assume the role machincast_player' "${COMPTE_SERVICE}"
 }
 
-# Le compte du service lit MachinCast : son programme, son environnement virtuel et sa configuration. Les droits de
-# lecture sont donnés par des ACL, sans rien changer d'autre ; les répertoires parents, au compte, sont seulement
-# traversés.
-donner_la_lecture_au_service() {
-	local chemin parent
-	chemin="$(realpath "$1")"
-	parent="$(dirname "${chemin}")"
-	while [[ "${parent}" != / ]]; do
-		if [[ -O "${parent}" ]]; then
-			executer setfacl --modify="u:${COMPTE_SERVICE}:x" "${parent}"
-		fi
-		parent="$(dirname "${parent}")"
-	done
-	executer setfacl --recursive --modify="u:${COMPTE_SERVICE}:rX,d:u:${COMPTE_SERVICE}:rX" "${chemin}"
-	info '%s can read %s' "${COMPTE_SERVICE}" "${chemin}"
+# Vrai si le chemin est dans un répertoire personnel, liens résolus : /home, sauf le répertoire d'accueil des sonores,
+# /root et celui du compte. Le service n'y lit jamais rien, et leurs droits ne changent jamais
+# (https://github.com/dascritch/machincast/issues/381).
+dans_un_repertoire_personnel() {
+	local chemin
+	chemin="$(realpath --canonicalize-missing "$1")/"
+	case "${chemin}" in
+		"${ACCUEIL}"/*) return 1 ;;
+		/home/* | /root/* | "$(realpath --canonicalize-missing "${HOME}")"/*) return 0 ;;
+	esac
+	return 1
 }
 
-retirer_la_lecture_au_service() {
-	local chemin parent
-	chemin="$(realpath "$1")"
-	executer setfacl --recursive --remove="u:${COMPTE_SERVICE}" --remove="d:u:${COMPTE_SERVICE}" "${chemin}"
-	parent="$(dirname "${chemin}")"
-	while [[ "${parent}" != / ]]; do
-		if [[ -O "${parent}" ]]; then
-			executer setfacl --remove="u:${COMPTE_SERVICE}" "${parent}"
+# Une question en oui ou non ; vrai pour oui. En simulation, elle est seulement dite ; sans terminal, la réponse est
+# non, sauf avec --dedicated.
+demander_oui() {
+	local question="$1" reponse
+	if "${DEDIE}"; then
+		return 0
+	fi
+	if "${SIMULATION}"; then
+		info '[simulation] question: %s' "$(t "${question}")"
+		return 0
+	fi
+	if [[ ! -t 0 ]]; then
+		info 'no question without a terminal: ./install.sh --service --dedicated accepts'
+		return 1
+	fi
+	read -r -p "    $(t "${question}") " reponse
+	[[ "${reponse}" =~ ^[oOyY] ]]
+}
+
+# Le poste devient celui de l'antenne : l'administrateur le sait, et l'accepte, avant que rien ne change.
+confirmer_le_poste_dedie() {
+	avertissement 'This installation changes the computer: it becomes dedicated to the on-air output of MachinCast.'
+	avertissement 'A system account, %s, plays the on-air output, with its own PipeWire, from the start of the computer.' \
+		"${COMPTE_SERVICE}"
+	avertissement 'The on-air sound card is reserved for it: no other application can use it any more.'
+	avertissement 'Personal directories stay closed to it: their rights never change. The sound files go in %s.' \
+		"${ACCUEIL}"
+	if ! demander_oui 'Dedicate this computer to the on-air output? [y/N]'; then
+		echec 'broadcast service not installed: the computer is not dedicated to the on-air output'
+	fi
+}
+
+# MachinCast dans un répertoire personnel : le service ne peut pas le lire. Il se déplace en /opt/machincast, un lien
+# prend sa place, et install.sh reprend depuis là, avec les mêmes options ; l'environnement virtuel, qui garde ses
+# chemins, se refait.
+relocaliser_machincast() {
+	dans_un_repertoire_personnel "${RACINE}" || return 0
+	etape 'Location of MachinCast'
+	info '%s is in a personal directory, which the broadcast service never reads' "${RACINE}"
+	if [[ -e "${LIEN_INSTALLATION}" && ! -L "${LIEN_INSTALLATION}" ]]; then
+		echec '%s exists and is not a symbolic link: move it before running install.sh again' "${LIEN_INSTALLATION}"
+	fi
+	if ! demander_oui 'Move MachinCast to /opt/machincast, and leave a link in its place? [y/N]'; then
+		echec 'broadcast service not installed: MachinCast must be outside the personal directories'
+	fi
+	if [[ -L "${LIEN_INSTALLATION}" ]]; then
+		executer sudo rm "${LIEN_INSTALLATION}" # fichier de MachinCast : le lien d'install.sh, jamais un répertoire
+	fi
+	executer sudo mkdir --parents "$(dirname "${LIEN_INSTALLATION}")"
+	# fichier de MachinCast : son propre répertoire, programme et configuration, jamais un sonore
+	executer sudo mv "${RACINE}" "${LIEN_INSTALLATION}"
+	executer ln --symbolic "${LIEN_INSTALLATION}" "${RACINE}"
+	# fichier de MachinCast : l'environnement virtuel, créé par install.sh, dont les scripts gardent l'ancien chemin
+	executer rm --recursive --force "${LIEN_INSTALLATION}/.venv"
+	if "${SIMULATION}"; then
+		info '[simulation] install.sh would start again from %s' "${LIEN_INSTALLATION}"
+		return 0
+	fi
+	info 'install.sh starts again from %s' "${LIEN_INSTALLATION}"
+	exec "${LIEN_INSTALLATION}/install.sh" "${ARGUMENTS[@]}"
+}
+
+# Le répertoire d'accueil des sonores : au compte de MachinCast, qui y dépose, et au groupe du service, qui le lit.
+creer_l_accueil() {
+	if [[ -d "${ACCUEIL}" ]]; then
+		info '%s present' "${ACCUEIL}"
+		return
+	fi
+	executer sudo install --directory --owner="${UTILISATEUR}" --group="${COMPTE_SERVICE}" --mode=2750 "${ACCUEIL}"
+}
+
+# Les sonores de la base dans un répertoire personnel : déplacés dans le répertoire d'accueil, retirés de la base, ou
+# laissés, sans passer à l'antenne. Le déplacement est la seule exception à
+# https://github.com/dascritch/machincast/issues/96, accepté à chaque fois.
+traiter_les_sonores_personnels() {
+	local liste reponse
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
+		info '[simulation] sound files in personal directories listed once the virtual environment is created'
+		return
+	fi
+	if ! liste="$(installation personal-sounds)"; then
+		if "${SIMULATION}"; then
+			info '[simulation] sound files in personal directories not listed: the production database is missing'
+			return
 		fi
-		parent="$(dirname "${parent}")"
-	done
+		echec 'sound files in personal directories not listed'
+	fi
+	if [[ -z "${liste}" ]]; then
+		info 'no sound file of the database in a personal directory'
+		return
+	fi
+	avertissement 'These bank directories and added files are in a personal directory, which the broadcast service never reads:'
+	printf '      %s\n' "${liste}"
+	if "${SIMULATION}"; then
+		info '[simulation] question: move them to %s, remove them from the database, or leave them?' "${ACCUEIL}"
+		return
+	fi
+	if [[ ! -t 0 ]]; then
+		info 'left in place, not played on air: ./install.sh --service, in a terminal, moves them'
+		return
+	fi
+	read -r -p "    $(tf 'Move them to %s [m], remove them from the database [r], or leave them, not played [l]? ' "${ACCUEIL}")" reponse
+	case "${reponse}" in
+		[mMdD]*) installation move-personal-sounds || avertissement 'some sound files are not moved: see above' ;;
+		[rR]*) installation forget-personal-sounds ;;
+		*) info 'left in place, not played on air' ;;
+	esac
 }
 
 # Le WirePlumber des sessions relit sa configuration : la carte de l'antenne y disparaît, ou y revient.
@@ -799,7 +911,8 @@ installer_service() {
 	info 'for a computer dedicated to the on-air output: Machin player starts with the computer, as %s' "${COMPTE_SERVICE}"
 	creer_le_compte_du_service
 	autoriser_le_service_en_base
-	donner_la_lecture_au_service "${RACINE}"
+	creer_l_accueil
+	traiter_les_sonores_personnels
 	# Le service ne dépend plus de la session du compte (https://github.com/dascritch/machincast/issues/381).
 	if [[ "$(loginctl show-user "${UTILISATEUR}" --property=Linger --value 2>/dev/null)" == yes ]]; then
 		info 'the session of %s no longer needs to stay active at startup: sudo loginctl disable-linger %s' \
@@ -871,7 +984,7 @@ retirer_service() {
 	done
 	executer sudo systemctl daemon-reload
 	if [[ -d "${DOSSIER_WIREPLUMBER_SERVICE}" ]]; then
-		# Répertoires de MachinCast, vides une fois son fragment retiré : rmdir n'efface rien d'autre.
+		# fichier de MachinCast : ses répertoires, vides une fois son fragment retiré, et seulement s'ils sont vides
 		executer sudo rmdir --ignore-fail-on-non-empty --parents "$(dirname "${FICHIER_WIREPLUMBER_SERVICE}")"
 	fi
 	# La carte de l'antenne revient aux sessions du poste.
@@ -879,7 +992,6 @@ retirer_service() {
 		relancer_le_wireplumber_du_bureau
 	fi
 	if getent passwd "${COMPTE_SERVICE}" >/dev/null; then
-		retirer_la_lecture_au_service "${RACINE}"
 		if "${SIMULATION}"; then
 			info '[simulation] sudo -u postgres psql: DROP ROLE IF EXISTS %s' "${COMPTE_SERVICE}"
 		else
@@ -890,12 +1002,14 @@ retirer_service() {
 			executer sudo gpasswd --delete "${UTILISATEUR}" "${COMPTE_SERVICE}"
 		fi
 		executer sudo userdel "${COMPTE_SERVICE}"
-		# Répertoires du service : l'état de son WirePlumber, ses sockets.
+		# fichier de MachinCast : les répertoires du service, l'état de son WirePlumber et ses sockets
 		executer sudo rm --recursive --force "${DOSSIER_DU_COMPTE_SERVICE}" "${DOSSIER_D_EXECUTION_SERVICE}"
 	else
 		info 'account %s missing' "${COMPTE_SERVICE}"
 	fi
+	# fichier de MachinCast : seulement une commande à lancer, si l'administrateur le veut
 	info 'the logs stay in %s: sudo rm -r %s removes them' "${DOSSIER_DES_LOGS}" "${DOSSIER_DES_LOGS}"
+	info 'the sound files stay in %s' "${ACCUEIL}"
 	info 'the broadcast is launched by hand again, with Machin player; the database purge, with Machin purge'
 }
 
@@ -910,12 +1024,14 @@ conclure() {
 }
 
 principal() {
+	ARGUMENTS=("$@")
 	while (($# > 0)); do
 		case "$1" in
 			--simulation) SIMULATION=true ;;
 			--dev) DEV=true ;;
 			--service) SERVICE=true ;;
 			--remove-service) RETIRER_SERVICE=true ;;
+			--dedicated) DEDIE=true ;;
 			--desktop) BUREAU=oui ;;
 			--no-desktop) BUREAU=non ;;
 			--stop-programs)
@@ -944,6 +1060,10 @@ principal() {
 		echec '--stop-programs and --leave-programs do not go together'
 	fi
 	cd "${RACINE}"
+	if "${SERVICE}"; then
+		confirmer_le_poste_dedie
+		relocaliser_machincast
+	fi
 	verifier_systeme
 	verifier_reseau
 	arreter_les_programmes
