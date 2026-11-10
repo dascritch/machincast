@@ -48,6 +48,7 @@ class Ui_SuggestionsWindow(object):
 
         self.items = QListWidget(SuggestionsWindow)
         self.items.setObjectName(u"items")
+        self.items.setAlternatingRowColors(True)
         self.items.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
 
         self.arrangement.addWidget(self.items)

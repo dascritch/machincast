@@ -154,6 +154,7 @@ class SearchScreen(QWidget):
 		self.model.setHorizontalHeaderLabels(list(COLUMNS))
 		self.table = QTableView(self)
 		self.table.setModel(self.model)
+		self.table.setAlternatingRowColors(True)
 		self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 		self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 		self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

@@ -9,6 +9,9 @@ Ses fenêtres portent l'icône de MachinCast, ou celle choisie dans les préfér
 (https://github.com/dascritch/machincast/issues/111), et elle se réclame du raccourci machincast.desktop, qu'install.sh
 met dans le menu des applications : sous Wayland, la barre des tâches y trouve son nom et son icône
 (https://github.com/dascritch/machincast/issues/62).
+
+Les lignes de ses tableaux alternent deux fonds, peu contrastés entre eux, recalculés d'après le thème
+(machincast.interface.zebra, https://github.com/dascritch/machincast/issues/412).
 """
 
 from pathlib import Path
@@ -18,6 +21,7 @@ from PySide6.QtGui import QIcon, QImageReader
 from PySide6.QtWidgets import QApplication
 
 from machincast import i18n, shortcut
+from machincast.interface import zebra
 
 QT_CATALOG = "qtbase"
 """La traduction de Qt, qtbase_<langue>.qm, dans le répertoire des traductions de PySide6."""
@@ -70,11 +74,13 @@ def application(name: str) -> QApplication:
 	existing = QApplication.instance()
 	if isinstance(existing, QApplication):
 		identify(existing)
+		zebra.install(existing)
 		return existing
 	created = QApplication([name])
 	created.setApplicationName("MachinCast")
 	identify(created)
 	translate(created)
+	zebra.install(created)
 	return created
 
 

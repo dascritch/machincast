@@ -401,6 +401,7 @@ class Ui_SoundCard(object):
         self.relations.setHorizontalHeaderItem(1, __qtablewidgetitem1)
         self.relations.setObjectName(u"relations")
         self.relations.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.relations.setAlternatingRowColors(True)
         self.relations.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.relations.horizontalHeader().setStretchLastSection(True)
         self.relations.verticalHeader().setVisible(False)
