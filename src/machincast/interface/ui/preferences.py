@@ -437,7 +437,7 @@ class Ui_PreferencesWindow(object):
 #endif // QT_CONFIG(tooltip)
         self.tables_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Tables of the cards", None))
         self.table_rows_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Rows loaded at a time", None))
-        self.table_rows_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"The sounds of a bank, and the items of a sequence or an event, are loaded this many at a time in their card: the rest comes as you scroll down. A higher number can strongly slow down the interface for a bank with a very large number of sounds.", None))
+        self.table_rows_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"The sounds of a bank, the items of a sequence or an event, and the Sounds list are loaded this many at a time: the rest comes as you scroll down. A higher number can strongly slow down the interface with a very large number of sounds.", None))
         self.icon_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Application icon", None))
 #if QT_CONFIG(tooltip)
         self.icon_group.setToolTip(QCoreApplication.translate("PreferencesWindow", u"The icon of the MachinCast windows, of its shortcut in the applications menu and on the desktop, and of the taskbar.", None))

@@ -31,7 +31,7 @@ import os
 from collections.abc import Callable
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QEvent, QObject, QPoint, QSettings, Qt, QTimer
+from PySide6.QtCore import QByteArray, QEvent, QModelIndex, QObject, QPoint, QSettings, Qt, QTimer
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
 	QAbstractItemView,
@@ -113,6 +113,8 @@ class Columns(QObject):
 		self._adjust_soon.setInterval(0)
 		self._adjust_soon.timeout.connect(self.adjust)
 		self.line_menu: Callable[[QPoint], QMenu | None] | None = None
+		self.before_export: Callable[[], None] | None = None
+		"""Lit les lignes pas encore lues d'un tableau par pages, avant de l'exporter (https://github.com/dascritch/machincast/issues/383)."""
 		"""Le menu de la ligne sous le clic droit, à la position du clic dans le tableau, que le tableau propose ;
 		« Exporter ce tableau… » le complète."""
 		view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -231,6 +233,11 @@ class Columns(QObject):
 		"""Le tableau tel qu'il est affiché : les titres et les cellules des colonnes montrées, dans l'ordre affiché,
 		et les lignes montrées, dans l'ordre du tri ; seules les lignes de premier niveau d'un arbre."""
 		model = self.view.model()
+		# Un tableau lu par pages est exporté en entier (https://github.com/dascritch/machincast/issues/383).
+		if self.before_export is not None:
+			self.before_export()
+		while model.canFetchMore(QModelIndex()):
+			model.fetchMore(QModelIndex())
 		titles = self.titles()
 		order = [self.header.logicalIndex(rank) for rank in range(self.header.count())]
 		columns = [column for column in order if not self.header.isSectionHidden(column)]
