@@ -41,6 +41,25 @@ Fonctionnalité: L'interface joint l'antenne sur le PipeWire du service de diffu
 		Quand le son de test de la carte de l'antenne « antenne » est lancé depuis une session sans PipeWire
 		Alors le son de test joue sur « antenne » dans le PipeWire du service
 
+	Scénario: Le niveau et la sourdine de la carte de l'antenne se règlent sur le PipeWire du service
+		Étant donné un PipeWire à part pour le service, avec la carte « antenne », où Machin player joue
+		Quand le niveau de la carte de l'antenne « antenne » est réglé à 40 %, sourdine mise
+		Alors le PipeWire du service a la carte « antenne » à 40 %, en sourdine
+		Quand la sourdine de la carte de l'antenne « antenne » est levée
+		Alors le PipeWire du service a la carte « antenne » à 40 %, sans sourdine
+
+	Scénario: La page Audio du service règle le niveau et la sourdine de la carte de l'antenne
+		Étant donné un PipeWire à part pour le service, avec la carte « antenne », où Machin player joue
+		Et le niveau de la carte de l'antenne « antenne » réglé à 70 %
+		Quand la page Audio s'ouvre en mode service, l'antenne sur « antenne »
+		Alors la page montre le niveau de l'antenne à 70 %, sans sourdine
+		Quand je règle le niveau de l'antenne à 25 % et coche « Muet »
+		Alors le PipeWire du service a la carte « antenne » à 25 %, en sourdine
+
+	Scénario: Sans service, la page Audio ne montre pas le niveau de l'antenne
+		Quand la page Audio s'ouvre sans service, l'antenne sur « antenne »
+		Alors la page ne montre pas le niveau de l'antenne
+
 	Scénario: Un compte qui ne joint pas le PipeWire du service le dit sur le VU-mètre
 		Étant donné un service dont le PipeWire refuse la connexion
 		Quand le port de monitoring de l'antenne « antenne » s'ouvre

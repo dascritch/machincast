@@ -19,11 +19,13 @@ from types import SimpleNamespace
 
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
-from machincast import audio, service
+from machincast import audio, service, service_mixer
 from machincast.configuration import Audio, default_state_socket
 from machincast.interface import monitor, sound_cards
 from machincast.player.state import StateSocket
+from machincast.service import ServiceState
 from tests.test_locked_output import PipeWireBench, _pipewire_present, _stop
 
 scenarios("service_pipewire.feature")
@@ -260,3 +262,93 @@ def unavailable(context: SimpleNamespace, text: str) -> None:
 @then(parsers.parse("le port de monitoring de l'antenne « {card} » se nomme « {name} »"))
 def named(card: str, name: str) -> None:
 	assert monitor.port_name(Audio(output="pipewire", device=card, preview="casque")) == name
+
+
+# ─── Niveau de l'antenne ───────────────────────────────────
+
+
+def _reach_service(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Le processus du scénario joint le PipeWire du service à part, comme l'interface joint /run/machincast."""
+	monkeypatch.setenv(service.RUNTIME_ENVIRONMENT, context.service.env["PIPEWIRE_RUNTIME_DIR"])
+
+
+@given(parsers.parse("le niveau de la carte de l'antenne « {card} » réglé à {percent:d} %"))
+def level_set(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, card: str, percent: int) -> None:
+	_reach_service(context, monkeypatch)
+	service_mixer.set_volume(card, percent / 100)
+	service_mixer.set_muted(card, False)
+
+
+@when(parsers.parse("le niveau de la carte de l'antenne « {card} » est réglé à {percent:d} %, sourdine mise"))
+def level_and_mute(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, card: str, percent: int) -> None:
+	_reach_service(context, monkeypatch)
+	service_mixer.set_volume(card, percent / 100)
+	service_mixer.set_muted(card, True)
+
+
+@when(parsers.parse("la sourdine de la carte de l'antenne « {card} » est levée"))
+def unmute(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, card: str) -> None:
+	_reach_service(context, monkeypatch)
+	service_mixer.set_muted(card, False)
+
+
+@then(
+	parsers.re(
+		r"le PipeWire du service a la carte « (?P<card>[^»]+) » à (?P<percent>\d+) %, (?P<state>en sourdine|sans sourdine)"
+	)
+)
+def card_level(context: SimpleNamespace, qtbot: QtBot, card: str, percent: str, state: str) -> None:
+	expected = (int(percent), state == "en sourdine")
+
+	def found() -> tuple[int, bool]:
+		level = service_mixer.level(card)
+		return round(level.volume * 100), level.muted
+
+	# La page règle le niveau après un court délai : le scénario l'attend.
+	qtbot.waitUntil(lambda: found() == expected, timeout=3000)
+
+
+def _page(
+	context: SimpleNamespace, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, state: ServiceState, card: str
+) -> None:
+	"""La page Audio, ses listes de cartes réduites à la carte de l'antenne et au casque, sans moniteur de
+	périphériques : seul le niveau joint le PipeWire du service."""
+	cards = [audio.Device(card, card), audio.Device("casque", "casque")]
+	monkeypatch.setattr(audio, "devices", lambda _output: cards)
+	monkeypatch.setattr(audio, "on_air_devices", lambda _output: cards)
+	context.page = sound_cards.SoundCards("pipewire", card, "casque", state)
+	qtbot.addWidget(context.page)
+
+
+@when(parsers.parse("la page Audio s'ouvre en mode service, l'antenne sur « {card} »"))
+def page_service(context: SimpleNamespace, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, card: str) -> None:
+	_reach_service(context, monkeypatch)
+	_page(context, qtbot, monkeypatch, ServiceState(installed=True, active="active"), card)
+
+
+@when(parsers.parse("la page Audio s'ouvre sans service, l'antenne sur « {card} »"))
+def page_without(context: SimpleNamespace, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, card: str) -> None:
+	_page(context, qtbot, monkeypatch, service.ABSENT, card)
+
+
+@then(parsers.re(r"la page montre le niveau de l'antenne à (?P<percent>\d+) %, (?P<state>en sourdine|sans sourdine)"))
+def page_level(context: SimpleNamespace, percent: str, state: str) -> None:
+	ui = context.page.ui
+	assert not ui.on_air_level.isHidden()
+	assert ui.on_air_level.isEnabled(), ui.on_air_level.toolTip()
+	assert (ui.on_air_level.value(), ui.on_air_mute.isChecked()) == (int(percent), state == "en sourdine")
+	assert ui.on_air_level_value.text() == f"{percent} %"
+
+
+@when(parsers.parse("je règle le niveau de l'antenne à {percent:d} % et coche « Muet »"))
+def page_set(context: SimpleNamespace, percent: int) -> None:
+	ui = context.page.ui
+	ui.on_air_level.setValue(percent)
+	ui.on_air_mute.setChecked(True)
+
+
+@then("la page ne montre pas le niveau de l'antenne")
+def page_hidden(context: SimpleNamespace) -> None:
+	ui = context.page.ui
+	for item in (ui.on_air_level_caption, ui.on_air_level, ui.on_air_mute):
+		assert item.isHidden()
