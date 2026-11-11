@@ -1,6 +1,6 @@
 # Contribuer à MachinCast
 
-*[English version](CONTRIBUTION.md)*
+*[English version](CONTRIBUTING.md)*
 
 Avant toute modification, lire [CLAUDE.md](CLAUDE.md) et les [règles de développement](doc/fr/regles/developpement.md) : ticket, scénarios BDD d'abord, un commit par fonctionnalité, indentation par tabulations, [definition of done](doc/fr/regles/developpement.md#definition-of-done). Le poste de développement s'installe avec `./install.sh --dev` ([INSTALL.md](INSTALL.fr.md)).
 

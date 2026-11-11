@@ -56,7 +56,7 @@ target-version = "py312"
 # La largeur où ruff format coupe le code ; aucune ligne n'est refusée parce que longue (E501 ignorée).
 line-length = 120
 src = ["src", "tests"]
-# Écrans compilés par pyside6-uic, jamais modifiés à la main (CONTRIBUTION.md).
+# Écrans compilés par pyside6-uic, jamais modifiés à la main (CONTRIBUTING.md).
 extend-exclude = ["src/machincast/interface/ui/*.py"]
 
 [tool.ruff.format]
@@ -81,7 +81,7 @@ files = ["src"]
 untyped_calls_exclude = ["machincast.interface.ui"]
 
 [[tool.mypy.overrides]]
-# Modules générés par pyside6-uic (CONTRIBUTION.md).
+# Modules générés par pyside6-uic (CONTRIBUTING.md).
 module = ["machincast.interface.ui.*"]
 disallow_untyped_defs = false
 disallow_untyped_calls = false
