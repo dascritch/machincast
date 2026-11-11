@@ -538,6 +538,12 @@ Un seul PC porte la diffusion, la base et les sonores. La panne matérielle n'es
 
 La politique et procédure de reprise sur un second poste est à l'appréciation de l'utilisateur, en fonction de son budget (double PC source pilotée en régie, double PC branchés sur une commutation audio à monitoring auto, [un détecteur d'absence de modulation](https://www.comequip.eu/produit/db8008-detecteur-dabsence-de-modulation-avec-secours-ip-mp3/) ou service de secours au niveau émetteur).
 
+### 11.12 Mon prise en main à distance
+
+La politique de surface d'accès minimal bloque l possibilité de pilotage du service depuis un autre poste sécurisé.
+
+Il est possible de prendre en main à distance l'interface graphique depuis un autre PC sur le même sous-réseau intranet, via SSH en X Fowarding. La commande serait `ssh -X <compte utilisateur du PC de diffusion>@<IP du pc de diffusion> Machin interface`. Par exemple : `ssh -X antenne@192.168.0.57 Machin interface` . Autre possibilité, mais bien moins conseillée, serait un remote-access via des services en ligne comme TeamViewer ou AnyDesk, mais cela agrandi fortement les risques d'attaques.
+
 ## 12. Glossaire
 
 Le vocabulaire du métier est défini dans la [spécification, § 1](spec.md#1-vocabulaire). L'essentiel :
