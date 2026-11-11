@@ -26,6 +26,7 @@ Le logiciel a été conçu dans un scénario de radio associative avec un flux m
 | Métadonnées publiques | Page publique, exports de l'airplay, métadonnées RDS, masquage de l'artiste et du titre selon la configuration et le programme à l'antenne. | [spec § 4.8](spec.md#48-métadonnées-publiques-et-masquage), [§ 5.3](spec.md#53-modules-de-sortie) |
 | Supervision et édition | Une interface graphique sur le poste : antenne en cours, grille, fiches, incidents, simulation, pré-écoute. | [spec § 8](spec.md#8-interface-graphique) |
 | Reprise sans intervention | Le service redémarre seul au démarrage du poste ou après un plantage, et reprend la grille là où elle en est. | [spec § 10](spec.md#10-installation-et-déploiement) |
+| Pas de lock-in vendeur | Le logiciel est en licence GPL, le système autonome sur un PC isolé | [licence du logiciel](../../LICENSE) |
 
 ### 1.2 Objectifs de qualité
 
