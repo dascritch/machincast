@@ -536,7 +536,7 @@ Pour l'instant, pour le démarrage, nous avons simplifié le domaine et établi 
 
 Un seul PC porte la diffusion, la base et les sonores. La panne matérielle n'est couverte que par la sauvegarde (`Machin maintenance-db`) et par la source de secours de la régie.
 
-La politique et procédure de reprise sur un second poste est à l'appréciation de l'utilisateur, en fonction de son budget (double PC source pilotée en régie, double PC branchés sur une commutation audio à monitoring auto, ou service de secours au niveau émetteur).
+La politique et procédure de reprise sur un second poste est à l'appréciation de l'utilisateur, en fonction de son budget (double PC source pilotée en régie, double PC branchés sur une commutation audio à monitoring auto, [un détecteur d'absence de modulation](https://www.comequip.eu/produit/db8008-detecteur-dabsence-de-modulation-avec-secours-ip-mp3/) ou service de secours au niveau émetteur).
 
 ## 12. Glossaire
 
