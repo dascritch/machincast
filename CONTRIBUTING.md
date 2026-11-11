@@ -1,6 +1,6 @@
 # Contributing to MachinCast
 
-*[Version française](CONTRIBUTION.fr.md)*
+*[Version française](CONTRIBUTING.fr.md)*
 
 Before any change, read [CLAUDE.md](CLAUDE.md) and the [development rules](doc/fr/regles/developpement.md) (French): a ticket, BDD scenarios first, one commit per feature, tab indentation, [definition of done](doc/fr/regles/developpement.md#definition-of-done). The development machine is installed with `./install.sh --dev` ([INSTALL.md](INSTALL.md)).
 

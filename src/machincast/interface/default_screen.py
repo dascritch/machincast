@@ -8,7 +8,7 @@ sa séquence, sa banque et son horaire sur une ligne, les sonores à venir aprè
 à venir ou l'airplay, demandent la fiche du sonore, de l'événement, de la séquence ou de la banque (ouverte). Le sonore
 en cours, le prochain et les sonores à venir viennent de la socket d'état du binaire lecture (StateClient). L'airplay se
 lit en base à l'ouverture, puis à chaque changement de sonore annoncé par la socket : jamais en boucle. La disposition
-est dessinée dans ui/default_screen.ui (CONTRIBUTION.md).
+est dessinée dans ui/default_screen.ui (CONTRIBUTING.md).
 """
 
 import logging
