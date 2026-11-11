@@ -10,7 +10,7 @@ MachinCast speaks English and French, following the language of the session: its
 
 - **On-air team**: the [on-air guide](doc/fr/utilisateur/README.md) (French), to schedule and follow the station from the graphical interface
 - **Station administrator**: [INSTALL.md](INSTALL.md) for the installation, then the [administration guide](doc/fr/administration/README.md) (French)
-- **Developer**: the [development guide](doc/fr/developpement/README.md) (French), with the [functional specification](doc/fr/spec.md) and the [project rules](doc/fr/regles/developpement.md); [CONTRIBUTION.md](CONTRIBUTION.md) for the screens and the translations
+- **Developer**: the [development guide](doc/fr/developpement/README.md) (French), with the [functional specification](doc/fr/spec.md), [its architecture](doc/fr/architecture.md), and the [project rules](doc/fr/regles/developpement.md); [CONTRIBUTION.md](CONTRIBUTION.md) for the screens and the translations
 - **When something fails**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md), the known failures, their causes and what to check
 
 ![Screenshot of the MachinCast control interface](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)

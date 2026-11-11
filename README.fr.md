@@ -10,7 +10,7 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 
 - **Équipe de l'antenne** : le [guide de l'antenne](doc/fr/utilisateur/README.md), pour programmer et suivre l'antenne depuis l'interface graphique
 - **Administrateur du poste** : [INSTALL.md](INSTALL.fr.md) pour l'installation, puis le [guide d'administration](doc/fr/administration/README.md)
-- **Développeur** : le [guide du développement](doc/fr/developpement/README.md), avec la [spécification fonctionnelle](doc/fr/spec.md) et les [règles du projet](doc/fr/regles/developpement.md)
+- **Développeur** : le [guide du développement](doc/fr/developpement/README.md), avec la [spécification fonctionnelle](doc/fr/spec.md), [l'architecture](doc/fr/architecture.md), et les [règles du projet](doc/fr/regles/developpement.md)
 - **En cas de panne** : [TROUBLESHOOTING.md](TROUBLESHOOTING.fr.md), les pannes connues, leurs causes et ce qu'il faut vérifier
 
 ![Capture de l'interface de pilotage de MachinCast](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)
