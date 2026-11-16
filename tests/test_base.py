@@ -488,3 +488,10 @@ def coverage_subprocess() -> None:
 	for requirement in dev:
 		packages.append(_package(requirement))
 	assert "coverage" in packages
+
+
+@then("la configuration de ruff active la règle C901, avec une complexité d'au plus 15")
+def ruff_complexity() -> None:
+	ruff = _pyproject()["tool"]["ruff"]["lint"]
+	assert "C901" in ruff["select"]
+	assert ruff["mccabe"]["max-complexity"] <= 15

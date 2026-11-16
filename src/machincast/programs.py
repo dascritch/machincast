@@ -217,6 +217,50 @@ def _terminal(find: Callable[[str], str | None]) -> str | None:
 	return None
 
 
+def _reopening(
+	program: Program,
+	current_account: str,
+	graphic: bool,
+	terminal: str | None,
+	prefix: str,
+	launch: Launch,
+	simulation: bool,
+) -> tuple[str, bool] | None:
+	"""Ce qu'il faut dire d'un programme interrompu, et si on l'a relancé ; None pour le service, que install.sh
+	relance."""
+	if program.service:
+		return None
+	command = [str(MACHIN), program.name, *program.arguments]
+	if program.account != current_account:
+		return (
+			_("to reopen by the account {account}: {command}").format(account=program.account, command=program.command),
+			False,
+		)
+	if program.kind == "simulation":
+		return (_("simulation interrupted: launch it again from the Simulation tab of the interface"), False)
+	match program.name:
+		case "indexer":
+			return (_("indexing interrupted: launch again {command}").format(command=program.command), False)
+		case _ if not graphic:
+			ou = _("a terminal")
+			if program.name == "interface":
+				ou = _("the graphical session")
+			return (_("to reopen in {ou}: {command}").format(ou=ou, command=program.command), False)
+		case "interface":
+			if not simulation:
+				launch(command, program.directory)
+			return (_("{prefix}relaunched: {command}").format(prefix=prefix, command=program.command), True)
+		case _ if terminal is None:
+			return (_("to reopen in a terminal: {command}").format(command=program.command), False)
+		case _:
+			if not simulation:
+				launch([terminal, "-e", *command], program.directory)
+			return (
+				_("{prefix}relaunched in a terminal: {command}").format(prefix=prefix, command=program.command),
+				True,
+			)
+
+
 def restart(
 	programs: list[Program],
 	current_account: str,
@@ -238,48 +282,14 @@ def restart(
 	prefix = ""
 	if simulation:
 		prefix = "[simulation] "
-
-	def describe_reopening(program: Program) -> None:
-		command = [str(MACHIN), program.name, *program.arguments]
-		if program.service:
-			return
-		if program.account != current_account:
-			rest.append(
-				_("to reopen by the account {account}: {command}").format(
-					account=program.account, command=program.command
-				)
-			)
-		else:
-			if program.kind == "simulation":
-				rest.append(_("simulation interrupted: launch it again from the Simulation tab of the interface"))
-			else:
-				match program.name:
-					case "indexer":
-						rest.append(_("indexing interrupted: launch again {command}").format(command=program.command))
-					case _ if not graphic:
-						ou = _("a terminal")
-						if program.name == "interface":
-							ou = _("the graphical session")
-						rest.append(_("to reopen in {ou}: {command}").format(ou=ou, command=program.command))
-					case "interface":
-						if not simulation:
-							launch(command, program.directory)
-						restarted_list.append(
-							_("{prefix}relaunched: {command}").format(prefix=prefix, command=program.command)
-						)
-					case _ if terminal is None:
-						rest.append(_("to reopen in a terminal: {command}").format(command=program.command))
-					case _:
-						if not simulation:
-							launch([terminal, "-e", *command], program.directory)
-						restarted_list.append(
-							_("{prefix}relaunched in a terminal: {command}").format(
-								prefix=prefix, command=program.command
-							)
-						)
-
 	for program in programs:
-		describe_reopening(program)
+		reopening = _reopening(program, current_account, graphic, terminal, prefix, launch, simulation)
+		if reopening is not None:
+			text, relaunched = reopening
+			if relaunched:
+				restarted_list.append(text)
+			else:
+				rest.append(text)
 	return restarted_list + rest
 
 

@@ -88,19 +88,20 @@ def _unquote(text: str) -> str:
 	return re.sub(r"\\(.)", lambda found: escapes.get(found.group(1), found.group(0)), body[1:-1])
 
 
-def read_catalog(text: str, plurals: dict[str, str] | None = None) -> dict[str, str | tuple[str, ...]]:
-	"""Les traductions d'un fichier .po : msgid (précédé de son msgctxt et de CONTEXT_SEPARATOR, s'il en a un) vers
-	msgstr, ou vers les formes de msgstr[n] pour un message au pluriel, dont la clé est le msgid singulier. Les entrées
-	floues (« #, fuzzy »), non traduites ou obsolètes (« #~ ») sont ignorées, comme par msgfmt. Le msgid_plural de
-	chaque message au pluriel s'ajoute à plurals, s'il est donné."""
-	entries: dict[str, str | tuple[str, ...]] = {}
-	fields: dict[str, str] = {}
-	current = ""
-	fuzzy = False
+class _CatalogReader:
+	"""La lecture d'un fichier .po, ligne à ligne : l'entrée en cours, et les traductions déjà lues."""
 
-	def close() -> None:
-		nonlocal fields, fuzzy
-		if ("msgid" in fields) and (fields["msgid"]) and (not fuzzy):
+	def __init__(self, plurals: dict[str, str] | None) -> None:
+		self.entries: dict[str, str | tuple[str, ...]] = {}
+		self.plurals = plurals
+		self.fields: dict[str, str] = {}
+		self.current = ""
+		self.fuzzy = False
+
+	def close(self) -> None:
+		"""Range l'entrée en cours, si elle est traduite et pas floue, puis en commence une autre."""
+		fields = self.fields
+		if ("msgid" in fields) and (fields["msgid"]) and (not self.fuzzy):
 			key = fields["msgid"]
 			if "msgctxt" in fields:
 				key = fields["msgctxt"] + CONTEXT_SEPARATOR + key
@@ -110,37 +111,43 @@ def read_catalog(text: str, plurals: dict[str, str] | None = None) -> dict[str, 
 					name_list.append(fields[name])
 			forms = tuple(name_list)
 			if (forms) and (all(forms)):
-				entries[key] = forms
-				if (plurals is not None) and ("msgid_plural" in fields):
-					plurals[key] = fields["msgid_plural"]
+				self.entries[key] = forms
+				if (self.plurals is not None) and ("msgid_plural" in fields):
+					self.plurals[key] = fields["msgid_plural"]
 			else:
 				if fields.get("msgstr"):
-					entries[key] = fields["msgstr"]
-		fields = {}
-		fuzzy = False
+					self.entries[key] = fields["msgstr"]
+		self.fields = {}
+		self.fuzzy = False
 
-	def read_line(line: str) -> None:
-		nonlocal current, fuzzy
+	def read_line(self, line: str) -> None:
 		stripped = line.strip()
 		if not stripped:
-			close()
+			self.close()
 			return
 		if stripped.startswith("#"):
 			if (stripped.startswith("#,")) and ("fuzzy" in stripped):
-				fuzzy = True
+				self.fuzzy = True
 			return
 		if stripped.startswith('"'):
-			fields[current] += _unquote(stripped)
+			self.fields[self.current] += _unquote(stripped)
 			return
 		keyword, _space, rest = stripped.partition(" ")
-		if (keyword in fields) and (keyword in ("msgctxt", "msgid")):
-			close()
-		current = keyword
-		fields[current] = _unquote(rest)
+		if (keyword in self.fields) and (keyword in ("msgctxt", "msgid")):
+			self.close()
+		self.current = keyword
+		self.fields[self.current] = _unquote(rest)
 
+
+def read_catalog(text: str, plurals: dict[str, str] | None = None) -> dict[str, str | tuple[str, ...]]:
+	"""Les traductions d'un fichier .po : msgid (précédé de son msgctxt et de CONTEXT_SEPARATOR, s'il en a un) vers
+	msgstr, ou vers les formes de msgstr[n] pour un message au pluriel, dont la clé est le msgid singulier. Les entrées
+	floues (« #, fuzzy »), non traduites ou obsolètes (« #~ ») sont ignorées, comme par msgfmt. Le msgid_plural de
+	chaque message au pluriel s'ajoute à plurals, s'il est donné."""
+	reader = _CatalogReader(plurals)
 	for line in [*text.splitlines(), ""]:
-		read_line(line)
-	return entries
+		reader.read_line(line)
+	return reader.entries
 
 
 class Catalog(gettext.NullTranslations):

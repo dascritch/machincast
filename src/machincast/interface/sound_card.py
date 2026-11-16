@@ -535,15 +535,7 @@ class SoundCard(Card):
 		self.ui.stream_group.setVisible(stream)
 		# Un stream n'a pas de silences détectés : seul un fichier est audité.
 		self.ui.silence_group.setVisible(not stream)
-		self.ui.detection_silences.setChecked(detection_silences is True)
-		for box, count, silence in (
-			(self.ui.has_detected_start, self.ui.detected_start, detected_start),
-			(self.ui.has_detected_end, self.ui.detected_end, detected_end),
-		):
-			# Le maximum de la fiche précédente ne borne pas les silences de celle-ci : _borner_les_silences le règle.
-			count.setMaximum(SILENCE_MAXIMAL)
-			count.setValue(_seconds(silence))
-			box.setChecked(isinstance(silence, timedelta))
+		self._show_silences(detection_silences, detected_start, detected_end)
 		self._duration = None
 		if isinstance(duration, timedelta):
 			self._duration = duration
@@ -554,10 +546,45 @@ class SoundCard(Card):
 			if isinstance(duration, timedelta):
 				duration_text = display.duration(duration)
 		self.ui.duration.setText(duration_text)
+		self._show_state(str(state))
+		self.ui.artist.setText(str((artist) or ("")))
+		self.ui.title.setText(str((title) or ("")))
+		self._show_metadata(metadata)
+		self._show_crossfades(start_crossfade, end_crossfade)
+		self.ui.playback_max.setValue(int(str((playback_max) or (0))))
+		self.ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
+		self._show_date(self.ui.has_start, self.ui.broadcast_start, start)
+		self._show_date(self.ui.has_end, self.ui.broadcast_end, end)
+		self._show_feed(marks, feed, url_stream)
+		self._show_fallback(fallback, fallback_event)
+		self._show_edited(edited_fields)
+		self._show_plays(plays)
+		self.ui.timeline_place.setVisible(self._file)
+		file = None
+		if self._file:
+			file = Path(str(location))
+		self._show_shape(file)
+		self._bound_silences()
+		self._refresh_timeline()
+		self._initial_list = self._inputs()
+		self._give_name_markers()
+
+	def _show_silences(self, detection_silences: object, detected_start: object, detected_end: object) -> None:
+		self.ui.detection_silences.setChecked(detection_silences is True)
+		for box, count, silence in (
+			(self.ui.has_detected_start, self.ui.detected_start, detected_start),
+			(self.ui.has_detected_end, self.ui.detected_end, detected_end),
+		):
+			# Le maximum de la fiche précédente ne borne pas les silences de celle-ci : _borner_les_silences le règle.
+			count.setMaximum(SILENCE_MAXIMAL)
+			count.setValue(_seconds(silence))
+			box.setChecked(isinstance(silence, timedelta))
+
+	def _show_state(self, state: str) -> None:
 		# Tous les états, dans leur ordre ; ceux que l'interface ne pose pas sont grisés
 		# (https://github.com/dascritch/machincast/issues/223).
 		self.ui.state.clear()
-		possible = STATE_CHOICE[str(state)]
+		possible = STATE_CHOICE[state]
 		model = self.ui.state.model()
 		assert isinstance(model, QStandardItemModel)
 		for code, state_name in STATES.items():
@@ -565,10 +592,10 @@ class SoundCard(Card):
 			if code not in possible:
 				item = model.item(self.ui.state.count() - 1)
 				item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEnabled)
-		self.ui.state.setCurrentIndex(self.ui.state.findData(str(state)))
+		self.ui.state.setCurrentIndex(self.ui.state.findData(state))
 		self.ui.state.setEnabled(len(possible) > 1)
-		self.ui.artist.setText(str((artist) or ("")))
-		self.ui.title.setText(str((title) or ("")))
+
+	def _show_metadata(self, metadata: object) -> None:
 		assert isinstance(metadata, dict)
 		musical_list = dict(metadata)
 		for key, field in self.metadata.items():
@@ -577,6 +604,8 @@ class SoundCard(Card):
 		for key, value in sorted(musical_list.items()):
 			others.append(_("{key}: {value}").format(key=key, value=value))
 		self.ui.other_metadata.setText(", ".join(others))
+
+	def _show_crossfades(self, start_crossfade: object, end_crossfade: object) -> None:
 		# Un crossfade non paramétré (NULL) est décoché ; 0 seconde en est un (https://github.com/dascritch/machincast/issues/145).
 		for box, slider, crossfade in (
 			(self.ui.has_start_crossfade, self.ui.start_crossfade, start_crossfade),
@@ -584,10 +613,8 @@ class SoundCard(Card):
 		):
 			slider.display(_seconds(crossfade))
 			box.setChecked(isinstance(crossfade, timedelta))
-		self.ui.playback_max.setValue(int(str((playback_max) or (0))))
-		self.ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
-		self._show_date(self.ui.has_start, self.ui.broadcast_start, start)
-		self._show_date(self.ui.has_end, self.ui.broadcast_end, end)
+
+	def _show_feed(self, marks: list[tuple[object, ...]], feed: object, url_stream: object) -> None:
 		self.ui.feed.clear()
 		for identifier, name, url in marks:
 			self.ui.feed.addItem(str(name), int(str(identifier)))
@@ -598,11 +625,15 @@ class SoundCard(Card):
 		self.ui.by_feed.setChecked(feed is not None)
 		self.ui.by_address.setChecked(feed is None)
 		self._mode_stream()
+
+	def _show_fallback(self, fallback: list[tuple[object, ...]], fallback_event: object) -> None:
 		self.ui.fallback.clear()
 		self.ui.fallback.addItem(_("None: the background programming"), None)
 		for identifier, name in fallback:
 			self.ui.fallback.addItem(str(name), int(str(identifier)))
 		self.ui.fallback.setCurrentIndex(self.ui.fallback.findData(fallback_event))
+
+	def _show_edited(self, edited_fields: object) -> None:
 		field_set = set()
 		for edited in _list(edited_fields):
 			field_set.add(str(edited))
@@ -616,16 +647,6 @@ class SoundCard(Card):
 				list=", ".join(edited_list)
 			)
 		self.ui.edited_fields.setText(edited_text)
-		self._show_plays(plays)
-		self.ui.timeline_place.setVisible(self._file)
-		file = None
-		if self._file:
-			file = Path(str(location))
-		self._show_shape(file)
-		self._bound_silences()
-		self._refresh_timeline()
-		self._initial_list = self._inputs()
-		self._give_name_markers()
 
 	def _show_date(self, box: QCheckBox, date: QDateTimeEdit, value: object) -> None:
 		"""Une période sans date part de l'heure de l'horloge, à la minute, quand sa case se coche."""
@@ -672,8 +693,9 @@ class SoundCard(Card):
 		inputs["state"] = self.ui.state.currentData()
 		return inputs
 
-	def _write(self) -> int:
-		inputs = self._inputs()
+	def _refuse_invalid(self, inputs: dict[str, object]) -> None:
+		"""Lève Refusal pour une saisie que la fiche n'écrit pas : fin avant début, stream sans adresse, silences qui
+		couvrent tout le fichier."""
 		start, end = inputs["broadcast_start"], inputs["broadcast_end"]
 		if (isinstance(start, datetime)) and (isinstance(end, datetime)) and (end <= start):
 			raise Refusal(_("The end of the broadcast must follow its start."), self.ui.has_start, self.ui.has_end)
@@ -700,20 +722,18 @@ class SoundCard(Card):
 				self.ui.has_detected_start,
 				self.ui.has_detected_end,
 			)
-		identifier = self.identifier
-		if identifier is None:
-			# Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification.
-			created = self.connection.execute(
-				"INSERT INTO sounds (type, stream_url, feed_id, state)"
-				" VALUES ('stream', %s, %s, 'active') RETURNING id",
-				(inputs["stream_url"], inputs["feed_id"]),
-			).fetchone()
-			assert created is not None
-			identifier = int(str(created[0]))
-		modified_list = []
-		for field, value in inputs.items():
-			if value != self._initial_list[field]:
-				modified_list.append(field)
+
+	def _insert_stream(self, inputs: dict[str, object]) -> int:
+		"""Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification."""
+		created = self.connection.execute(
+			"INSERT INTO sounds (type, stream_url, feed_id, state) VALUES ('stream', %s, %s, 'active') RETURNING id",
+			(inputs["stream_url"], inputs["feed_id"]),
+		).fetchone()
+		assert created is not None
+		return int(str(created[0]))
+
+	def _update_fields(self, identifier: int, inputs: dict[str, object], modified_list: list[str]) -> None:
+		"""Écrit les champs modifiés, et les ajoute à ceux que l'indexeur ne change plus."""
 		line = self.connection.execute(
 			"SELECT edited_fields FROM sounds WHERE id = %s FOR UPDATE", (identifier,)
 		).fetchone()
@@ -750,6 +770,9 @@ class SoundCard(Card):
 		values.append(edited_list)
 		query = sql.SQL("UPDATE sounds SET {} WHERE id = %s").format(sql.SQL(", ").join(assignments))
 		self.connection.execute(query, [*values, identifier])
+
+	def _remove_relations(self, identifier: int) -> None:
+		"""Retire du sonore les séquences, banques et événements que la fiche a décochés."""
 		for category, item in self._removed_list:
 			table, column = RELATION_LISTS[category]
 			self.connection.execute(
@@ -758,6 +781,19 @@ class SoundCard(Card):
 				),
 				(item, identifier),
 			)
+
+	def _write(self) -> int:
+		inputs = self._inputs()
+		self._refuse_invalid(inputs)
+		identifier = self.identifier
+		if identifier is None:
+			identifier = self._insert_stream(inputs)
+		modified_list = []
+		for field, value in inputs.items():
+			if value != self._initial_list[field]:
+				modified_list.append(field)
+		self._update_fields(identifier, inputs, modified_list)
+		self._remove_relations(identifier)
 		return identifier
 
 	def _read_relations(self) -> list[tuple[object, ...]]:

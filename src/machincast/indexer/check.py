@@ -36,9 +36,10 @@ import logging
 import threading
 from collections.abc import Callable, Collection, Iterator
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 import psycopg
 from psycopg.rows import TupleRow
@@ -274,6 +275,134 @@ def _sounds(connection: psycopg.Connection[TupleRow], identifiers: Collection[in
 		last = int(str(lines[-1][0]))
 
 
+@dataclass(frozen=True)
+class _Merged:
+	"""Ce qu'un examen change dans la ligne d'un sonore : ses champs saisis à la main ne changent pas."""
+
+	duration: Any
+	artist: Any
+	title: Any
+	metadata: Any
+	detected_start: Any
+	detected_end: Any
+
+
+def _merge_result(
+	result: Check,
+	edited_fields: Any,
+	artist: Any,
+	title: Any,
+	metadata: Any,
+	detected_start: Any,
+	detected_end: Any,
+) -> _Merged:
+	"""Les champs du sonore après l'examen, sauf ceux saisis à la main (edited_fields)."""
+	edited = list(edited_fields)
+	# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
+	healthy = result.state is FileState.HEALTHY
+	duration = None
+	if (healthy) and ("duration" not in edited):
+		duration = result.duration
+	# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
+	if healthy:
+		if "artist" not in edited:
+			artist = result.tags.artist
+		if "title" not in edited:
+			title = result.tags.title
+		metadata = merge(dict(metadata), result.tags.metadata, edited)
+	# Les silences mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
+	if (healthy) and (result.silences is not None):
+		if "detected_start" not in edited:
+			detected_start = result.silences.start
+		if "detected_end" not in edited:
+			detected_end = result.silences.end
+	return _Merged(duration, artist, title, metadata, detected_start, detected_end)
+
+
+def _write_check(
+	connection: psycopg.Connection[TupleRow],
+	identifier: object,
+	after: SoundState,
+	merged: _Merged,
+	file: tuple[datetime, int] | None,
+	file_type: str | None,
+	audited: bool,
+	silence_threshold: float,
+) -> None:
+	"""Écrit le verdict de l'examen dans la ligne du sonore, dans une transaction."""
+	modified_at, size = (None, None)
+	if file is not None:
+		modified_at, size = file
+	with connection.transaction():
+		# Un fichier introuvable garde la date et la taille de son dernier passage.
+		connection.execute(
+			"UPDATE sounds SET state = %s, duration = COALESCE(%s, duration),"
+			" file_modified_at = COALESCE(%s, file_modified_at), file_size = COALESCE(%s, file_size),"
+			" artist = %s, title = %s, music_metadata = %s, mime_type = COALESCE(%s, mime_type),"
+			" checked_at = CASE WHEN %s THEN clock_timestamp() ELSE checked_at END,"
+			" detected_start = %s, detected_end = %s, audit_requested = audit_requested AND NOT %s,"
+			" audited_at = CASE WHEN %s THEN clock_timestamp() ELSE audited_at END,"
+			" audit_threshold = CASE WHEN %s THEN %s ELSE audit_threshold END,"
+			# La disparition du fichier est datée une fois ; un fichier revenu ne l'est plus
+			# (https://github.com/dascritch/machincast/issues/267).
+			" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END"
+			" WHERE id = %s",
+			(
+				after.value,
+				merged.duration,
+				modified_at,
+				size,
+				merged.artist,
+				merged.title,
+				Jsonb(merged.metadata),
+				file_type,
+				# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
+				# vérification.
+				file is not None,
+				duration_or_none(merged.detected_start),
+				duration_or_none(merged.detected_end),
+				# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
+				file is not None,
+				# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
+				(audited) and (file is not None),
+				(audited) and (file is not None),
+				silence_threshold,
+				after is SoundState.DELETED,
+				identifier,
+			),
+		)
+
+
+def _count_change(report: Report, before: SoundState, after: SoundState) -> None:
+	"""Compte dans le bilan le changement d'état du sonore, s'il y en a un."""
+	if (before is SoundState.PREVIEW) and (after is not SoundState.PREVIEW):
+		report.exited_preview += 1
+	if after == before:
+		return
+	if after is SoundState.CORRUPT:
+		report.corrupt_list += 1
+	if after is SoundState.UNSUPPORTED:
+		report.not_supported += 1
+	if after is SoundState.DELETED:
+		report.deleted_list += 1
+	if (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED)):
+		report.restored += 1
+
+
+def _log_check(
+	report: Report, location: object, result: Check, before: SoundState, after: SoundState, merged: _Merged
+) -> None:
+	"""Dit le verdict dans le journal, et note l'anomalie au bilan."""
+	consequence = _consequence(before, after)
+	if result.state is not FileState.HEALTHY:
+		log.warning(_("  {problem}; {consequence}").format(problem=result.problem, consequence=consequence))
+		report.anomalies.append(Anomaly(str(location), _(result.state), str(result.detail), consequence))
+		return
+	log.info(
+		_("  {healthy}; {consequence}").format(healthy=_healthy(merged.artist, merged.title), consequence=consequence)
+	)
+
+
 def _check_sound(
 	connection: psycopg.Connection[TupleRow],
 	line: TupleRow,
@@ -327,98 +456,12 @@ def _check_sound(
 	# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
 	file_type, result = watched(lambda: _examine(path, check, audited, silence_threshold), AUDIT_LIMIT)
 	after = new_state(before, result.state)
-	file = file_state(path)
-	if file is not None:
-		modified_at, size = file
-	else:
-		modified_at, size = (None, None)
-	# La durée n'est enregistrée que pour un fichier sain, et jamais à la place d'une durée saisie à la main.
-	healthy = result.state is FileState.HEALTHY
-	if (healthy) and ("duration" not in edited_fields):
-		duration = result.duration
-	else:
-		duration = None
-	# Les tags d'un fichier défectueux ne sont pas lus : artiste, titre et métadonnées restent tels quels.
-	if healthy:
-		if "artist" in edited_fields:
-			artist = artist
-		else:
-			artist = result.tags.artist
-		if "title" in edited_fields:
-			title = title
-		else:
-			title = result.tags.title
-		metadata = merge(dict(metadata), result.tags.metadata, list(edited_fields))
-	# Les silences mesurés remplacent ceux en base, sauf ceux saisis à la main ; sans mesure, rien ne change.
-	if (healthy) and (result.silences is not None):
-		if "detected_start" not in edited_fields:
-			detected_start = result.silences.start
-		if "detected_end" not in edited_fields:
-			detected_end = result.silences.end
-	with connection.transaction():
-		# Un fichier introuvable garde la date et la taille de son dernier passage.
-		connection.execute(
-			"UPDATE sounds SET state = %s, duration = COALESCE(%s, duration),"
-			" file_modified_at = COALESCE(%s, file_modified_at), file_size = COALESCE(%s, file_size),"
-			" artist = %s, title = %s, music_metadata = %s, mime_type = COALESCE(%s, mime_type),"
-			" checked_at = CASE WHEN %s THEN clock_timestamp() ELSE checked_at END,"
-			" detected_start = %s, detected_end = %s, audit_requested = audit_requested AND NOT %s,"
-			" audited_at = CASE WHEN %s THEN clock_timestamp() ELSE audited_at END,"
-			" audit_threshold = CASE WHEN %s THEN %s ELSE audit_threshold END,"
-			# La disparition du fichier est datée une fois ; un fichier revenu ne l'est plus
-			# (https://github.com/dascritch/machincast/issues/267).
-			" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END"
-			" WHERE id = %s",
-			(
-				after.value,
-				duration,
-				modified_at,
-				size,
-				artist,
-				title,
-				Jsonb(metadata),
-				file_type,
-				# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
-				# vérification.
-				file is not None,
-				duration_or_none(detected_start),
-				duration_or_none(detected_end),
-				# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
-				file is not None,
-				# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
-				(audited) and (file is not None),
-				(audited) and (file is not None),
-				silence_threshold,
-				after is SoundState.DELETED,
-				identifier,
-			),
-		)
+	merged = _merge_result(result, edited_fields, artist, title, metadata, detected_start, detected_end)
+	_write_check(connection, identifier, after, merged, file_state(path), file_type, audited, silence_threshold)
 	if decode:
 		report.checked_list += 1
-	if (before is SoundState.PREVIEW) and (after is not SoundState.PREVIEW):
-		report.exited_preview += 1
-	if after != before:
-		if after is SoundState.CORRUPT:
-			report.corrupt_list += 1
-		else:
-			if after is SoundState.UNSUPPORTED:
-				report.not_supported += 1
-			else:
-				if after is SoundState.DELETED:
-					report.deleted_list += 1
-				else:
-					if (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED)):
-						report.restored += 1
-	if result.state is not FileState.HEALTHY:
-		consequence = _consequence(before, after)
-		log.warning(_("  {problem}; {consequence}").format(problem=result.problem, consequence=consequence))
-		report.anomalies.append(Anomaly(str(location), _(result.state), str(result.detail), consequence))
-	else:
-		log.info(
-			_("  {healthy}; {consequence}").format(
-				healthy=_healthy(artist, title), consequence=_consequence(before, after)
-			)
-		)
+	_count_change(report, before, after)
+	_log_check(report, location, result, before, after, merged)
 
 
 def _examine(path: Path, check: Checker, audited: bool, silence_threshold: float) -> tuple[str | None, Check]:
