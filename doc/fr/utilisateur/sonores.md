@@ -12,6 +12,7 @@
 - [Fiche d'une banque](#fiche-dune-banque)
 - [Alimenter une banque par ses répertoires](#alimenter-une-banque-par-ses-répertoires)
 - [Indexation depuis l'interface](#indexation-depuis-linterface)
+	- [Statut des indexations](#statut-des-indexations)
 - [Feeds](#feeds)
 
 ## Ajouter un sonore

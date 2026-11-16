@@ -235,7 +235,9 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `analyse impossible` | alerte | La vérification du prochain sonore n'a pas pu être lancée ; il est joué quand même. |
 | `sortie inaccessible` | alerte | La page publique, la playlist ou le fichier de l'historique ne peut pas être écrit. |
 | `socket d'état indisponible` | alerte | L'onglet Antenne ne peut pas suivre la diffusion, qui continue sans lui. |
+| `fichier illisible` | alerte | Sur l'ordinateur de l'antenne, le service de diffusion n'a pas le droit de lire le fichier ; il n'est pas joué ([Ajouter un sonore](sonores.md#ajouter-un-sonore), [#381](https://github.com/dascritch/machincast/issues/381)). |
 | `fichier introuvable` | incident | Le fichier a disparu ; il n'est pas joué. |
+| `lecture bloquée` | incident | La lecture d'un fichier n'a pas démarré au bout de 10 secondes ; le sonore suivant le remplace ([Enchaînements](#enchaînements)). |
 | `lecture interrompue` | incident | La lecture d'un fichier s'est arrêtée sur une erreur. |
 | `blanc dans un sonore` | incident | Le sonore en cours ne donne plus de son ([Blanc dans un sonore](#blanc-dans-un-sonore)) ; le message dit où, dans le fichier, et à quel niveau. |
 | `flux tombé` | incident | Le flux d'un stream ne répond plus. |

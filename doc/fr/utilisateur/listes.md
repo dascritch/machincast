@@ -50,13 +50,13 @@ Tous les tableaux de l'interface se règlent de la même façon : les listes, la
 Toutes les fiches, d'un événement, d'une séquence, d'une banque, d'un sonore ou d'un feed, se comportent de la même façon :
 
 - **Un emoji dit ce que fait un bouton** ([#294](https://github.com/dascritch/machincast/issues/294)), dans les fiches comme dans les menus et les questions : ➕ ajoute des lignes à un tableau, ➖ en retire, ❌ supprime la fiche.
-
 - **Un onglet par élément** : une fiche déjà ouverte revient au premier plan.
 - **Enregistrer** écrit toutes les modifications à la fois ; pendant ce temps, la fiche est grisée ([#382](https://github.com/dascritch/machincast/issues/382)). Réussi, il **ferme l'onglet** de la fiche, sans autre annonce : la fiche se rouvre depuis sa liste. Refusé, la fiche se dégrise, reste ouverte, et dit pourquoi. **Annuler** remet la fiche telle qu'elle est en base. Les deux boutons ne servent que quand la fiche est modifiée.
 - **Refus** : un nom interne vide, ou déjà pris par un élément du même type, n'est pas enregistré ; la fiche dit pourquoi, et garde ses modifications. De même si la base ne répond pas : « Enregistrement impossible : … ».
 - **Erreurs en évidence** ([#270](https://github.com/dascritch/machincast/issues/270)) : l'erreur s'affiche **en haut de la fiche**, encadrée d'un liseré rouge, et chaque champ en cause est précédé de ⚠️ : le nom interne pour un nom vide ou déjà pris, le début et la fin pour une fin qui ne suit pas le début, la priorité, le début et la fin pour un chevauchement. Elle reste jusqu'au prochain **Enregistrer**, à **Annuler**, ou à la relecture de la fiche. Une suppression ou une restauration impossible s'y affiche de même. Le bas de la fiche ne garde que ce qui informe : fichiers ignorés d'un dépôt, élément supprimé.
 
 ![La fiche de l'émission « Matinale » refusée : « Le nom interne est obligatoire. » en haut, sur un liseré rouge, et ⚠️ devant « Nom interne »](../captures/fiche-erreur.png)
+
 - **Fermer une fiche modifiée**, par son onglet ou en fermant la fenêtre, demande quoi faire : **Enregistrer** (<kbd>Entrée</kbd>), **Abandonner**, ou **Annuler** (<kbd>Échap</kbd>), qui la garde ouverte.
 - **Pendant la modification**, ce qu'une indexation ou la diffusion change en base (un sonore rattaché à une banque, un sonore qui expire) est gardé à l'enregistrement.
 
