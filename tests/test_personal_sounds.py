@@ -4,7 +4,9 @@ Le répertoire personnel et le répertoire d'accueil sont simulés dans le répe
 test, jamais celle de production. Seules des copies de fichiers de test se déplacent.
 """
 
+import dataclasses
 import hashlib
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,7 +14,9 @@ import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import access, personal
+from machincast import access, installation, personal
+from machincast.configuration import Configuration
+from tests.database_fixtures import configuration_test
 
 scenarios("personal_sounds.feature")
 
@@ -21,7 +25,7 @@ Connection = psycopg.Connection[tuple[object, ...]]
 
 @pytest.fixture
 def context() -> SimpleNamespace:
-	return SimpleNamespace(found=None, error=None, contents={})
+	return SimpleNamespace(found=None, error=None, contents={}, code=None)
 
 
 def _path(tmp_path: Path, text: str) -> Path:
@@ -170,3 +174,49 @@ def unchanged(tmp_path: Path, context: SimpleNamespace, name: str) -> None:
 @then("le déplacement échoue")
 def failed(context: SimpleNamespace) -> None:
 	assert context.error is not None
+
+
+def _configuration(production: str) -> Configuration:
+	"""La configuration des tests, dont la « production » est la base de test : une commande de l'installation ne
+	touche jamais la vraie."""
+	configuration = configuration_test()
+	return dataclasses.replace(
+		configuration, database=dataclasses.replace(configuration.database, production=production)
+	)
+
+
+@when(parsers.parse("la commande d'installation « {command} » est lancée sur la base de test"))
+def installation_command(context: SimpleNamespace, capsys: pytest.CaptureFixture[str], command: str) -> None:
+	context.code = installation.ACTIONS[command](_configuration(configuration_test().database.test))
+	context.written = capsys.readouterr().out
+
+
+@when(parsers.parse("la commande d'installation « {command} » est lancée sur une base introuvable"))
+def installation_without_database(context: SimpleNamespace, caplog: pytest.LogCaptureFixture, command: str) -> None:
+	caplog.set_level(logging.INFO, logger="machincast")
+	context.code = installation.ACTIONS[command](_configuration("machincast_base_qui_n_existe_pas"))
+
+
+@then(parsers.parse("la commande rend le code {code:d}"))
+def returns(context: SimpleNamespace, code: int) -> None:
+	assert context.code == code
+
+
+@then(parsers.parse("elle écrit {names}"))
+def writes(tmp_path: Path, context: SimpleNamespace, names: str) -> None:
+	expected = ""
+	for path in _list(tmp_path, names):
+		expected += f"{path}\n"
+	assert context.written == expected
+
+
+@then(parsers.parse("le log dit « {text} »"))
+def logged(caplog: pytest.LogCaptureFixture, text: str) -> None:
+	messages = []
+	for record in caplog.records:
+		messages.append(record.getMessage())
+	found = False
+	for message in messages:
+		if text in message:
+			found = True
+	assert found, messages

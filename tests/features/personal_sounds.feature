@@ -47,3 +47,31 @@ Fonctionnalité: Les sonores des répertoires personnels, à l'installation du s
 		Et la banque « Jingles » n'a plus de répertoire
 		Et le fichier « maison/jingles/a.flac » existe, et plus « accueil/jingles/a.flac »
 		Et le fichier « maison/telechargements/c.flac » existe, et plus « accueil/fichiers/c.flac »
+
+	Scénario: La commande personal-sounds écrit un chemin par ligne, sans rien changer
+		Quand la commande d'installation « personal-sounds » est lancée sur la base de test
+		Alors la commande rend le code 0
+		Et elle écrit « maison/jingles », « maison/telechargements/c.flac »
+		Et les sonores sont « maison/jingles/a.flac », « maison/telechargements/c.flac », « studio/sons/b.flac »
+
+	Plan du scénario: Les commandes de déplacement et d'oubli agissent sur la base, ici la base de test
+		Quand la commande d'installation « <commande> » est lancée sur la base de test
+		Alors la commande rend le code 0
+		Et les sonores sont <sonores>
+
+		Exemples:
+			| commande               | sonores                                                                         |
+			| move-personal-sounds   | « accueil/fichiers/c.flac », « accueil/jingles/a.flac », « studio/sons/b.flac » |
+			| forget-personal-sounds | « studio/sons/b.flac »                                                          |
+
+	Plan du scénario: Sans base de production joignable, les commandes de l'installation échouent et le disent
+		Quand la commande d'installation « <commande> » est lancée sur une base introuvable
+		Alors la commande rend le code 1
+		Et le log dit « base de données injoignable »
+
+		Exemples:
+			| commande               |
+			| personal-sounds        |
+			| move-personal-sounds   |
+			| forget-personal-sounds |
+

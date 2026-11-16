@@ -25,6 +25,7 @@ from machincast.interface import sound_card, stream_trial
 from machincast.interface.sound_card import SoundCard
 from tests.interface_steps import NAME, Connection, Context, identifier, open_in, type_, window
 from tests.stream import StreamServer
+from tests.waiting import quiet
 
 scenarios("sound_card.feature")
 
@@ -378,18 +379,6 @@ def sparing(server: StreamServer, stream: str) -> None:
 	server.in_line[stream] = True
 
 
-@when(parsers.parse("le serveur de flux local a bientôt {count:d} connexion"))
-@then(parsers.parse("le serveur de flux local a bientôt {count:d} connexion"))
-def connections(server: StreamServer, qtbot: QtBot, count: int) -> None:
-	qtbot.waitUntil(lambda: server.connections == count, timeout=5000)
-
-
-@then("le serveur de flux local n'a bientôt plus de connexion")
-def more_connection(server: StreamServer, qtbot: QtBot) -> None:
-	# Moins que le délai du test d'un flux, qui fermerait de lui-même sa connexion.
-	qtbot.waitUntil(lambda: server.connections == 0, timeout=5000)
-
-
 @when("je teste le flux")
 def launch_trial(interface: Context, qtbot: QtBot) -> None:
 	qtbot.mouseClick(card(interface).ui.test, Qt.MouseButton.LeftButton)
@@ -588,7 +577,7 @@ def verdict(interface: Context, verdict: str) -> None:
 
 @then(parsers.parse("après {seconds:d} secondes, le test du flux dit toujours « {verdict} »"))
 def always(interface: Context, qtbot: QtBot, seconds: int, verdict: str) -> None:
-	qtbot.wait(seconds * 1000)
+	quiet(qtbot, seconds * 1000, reason="un changement du verdict du test du flux")
 	assert card(interface).ui.trial_result.text() == verdict
 
 

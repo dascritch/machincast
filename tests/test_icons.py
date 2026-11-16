@@ -3,11 +3,9 @@
 Les étapes de la fenêtre, des fiches, des menus et des éléments en base sont dans tests/interface_steps.py.
 """
 
-from collections.abc import Iterator
 from pathlib import Path
 from xml.etree import ElementTree
 
-import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QImage, QPalette
 from PySide6.QtWidgets import QApplication
@@ -97,13 +95,6 @@ def different(qapp: QApplication, names: str) -> None:
 		for second in images[rank + 1 :]:
 			differences.append(first != second)
 	assert all(differences)
-
-
-@pytest.fixture
-def origin_palette(qapp: QApplication) -> Iterator[None]:
-	origin = QPalette(qapp.palette())
-	yield
-	qapp.setPalette(origin)
 
 
 @when(parsers.parse("le thème de l'application écrit en {colour}"))

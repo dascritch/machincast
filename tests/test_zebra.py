@@ -3,11 +3,9 @@
 Les étapes de la fenêtre, des fiches, des menus et des éléments en base sont dans tests/interface_steps.py.
 """
 
-from collections.abc import Iterator
 from pathlib import Path
 from xml.etree import ElementTree
 
-import pytest
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QComboBox, QCompleter, QHeaderView
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -25,13 +23,6 @@ ROLE = QPalette.ColorRole.AlternateBase
 
 def _number(text: str) -> float:
 	return float(text.replace(",", "."))
-
-
-@pytest.fixture
-def origin_palette(qapp: QApplication) -> Iterator[None]:
-	origin = QPalette(qapp.palette())
-	yield
-	qapp.setPalette(origin)
 
 
 def _theme(qapp: QApplication, base: str, text: str, alternate: str | None = None) -> None:

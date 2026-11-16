@@ -4,8 +4,6 @@ Une vraie socket d'état (machincast.player.state.StateSocket), là où l'interf
 lecture imaginaire et reçoit les demandes de l'interface. Les étapes de la fenêtre sont dans tests/interface_steps.py.
 """
 
-import time
-
 from PySide6.QtGui import QAction
 from PySide6.QtNetwork import QLocalSocket
 from PySide6.QtWidgets import QMenu
@@ -15,7 +13,9 @@ from pytestqt.qtbot import QtBot
 from machincast.interface import interruption
 from machincast.interface.state import read_message
 from machincast.player.state import ADVANCE, CUT_BY_FALLBACK, CUT_BY_FEED, Request
-from tests.interface_steps import Connection, Context, Player, identifier, list_, publish, window
+from tests.interface_steps import Connection, Context, identifier, list_, window
+from tests.player_socket_steps import Player, publish
+from tests.waiting import quiet
 
 scenarios("interruption_interface.feature")
 
@@ -276,7 +276,7 @@ def advances_received(player: Player, qtbot: QtBot, event: int) -> None:
 		return player.received_list != []
 
 	qtbot.waitUntil(received, timeout=WAITING)
-	time.sleep(0.1)
+	quiet(qtbot, 100, reason="une seconde demande")
 	player.received_list += socket.requests()
 	assert player.received_list == [Request(command=ADVANCE, event=event)]
 
@@ -301,7 +301,7 @@ def asks_received(player: Player, qtbot: QtBot, item: str) -> None:
 		return player.received_list != []
 
 	qtbot.waitUntil(received, timeout=WAITING)
-	time.sleep(0.1)
+	quiet(qtbot, 100, reason="une seconde demande")
 	player.received_list += socket.requests()
 	assert player.received_list == [Request(item)]
 
@@ -325,7 +325,7 @@ def _receive(player: Player, qtbot: QtBot) -> list[Request]:
 		return len(player.received_list) > already
 
 	qtbot.waitUntil(received, timeout=WAITING)
-	time.sleep(0.1)
+	quiet(qtbot, 100, reason="une seconde demande")
 	player.received_list += socket.requests()
 	return player.received_list
 

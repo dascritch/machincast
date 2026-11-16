@@ -16,6 +16,7 @@ from pathlib import Path
 import psycopg
 import pytest
 from pytest_bdd import given, parsers, then, when
+from pytestqt.qtbot import QtBot
 
 from machincast.clock import FixedClock
 from machincast.configuration import Audio, Crossfades, DeadAirSettings
@@ -1098,3 +1099,14 @@ def lent_play(empty_database: Connection, name: str, event: str, lender: str | N
 		(sound(empty_database, name),),
 	).fetchall()
 	assert lines == [(event, lender)], lines
+
+
+@when(parsers.parse("le serveur de flux local a bientôt {count:d} connexion"))
+@then(parsers.parse("le serveur de flux local a bientôt {count:d} connexion"))
+def connections(server: StreamServer, qtbot: QtBot, count: int) -> None:
+	qtbot.waitUntil(lambda: server.connections == count, timeout=5000)
+
+
+@then("le serveur de flux local n'a bientôt plus de connexion")
+def more_connection(server: StreamServer, qtbot: QtBot) -> None:
+	qtbot.waitUntil(lambda: server.connections == 0, timeout=5000)

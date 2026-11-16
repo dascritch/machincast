@@ -21,6 +21,7 @@ from machincast.interface.default_screen import DefaultScreen
 from machincast.interface.preview import PreviewWindow
 from tests.interface_steps import Context, identifier, window
 from tests.sounds import SOUND_FILES
+from tests.waiting import quiet
 
 Connection = psycopg.Connection[tuple[object, ...]]
 
@@ -200,7 +201,7 @@ def soon_titled(interface: Context, qtbot: QtBot, title: str) -> None:
 @then(parsers.parse("la fenêtre de pré-écoute reste titrée « {title} »"))
 def remains_titled(interface: Context, qtbot: QtBot, title: str) -> None:
 	"""Le temps qu'un état publié arrive à l'interface."""
-	qtbot.wait(500)
+	quiet(qtbot, 500, reason="un état publié qui changerait le titre")
 	assert preview_window(interface).windowTitle() == title
 
 

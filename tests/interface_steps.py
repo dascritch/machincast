@@ -10,12 +10,9 @@ posée : aucune fenêtre modale n'attend un clic.
 """
 
 import dataclasses
-import json
 import re
 import shutil
 import sys
-import time
-import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -24,17 +21,13 @@ from pathlib import Path
 import psycopg
 import pytest
 import shiboken6
-import tomlkit
-from PySide6.QtCore import QCoreApplication, QEvent, QMimeData, QModelIndex, QPoint, QPointF, Qt, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QMimeData, QModelIndex, QPointF, Qt, QUrl
 from PySide6.QtGui import (
 	QAction,
 	QDragEnterEvent,
 	QDragLeaveEvent,
 	QDragMoveEvent,
 	QDropEvent,
-	QIcon,
-	QImage,
-	QKeySequence,
 )
 from PySide6.QtWidgets import (
 	QAbstractButton,
@@ -53,19 +46,16 @@ from PySide6.QtWidgets import (
 from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast import __version__, audio
-from machincast.audio import Device
 from machincast.clock import FixedClock
 from machincast.configuration import RETENTION, AudioOutput, Crossfades, DeadAirSettings, Interface, load
 from machincast.database import Role, open_connection
-from machincast.interface import dialogs, indexer, preferences, version
+from machincast.interface import dialogs, indexer, version
 from machincast.interface.card import DELETE, REPORTED, Card
 from machincast.interface.dialogs import Closing, Removal
 from machincast.interface.lists import ANOMALY_COLUMN, IDENTIFIER, List
 from machincast.interface.preferences import Settings
 from machincast.interface.suggestions import Response, Shortfalls
 from machincast.interface.window import MainWindow
-from machincast.player.state import REREAD_GRID, Request, StateSocket
 from machincast.service import ABSENT, ServiceState
 from tests.categories import SCENARIO
 from tests.database_fixtures import configuration_test, sample_database_parameters
@@ -73,6 +63,8 @@ from tests.sounds import SOUND_FILES
 
 Connection = psycopg.Connection[tuple[object, ...]]
 NAME = re.compile(r"« ([^»]+) »")
+WAITING = 20_000
+"""Millisecondes accordées à une vérification ou une indexation : un fichier de test se décode en moins d'1 s."""
 MODES = {"séquentielle": "sequential", "aléatoire": "random"}
 
 
@@ -993,20 +985,6 @@ ON_DEMAND = {"Sonores": "Ouvrir l'onglet Sonores", "Feeds": "Ouvrir l'onglet Fee
 (https://github.com/dascritch/machincast/issues/180)."""
 
 
-@when(parsers.parse("j'ouvre l'onglet « {title} »"))
-def open_tab(interface: Context, title: str) -> None:
-	"""Une liste ouverte à la demande, pas encore ouverte, s'ouvre par le menu « Affichage », comme le ferait
-	l'utilisateur (https://github.com/dascritch/machincast/issues/180)."""
-	tabs = window(interface).ui.tabs
-	titles = []
-	for index in range(tabs.count()):
-		titles.append(tab_title(tabs, index))
-	if (title in ON_DEMAND) and (title not in titles):
-		choose_in_menu(interface, ON_DEMAND[title], "Affichage")
-		return
-	tabs.setCurrentIndex(tab(interface, title))
-
-
 @when(parsers.parse("j'ouvre la fiche de la banque « {name} »"))
 def open_bank_card(interface: Context, qtbot: QtBot, name: str) -> None:
 	open_tab(interface, "Banques")
@@ -1085,15 +1063,6 @@ def was_greyed(interface: Context) -> None:
 @then("la fiche n'est plus grisée")
 def no_longer_greyed(interface: Context) -> None:
 	assert opened_card(interface).isEnabled()
-
-
-@then(parsers.parse("l'onglet « {title} » est fermé"))
-def closed_tab(interface: Context, title: str) -> None:
-	tabs = window(interface).ui.tabs
-	titles = []
-	for index in range(tabs.count()):
-		titles.append(tab_title(tabs, index))
-	assert title not in titles, titles
 
 
 @when("j'enregistre la fiche, puis je la rouvre")
@@ -1188,26 +1157,6 @@ def add_items(interface: Context, qtbot: QtBot, empty_database: Connection, cate
 	qtbot.mouseClick(getattr(ui, button), Qt.MouseButton.LeftButton)
 
 
-@when(parsers.parse("je ferme l'onglet « {title} »"))
-def close_tab(interface: Context, qtbot: QtBot, title: str) -> None:
-	tabs = window(interface).ui.tabs
-	index = tab(interface, title)
-	button = closing_button(tabs.tabBar(), index)
-	assert button is not None, f"l'onglet « {title} » n'a pas de bouton de fermeture"
-	interface.closed_list.append(tabs.widget(index))
-	qtbot.mouseClick(button, Qt.MouseButton.LeftButton)
-
-
-@when("je ferme la fenêtre de l'interface")
-def close_window(interface: Context) -> None:
-	window(interface).close()
-
-
-@when(parsers.re(r"je réponds « (?P<response>[^»]+) » à la question de (?:fermeture|rafraîchissement)"))
-def answer_closing(interface: Context, response: str) -> None:
-	interface.closing = Closing(response)
-
-
 @when(parsers.parse("je réponds « {response} » à l'avertissement de réintégration"))
 def answer_removal(interface: Context, response: str) -> None:
 	interface.removal = Removal(response)
@@ -1220,75 +1169,7 @@ def add(empty_database: Connection, title: str) -> None:
 	)
 
 
-@when(parsers.parse("je tape « {text} » dans le filtre de la liste"))
-def apply_filter(interface: Context, qtbot: QtBot, text: str) -> None:
-	type_(qtbot, list_(interface).filter_, text)
-
-
-@given(parsers.parse("{count:d} sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/{last:d}.flac"))
-def many_sounds(empty_database: Connection, count: int, last: int) -> None:
-	"""https://github.com/dascritch/machincast/issues/383"""
-	assert count == last
-	empty_database.execute(
-		"INSERT INTO sounds (type, location, state, duration)"
-		" SELECT 'file', '/srv/grande/' || n || '.flac', 'active', '3 min' FROM generate_series(1, %s) n",
-		(count,),
-	)
-
-
-@then(parsers.parse("la table de la liste a {count:d} lignes"))
-def table_lines(interface: Context, count: int) -> None:
-	assert list_(interface).table.model().rowCount() == count
-
-
-@when("je descends au bas de la table de la liste")
-def list_to_bottom(interface: Context, qtbot: QtBot) -> None:
-	"""La vue demande la page suivante (fetchMore) en arrivant au bas de la table, une fois ses lignes disposées."""
-	qtbot.wait(10)
-	bar = list_(interface).table.verticalScrollBar()
-	bar.setValue(bar.maximum())
-	qtbot.wait(10)
-
-
-@then(parsers.parse("la première ligne de la liste a pour titre « {title} »"))
-def first_title(interface: Context, title: str) -> None:
-	assert lines(interface)[0]["Titre"] == title, lines(interface)[:3]
-
-
-@when(parsers.parse("je clique sur le titre de la colonne « {title} »"))
-def sort(interface: Context, qtbot: QtBot, title: str) -> None:
-	table = list_(interface).table
-	header = table.horizontalHeader()
-	model = table.model()
-	titles = []
-	for column_rank in range(model.columnCount()):
-		titles.append(str(model.headerData(column_rank, Qt.Orientation.Horizontal)))
-	column = titles.index(title)
-	position = QPoint(header.sectionViewportPosition(column) + header.sectionSize(column) // 2, header.height() // 2)
-	qtbot.mouseClick(header.viewport(), Qt.MouseButton.LeftButton, pos=position)
-
-
-@when(parsers.parse("j'ouvre la ligne « {name} »"))
-def open_line(interface: Context, qtbot: QtBot, name: str) -> None:
-	open_in(qtbot, list_(interface).table, name)
-
-
 # ─── Alors ─────────────────────────────────────────────────
-
-
-@then(parsers.re(r"la fenêtre a les onglets (?P<titles>.+)"))
-def tabs(interface: Context, titles: str) -> None:
-	tabs = window(interface).ui.tabs
-	index_list = []
-	for index in range(tabs.count()):
-		index_list.append(tab_title(tabs, index))
-	assert index_list == NAME.findall(titles)
-
-
-@then(parsers.parse("l'onglet ouvert est « {title} »"))
-def opened_tab(interface: Context, title: str) -> None:
-	tabs = window(interface).ui.tabs
-	assert tab_title(tabs, tabs.currentIndex()) == title
 
 
 def closable_list(interface: Context) -> list[str]:
@@ -1298,36 +1179,6 @@ def closable_list(interface: Context) -> list[str]:
 		if closing_button(tabs.tabBar(), index) is not None:
 			closable_list.append(tab_title(tabs, index))
 	return closable_list
-
-
-@then("aucun onglet n'a de bouton de fermeture")
-def no_closable(interface: Context) -> None:
-	assert closable_list(interface) == []
-
-
-@then(parsers.re(r"seuls les onglets (?P<titles>«.+) ont un bouton de fermeture"))
-def only_closable_ones(interface: Context, titles: str) -> None:
-	assert closable_list(interface) == NAME.findall(titles)
-
-
-@when("j'efface le filtre de la liste")
-def erase_filter(interface: Context) -> None:
-	list_(interface).filter_.clear()
-
-
-@then(parsers.parse("seul l'onglet « {title} » a un bouton de fermeture"))
-def only_closable(interface: Context, title: str) -> None:
-	tabs = window(interface).ui.tabs
-	closable_list = []
-	for index in range(tabs.count()):
-		if closing_button(tabs.tabBar(), index) is not None:
-			closable_list.append(tab_title(tabs, index))
-	assert closable_list == [title]
-
-
-@then(parsers.re(r"la fenêtre de l'interface est (?P<state>fermée|ouverte)"))
-def opened_window(interface: Context, state: str) -> None:
-	assert window(interface).isVisible() == (state == "ouverte")
 
 
 @then("la fiche fermée est libérée")
@@ -1475,64 +1326,6 @@ def buttons(interface: Context, state: str) -> None:
 	assert active_list == (state == "actifs", state == "actifs")
 
 
-@then(parsers.re(r"la fenêtre (?P<verdict>n'a plus|a encore) d'onglet de fiche"))
-def card_tab(interface: Context, verdict: str) -> None:
-	tabs = window(interface).ui.tabs
-	cards = []
-	for index in range(tabs.count()):
-		cards.append(tabs.widget(index))
-	found = False
-	for opened in cards:
-		if isinstance(opened, Card):
-			found = True
-			break
-	assert found == (verdict == "a encore")
-
-
-@then(parsers.re(r"les listes qui proposent de créer un élément sont (?P<buttons>.+)"))
-def new_buttons(interface: Context, buttons: str) -> None:
-	tabs = window(interface).ui.tabs
-	with_ = []
-	for index in range(tabs.count()):
-		opened = tabs.widget(index)
-		if (isinstance(opened, List)) and (not opened.ui.new.isHidden()):
-			with_.append(f"{tab_title(tabs, index)} : {opened.ui.new.text()}")
-	assert with_ == NAME.findall(buttons)
-
-
-@then("l'onglet « Antenne » montre l'écran par défaut")
-def home(interface: Context) -> None:
-	assert window(interface).ui.tabs.widget(0) is window(interface).home
-
-
-@then("la liste montre :")
-def expected_entries(interface: Context, datatable: list[list[str]]) -> None:
-	headers, *rows = datatable
-	expected_list = []
-	for values in rows:
-		cells = []
-		for v in values:
-			cells.append(interface.path(v.strip()))
-		expected_list.append(dict(zip(headers, cells, strict=True)))
-	assert lines(interface) == expected_list, lines(interface)
-
-
-@then(parsers.re(r"la colonne « (?P<column>[^»]+) » de la liste montre (?P<values>«.+)"))
-def displayed_column(interface: Context, column: str, values: str) -> None:
-	line_list = []
-	for line in lines(interface):
-		line_list.append(line[column])
-	assert line_list == NAME.findall(values), lines(interface)
-
-
-@then(parsers.re(r"la liste montre les titres (?P<titles>.+)"))
-def shown_titles(interface: Context, titles: str) -> None:
-	line_list = []
-	for line in lines(interface):
-		line_list.append(line["Titre"])
-	assert line_list == NAME.findall(titles), lines(interface)
-
-
 def marked_list(interface: Context) -> list[list[str]]:
 	"""Les lignes en anomalie de la liste ouverte, son nom et son infobulle : ⚠️ dans la première colonne, l'infobulle
 	sur toutes ses cellules, et aucune icône, ni sur le nom ni ailleurs. Les autres n'ont ni ⚠️ ni infobulle
@@ -1557,49 +1350,6 @@ def marked_list(interface: Context) -> list[list[str]]:
 		else:
 			assert (cells[0].data(), bubbles) == ("", {None}), bubbles
 	return found_list
-
-
-@then(parsers.re(r"la liste marque en anomalie les lignes (?P<names>.+), avec l'infobulle « (?P<tooltip>[^»]+) »"))
-def anomalies(interface: Context, names: str, tooltip: str) -> None:
-	name_list = []
-	for name in NAME.findall(names):
-		name_list.append([name, tooltip])
-	assert marked_list(interface) == name_list
-
-
-@then("la liste marque en anomalie les lignes et infobulles :")
-def anomalies_and_tooltips(interface: Context, datatable: list[list[str]]) -> None:
-	"""Chaque ligne en anomalie a son infobulle, propre à la ligne (https://github.com/dascritch/machincast/issues/140)."""
-	_headers, *rows = datatable
-	line_list = []
-	for line, tooltip in rows:
-		line_list.append([line.strip(), tooltip.strip()])
-	assert marked_list(interface) == line_list
-
-
-@then(parsers.parse("la première colonne de la liste est « {title} », avec l'infobulle « {tooltip} »"))
-def anomaly_column(interface: Context, title: str, tooltip: str) -> None:
-	model = list_(interface).table.model()
-	header = (
-		model.headerData(0, Qt.Orientation.Horizontal),
-		model.headerData(0, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole),
-	)
-	assert header == (title, tooltip)
-	assert list_(interface).table.horizontalHeader().visualIndex(0) == 0
-
-
-@then(parsers.parse("la liste n'a pas de colonne « {title} »"))
-def without_column(interface: Context, title: str) -> None:
-	model = list_(interface).table.model()
-	titles = []
-	for column in range(model.columnCount()):
-		titles.append(model.headerData(column, Qt.Orientation.Horizontal))
-	assert title not in titles
-
-
-@then(parsers.parse("le compte de la liste est « {text} »"))
-def count(interface: Context, text: str) -> None:
-	assert list_(interface).count.text() == text
 
 
 @then(parsers.parse("l'écran de détail de {category} « {name} » est demandé"))
@@ -1664,6 +1414,15 @@ def state_bar(interface: Context, text: str) -> None:
 # ─── Barre de menus ────────────────────────────────────────
 
 
+def named_menu(interface: Context, menu: str) -> QMenu:
+	found_list = []
+	for under_menu in menus(interface):
+		if under_menu.title().replace("&", "") == menu:
+			found_list.append(under_menu)
+	assert len(found_list) == 1, f"menu « {menu} » absent"
+	return found_list[0]
+
+
 def menus(interface: Context) -> list[QMenu]:
 	"""Les menus de la barre de menus, dans l'ordre."""
 	bar = window(interface).menuBar()
@@ -1676,24 +1435,9 @@ def menus(interface: Context) -> list[QMenu]:
 	return menus
 
 
-def named_menu(interface: Context, menu: str) -> QMenu:
-	found_list = []
-	for under_menu in menus(interface):
-		if under_menu.title().replace("&", "") == menu:
-			found_list.append(under_menu)
-	assert len(found_list) == 1, f"menu « {menu} » absent"
-	return found_list[0]
-
-
 def actions(interface: Context, menu: str) -> list[QAction]:
 	"""Les entrées d'un menu de la barre de menus, séparateurs compris, dans l'ordre."""
 	return list(named_menu(interface, menu).actions())
-
-
-@when(parsers.parse("j'ouvre le menu « {menu} »"))
-def open_menu(interface: Context, menu: str) -> None:
-	"""L'ouverture du menu, qui relit ce qu'il montre (aboutToShow)."""
-	named_menu(interface, menu).aboutToShow.emit()
 
 
 @when(parsers.parse("je choisis « {title} » dans le menu « {menu} »"))
@@ -1708,535 +1452,20 @@ def choose_in_menu(interface: Context, title: str, menu: str) -> None:
 	titled[0].trigger()
 
 
-@when(parsers.parse("j'appuie sur « {keys} »"))
-def press(interface: Context, qtbot: QtBot, keys: str) -> None:
-	"""Les touches vont au widget qui a le focus dans la fenêtre, activée ; à la fenêtre, si aucun ne l'a."""
-	with qtbot.waitActive(window(interface)):
-		window(interface).activateWindow()
-	target: QWidget = window(interface)
-	focus = window(interface).focusWidget()
-	if focus is not None:
-		target = focus
-	combination = QKeySequence(keys)[0]
-	qtbot.keyClick(target, combination.key(), combination.keyboardModifiers())
-
-
-@then(parsers.re(r"la barre de menus a les menus (?P<titles>«.+)"))
-def menu_bar(interface: Context, titles: str) -> None:
-	under_menu_list = []
-	for under_menu in menus(interface):
-		under_menu_list.append(under_menu.title().replace("&", ""))
-	assert under_menu_list == NAME.findall(titles)
-
-
-@then(parsers.parse("le menu « {menu} » a les entrées :"))
-def menu_entries(interface: Context, menu: str, datatable: list[list[str]]) -> None:
-	"""Un séparateur s'écrit « — ». Une infobulle s'affiche au survol de son entrée, même inactive."""
-	headers, *rows = datatable
-	header_list = []
-	for header in headers:
-		header_list.append(header.strip())
-	assert header_list == ["entrée", "état", "raccourci", "infobulle"]
-	fetched_list = []
-
-	def menu_action(action) -> None:
-		if action.isSeparator():
-			fetched_list.append(["—", "", "", ""])
-			return
-		tooltip = ""
-		if action.toolTip() != action.text().replace("&", ""):
-			tooltip = action.toolTip()
-		state = "inactive"
-		if action.isEnabled():
-			state = "active"
-		fetched_list.append([action.text(), state, action.shortcut().toString(), tooltip])
-
-	for action in actions(interface, menu):
-		menu_action(action)
-	expected_list = []
-	for row in rows:
-		value_list = []
-		for value in row:
-			value_list.append(value.strip())
-		expected_list.append(value_list)
-	assert fetched_list == expected_list
-	found = False
-	for row in expected_list:
-		if row[3] != "":
-			found = True
-			break
-	if found:
-		assert named_menu(interface, menu).toolTipsVisible()
-
-
-@then(parsers.re(r"le menu « (?P<menu>[^»]+) » (?:ne )?propose (?:plus que )?(?P<titles>«.+»)(?:, qui [^«»]+)?$"))
-def offered_menu(interface: Context, menu: str, titles: str) -> None:
-	active_list = []
-	for action in actions(interface, menu):
-		if (action.isEnabled()) and (not action.isSeparator()):
-			active_list.append(action)
-	action_list = []
-	for action in active_list:
-		action_list.append(action.text())
-	assert action_list == NAME.findall(titles)
-
-
-@then(parsers.parse("le menu « {menu} » ne propose plus rien"))
-def inactive_menu(interface: Context, menu: str) -> None:
-	active_list = []
-	for action in actions(interface, menu):
-		if (action.isEnabled()) and (not action.isSeparator()):
-			active_list.append(action)
-	assert active_list == []
-
-
-@then(parsers.parse("le navigateur web a ouvert « {address} »"))
-def opened_page(interface: Context, address: str) -> None:
-	"""« <version> » : le numéro de version de MachinCast (https://github.com/dascritch/machincast/issues/208)."""
-	assert interface.opened_pages == [address.replace("<version>", __version__)]
-
-
-WAITING = 20_000
-"""Millisecondes accordées à une vérification ou une indexation : un fichier de test se décode en moins d'1 s."""
-
-
-def wait_check(interface: Context, qtbot: QtBot) -> None:
-	checker = window(interface).checker
-	qtbot.waitUntil(lambda: not checker.ongoing(), timeout=WAITING)
-
-
-@when(parsers.re(r"j'ajoute les fichiers (?P<paths>aucun|«.+)"))
-def add_files(interface: Context, qtbot: QtBot, paths: str) -> None:
-	"""Depuis la liste des sonores ouverte, par le sélecteur de fichiers."""
-	path_list = []
-	for path in NAME.findall(paths):
-		path_list.append(Path(interface.path(path)))
-	interface.chosen_files = path_list
-	qtbot.mouseClick(list_(interface).ui.add_files, Qt.MouseButton.LeftButton)
-
-
-@when("la vérification des fichiers ajoutés se termine")
-def finished_check(interface: Context, qtbot: QtBot) -> None:
-	wait_check(interface, qtbot)
-
-
-@then(parsers.parse("la barre d'état a annoncé « {text} »"))
-def announces(interface: Context, text: str) -> None:
-	assert interface.path_in(text) in interface.announcements, interface.announcements
-
-
-@then("la barre d'état n'a rien annoncé")
-def announced_nothing(interface: Context) -> None:
-	assert interface.announcements == []
-
-
-@when(parsers.re(r"je supprime l'élément de la fiche, en répondant « (?P<response>❌ Supprimer|Annuler) »"))
-def delete(interface: Context, qtbot: QtBot, response: str) -> None:
-	interface.deletion = response == "❌ Supprimer"
-	qtbot.mouseClick(deletion_button(interface), Qt.MouseButton.LeftButton)
-
-
-# ─── Alors ─────────────────────────────────────────────────
-
-
-@then(parsers.parse("la question de suppression, intitulée « {title} », a dit :"))
-def question(interface: Context, title: str, datatable: list[list[str]]) -> None:
-	assert deletion_questions(interface) == [f"suppression : {title}\n{expected_lines(interface, datatable)}"]
-
-
-@then("la dernière question de suppression a dit :")
-def last_question(interface: Context, datatable: list[list[str]]) -> None:
-	_title, text = deletion_questions(interface)[-1].split("\n", 1)
-	assert text == expected_lines(interface, datatable)
-
-
-@then(
-	parsers.re(
-		r"(?P<category>le sonore|la banque|la séquence|l'événement|le feed) « (?P<name>[^»]+) »"
-		r" (?P<state>n'est plus|est toujours|est marquée? « supprimée? ») en base"
-	)
-)
-def in_database(empty_database: Connection, category: str, name: str, state: str) -> None:
-	"""« Toujours en base » : pas supprimé ; « marqué « supprimé » » : supprimé, en attendant sa péremption
-	(https://github.com/dascritch/machincast/issues/267). Un feed n'est jamais marqué : il quitte la base."""
-	table, column = TABLES[category]
-	marks = "NULL"
-	if category != "le feed":
-		marks = "deleted_at"
-	lines = empty_database.execute(
-		f"SELECT {marks} FROM {table} WHERE {column} = %s",
-		(name,),
-	).fetchall()
-	match state:
-		case "n'est plus":
-			assert lines == [], lines
-		case "est toujours":
-			line_list = []
-			for line in lines:
-				line_list.append(line[0])
-			assert line_list == [None], lines
-		case _:
-			assert (len(lines) == 1) and (lines[0][0] is not None), lines
-
-
-@given("les périphériques audio du poste :")
-def station_devices(monkeypatch: pytest.MonkeyPatch, datatable: list[list[str]]) -> None:
-	"""Ceux que donnerait le fournisseur de périphériques de GStreamer, pour la pré-écoute et les préférences."""
-	found_list = []
-	for device_identifier, name in datatable[1:]:
-		found_list.append(Device(device_identifier.strip(), name.strip()))
-
-	def list_items(_output: AudioOutput) -> list[Device]:
-		return found_list
-
-	monkeypatch.setattr(audio, "devices", list_items)
-
-
-CONFIGURATION_AUDIO = (
-	r"(?:sortie « (?P<output>[^»]+) », )?"
-	r"(?:sans périphérique d'antenne|avec le périphérique d'antenne « (?P<on_air>[^»]+) »)"
-	r"(?: et de pré-écoute « (?P<preview>[^»]+) »)?"
-)
-
-
-@given(parsers.re(r"la configuration audio (?P<settings>.+)"))
-def configuration_audio(interface: Context, settings: str) -> None:
-	"""« sortie « pipewire », sans périphérique d'antenne » ou « avec le périphérique d'antenne « x » », suivi ou non
-	de « et de pré-écoute « y » »."""
-	found = re.fullmatch(CONFIGURATION_AUDIO, settings)
-	assert found is not None, settings
-	if found["output"] is not None:
-		interface.audio["output"] = found["output"]
-	interface.audio["device"] = found["on_air"]
-	if found["preview"] is not None:
-		interface.audio["preview"] = found["preview"]
-
-
-@given(
-	parsers.re(
-		r"les préférences régleront (?:la sortie « (?P<output>[^»]+) », )?l'antenne « (?P<on_air>[^»]+) »"
-		r" et la pré-écoute « (?P<preview>[^»]+) »"
-	)
-)
-def rule_audio(interface: Context, output: str | None, on_air: str, preview: str) -> None:
-	"""Avec la sortie, le type de sortie du bloc des cartes son (https://github.com/dascritch/machincast/issues/339)."""
-	interface.audio_settings = (on_air, preview, output)  # type: ignore[assignment]
-
-
-def same_icon(one: QIcon, other: QIcon, size: int = 24) -> bool:
-	"""Deux icônes dessinent la même image, à cette taille ; une icône nulle n'est la même que nulle autre."""
-	if (one.isNull()) or (other.isNull()):
-		return False
-	format_ = QImage.Format.Format_ARGB32
-	return one.pixmap(size).toImage().convertToFormat(format_) == other.pixmap(size).toImage().convertToFormat(format_)
-
-
-# ─── Machin player imaginaire, sur la socket d'état (https://github.com/dascritch/machincast/issues/104) ─────
-
-
-@dataclass
-class Player:
-	socket: StateSocket | None = None
-	published: str = ""
-	"""Le dernier état publié, tel que la socket l'envoie."""
-	received_list: list[Request] = field(default_factory=list)
-
-
-@pytest.fixture
-def player() -> Iterator[Player]:
-	player = Player()
-	yield player
-	if player.socket is not None:
-		player.socket.shut_down()
-
-
-def publish(
-	player: Player, state: str, ongoing: dict[str, object] | None = None, **others: dict[str, object] | None
-) -> None:
-	"""Un état de Machin player ; autres donne d'autres champs, comme le prochain sonore ou l'événement suivant."""
-	assert player.socket is not None
-	# Les arguments nommés suivent les noms du code (next_, following_event) ; le message, ceux du protocole.
-	keys = {"next_": "next", "following_event": "next_event"}
-	k_dict = {}
-	for k, v in others.items():
-		k_dict[keys.get(k, k)] = v
-	message = {"state": state, "current": ongoing, "next": None, **k_dict}
-	player.published = json.dumps({"version": 3, **message})
-	player.socket.publish(message)
-
-
-@then("Machin player a reçu la demande de relire la grille")
-def requested_rereading(player: Player, qtbot: QtBot) -> None:
-	"""Après une session sautée (https://github.com/dascritch/machincast/issues/273), ou une fiche enregistrée,
-	supprimée ou restaurée (https://github.com/dascritch/machincast/issues/266) : une seule demande."""
-	socket = player.socket
-	assert socket is not None
-
-	def received() -> bool:
-		player.received_list += socket.requests()
-		return player.received_list != []
-
-	qtbot.waitUntil(received, timeout=5000)
-	# Une seconde demande, envoyée juste après, aurait le temps d'arriver.
-	qtbot.wait(100)
-	player.received_list += socket.requests()
-	assert player.received_list == [Request(command=REREAD_GRID)]
-
-
-@given("la socket d'état de Machin player ouverte pour l'interface")
-def opened_socket(interface: Context, player: Player) -> None:
-	player.socket = StateSocket(interface.directory / "lecture.sock")
-	player.socket.open_()
-
-
-@given(parsers.parse("Machin player diffuse un sonore au texte public « {text} »"))
-@when(parsers.parse("Machin player diffuse un sonore au texte public « {text} »"))
-def broadcasts_to_public_text(player: Player, text: str) -> None:
-	"""Le texte public du sonore en cours, ce que la page publique en affiche
-	(https://github.com/dascritch/machincast/issues/223)."""
-	ongoing = {
-		"sound_id": 12,
-		"type": "file",
-		"artist": None,
-		"title": text,
-		"event": "Continue",
-		"location": "/srv/musique/minuit.flac",
-		"start": "2026-10-21T08:59:00+02:00",
-		"duration": 214.0,
-		"estimated_end": "2026-10-21T09:02:34+02:00",
-		"position": 60.0,
-		"progress": 0.28,
-		"public_text": text,
-	}
-	publish(player, "playing", ongoing)
-
-
-# ─── Airplay (https://github.com/dascritch/machincast/issues/244) ───
-
-AIRPLAY_DAY = "2026-10-16"
-"""Le jour des passages des scénarios de l'airplay, quand seule leur heure est donnée."""
-
-
-def hour(text: str) -> datetime:
-	return datetime.fromisoformat(text).astimezone()
-
-
-def hour_or_none(text: str) -> datetime | None:
-	if text == "":
-		return None
-	return hour(text)
-
-
-def a(schedule: str) -> datetime:
-	return hour(f"{AIRPLAY_DAY} {schedule}")
-
-
-def reference(database: Connection, table: str, name: str) -> int | None:
-	"""Identifiant de l'entrée de ce nom interne, créée au besoin ; None pour un nom vide."""
-	if not name:
-		return None
-	values = {
-		"events": ", priority) VALUES (%s, 'background_programming')",
-		"banks": ", mode) VALUES (%s, 'sequential')",
-	}
-	line = database.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (name,)).fetchone()
-	if line is None:
-		remainder = values.get(table, ") VALUES (%s)")
-		line = database.execute(f"INSERT INTO {table} (internal_name{remainder} RETURNING id", (name,)).fetchone()
-	assert line is not None
-	return int(str(line[0]))
-
-
-def insert_play(
-	database: Connection,
-	start: datetime,
-	end: datetime | None,
-	artist: str,
-	title: str,
-	event: str,
-	sequence: str = "",
-	bank: str = "",
-	without_incident: str = "",
-) -> None:
-	location = f"/musique/{uuid.uuid4()}.flac"
-	line = database.execute(
-		"INSERT INTO sounds (type, location, artist, title) VALUES ('file', %s, %s, %s) RETURNING id",
-		(location, (artist) or (None), title),
-	).fetchone()
-	assert line is not None
-	references = (
-		line[0],
-		reference(database, "events", event),
-		reference(database, "sequences", sequence),
-		reference(database, "banks", bank),
-	)
-	play = uuid.uuid4()
-	columns = "play_id, line_type, logged_at, sound_id, event_id, sequence_id, bank_id, artist, title, location"
-	database.execute(
-		f"INSERT INTO airplay ({columns}) VALUES (%s, 'start', %s, %s, %s, %s, %s, %s, %s, %s)",
-		(play, start, *references, (artist) or (None), title, location),
-	)
-	if end is not None:
-		database.execute(
-			f"INSERT INTO airplay ({columns}, played_duration, without_incident)"
-			" VALUES (%s, 'end', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-			(play, end, *references, (artist) or (None), title, location, end - start, without_incident == "oui"),
-		)
-
-
-@given("les passages dans l'airplay :")
-def plays(empty_database: Connection, datatable: list[list[str]]) -> None:
-	headers, *lines = datatable
-	for values in lines:
-		cells = []
-		for v in values:
-			cells.append(v.strip())
-		line = dict(zip(headers, cells, strict=True))
-		insert_play(
-			empty_database,
-			hour(line["starts_at"]),
-			hour_or_none(line["ends_at"]),
-			line["artist"],
-			line["title"],
-			line["event"],
-			line["sequence"],
-			line["bank"],
-			line["without_incident"],
-		)
-
-
-@given("le masquage de tous les sonores et de tous les événements")
-def hide(empty_database: Connection) -> None:
-	empty_database.execute("UPDATE sounds SET hide_metadata = true")
-	empty_database.execute("UPDATE events SET hide_metadata = true")
-
-
-@when(parsers.parse("le passage de « {title} » commence dans l'airplay à {start}"))
-def new_play(empty_database: Connection, title: str, start: str) -> None:
-	insert_play(empty_database, a(start), None, "Radio", title, "Fil de jour")
-
-
-@given(
-	parsers.re(
-		r"(?P<category>le sonore|la banque|la séquence|l'événement) « (?P<name>[^»]+) » est supprimée? depuis"
-		r" l'interface"
-	)
-)
-@when(
-	parsers.re(
-		r"(?P<category>le sonore|la banque|la séquence|l'événement) « (?P<name>[^»]+) » est supprimée? depuis"
-		r" l'interface"
-	)
-)
-def deleted_since_interface(empty_database: Connection, category: str, name: str) -> None:
-	"""Comme « Supprimer… » de sa fiche, sans ses retraits des listes
-	(https://github.com/dascritch/machincast/issues/267)."""
-	table, column = TABLES[category]
-	modified = empty_database.execute(
-		f"UPDATE {table} SET deleted_at = clock_timestamp() WHERE {column} = %s RETURNING id",
-		(name,),
-	).fetchall()
-	assert len(modified) == 1, modified
-
-
-@then(parsers.parse("le fichier « {path} » a {count:d} sonores en base, dont {deleted_list:d} supprimé"))
-def file_sounds(interface: Context, empty_database: Connection, path: str, count: int, deleted_list: int) -> None:
-	lines = empty_database.execute(
-		"SELECT deleted_at IS NOT NULL FROM sounds WHERE location = %s", (interface.path(path),)
-	).fetchall()
-	total = 0
-	for (deleted,) in lines:
-		if deleted:
-			total += 1
-	assert (len(lines), total) == (count, deleted_list), lines
-
-
-@given(parsers.parse("les préférences seront réglées avec la durée de péremption de {days:d} jours"))
-def adjusted_retention(interface: Context, days: int) -> None:
-	interface.adjusted_retention = days
-
-
-@given(parsers.parse("les fiches chargent leurs tableaux par {rows:d} lignes"))
-def table_rows(monkeypatch: pytest.MonkeyPatch, rows: int) -> None:
-	"""Quelle que soit la configuration que la fenêtre lit à son ouverture (https://github.com/dascritch/machincast/issues/383)."""
-	monkeypatch.setattr(preferences, "table_rows", lambda: rows)
-
-
-@given(parsers.parse("je note les versions en base des éléments de la séquence « {name} »"))
-@when(parsers.parse("je note les versions en base des éléments de la séquence « {name} »"))
-def note_versions(interface: Context, empty_database: Connection, name: str) -> None:
-	"""xmin change à chaque UPDATE d'une ligne : une liste réécrite change de versions."""
-	interface.versions = _versions(empty_database, name)
-
-
-@then(parsers.parse("les éléments de la séquence « {name} » n'ont pas été réécrits en base"))
-def not_rewritten(interface: Context, empty_database: Connection, name: str) -> None:
-	assert _versions(empty_database, name) == interface.versions
-
-
-def _versions(connection: Connection, name: str) -> list[str]:
-	versions = []
-	for (xmin,) in connection.execute(
-		"SELECT e.xmin::text FROM sequence_items e JOIN sequences q ON q.id = e.sequence_id"
-		" WHERE q.internal_name = %s ORDER BY e.position",
-		(name,),
-	):
-		versions.append(str(xmin))
-	return versions
-
-
-@then(parsers.parse("la liste des éléments de la fiche a pour titre « {title} »"))
-def items_title(interface: Context, title: str) -> None:
-	opened = window(interface).ui.tabs.currentWidget()
-	assert opened.ui.item_group.title() == title  # type: ignore[attr-defined]
-
-
-@when("je descends au bas de la liste des éléments de la fiche")
-def items_to_bottom(interface: Context, qtbot: QtBot) -> None:
-	opened = window(interface).ui.tabs.currentWidget()
-	bar = opened.ui.items.verticalScrollBar()  # type: ignore[attr-defined]
-	bar.setValue(bar.maximum())
-	qtbot.wait(10)
-
-
-@given(parsers.parse("les préférences seront réglées avec {rows:d} lignes chargées à la fois"))
-def adjusted_table_rows(interface: Context, rows: int) -> None:
-	interface.adjusted_table_rows = rows
-
-
-@given(parsers.parse("la durée de péremption du fichier de configuration de l'interface est de {days:d} jours"))
-def file_retention(interface: Context, days: int) -> None:
-	"""https://github.com/dascritch/machincast/issues/268"""
-	path = configuration_file(interface)
-	document = tomlkit.parse(path.read_text(encoding="utf-8"))
-	database = document["database"]
-	assert isinstance(database, tomlkit.items.Table)
-	database["retention"] = days
-	path.write_text(tomlkit.dumps(document), encoding="utf-8")
-
-
-# ─── Machin indexer imité (https://github.com/dascritch/machincast/issues/401) ───
-
-
-def _launched_indexers(interface: Context) -> list[str]:
-	file = interface.directory / LAUNCHED_INDEXERS
-	if not file.exists():
-		return []
-	return file.read_text().splitlines()
-
-
-@then(parsers.re(r"Machin indexer a été lancé une fois, avec (?P<options>«.+)"))
-def launched_once(interface: Context, qtbot: QtBot, options: str) -> None:
-	expected = " ".join(NAME.findall(options))
-	qtbot.waitUntil(lambda: _launched_indexers(interface) != [], timeout=WAITING)
-	# Un deuxième lancement aurait eu le temps de s'annoncer.
-	time.sleep(0.5)
-	assert _launched_indexers(interface) == [expected]
-
-
-@then("Machin indexer n'a pas été lancé")
-def not_launched(interface: Context) -> None:
-	time.sleep(0.5)
-	assert _launched_indexers(interface) == []
-	assert interface.window is not None
-	assert interface.window.launched_indexings == {}
+@when(parsers.parse("j'ouvre la ligne « {name} »"))
+def open_line(interface: Context, qtbot: QtBot, name: str) -> None:
+	open_in(qtbot, list_(interface).table, name)
+
+
+@when(parsers.parse("j'ouvre l'onglet « {title} »"))
+def open_tab(interface: Context, title: str) -> None:
+	"""Une liste ouverte à la demande, pas encore ouverte, s'ouvre par le menu « Affichage », comme le ferait
+	l'utilisateur (https://github.com/dascritch/machincast/issues/180)."""
+	tabs = window(interface).ui.tabs
+	titles = []
+	for index in range(tabs.count()):
+		titles.append(tab_title(tabs, index))
+	if (title in ON_DEMAND) and (title not in titles):
+		choose_in_menu(interface, ON_DEMAND[title], "Affichage")
+		return
+	tabs.setCurrentIndex(tab(interface, title))

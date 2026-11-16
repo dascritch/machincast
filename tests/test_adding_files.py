@@ -19,16 +19,8 @@ from pytestqt.qtbot import QtBot
 from machincast.indexer.decoding import Check, UnavailableDecoder, check_file
 from machincast.interface import check
 from machincast.interface.lists import List
-from tests.interface_steps import (
-	WAITING,
-	Connection,
-	Context,
-	list_,
-	slide,
-	tab_title,
-	wait_check,
-	window,
-)
+from tests.interface_steps import WAITING, Connection, Context, list_, slide, tab_title, window
+from tests.menu_steps import wait_check
 
 scenarios("adding_files.feature")
 

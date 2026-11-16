@@ -24,6 +24,7 @@ from machincast.interface import check, preferences
 from machincast.interface.expandable import is_collapsed
 from machincast.interface.sound_card import SoundCard
 from tests.interface_steps import NAME, Context, window
+from tests.waiting import settle
 
 scenarios("sound_card_panels.feature")
 
@@ -319,7 +320,7 @@ def offered_states(interface: Context, datatable: list[list[str]]) -> None:
 def full_width_timeline(interface: Context, qtbot: QtBot) -> None:
 	opened = card(interface)
 	window(interface).show()
-	qtbot.wait(50)
+	settle(qtbot)
 	timeline = opened.timeline
 	assert timeline.isVisibleTo(opened)
 	assert timeline.width() >= opened.width() - 40, (timeline.width(), opened.width())

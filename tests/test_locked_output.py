@@ -25,6 +25,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast import audio
 from machincast.configuration import Audio
 from machincast.interface import monitor
+from tests.waiting import quiet
 
 WAITING = 5.0
 """Secondes que WirePlumber a pour relier un flux."""
@@ -299,7 +300,7 @@ def move(context: SimpleNamespace, name: str) -> None:
 	stream = context.bench.node(audio.ON_AIR.program, "application.name")
 	assert stream is not None
 	context.bench.move(stream, name)
-	time.sleep(CALM)
+	quiet(None, int(CALM * 1000), reason="un déplacement de l'antenne")
 
 
 @then(parsers.re(r"(?:l'antenne|la sortie sans verrou) est reliée à « (?P<name>[^»]+) »"))
@@ -310,7 +311,7 @@ def linked(context: SimpleNamespace, name: str) -> None:
 
 @then("l'antenne n'est reliée à rien")
 def linked_to_nothing(context: SimpleNamespace) -> None:
-	time.sleep(CALM)
+	quiet(None, int(CALM * 1000), reason="une liaison de l'antenne")
 	assert context.bench.linked_to(context.program) == set()
 
 
