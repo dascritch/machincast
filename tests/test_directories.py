@@ -224,7 +224,7 @@ def starts_indexing(empty_database: Connection) -> Background:
 		try:
 			with open_connection(*sample_database_parameters(), Role.INDEXING) as connection:
 				background.report = index_full(connection, full_audit=False)
-		except BaseException as error:  # noqa: BLE001 : rendue au scénario
+		except BaseException as error:  # rendue au scénario
 			background.error = error
 
 	background = Background(threading.Thread(target=run, daemon=True))

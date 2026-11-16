@@ -35,8 +35,10 @@ completer() {
 	[ "${output}" = "$(printf '%s\n' dev dev-screenshots dev-test grant-read indexer interface logs maintenance-db player purge)" ]
 }
 
-@test "Machin dev-test <TAB> propose --scenarios" {
+@test "Machin dev-test <TAB> propose --coverage et --scenarios, puis --scenarios après --coverage" {
 	run completer Machin dev-test ""
+	[ "${output}" = "$(printf '%s\n' --coverage --scenarios)" ]
+	run completer Machin dev-test --coverage ""
 	[ "${output}" = "--scenarios" ]
 }
 
@@ -47,6 +49,13 @@ completer() {
 	[ "${output}" = "$(printf '%s\n' feed_card streams wrapper)" ]
 	run completer Machin dev-test --scenarios streams st
 	[ "${output}" = "streams" ]
+}
+
+@test "Machin dev-test --coverage --scenarios <TAB> propose les fonctionnalités" {
+	mkdir -p "${PROJET}/tests/features"
+	touch "${PROJET}/tests/features/streams.feature"
+	run completer Machin dev-test --coverage --scenarios ""
+	[ "${output}" = "$(printf '%s\n' streams wrapper)" ]
 }
 
 @test "Machin dev <TAB> ne propose rien" {

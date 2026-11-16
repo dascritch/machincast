@@ -164,6 +164,43 @@ ecrire_modules() {
 	[[ "${stderr}" == *"--scenarios demande au moins une fonctionnalité"* ]]
 }
 
+# ─── Machin dev-test --coverage (https://github.com/dascritch/machincast/issues/438) ───
+
+@test "Machin dev-test --coverage lance pytest sous coverage, puis réunit et résume les mesures" {
+	ecrire_outil "${VENV}" coverage
+	run "${MACHIN}" dev-test --coverage
+	[ "${status}" -eq 0 ]
+	run cut -d ' ' -f 1 "${APPELS}"
+	[ "${output}" = "$(printf '%s\n' ruff ruff mypy shellcheck coverage coverage coverage coverage bats)" ]
+	grep -qF "coverage [erase] dans" "${APPELS}"
+	grep -qF "coverage [run] [-m] [pytest] dans" "${APPELS}"
+	grep -qF "coverage [combine] [--quiet] dans" "${APPELS}"
+	grep -qF "coverage [report] dans" "${APPELS}"
+	[[ "${output}" != *"pytest ["* ]]
+}
+
+@test "Machin dev-test --coverage affiche la couverture dans le bilan" {
+	ecrire_outil "${VENV}" coverage
+	run "${MACHIN}" dev-test --coverage
+	[[ "${output}" == *"pytest"*"réussi"* ]]
+	[[ "${output}" == *"coverage combine"*"réussi"* ]]
+	[[ "${output}" == *"coverage report"*"réussi"* ]]
+}
+
+@test "Machin dev-test --coverage --scenarios ne mesure que les scénarios demandés" {
+	ecrire_modules
+	ecrire_outil "${VENV}" coverage
+	run "${MACHIN}" dev-test --coverage --scenarios streams
+	[ "${status}" -eq 0 ]
+	grep -qF "coverage [run] [-m] [pytest] [tests/test_base.py] [tests/test_language.py] [tests/test_documentation.py] [tests/test_guide.py] [tests/test_streams.py] dans" "${APPELS}"
+}
+
+@test "sans coverage, Machin dev-test --coverage le signale avec ./install.sh --dev" {
+	run "${MACHIN}" dev-test --coverage
+	[ "${status}" -eq 1 ]
+	[[ "${output}" == *"coverage introuvable"*"./install.sh --dev"* ]]
+}
+
 @test "Machin dev-test refuse une autre option" {
 	run --separate-stderr "${MACHIN}" dev-test --vite
 	[ "${status}" -eq 2 ]

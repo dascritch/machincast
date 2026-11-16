@@ -165,7 +165,7 @@ _disabled_preview = False
 def disable_preview(disabled: bool) -> None:
 	"""La pré-écoute de la session, désactivée sur l'entrée « Sortie factice » (audio.preview) : la fenêtre
 	principale la règle à son ouverture, et après les préférences ou les suggestions."""
-	global _disabled_preview  # noqa: PLW0603 : la pré-écoute de la session, une seule par interface
+	global _disabled_preview
 	_disabled_preview = disabled
 
 

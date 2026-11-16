@@ -557,7 +557,7 @@ def date_or_none(text: str) -> datetime | None:
 
 
 def identifier(database: Connection, table: str, column: str, value: str) -> int:
-	line = database.execute(f"SELECT id FROM {table} WHERE {column} = %s", (value,)).fetchone()  # noqa: S608
+	line = database.execute(f"SELECT id FROM {table} WHERE {column} = %s", (value,)).fetchone()
 	assert line is not None, f"{value} absent de {table}"
 	return int(str(line[0]))
 
@@ -710,7 +710,7 @@ def sequence(empty_database: Connection, name: str, public_name: str | None, ite
 	for position, (category, item) in enumerate(ITEM.findall(items), start=1):
 		table, column, reference = REFERENCES[category]
 		empty_database.execute(
-			f"INSERT INTO sequence_items (sequence_id, position, {reference}) VALUES (%s, %s, %s)",  # noqa: S608
+			f"INSERT INTO sequence_items (sequence_id, position, {reference}) VALUES (%s, %s, %s)",
 			(created[0], position, identifier(empty_database, table, column, item)),
 		)
 
@@ -741,7 +741,7 @@ def playing_event(empty_database: Connection, event: str, items: str) -> None:
 	for category, item in ITEM.findall(items):
 		table, column, reference = REFERENCES[category]
 		empty_database.execute(
-			f"INSERT INTO event_items (event_id, position, {reference})"  # noqa: S608
+			f"INSERT INTO event_items (event_id, position, {reference})"
 			" SELECT %s, COALESCE(MAX(position), 0) + 1, %s FROM event_items WHERE event_id = %s",
 			(number, identifier(empty_database, table, column, item), number),
 		)
@@ -877,7 +877,7 @@ def open_since_history(interface: Context, empty_database: Connection, qtbot: Qt
 	category = HISTORY_CATEGORIES[de]
 	table, column = TABLES[category]
 	line = empty_database.execute(
-		f"SELECT id FROM {table} WHERE {column} = %s ORDER BY deleted_at IS NULL, id",  # noqa: S608
+		f"SELECT id FROM {table} WHERE {column} = %s ORDER BY deleted_at IS NULL, id",
 		(name,),
 	).fetchone()
 	assert line is not None, name
@@ -1116,7 +1116,7 @@ def mark(empty_database: Connection, name: str, state: str) -> None:
 @when(parsers.re(r"la (?P<category>banque|séquence) « (?P<name>[^»]+) » est effacée de la base"))
 def erase_bank(empty_database: Connection, category: str, name: str) -> None:
 	table = {"banque": "banks", "séquence": "sequences"}[category]
-	empty_database.execute(f"DELETE FROM {table} WHERE internal_name = %s", (name,))  # noqa: S608
+	empty_database.execute(f"DELETE FROM {table} WHERE internal_name = %s", (name,))
 
 
 @when(parsers.re(r"j'ajoute les feeds (?P<names>aucun|« [^»]+ »(?:, « [^»]+ »)*)"))
@@ -1852,7 +1852,7 @@ def in_database(empty_database: Connection, category: str, name: str, state: str
 	if category != "le feed":
 		marks = "deleted_at"
 	lines = empty_database.execute(
-		f"SELECT {marks} FROM {table} WHERE {column} = %s",  # noqa: S608
+		f"SELECT {marks} FROM {table} WHERE {column} = %s",
 		(name,),
 	).fetchall()
 	match state:
@@ -2027,10 +2027,10 @@ def reference(database: Connection, table: str, name: str) -> int | None:
 		"events": ", priority) VALUES (%s, 'background_programming')",
 		"banks": ", mode) VALUES (%s, 'sequential')",
 	}
-	line = database.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (name,)).fetchone()  # noqa: S608
+	line = database.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (name,)).fetchone()
 	if line is None:
 		remainder = values.get(table, ") VALUES (%s)")
-		line = database.execute(f"INSERT INTO {table} (internal_name{remainder} RETURNING id", (name,)).fetchone()  # noqa: S608
+		line = database.execute(f"INSERT INTO {table} (internal_name{remainder} RETURNING id", (name,)).fetchone()
 	assert line is not None
 	return int(str(line[0]))
 
@@ -2121,7 +2121,7 @@ def deleted_since_interface(empty_database: Connection, category: str, name: str
 	(https://github.com/dascritch/machincast/issues/267)."""
 	table, column = TABLES[category]
 	modified = empty_database.execute(
-		f"UPDATE {table} SET deleted_at = clock_timestamp() WHERE {column} = %s RETURNING id",  # noqa: S608
+		f"UPDATE {table} SET deleted_at = clock_timestamp() WHERE {column} = %s RETURNING id",
 		(name,),
 	).fetchall()
 	assert len(modified) == 1, modified

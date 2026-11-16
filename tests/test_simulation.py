@@ -205,7 +205,7 @@ def feed_with_items(bench: Bench, empty_database: Connection, tmp_path: Path, na
 		table = {"banque": "banks", "séquence": "sequences"}.get(category)
 		if table is not None:
 			line = empty_database.execute(
-				f"SELECT id FROM {table} WHERE internal_name = %s",  # noqa: S608
+				f"SELECT id FROM {table} WHERE internal_name = %s",
 				(item_name,),
 			).fetchone()
 			assert line is not None
@@ -214,7 +214,7 @@ def feed_with_items(bench: Bench, empty_database: Connection, tmp_path: Path, na
 			reference = create_sound(bench, empty_database, tmp_path, item_name)
 		column = {"banque": "bank_id", "séquence": "sequence_id"}.get(category, "sound_id")
 		empty_database.execute(
-			f"INSERT INTO event_items (event_id, position, {column}) VALUES (%s, %s, %s)",  # noqa: S608
+			f"INSERT INTO event_items (event_id, position, {column}) VALUES (%s, %s, %s)",
 			(created[0], position, reference),
 		)
 

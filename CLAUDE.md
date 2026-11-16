@@ -25,7 +25,7 @@ sudo apt install bats shellcheck desktop-file-utils pipewire wireplumber
 # Installation d'un poste, relançable : ./install.sh (--simulation pour voir les commandes sans les exécuter,
 # --dev pour ajouter bats, shellcheck, desktop-file-utils, pipewire, wireplumber et les dépendances de test)
 # Installation de dev : venv isolé, jamais --system-site-packages (https://github.com/dascritch/machincast/issues/51)
-python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]"   # procédure complète : INSTALL.md
+python3 -m venv .venv && . .venv/bin/activate && pip install -c constraints.txt -e ".[dev]"   # procédure complète : INSTALL.md
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
 # Base de test locale (PostgreSQL ≥ 16, authentification peer) : ./install.sh la prépare. Le compte n'a besoin
@@ -40,6 +40,7 @@ sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincas
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
 # Pour un ticket : bin/Machin dev-test --scenarios <fonctionnalités…> [wrapper] ; la suite complète, tous les 10
 # tickets et à chaque release (doc/fr/regles/tests.md#quels-tests-lancer)
+# Avec la couverture, sous-processus compris : bin/Machin dev-test --coverage [--scenarios <fonctionnalités…>]
 # Sous-shell dans le dépôt, venv activé : bin/Machin dev
 # Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-screenshots (doc/fr/developpement/poste.md)
 

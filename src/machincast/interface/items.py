@@ -196,7 +196,7 @@ class ItemList(QObject):
 		else:
 			limit = rows + 1
 		rows_read = self.card.connection.execute(
-			f"SELECT e.id, e.position, {columns} FROM {self.table} e"  # noqa: S608
+			f"SELECT e.id, e.position, {columns} FROM {self.table} e"
 			f" WHERE e.{self.column_parent} = %s AND e.position > %s ORDER BY e.position LIMIT %s",
 			(self._parent, after, limit),
 		).fetchall()
@@ -204,7 +204,7 @@ class ItemList(QObject):
 			rows_read = rows_read[:rows]
 			self._after = int(str(rows_read[-1][1]))
 			tail = self.card.connection.execute(
-				f"SELECT count(*), COALESCE(bool_or(s.type = 'stream'), false) FROM {self.table} e"  # noqa: S608
+				f"SELECT count(*), COALESCE(bool_or(s.type = 'stream'), false) FROM {self.table} e"
 				f" LEFT JOIN sounds s ON s.id = e.sound_id WHERE e.{self.column_parent} = %s AND e.position > %s",
 				(self._parent, self._after),
 			).fetchone()
@@ -342,7 +342,7 @@ class ItemList(QObject):
 			for _line, item_category, item_id in items:
 				if item_category == category:
 					requests.append(item_id)
-			fetched_list = connection.execute(f"SELECT id FROM {TABLES[category]} WHERE id = ANY(%s)", (requests,))  # noqa: S608
+			fetched_list = connection.execute(f"SELECT id FROM {TABLES[category]} WHERE id = ANY(%s)", (requests,))
 			for (identifier,) in fetched_list:
 				existing_list.add((category, int(str(identifier))))
 		kept_list = []
@@ -358,12 +358,12 @@ class ItemList(QObject):
 				kept_lines.append(line)
 				kept_positions.append(position)
 		connection.execute(
-			f"DELETE FROM {self.table} WHERE {self.column_parent} = %s AND NOT (id = ANY(%s))",  # noqa: S608
+			f"DELETE FROM {self.table} WHERE {self.column_parent} = %s AND NOT (id = ANY(%s))",
 			(parent, kept_lines),
 		)
 		# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
 		connection.execute(
-			f"UPDATE {self.table} e SET position = v.position FROM unnest(%s::bigint[], %s::int[])"  # noqa: S608
+			f"UPDATE {self.table} e SET position = v.position FROM unnest(%s::bigint[], %s::int[])"
 			f" AS v(id, position) WHERE e.id = v.id AND e.{self.column_parent} = %s",
 			(kept_lines, kept_positions, parent),
 		)
@@ -383,7 +383,7 @@ class ItemList(QObject):
 		if new_positions == []:
 			return
 		self.card.connection.execute(
-			f"INSERT INTO {self.table} ({self.column_parent}, position, {column})"  # noqa: S608
+			f"INSERT INTO {self.table} ({self.column_parent}, position, {column})"
 			" SELECT %s, v.position, v.item FROM unnest(%s::int[], %s::bigint[]) AS v(position, item)",
 			(parent, new_positions, new_items),
 		)

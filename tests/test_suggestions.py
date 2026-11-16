@@ -138,7 +138,7 @@ def times_count(interface: Context, count: int) -> None:
 @then(parsers.re(r"il n'y a aucun(?:e)? (?P<category>événement|banque) en base"))
 def nothing_in_database(empty_database: Connection, category: str) -> None:
 	table = {"événement": "events", "banque": "banks"}[category]
-	line = empty_database.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608
+	line = empty_database.execute(f"SELECT count(*) FROM {table}").fetchone()
 	assert line == (0,), line
 
 

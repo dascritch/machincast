@@ -279,7 +279,7 @@ def versions() -> list[str]:
 	if gst is not None:
 		try:
 			lines.append(str(gst.version_string()))
-		except Exception as error:  # noqa: BLE001 : un rapport ne doit pas planter
+		except Exception as error:  # un rapport ne doit pas planter
 			lines.append(f"GStreamer ? ({error})")
 	pyside = sys.modules.get("PySide6")
 	if pyside is not None:
@@ -295,7 +295,7 @@ def _libpq(psycopg: object) -> str:
 	"""« 16.4 » pour 160004."""
 	try:
 		number = int(psycopg.pq.version())  # type: ignore[attr-defined]
-	except Exception:  # noqa: BLE001 : un rapport ne doit pas planter
+	except Exception:  # un rapport ne doit pas planter
 		return "?"
 	return f"{number // 10000}.{number % 10000}"
 
@@ -378,7 +378,7 @@ def _context(watch: Watch, live: bool) -> list[str]:
 		for key, provider in list(watch.providers.items()):
 			try:
 				value = provider()
-			except Exception as error:  # noqa: BLE001 : un rapport ne doit pas planter
+			except Exception as error:  # un rapport ne doit pas planter
 				value = _("not available: {error}").format(error=error)
 			indented_value = []
 			for line in value.splitlines():

@@ -54,7 +54,7 @@ class DurationSlider(QWidget):
 		"""Les décimales écrites, comme le champ de nombre qu'il remplace."""
 		return self._decimals
 
-	def singleStep(self) -> float:  # noqa: N802 : le nom de QDoubleSpinBox
+	def singleStep(self) -> float:
 		"""Le pas, en secondes."""
 		return self._step
 

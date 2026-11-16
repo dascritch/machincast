@@ -248,7 +248,7 @@ def _launch(execution: Execution, caplog: pytest.LogCaptureFixture, command: str
 	with caplog.at_level(logging.INFO, logger="machincast"):
 		try:
 			execution.code = BINARIES[binary](arguments)
-		except Exception as error:  # noqa: BLE001 : le plantage du scénario
+		except Exception as error:  # le plantage du scénario
 			execution.crashed = error
 	information = []
 	for record in caplog.records:

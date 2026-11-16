@@ -184,7 +184,7 @@ def rescued_show(context: Context, fallback: str) -> None:
 @then(parsers.parse("l'émission n'a plus de {fallback}"))
 def show_without_fallback(context: Context, fallback: str) -> None:
 	line = context.connection.execute(
-		f"SELECT {FALLBACK_COLUMNS[fallback]} FROM events WHERE id = %s",  # noqa: S608
+		f"SELECT {FALLBACK_COLUMNS[fallback]} FROM events WHERE id = %s",
 		(context.references["emission"],),
 	).fetchone()
 	assert line == (None,)
@@ -571,7 +571,7 @@ def reference_sound_without_silences(context: Context) -> None:
 
 def _requested_audit(context: Context, column: str, value: object) -> object:
 	line = context.connection.execute(
-		f"SELECT audit_requested FROM sounds WHERE {column} = %s",  # noqa: S608
+		f"SELECT audit_requested FROM sounds WHERE {column} = %s",
 		(value,),
 	).fetchone()
 	assert line is not None
@@ -587,7 +587,7 @@ def reference_sound_without_audit(context: Context) -> None:
 @then(parsers.parse("la table « {table} » a {count:d} lignes"))
 def table_lines(context: Context, table: str, count: int) -> None:
 	assert table in TABLES, table
-	line = context.connection.execute(f"SELECT count(*) FROM {table}").fetchone()  # noqa: S608 : table connue
+	line = context.connection.execute(f"SELECT count(*) FROM {table}").fetchone()
 	assert line == (count,), line
 
 

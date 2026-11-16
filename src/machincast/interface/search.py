@@ -112,11 +112,11 @@ def find(connection: Connection, text: str, limit: int) -> tuple[list[Result], i
 	pattern = _pattern(text.strip())
 	with connection.transaction():
 		lines = connection.execute(
-			f"SELECT category, id, name, public_name, state FROM ({FOUND_LIST}) t ORDER BY rank, lower(name), id"  # noqa: S608
+			f"SELECT category, id, name, public_name, state FROM ({FOUND_LIST}) t ORDER BY rank, lower(name), id"
 			" LIMIT %s",
 			(pattern, limit),
 		).fetchall()
-		line = connection.execute(f"SELECT count(*) FROM ({FOUND_LIST}) t", (pattern,)).fetchone()  # noqa: S608
+		line = connection.execute(f"SELECT count(*) FROM ({FOUND_LIST}) t", (pattern,)).fetchone()
 	assert line is not None
 	results = []
 	for category, identifier, name, public_name, state in lines:

@@ -352,7 +352,7 @@ def ongoing_priority(client: Client, priority: str) -> None:
 def identifier_of(database: Connection, table: str, name: str | None) -> int | None:
 	if name is None:
 		return None
-	line = database.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (name,)).fetchone()  # noqa: S608
+	line = database.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (name,)).fetchone()
 	assert line is not None, name
 	return int(str(line[0]))
 

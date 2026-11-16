@@ -194,12 +194,12 @@ def play(
 	number = uuid.uuid4()
 	columns = "play_id, line_type, logged_at, sound_id, event_id, sequence_id, bank_id"
 	database.execute(
-		f"INSERT INTO airplay ({columns}) VALUES (%s, 'start', %s, %s, %s, %s, %s)",  # noqa: S608
+		f"INSERT INTO airplay ({columns}) VALUES (%s, 'start', %s, %s, %s, %s, %s)",
 		(number, start, sound, event, sequence, bank),
 	)
 	if end is not None:
 		database.execute(
-			f"INSERT INTO airplay ({columns}, played_duration, without_incident)"  # noqa: S608
+			f"INSERT INTO airplay ({columns}, played_duration, without_incident)"
 			" VALUES (%s, 'end', %s, %s, %s, %s, %s, %s, %s)",
 			(number, end, sound, event, sequence, bank, end - start, without_incident),
 		)
@@ -860,7 +860,7 @@ def _quotations(database: Connection, item: str, name: str, sound: str) -> tuple
 	parent = identifier(database, table, "internal_name", name)
 	cites = identifier(database, "sounds", "title", sound)
 	line = database.execute(
-		f"SELECT count(*) FILTER (WHERE sound_id = %s), count(*) FROM {list_} WHERE {column} = %s",  # noqa: S608
+		f"SELECT count(*) FILTER (WHERE sound_id = %s), count(*) FROM {list_} WHERE {column} = %s",
 		(cites, parent),
 	).fetchone()
 	assert line is not None

@@ -167,7 +167,7 @@ def _name(connection: Connection, category: str, identifier: int) -> str | None:
 	l'adresse de son stream."""
 	if category != "sound":
 		line = connection.execute(
-			f"SELECT {CATEGORIES[category].name} FROM {CATEGORIES[category].table} WHERE id = %s",  # noqa: S608
+			f"SELECT {CATEGORIES[category].name} FROM {CATEGORIES[category].table} WHERE id = %s",
 			(identifier,),
 		).fetchone()
 		if line is None:
@@ -188,7 +188,7 @@ def _removals(connection: Connection, category: str, identifier: int) -> list[st
 	for container in CATEGORIES[category].containers:
 		table, items, parent, give_name, empty = CONTAINERS[container]
 		found_list = connection.execute(
-			f"SELECT c.internal_name, NOT EXISTS (SELECT 1 FROM {items} x WHERE x.{parent} = c.id"  # noqa: S608
+			f"SELECT c.internal_name, NOT EXISTS (SELECT 1 FROM {items} x WHERE x.{parent} = c.id"
 			f" AND x.{column} IS DISTINCT FROM %s) FROM {table} c WHERE EXISTS (SELECT 1 FROM {items} x"
 			f" WHERE x.{parent} = c.id AND x.{column} = %s) ORDER BY c.internal_name, c.id",
 			(identifier, identifier),
@@ -330,15 +330,15 @@ def delete(connection: Connection, category: str, identifier: int, instant: date
 	instant ; un événement ne secourt plus aucun stream. Un feed quitte la base."""
 	describes = CATEGORIES[category]
 	if not describes.deferred:
-		connection.execute(f"DELETE FROM {describes.table} WHERE id = %s", (identifier,))  # noqa: S608
+		connection.execute(f"DELETE FROM {describes.table} WHERE id = %s", (identifier,))
 		return
 	for container in describes.containers:
 		_table, items, _parent, _give_name, _empty = CONTAINERS[container]
-		connection.execute(f"DELETE FROM {items} WHERE {describes.column} = %s", (identifier,))  # noqa: S608
+		connection.execute(f"DELETE FROM {items} WHERE {describes.column} = %s", (identifier,))
 	if category == "event":
 		connection.execute("UPDATE sounds SET fallback_event_id = NULL WHERE fallback_event_id = %s", (identifier,))
 	connection.execute(
-		f"UPDATE {describes.table} SET deleted_at = %s WHERE id = %s",  # noqa: S608
+		f"UPDATE {describes.table} SET deleted_at = %s WHERE id = %s",
 		(instant, identifier),
 	)
 
@@ -350,7 +350,7 @@ def deleted_at(connection: Connection, category: str, identifier: int) -> dateti
 	if not describes.deferred:
 		return None
 	line = connection.execute(
-		f"SELECT deleted_at FROM {describes.table} WHERE id = %s",  # noqa: S608
+		f"SELECT deleted_at FROM {describes.table} WHERE id = %s",
 		(identifier,),
 	).fetchone()
 	if (line is None) or (not isinstance(line[0], datetime)):
@@ -374,7 +374,7 @@ def restore(connection: Connection, category: str, identifier: int) -> None:
 	if category != "sound":
 		column = describes.name
 	taken = connection.execute(
-		f"SELECT o.{column} FROM {describes.table} s JOIN {describes.table} o ON o.{column} = s.{column}"  # noqa: S608
+		f"SELECT o.{column} FROM {describes.table} s JOIN {describes.table} o ON o.{column} = s.{column}"
 		" AND o.id <> s.id AND o.deleted_at IS NULL WHERE s.id = %s",
 		(identifier,),
 	).fetchone()
@@ -383,4 +383,4 @@ def restore(connection: Connection, category: str, identifier: int) -> None:
 		if category == "sound":
 			who = _("another sound already has this file, {taken}").format(taken=taken[0])
 		raise Prevented(_("Restoring impossible: {who}.").format(who=who))
-	connection.execute(f"UPDATE {describes.table} SET deleted_at = NULL WHERE id = %s", (identifier,))  # noqa: S608
+	connection.execute(f"UPDATE {describes.table} SET deleted_at = NULL WHERE id = %s", (identifier,))

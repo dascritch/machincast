@@ -14,7 +14,7 @@ Tout vient du tag `v<version>` et des fichiers des nouveautés, un par langue ([
 
 Sur une branche `release/<version>`, en un seul commit, « Version <version> », lié aux tickets de la release :
 
-1. **Le numéro**, dans `pyproject.toml`. Avant 1.0 : `0.<mineure>.<correctif>`.
+1. **Le numéro**, dans `pyproject.toml`. Avant 1.0 : `0.<mineure>.<correctif>`. Et **`constraints.txt`**, les versions exactes des dépendances ([#438](https://github.com/dascritch/machincast/issues/438)) : dans un venv neuf, `pip install --editable ".[dev]"` sans contrainte, la suite complète, puis `pip freeze --exclude-editable | sort -f` en gardant l'en-tête du fichier. Le scénario « Chaque dépendance déclarée a sa version exacte dans constraints.txt » refuse une dépendance de `pyproject.toml` qui n'y serait pas.
 2. **Les tickets résolus** depuis la release précédente (ou depuis le début du dépôt, pour la première) :
 
    ```bash

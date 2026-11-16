@@ -2,7 +2,7 @@
 
 *[English version](CONTRIBUTING.md)*
 
-Avant toute modification, lire [CLAUDE.md](CLAUDE.md) et les [règles de développement](doc/fr/regles/developpement.md) : ticket, scénarios BDD d'abord, un commit par fonctionnalité, indentation par tabulations, [definition of done](doc/fr/regles/developpement.md#definition-of-done). Le poste de développement s'installe avec `./install.sh --dev` ([INSTALL.md](INSTALL.fr.md)).
+Avant toute modification, lire [CLAUDE.md](CLAUDE.md) et les [règles de développement](doc/fr/regles/developpement.md) : ticket, scénarios BDD d'abord, un commit par fonctionnalité, indentation par tabulations, [definition of done](doc/fr/regles/developpement.md#definition-of-done). Le poste de développement s'installe avec `./install.sh --dev` ([INSTALL.md](INSTALL.fr.md)), qui installe les versions exactes de `constraints.txt` : une nouvelle dépendance se déclare dans `pyproject.toml` **et** s'ajoute, avec sa version, à `constraints.txt` ([#438](https://github.com/dascritch/machincast/issues/438)). `bin/Machin dev-test --coverage` mesure la couverture des tests, sous-processus compris ([poste de développement](doc/fr/developpement/poste.md)).
 
 ## Écrans de l'interface
 

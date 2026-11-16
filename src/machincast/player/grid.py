@@ -593,7 +593,7 @@ def read_grid(connection: psycopg.Connection[TupleRow], deleted_list: bool = Fal
 	if deleted_list:
 		condition = "TRUE"
 	lines = connection.execute(
-		f"SELECT {COLUMNS} FROM events WHERE priority <> 'fallback' AND {condition} ORDER BY id"  # noqa: S608
+		f"SELECT {COLUMNS} FROM events WHERE priority <> 'fallback' AND {condition} ORDER BY id"
 	).fetchall()
 	return _events(lines)
 
