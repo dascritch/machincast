@@ -50,7 +50,7 @@ def no_announced(interface: Context) -> None:
 	assert not card.skipped_session.isVisibleTo(card), card.session_text.text()
 
 
-@then("l'annonce est sous l'erreur de la fiche, sur un liseret orange de 4 pixels")
+@then("l'annonce est sous l'erreur de la fiche, sur un liseré orange de 4 pixels")
 def under_error(interface: Context) -> None:
 	card = event_card(interface)
 	arrangement = card.layout()

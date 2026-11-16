@@ -10,11 +10,11 @@ Une fiche concrète décrit son genre et son titre, lit l'élément en base (_li
 (Refus) laisse la fiche modifiée, avec son message.
 
 Avertissement (https://github.com/dascritch/machincast/issues/328) : ce qui ne refuse rien, mais que la diffusion ne
-jouera pas comme prévu, une liste vide par exemple, s'affiche en haut de la fiche, sous l'erreur, sur un liseret orange
+jouera pas comme prévu, une liste vide par exemple, s'affiche en haut de la fiche, sous l'erreur, sur un liseré orange
 (avertir, WARNING_OUTLINE).
 
 Erreurs (https://github.com/dascritch/machincast/issues/270) : un refus, un enregistrement, une suppression ou une
-restauration impossible s'affiche en haut de la fiche, sur un liseret rouge de 4 pixels (erreur, LISERET), et le
+restauration impossible s'affiche en haut de la fiche, sur un liseré rouge de 4 pixels (erreur, LISERET), et le
 libellé de chaque champ en cause, que nomme le refus, est précédé de ⚠️ (SIGNALE) ; jusqu'au prochain enregistrement,
 à « Annuler », ou à la relecture de la fiche. Le message du bas (message) ne dit plus que ce qui informe : fichiers
 ignorés d'un dépôt, élément supprimé, copie dont l'original a disparu.
@@ -92,7 +92,7 @@ RESTORE = _("Restore")
 REPORTED = "⚠️ "
 """Ce qui précède le libellé d'un champ en cause dans l'erreur de la fiche (https://github.com/dascritch/machincast/issues/270)."""
 RED = "#d32f2f"
-"""Rouge du liseret de l'erreur : lisible sur un fond clair comme sur un fond sombre."""
+"""Rouge du liseré de l'erreur : lisible sur un fond clair comme sur un fond sombre."""
 OUTLINE = f"QLabel#erreur_de_la_fiche {{ border: 4px solid {RED}; padding: 6px; }}"
 ORANGE = "#ef6c00"
 """Orange d'un avertissement, qui ne refuse rien : lisible sur un fond clair comme sur un fond sombre."""
@@ -196,7 +196,7 @@ class Card(QWidget):
 	message: QLabel
 	"""Ce que la fiche a ignoré, ou ce qui informe ; une erreur va en haut (erreur)."""
 	error: QLabel
-	"""L'erreur, en haut de la fiche, sur un liseret rouge ; cachée sans erreur."""
+	"""L'erreur, en haut de la fiche, sur un liseré rouge ; cachée sans erreur."""
 	button_duplicate: QPushButton | None = None
 	"""Seules les fiches d'un événement, d'une séquence et d'une banque en ont un."""
 
@@ -417,7 +417,7 @@ class Card(QWidget):
 			flag_field(field)
 
 	def warn(self, text: str) -> None:
-		"""L'avertissement en haut de la fiche, sous l'erreur, sur un liseret orange : il ne refuse rien, et la fiche
+		"""L'avertissement en haut de la fiche, sous l'erreur, sur un liseré orange : il ne refuse rien, et la fiche
 		s'enregistre (https://github.com/dascritch/machincast/issues/328). Un texte vide le cache."""
 		self.warning.setText("")
 		if text != "":
@@ -425,7 +425,7 @@ class Card(QWidget):
 		self.warning.setVisible(text != "")
 
 	def erase_error(self) -> None:
-		"""Plus d'erreur : le liseret se cache, et les champs signalés retrouvent leur libellé."""
+		"""Plus d'erreur : le liseré se cache, et les champs signalés retrouvent leur libellé."""
 		self.error.clear()
 		self.error.hide()
 		for label, text in self._reported_list:

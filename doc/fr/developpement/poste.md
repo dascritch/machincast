@@ -65,9 +65,9 @@ Machin dev-screenshots /tmp/essai        # ailleurs, pour comparer
 Certains défauts de GStreamer, sur l'AIFF surtout, ont demandé des contournements : décodage repris au démarrage ([#280](https://github.com/dascritch/machincast/issues/280)), voie bloquée remplacée ([#281](https://github.com/dascritch/machincast/issues/281)), lecteur `playbin3` ([#284](https://github.com/dascritch/machincast/issues/284)). Leur fréquence se mesure hors du code de MachinCast, à refaire à chaque mise à jour de GStreamer, avant d'écrire ou de retirer un contournement :
 
 ```bash
-.venv/bin/python -m tests.mesures_gstreamer                  # 1 000 essais par pipeline et par format
-.venv/bin/python -m tests.mesures_gstreamer -n 200 -j 4      # quatre mesures à la fois, sous charge
-.venv/bin/python -m tests.mesures_gstreamer --synchronous --pipelines playbin playbin3 --formats aiff   # en temps réel
+.venv/bin/python -m tests.gstreamer_measures                  # 1 000 essais par pipeline et par format
+.venv/bin/python -m tests.gstreamer_measures -n 200 -j 4      # quatre mesures à la fois, sous charge
+.venv/bin/python -m tests.gstreamer_measures --synchronous --pipelines playbin playbin3 --formats aiff   # en temps réel
 ```
 
 Chaque essai décode un fichier de `tests/fichiers-sonores`, par le pipeline de la vérification (`decodebin`), ses variantes (`queue ! decodebin`, `decodebin3`) ou un lecteur (`playbin`, `playbin3`). Le bilan donne le poste et la version de GStreamer, puis un tableau Markdown des essais sains, bloqués au démarrage, bloqués en cours, en erreur, ou qui ne rendent plus la main ; puis, pour chaque pipeline, s'il rend la main sur un fichier dont la lecture se bloque (tube nommé). Le tableau se recopie tel quel dans un ticket.
@@ -107,9 +107,9 @@ Avec GStreamer 1.28.2, celui d'Ubuntu 26.04, lister les périphériques audio tu
 `machincast.audio.appliances` attendait donc le message de démarrage, au plus 5 secondes (`MONITOR_STARTUP`), avant de lire et d'arrêter le moniteur. Cela ne suffisait pas : avec PipeWire 1.6.2, arrêter un moniteur pendant que des sorties apparaissent ou disparaissent tue aussi le processus, dans un fil de PipeWire ([#305](https://github.com/dascritch/machincast/issues/305)), comme au verrouillage de la session ou à la mise en veille d'un écran qui porte une sortie HDMI. Depuis [#305](https://github.com/dascritch/machincast/issues/305), le processus garde **un seul moniteur, jamais arrêté** : la première liste le démarre et attend le message de démarrage ; les suivantes le lisent. Avant GStreamer 1.28, sans ce message, il n'y a rien à attendre. La mesure, hors du code de MachinCast, compare les façons de lister ; `--switch` fait apparaître et disparaître une sortie pendant la mesure, par `pactl` :
 
 ```bash
-.venv/bin/python -m tests.mesures_peripheriques                    # 20 processus de 50 listes, chaque façon
-.venv/bin/python -m tests.mesures_peripheriques -n 40 --ways moniteur moniteur-attendu
-.venv/bin/python -m tests.mesures_peripheriques -n 20 -r 300 --switch   # des sorties vont et viennent
+.venv/bin/python -m tests.device_measures                    # 20 processus de 50 listes, chaque façon
+.venv/bin/python -m tests.device_measures -n 40 --ways moniteur moniteur-attendu
+.venv/bin/python -m tests.device_measures -n 20 -r 300 --switch   # des sorties vont et viennent
 ```
 
 Mesures du 28 octobre 2026 :

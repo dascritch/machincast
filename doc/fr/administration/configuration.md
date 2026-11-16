@@ -6,6 +6,7 @@
 - [Les fichiers sonores ne sont jamais modifiés](#les-fichiers-sonores-ne-sont-jamais-modifiés)
 - [Sorties de la diffusion](#sorties-de-la-diffusion)
 - [Réglages de l'interface, par compte](#réglages-de-linterface-par-compte)
+- [Durée de péremption](#durée-de-péremption)
 - [Droits de chaque programme dans la base](#droits-de-chaque-programme-dans-la-base)
 
 ## Configuration

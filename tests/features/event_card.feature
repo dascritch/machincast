@@ -353,7 +353,7 @@ Fonctionnalité: Fiche d'un événement
 		Alors la fiche signale « Chevauche l'événement « Après-midi », de même priorité, le 19/10/2026 à 15:30. »
 
 	Scénario: Une erreur corrigée disparaît de la fiche, et ses champs ne sont plus signalés
-		https://github.com/dascritch/machincast/issues/270 : l'erreur s'affiche en haut de la fiche, sur un liseret rouge
+		https://github.com/dascritch/machincast/issues/270 : l'erreur s'affiche en haut de la fiche, sur un liseré rouge
 		de 4 pixels, et chaque champ en cause est précédé de ⚠️, jusqu'au prochain enregistrement ou à « Annuler ».
 
 		Quand la fenêtre de l'interface s'ouvre
@@ -385,7 +385,7 @@ Fonctionnalité: Fiche d'un événement
 		Et <action>
 		Et j'enregistre la fiche
 		Alors la fiche signale « <message> »
-		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
+		Et l'erreur est en haut de la fiche, sur un liseré rouge de 4 pixels
 		Et les champs signalés par ⚠️ sont <champs>
 		Et l'événement « Matinale » a en base :
 			| champ    | valeur                    |

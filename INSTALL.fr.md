@@ -71,7 +71,7 @@ Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes l
 
 MachinCast s'installe **en place** : le répertoire où il se trouve devient le répertoire d'installation, et `/opt/machincast` pointe vers lui. Il ne faut donc plus le déplacer après l'installation.
 
-L'installation est mono-utilisateur : MachinCast se place dans le répertoire personnel du compte qui l'utilise, par exemple `~/machincast`.
+L'installation est mono-utilisateur : MachinCast se place dans le répertoire personnel du compte qui l'utilise, par exemple `~/machincast`. Seule l'installation du [service de diffusion](#service-de-diffusion) le déplace, avec accord, vers `/opt/machincast`, que le service peut lire ([#381](https://github.com/dascritch/machincast/issues/381)).
 
 ```bash
 git clone https://github.com/dascritch/machincast.git ~/machincast
@@ -108,7 +108,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
-**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour la session du compte, l'unité systemd et la règle polkit. Trois questions au plus. Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--stop-programs` et `--leave-programs` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--desktop` et `--no-desktop` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau. Sans `--service`, si le service de diffusion est installé mais n'est plus à jour pour cette version de MachinCast : « Mettre à jour le service de diffusion ? Il redémarre s'il tourne. [O/n] » ; Entrée répond oui ([#376](https://github.com/dascritch/machincast/issues/376)). `--service` le met à jour sans question ; sans terminal, elle n'est pas posée, et le service reste tel quel.
+**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour le compte du service, ses répertoires, ses unités systemd et la règle polkit. Trois questions au plus, sans `--service` ; celles du service sont décrites avec lui ([Service de diffusion](#service-de-diffusion)). Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--stop-programs` et `--leave-programs` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--desktop` et `--no-desktop` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau. Sans `--service`, si le service de diffusion est installé mais n'est plus à jour pour cette version de MachinCast : « Mettre à jour le service de diffusion ? Il redémarre s'il tourne. [O/n] » ; Entrée répond oui ([#376](https://github.com/dascritch/machincast/issues/376)). `--service` le met à jour sans question ; sans terminal, elle n'est pas posée, et le service reste tel quel.
 
 **Ce qu'il fait**, dans l'ordre :
 
@@ -420,7 +420,7 @@ Pour chaque greffon manquant, la commande nomme le paquet apt à installer.
 
 ```bash
 ./install.sh --remove-service   # si le service de diffusion est installé
-sudo rm /opt/machincast /usr/local/bin/Machin /usr/share/bash-completion/completions/Machin
+sudo rm /opt/machincast /usr/local/bin/Machin /usr/share/bash-completion/completions/Machin   # /opt/machincast : le lien seulement
 rm --force ~/.local/share/applications/machincast.desktop "$(xdg-user-dir DESKTOP)/machincast.desktop"
 sudo -u postgres dropdb machincast
 sudo -u postgres dropdb machincast_test
@@ -428,7 +428,7 @@ sudo -u postgres dropdb machincast_test
 
 Les noms de bases sont ceux du modèle : reprendre ceux de `database.production` et `database.test` dans `machincast.toml`. Sur un poste de développement, la base de test peut servir à d'autres copies de MachinCast : ne la supprimer que si elle n'est plus utilisée.
 
-**Les deux commandes `dropdb` effacent la programmation et l'historique de diffusion.** Les fichiers sonores, eux, ne sont jamais modifiés ni supprimés par MachinCast ([#96](https://github.com/dascritch/machincast/issues/96)) : ils restent en place, ni la désinstallation ni la suppression des bases n'y touchent. Le répertoire de MachinCast peut ensuite être supprimé. Les rôles PostgreSQL et les paquets apt restent en place : ils peuvent servir à d'autres logiciels.
+**Les deux commandes `dropdb` effacent la programmation et l'historique de diffusion.** Les fichiers sonores, eux, ne sont jamais modifiés ni supprimés par MachinCast ([#96](https://github.com/dascritch/machincast/issues/96)) : ils restent en place, ni la désinstallation ni la suppression des bases n'y touchent. Le répertoire de MachinCast peut ensuite être supprimé. Si l'installation du service l'a déplacé en `/opt/machincast`, ce n'est plus un lien mais le répertoire lui-même : `rm` le refuse sans `--recursive`, et c'est ce répertoire qu'il reste à supprimer. Les rôles PostgreSQL et les paquets apt restent en place : ils peuvent servir à d'autres logiciels.
 
 ## En cas de problème
 

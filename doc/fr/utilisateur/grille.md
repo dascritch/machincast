@@ -41,7 +41,7 @@ Le choix est grisé, sur **Rejouer la liste de lecture**, sans fin cochée, et p
 
 **Secours d'un stream tombé** : le secours qui joue quand un stream de la liste tombe ([Streams](antenne.md#streams)). Il l'emporte sur celui que donne la fiche du stream ; **Celui de chaque stream** garde le secours de chaque stream. Grisé tant que la liste n'a pas de stream.
 
-**Rien n'est enregistré**, et la fiche dit pourquoi, en haut, sur un liseret rouge, avec ⚠️ devant chaque champ en cause ([Enregistrer, annuler, fermer](listes.md#enregistrer-annuler-fermer)), pour :
+**Rien n'est enregistré**, et la fiche dit pourquoi, en haut, sur un liseré rouge, avec ⚠️ devant chaque champ en cause ([Enregistrer, annuler, fermer](listes.md#enregistrer-annuler-fermer)), pour :
 
 - un nom interne vide, ou celui d'un autre événement ;
 - une émission ou un spécial sans début, ou une fin qui ne suit pas le début ;
@@ -49,13 +49,13 @@ Le choix est grisé, sur **Rejouer la liste de lecture**, sans fin cochée, et p
 - une priorité changée pour un événement de secours qu'un stream ou un événement désigne ;
 - **Basculer vers un secours** sans secours choisi.
 
-**Session sautée** ([#295](https://github.com/dascritch/machincast/issues/295)) : quand la prochaine session de l'événement est [sautée](#sauter-une-session), en cours ou à venir, la fiche le dit en haut, sur un liseret orange : « La session du jeudi 22 octobre 2026 à 07:00 est sautée : elle ne jouera pas. ». Ce n'est qu'un avertissement : la fiche s'enregistre.
+**Session sautée** ([#295](https://github.com/dascritch/machincast/issues/295)) : quand la prochaine session de l'événement est [sautée](#sauter-une-session), en cours ou à venir, la fiche le dit en haut, sur un liseré orange : « La session du jeudi 22 octobre 2026 à 07:00 est sautée : elle ne jouera pas. ». Ce n'est qu'un avertissement : la fiche s'enregistre.
 
 - Le saut tient au **jour** de la session, pas à son heure : changer l'heure de l'événement ne le rétablit pas, et la fiche annonce la session à sa nouvelle heure.
 - **Rétablir** rétablit la session, comme le clic droit du calendrier, sans enregistrer la fiche ni toucher à ses champs. La barre d'état l'annonce, et la diffusion en tient compte aussitôt.
 - Le bouton est grisé, et son infobulle dit pourquoi, pour une session qui a déjà commencé, ou dont une émission de même priorité a pris la place.
 
-**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion, en haut, sur un liseret orange ([#328](https://github.com/dascritch/machincast/issues/328)) : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'onglet Antenne n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
+**Événement vide** : un événement sans élément s'enregistre, pour être complété plus tard. La fiche avertit de ce qu'en fera la diffusion, en haut, sur un liseré orange ([#328](https://github.com/dascritch/machincast/issues/328)) : une émission vide laisse l'événement en dessous prendre le relais, sans couper le sonore en cours, et l'onglet Antenne n'annonce aucune coupure à son heure ; un fil musical vide laisse un blanc à l'antenne, avec une alerte. La liste des événements le montre en anomalie.
 
 **Secours non local** ([#403](https://github.com/dascritch/machincast/issues/403)) : un secours sert quand un flux tombe, souvent à une perte du réseau. S'il fait appel à un flux externe, un stream, directement, par une banque ou par une séquence, il tomberait avec lui : la fiche l'avertit en haut, « Un secours qui fait appel à un flux externe n'est pas recommandé : une perte du réseau le ferait taire, comme le flux qu'il secourt. », et la liste des événements le montre en anomalie, « secours non local ». Préférer des fichiers du poste.
 
@@ -86,7 +86,7 @@ La fiche d'une [séquence](antenne.md#séquences) s'ouvre dans un onglet nommé 
 
 **Éléments** : la liste ordonnée des sonores et des banques que joue la séquence, avec un détail : l'emplacement d'un sonore, le mode d'une banque et « ne pas répéter » si elle l'est. Elle se gère comme la liste de lecture d'un événement : glisser-déposer, **Monter** et **Descendre**, **➕ Ajouter des sonores…**, **➕ Ajouter des banques…**, dépôt de fichiers, **➖ Retirer l'élément**, et une longue liste se charge au fil de la descente. Un même sonore ou une même banque peut revenir ; une séquence ne contient jamais une autre séquence. La fiche signale les appels qui seront sautés à cause d'une banque « ne pas répéter ».
 
-**Séquence vide** : elle s'enregistre, pour être complétée plus tard ; la fiche avertit en haut, sur un liseret orange, qu'elle ne joue rien, et la diffusion la saute ([#328](https://github.com/dascritch/machincast/issues/328)).
+**Séquence vide** : elle s'enregistre, pour être complétée plus tard ; la fiche avertit en haut, sur un liseré orange, qu'elle ne joue rien, et la diffusion la saute ([#328](https://github.com/dascritch/machincast/issues/328)).
 
 **Événements** : la liste des événements où figure la séquence ; un double-clic ouvre leur fiche.
 

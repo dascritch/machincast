@@ -1384,7 +1384,7 @@ def reported_nothing(interface: Context) -> None:
 	assert (not card.error.isVisibleTo(card)) and (card.message.text() == "")
 
 
-@then("l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels")
+@then("l'erreur est en haut de la fiche, sur un liseré rouge de 4 pixels")
 def error_in_top(interface: Context) -> None:
 	"""https://github.com/dascritch/machincast/issues/270 : la première chose de la fiche."""
 	card = opened_card(interface)
@@ -1425,7 +1425,7 @@ def no_field(interface: Context) -> None:
 
 @then(parsers.parse("la fiche avertit en haut « {text} »"))
 def warns_in_top(interface: Context, text: str) -> None:
-	"""Sous l'erreur, sur un liseret orange, précédé de ⚠️ (https://github.com/dascritch/machincast/issues/328)."""
+	"""Sous l'erreur, sur un liseré orange, précédé de ⚠️ (https://github.com/dascritch/machincast/issues/328)."""
 	opened = opened_card(interface)
 	assert opened.warning.isVisibleTo(opened)
 	assert opened.warning.text() == f"⚠️ {text}"

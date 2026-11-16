@@ -44,6 +44,7 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **À vérifier** :
 
+- Avec le [service de diffusion](INSTALL.fr.md#service-de-diffusion) installé, la carte de l'antenne est au PipeWire du service, cachée aux sessions du poste ([#381](https://github.com/dascritch/machincast/issues/381)) : aucun programme du bureau ne peut plus y jouer. Ce qui suit vaut pour une diffusion sans service.
 - `pactl get-default-sink` ne doit pas donner l'identifiant de `audio.device`. Sinon, choisir une autre sortie par défaut, et couper les sons de notification : voir [Préparer le poste d'antenne](INSTALL.fr.md#préparer-le-poste-dantenne).
 - `wpctl status`, sous PipeWire, liste dans « Streams » les programmes qui jouent, et sur quelle sortie.
 
@@ -56,7 +57,7 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 **À vérifier** :
 
 - Que l'écran du poste d'antenne ne se met pas en veille : voir [Préparer le poste d'antenne](INSTALL.fr.md#préparer-le-poste-dantenne) ([#250](https://github.com/dascritch/machincast/issues/250)).
-- Relancer la pré-écoute une fois le son revenu. Si le VU-mètre reste indisponible plus de 10 secondes, vérifier que le serveur audio tourne (`systemctl --user status pipewire`), puis ouvrir un ticket avec la sortie console de `Machin interface`.
+- Relancer la pré-écoute une fois le son revenu. Si le VU-mètre reste indisponible plus de 10 secondes, vérifier que le serveur audio tourne (`systemctl --user status pipewire` pour celui de la session ; `systemctl status machincast-pipewire.service machincast-wireplumber.service` pour celui du service de diffusion, qui porte l'antenne), puis ouvrir un ticket avec la sortie console de `Machin interface`.
 
 ## L'antenne passe sur la pré-écoute quand la session se verrouille
 
@@ -69,6 +70,7 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 **À vérifier** :
 
 - La version de MachinCast : une installation d'avant [#345](https://github.com/dascritch/machincast/issues/345) se met à jour par `git pull`, puis `./install.sh`.
+- Avec le service de diffusion, l'antenne est dans le PipeWire du service : `pw-dump`, `pw-top` et `pw-mon` le joignent par sa socket, depuis un compte du groupe `machincast`, par exemple `PIPEWIRE_RUNTIME_DIR=/run/machincast pw-dump`.
 - Le verrou du flux de l'antenne, pendant la diffusion : `pw-dump` doit montrer, sur le nœud dont `application.name` vaut « MachinCast lecteur » et qui a un `target.object`, le périphérique de l'antenne et `true` pour `node.dont-fallback`, `node.linger` et `node.dont-move`.
 - Pendant le verrouillage, `pw-top`, depuis une autre machine par SSH : la ligne **MachinCast lecteur** ne doit jamais apparaître sous une autre sortie que celle de l'antenne.
 - `pw-mon`, lancé avant le verrouillage, montre si le profil de la carte change : dans ce cas, la sortie de l'antenne disparaît puis revient, et l'antenne se tait pendant ce temps.

@@ -745,7 +745,7 @@ def produce(directory: Path) -> dict[str, Path]:
 				wait(functools.partial(_finished_shape, card))
 			take(name, window)
 			_close_tab(window)
-		# Une erreur de fiche, en haut, sur son liseret rouge (https://github.com/dascritch/machincast/issues/270).
+		# Une erreur de fiche, en haut, sur son liseré rouge (https://github.com/dascritch/machincast/issues/270).
 		window._open("event", demonstration.events["matinale"], "")
 		corrupt = window.ui.tabs.currentWidget()
 		assert isinstance(corrupt, EventCard)
