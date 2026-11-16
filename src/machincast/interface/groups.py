@@ -243,7 +243,7 @@ def _ask_bank_audit(connection: Connection, banks: list[int], _chosen_list: list
 	return _audit_announcement(len(marks))
 
 
-def _hide(value: bool | None, state: str) -> Callable[[Connection, list[int], list[int]], str]:
+def _hide(*, value: bool | None, state: str) -> Callable[[Connection, list[int], list[int]], str]:
 	def run(connection: Connection, banks: list[int], _chosen_list: list[int]) -> str:
 		changed_list = connection.execute(
 			"UPDATE banks SET hide_metadata = %s WHERE id = ANY(%s) RETURNING id", (value, banks)
@@ -268,7 +268,7 @@ BANKS: tuple[Action, ...] = (
 		lambda quantity, _names: _("Hide the artist and the title of the sounds of {banks}?").format(
 			banks=_banks(quantity)
 		),
-		_hide(True, _("hidden")),
+		_hide(value=True, state=_("hidden")),
 	),
 	Action(
 		"afficher",
@@ -276,7 +276,7 @@ BANKS: tuple[Action, ...] = (
 		lambda quantity, _names: _("Show the artist and the title of the sounds of {banks}?").format(
 			banks=_banks(quantity)
 		),
-		_hide(False, _("shown")),
+		_hide(value=False, state=_("shown")),
 	),
 	Action(
 		"heriter",
@@ -284,7 +284,7 @@ BANKS: tuple[Action, ...] = (
 		lambda quantity, _names: _("Leave to the sound the hiding of the artist and the title of {banks}?").format(
 			banks=_banks(quantity)
 		),
-		_hide(None, _("inherited from the sound")),
+		_hide(value=None, state=_("inherited from the sound")),
 	),
 )
 

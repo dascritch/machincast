@@ -29,6 +29,7 @@ class LogWindow(QWidget):
 		self,
 		socket: Path,
 		database: str,
+		*,
 		full_audit: bool,
 		parent: QWidget | None = None,
 		silence_threshold: float = SILENCE_THRESHOLD,
@@ -50,9 +51,9 @@ class LogWindow(QWidget):
 		"""Ouvre la fenêtre, puis lance l'indexation."""
 		self.ui.conclusion.setText(_("{windowtitle} running…").format(windowtitle=self.windowTitle()))
 		self.show()
-		self.indexer.launch(self.full_audit)
+		self.indexer.launch(full_audit=self.full_audit)
 
-	def add(self, text: str, anomaly: bool) -> None:
+	def add(self, text: str, anomaly: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
 		self.ui.log.appendPlainText(text)
 		if anomaly:
 			self.anomalies.append(text)
@@ -81,11 +82,11 @@ class LogWindow(QWidget):
 
 
 def launch_window(
-	socket: Path, database: str, full_audit: bool, silence_threshold: float = SILENCE_THRESHOLD, force: bool = False
+	socket: Path, database: str, *, full_audit: bool, silence_threshold: float = SILENCE_THRESHOLD, force: bool = False
 ) -> int:
 	"""Machin indexer --window : la fenêtre du journal, jusqu'à sa fermeture ; forcer, avec --force."""
 	qt = application(EXECUTABLE)
-	window = LogWindow(socket, database, full_audit, silence_threshold=silence_threshold)
+	window = LogWindow(socket, database, full_audit=full_audit, silence_threshold=silence_threshold)
 	window.indexer.force = force
 	window.launch()
 	return qt.exec()

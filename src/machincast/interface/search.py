@@ -181,9 +181,9 @@ class SearchScreen(QWidget):
 			log.error(_("search impossible: {error}").format(error=error))
 			self.count.setText(_("Search impossible: {error}").format(error=error))
 			return
-		self._show(total, len(text.strip()) >= MINIMUM)
+		self._show(total, looks_for=len(text.strip()) >= MINIMUM)
 
-	def _show(self, total: int, looks_for: bool) -> None:
+	def _show(self, total: int, *, looks_for: bool) -> None:
 		self.model.setRowCount(0)
 		for result in self.results:
 			cells = []

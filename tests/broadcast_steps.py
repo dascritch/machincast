@@ -22,7 +22,7 @@ from machincast.configuration import Audio, Crossfades, DeadAirSettings
 from machincast.database import Role, open_connection
 from machincast.player.analysis import Analyser
 from machincast.player.broadcast import Broadcast
-from machincast.player.engine import AudioEngine, PlaybackTrack, Track
+from machincast.player.engine import AudioEngine, PlaybackTrack, Track, TrackOptions
 from machincast.player.outputs import Outputs
 from machincast.player.saving import LEVELS
 from machincast.player.simulation import SimulatedEngine
@@ -43,23 +43,17 @@ TEST_RECONNECTION_DELAY = timedelta(seconds=0.2)
 class RecordingEngine(AudioEngine):
 	"""Le moteur audio de la diffusion, qui garde chaque voie jouée, par fichier, même finie."""
 
-	def __init__(self, audio: Audio, real_time: bool = True, dead_air: DeadAirSettings | None = None) -> None:
-		super().__init__(audio, real_time, dead_air=dead_air)
+	def __init__(self, audio: Audio, *, real_time: bool = True, dead_air: DeadAirSettings | None = None) -> None:
+		super().__init__(audio, real_time=real_time, dead_air=dead_air)
 		self.played_list: dict[str, Track] = {}
 
 	def play(
 		self,
 		path: Path | str,
 		duration: timedelta | None,
-		start_crossfade: timedelta = timedelta(0),
-		end_crossfade: timedelta = timedelta(0),
-		silent: bool = False,
-		offset: timedelta | None = None,
-		departure: float = 0.0,
-		arrival: float = 0.0,
-		buffer: timedelta | None = None,
+		options: TrackOptions | None = None,
 	) -> Track:
-		track = super().play(path, duration, start_crossfade, end_crossfade, silent, offset, departure, arrival, buffer)
+		track = super().play(path, duration, options)
 		self.played_list[str(path)] = track
 		return track
 
@@ -78,17 +72,12 @@ class RecordingSimulatedEngine(SimulatedEngine):
 		self,
 		path: Path | str,
 		duration: timedelta | None,
-		start_crossfade: timedelta = timedelta(0),
-		end_crossfade: timedelta = timedelta(0),
-		silent: bool = False,
-		offset: timedelta | None = None,
-		departure: float = 0.0,
-		arrival: float = 0.0,
-		buffer: timedelta | None = None,
+		options: TrackOptions | None = None,
 	) -> PlaybackTrack:
-		self.rises[Path(str(path)).parent.name] = start_crossfade
-		self.opened_list.append((str(path), self.clock.now(), silent))
-		return super().play(path, duration, start_crossfade, end_crossfade, silent, offset, departure, arrival, buffer)
+		options = (options) or (TrackOptions())
+		self.rises[Path(str(path)).parent.name] = options.start_crossfade
+		self.opened_list.append((str(path), self.clock.now(), options.silent))
+		return super().play(path, duration, options)
 
 
 ITEMS = {

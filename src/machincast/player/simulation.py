@@ -19,7 +19,6 @@ La simulation rejoue la diffusion entre deux instants, avec la même logique que
 
 import html
 import logging
-import uuid
 from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
@@ -34,13 +33,13 @@ from machincast.configuration import Crossfades, Metadata
 from machincast.conversion import boolean_or_none, integer_or_none, text_or_none
 from machincast.i18n import N_, _, current, logged, ngettext
 from machincast.player.broadcast import Broadcast
-from machincast.player.engine import DeadAir, PlaybackTrack, TrackState
+from machincast.player.engine import DeadAir, PlaybackTrack, TrackOptions, TrackState
 from machincast.player.expiry import KIND as EXPIRED_SOUND
 from machincast.player.expiry import Expiry, _cause
 from machincast.player.grid import next_change, read_grid
 from machincast.player.history import IN_DATABASE, LastPlay
 from machincast.player.outputs import CSV_COLUMNS, Line, csv_line, first_public_name, hides, playlist
-from machincast.player.saving import LEVELS, Play
+from machincast.player.saving import LEVELS, Play, PlayStart
 from machincast.randomness import create_randomness
 
 log = logging.getLogger(__name__)
@@ -156,18 +155,7 @@ class SimulatedEngine:
 		self.clock = clock
 		self._tracks: list[SimulatedTrack] = []
 
-	def play(
-		self,
-		path: Path | str,
-		duration: timedelta | None,
-		start_crossfade: timedelta = timedelta(0),
-		end_crossfade: timedelta = timedelta(0),
-		silent: bool = False,
-		offset: timedelta | None = None,
-		departure: float = 0.0,
-		arrival: float = 0.0,
-		buffer: timedelta | None = None,
-	) -> PlaybackTrack:
+	def play(self, path: Path | str, duration: timedelta | None, options: TrackOptions | None = None) -> PlaybackTrack:
 		"""La durée d'un sonore rogné est déjà sans ses silences : le décalage ne change rien à la voie simulée."""
 		track = SimulatedTrack(self.clock, duration)
 		self._tracks.append(track)
@@ -253,25 +241,18 @@ class SimulatedHistory:
 	def begin_play(
 		self,
 		connection: Connection,
-		sound: int,
-		bank: int | None,
-		event: int | None,
-		item: int | None,
-		instant: datetime,
-		sequence: int | None = None,
-		item_sequence: int | None = None,
-		lender: int | None = None,
+		start: PlayStart,
 	) -> Play:
 		line = connection.execute(
 			"SELECT s.artist, s.title, COALESCE(s.location, s.stream_url, m.url) FROM sounds s"
 			" LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
-			(sound,),
+			(start.sound,),
 		).fetchone()
 		if line is not None:
 			artist, title, location = line
 		else:
 			artist, title, location = (None, None, None)
-		play = Play(uuid.uuid4(), sound, bank, event, item, instant, sequence, item_sequence, lender)
+		play = Play.of(start)
 		self.simulated_plays.append(
 			SimulatedPlay(
 				play,
@@ -287,6 +268,7 @@ class SimulatedHistory:
 		connection: Connection,
 		play: Play,
 		instant: datetime,
+		*,
 		cut: bool = False,
 		error: str | None = None,
 		kind: str = N_("interrupted playback"),
@@ -439,7 +421,7 @@ def hide(line: Line, metadata: Metadata) -> Line:
 	"""Le passage tel que la page publique le montre : artiste et titre masqués selon les cinq niveaux, remplacés
 	par le premier nom public renseigné ou le texte public (machincast.player.outputs). L'emplacement reste : il permet
 	de vérifier ce qui est joué."""
-	if not hides(line.hidings, metadata.hide):
+	if not hides(line.hidings, default=metadata.hide):
 		return line
 	return replace(line, artist=None, title=(line.public_name) or (metadata.public_text))
 

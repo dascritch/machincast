@@ -94,10 +94,10 @@ def file(trial: Trial, duration: str, start: str, end: str, removed_list: str, c
 		timedelta(seconds=seconds(duration)),
 		optional(start),
 		optional(end),
-		removed_list == "retirés",
-		sound_start,
-		sound_end,
-		defects,
+		detection_silences=removed_list == "retirés",
+		start_crossfade=sound_start,
+		end_crossfade=sound_end,
+		defects=defects,
 		audited=True,
 	)
 
@@ -105,7 +105,14 @@ def file(trial: Trial, duration: str, start: str, end: str, removed_list: str, c
 @given(parsers.parse("un fichier de {duration} s jamais audité, sans crossfade"))
 def never_audited(trial: Trial, duration: str) -> None:
 	trial.plan = sound_plan(
-		timedelta(seconds=seconds(duration)), None, None, False, timedelta(0), timedelta(0), Crossfades(), audited=False
+		timedelta(seconds=seconds(duration)),
+		None,
+		None,
+		detection_silences=False,
+		start_crossfade=timedelta(0),
+		end_crossfade=timedelta(0),
+		defects=Crossfades(),
+		audited=False,
 	)
 
 
@@ -391,10 +398,10 @@ def same(trial: Trial) -> None:
 			timedelta(seconds=2),
 			timedelta(seconds=0.5),
 			timedelta(seconds=0.5),
-			True,
-			timedelta(seconds=0.2),
-			timedelta(seconds=0.3),
-			Crossfades(),
+			detection_silences=True,
+			start_crossfade=timedelta(seconds=0.2),
+			end_crossfade=timedelta(seconds=0.3),
+			defects=Crossfades(),
 			audited=True,
 		),
 		2.0,

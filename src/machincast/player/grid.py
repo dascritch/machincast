@@ -225,7 +225,9 @@ def sessions(event: Event, de: date, a: date) -> list[tuple[datetime, datetime |
 	return _occurrences(event, de, a, with_skipped=True)
 
 
-def _occurrences(event: Event, de: date, a: date, with_skipped: bool = False) -> list[tuple[datetime, datetime | None]]:
+def _occurrences(
+	event: Event, de: date, a: date, *, with_skipped: bool = False
+) -> list[tuple[datetime, datetime | None]]:
 	"""Début et fin, en heure murale, des occurrences qui commencent du premier jour, inclus, au second, exclu ; sans
 	les sessions sautées, sauf demande. Rien pour un événement sans début."""
 	if event.start is None:
@@ -632,7 +634,7 @@ COLUMNS = (
 )
 
 
-def read_grid(connection: psycopg.Connection[TupleRow], deleted_list: bool = False) -> list[Event]:
+def read_grid(connection: psycopg.Connection[TupleRow], *, deleted_list: bool = False) -> list[Event]:
 	"""Événements de la grille, sans les événements de secours ; la connexion a endossé le rôle de la lecture
 	(machincast.database.open_connection). Un événement supprimé ne joue plus
 	(https://github.com/dascritch/machincast/issues/267) : seul le calendrier les demande (deleted_list), pour leurs

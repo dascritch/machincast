@@ -128,11 +128,11 @@ def read_source(
 			interval,
 			_interval(detected_start),
 			_interval(detected_end),
-			bool(detection),
-			_interval(start_crossfade),
-			_interval(end_crossfade),
-			(defects) or (Crossfades()),
-			bool(audited),
+			detection_silences=bool(detection),
+			start_crossfade=_interval(start_crossfade),
+			end_crossfade=_interval(end_crossfade),
+			defects=(defects) or (Crossfades()),
+			audited=bool(audited),
 		)
 	return Source(name, address, stream, seconds, plan=plan)
 
@@ -537,7 +537,7 @@ class PreviewWindow(QWidget):
 		self.ui.message.clear()
 		self._refresh()
 
-	def listen_on_air(self, public_text: str | None, launch: bool = False) -> None:
+	def listen_on_air(self, public_text: str | None, *, launch: bool = False) -> None:
 		"""L'antenne, sur son port de monitoring, à la place du sonore précédent : à l'arrêt, ou lancée aussitôt. Le
 		titre de la fenêtre est « en cours : » et le texte public du sonore en cours
 		(https://github.com/dascritch/machincast/issues/223)."""
@@ -657,7 +657,7 @@ class PreviewWindow(QWidget):
 		self.player.put_to(position)
 		self._refresh()
 
-	def _go_to_marker(self, start: bool) -> None:
+	def _go_to_marker(self, *, start: bool) -> None:
 		"""« Début joué » ou « Fin jouée » : la lecture y va, lancée au besoin."""
 		source = self.player.source
 		if (source is None) or (source.plan is None):
@@ -671,7 +671,7 @@ class PreviewWindow(QWidget):
 		self.player.put_to(marker)
 		self._refresh()
 
-	def _listen_as_on_air(self, ticked: bool) -> None:
+	def _listen_as_on_air(self, ticked: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
 		self.player.as_on_air = ticked
 		self._refresh()
 

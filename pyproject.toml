@@ -68,7 +68,10 @@ indent-style = "tab"
 # RUF100 refuse un « # noqa » qui ne supprime rien : il vise une règle que ruff n'applique pas, ou qui ne se
 # déclenche plus (https://github.com/dascritch/machincast/issues/438).
 # C901 refuse une fonction trop complexe : plus de 15 chemins (https://github.com/dascritch/machincast/issues/439).
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF100", "C901"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF100", "C901", "FBT001", "FBT002"]
+# FBT001 et FBT002 refusent un booléen passé par sa position : un appel se lit sans ouvrir la définition, le booléen est
+# nommé obligatoire (« * »), sauf le paramètre d'un signal de Qt, que Qt passe par sa position, marqué « noqa »
+# (https://github.com/dascritch/machincast/issues/441).
 # W191 signale les tabulations : désactivée, puisque les tabulations sont la règle du projet.
 # SIM108 réclame une expression conditionnelle à la place d'un if, SIM110 un any() ou un all() sur une expression
 # génératrice à la place d'une boucle for : désactivées, le code n'a ni expression conditionnelle ni
@@ -76,6 +79,10 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF100", "C901"]
 # E501 refuse une ligne de plus de line-length caractères : désactivée, une contrainte d'éditeurs qui n'a plus cours
 # (https://github.com/dascritch/machincast/issues/384).
 ignore = ["W191", "SIM108", "SIM110", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Les étapes des scénarios reçoivent leurs paramètres par leur nom, booléens compris.
+"tests/**" = ["FBT001", "FBT002"]
 
 [tool.ruff.lint.mccabe]
 # Les fonctions imbriquées comptent dans celle qui les contient : une fonction qui en déclare beaucoup se découpe en

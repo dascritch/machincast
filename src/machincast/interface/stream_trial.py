@@ -32,7 +32,7 @@ def _milliseconds(duration: timedelta) -> int:
 	return int(duration.total_seconds() * 1000)
 
 
-def trial_result(answers: bool, detail: str) -> str:
+def trial_result(*, answers: bool, detail: str) -> str:
 	"""« Le flux répond : du son arrive. », ou « Le flux ne répond pas : … », pour la fiche qui a lancé l'essai."""
 	if answers:
 		return _("The stream answers: {detail}").format(detail=detail)
@@ -113,11 +113,14 @@ class StreamTrial(QObject):
 		while (message := bus.pop_filtered(Gst.MessageType.TAG | Gst.MessageType.ERROR)) is not None:
 			if message.type != Gst.MessageType.TAG:
 				error, _detail = message.parse_error()
-				self._finish(False, f"{error.message.rstrip('.')}.")
+				self._finish(answers=False, detail=f"{error.message.rstrip('.')}.")
 				return
 			self._read_tags(message.parse_tag())
 		if self._sound >= EXPECTED_SOUND.total_seconds() * Gst.SECOND:
-			self._finish(True, _("sound arrives, {describe}.").format(describe=describe(self._type, self._bitrate)))
+			self._finish(
+				answers=True,
+				detail=_("sound arrives, {describe}.").format(describe=describe(self._type, self._bitrate)),
+			)
 
 	def _read_tags(self, tags: Gst.TagList) -> None:
 		found, codec = tags.get_string(Gst.TAG_AUDIO_CODEC)
@@ -132,8 +135,11 @@ class StreamTrial(QObject):
 			self._bitrate = measure
 
 	def _expire(self) -> None:
-		self._finish(False, _("the sound does not arrive within {delay} s.").format(delay=int(DELAY.total_seconds())))
+		self._finish(
+			answers=False,
+			detail=_("the sound does not arrive within {delay} s.").format(delay=int(DELAY.total_seconds())),
+		)
 
-	def _finish(self, answers: bool, detail: str) -> None:
+	def _finish(self, *, answers: bool, detail: str) -> None:
 		self.halt()
 		self.finished.emit(answers, detail)

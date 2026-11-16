@@ -23,7 +23,7 @@ from machincast.configuration import Configuration, DeadAirSettings
 from machincast.i18n import decimal
 from machincast.player import __main__ as playback_module
 from machincast.player import broadcast_text
-from machincast.player.engine import DeadAir, PlaybackTrack, Track
+from machincast.player.engine import DeadAir, PlaybackTrack, Track, TrackOptions
 from machincast.player.simulation import SimulatedEngine, SimulatedTrack
 from tests.broadcast_steps import Bench, hour, plays, seconds, sound
 from tests.database_fixtures import configuration_test
@@ -88,9 +88,8 @@ def play(
 		files[name],
 		configuration_test().audio,
 		None,
+		TrackOptions(silent=variety == "voie muette", offset=departure),
 		real_time=False,
-		silent=variety == "voie muette",
-		offset=departure,
 		dead_air=bench.dead_air,
 	)
 	dead_airs: list[DeadAir] = []

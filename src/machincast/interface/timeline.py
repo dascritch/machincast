@@ -141,11 +141,11 @@ class Plan:
 			timedelta(seconds=self.duration),
 			_duration(self.start_silence),
 			_duration(self.end_silence),
-			self.removed_silences,
-			timedelta(seconds=self.start_crossfade),
-			timedelta(seconds=self.end_crossfade),
-			self.entry_position,
-			self.output_position,
+			without_silences=self.removed_silences,
+			start_crossfade=timedelta(seconds=self.start_crossfade),
+			end_crossfade=timedelta(seconds=self.end_crossfade),
+			entry=self.entry_position,
+			output=self.output_position,
 		)
 
 	def trims(self) -> bool:
@@ -308,6 +308,7 @@ def sound_plan(
 	duration: timedelta,
 	detected_start: timedelta | None,
 	detected_end: timedelta | None,
+	*,
 	detection_silences: bool,
 	start_crossfade: timedelta | None,
 	end_crossfade: timedelta | None,
@@ -367,12 +368,12 @@ def read_plan(
 		duration,
 		_interval(start),
 		_interval(end),
-		bool(detection),
-		_interval(cd),
-		_interval(cf),
-		defects,
-		bool(audited),
-		(
+		detection_silences=bool(detection),
+		start_crossfade=_interval(cd),
+		end_crossfade=_interval(cf),
+		defects=defects,
+		audited=bool(audited),
+		bank=(
 			BankRule(_text(start_rule), _interval(start_bank)),
 			BankRule(_text(end_rule), _interval(end_bank)),
 		),
@@ -537,7 +538,7 @@ class Timeline(QWidget):
 	moved_slider = Signal(str, float)
 	"""Un curseur glissé, « debut » ou « fin », et sa position en secondes du fichier, bornée par l'autre curseur."""
 
-	def __init__(self, parent: QWidget | None = None, interactive: bool = True) -> None:
+	def __init__(self, parent: QWidget | None = None, *, interactive: bool = True) -> None:
 		"""interactive : un clic, un glissement ou les flèches demandent une position ; sur l'onglet Antenne, la frise
 		ne fait que se regarder (https://github.com/dascritch/machincast/issues/230)."""
 		super().__init__(parent)
@@ -874,7 +875,7 @@ class Timeline(QWidget):
 		veil = QColor(colour)
 		veil.setAlpha(50)
 
-		def draw_fade(fade: tuple[float, float] | None, rise: bool) -> None:
+		def draw_fade(fade: tuple[float, float] | None, *, rise: bool) -> None:
 			if fade is None:
 				return
 			left, right = self.seconds_to_x(fade[0]), self.seconds_to_x(fade[1])
@@ -890,7 +891,7 @@ class Timeline(QWidget):
 			painter.drawLine(origin, end)
 
 		for fade, rise in ((entry, True), (output, False)):
-			draw_fade(fade, rise)
+			draw_fade(fade, rise=rise)
 
 	def _draw_sliders(self, painter: QPainter, colour: QColor) -> None:
 		"""Chaque curseur : un trait pointillé, une poignée en bas, et son nom, vers l'intérieur de la partie jouée."""

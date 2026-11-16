@@ -129,6 +129,7 @@ from machincast.player.engine import (
 	GUARD_DELAY,
 	Engine,
 	PlaybackTrack,
+	TrackOptions,
 	entry_fade,
 	overlay,
 )
@@ -138,7 +139,7 @@ from machincast.player.history import IN_DATABASE, History
 from machincast.player.interruptions import Interruptions
 from machincast.player.outputs import Outputs, public_text, read_plays
 from machincast.player.rundown import Choice, Cutoff, Decision, Ongoing, Scheduler
-from machincast.player.saving import Play
+from machincast.player.saving import Play, PlayStart
 from machincast.player.state import (
 	ADVANCE,
 	CUT_BY_FALLBACK,
@@ -430,7 +431,7 @@ class Broadcast:
 			if start - instant > PRELOAD:
 				return
 			if (parameters.stream) and (parameters.buffer is not None) and (parameters.address is not None):
-				track = self.engine.play(parameters.address, None, silent=True, buffer=parameters.buffer)
+				track = self.engine.play(parameters.address, None, TrackOptions(silent=True, buffer=parameters.buffer))
 				self.preload = Preload(choice.sound, track)
 				return
 
@@ -669,7 +670,7 @@ class Broadcast:
 		if crash.current() is None:
 			return
 		try:
-			message = self._state(instant, False)
+			message = self._state(instant, stop=False)
 		except Exception as error:  # le contexte d'un rapport ne doit pas arrêter l'antenne
 			log.debug(_("crash report context unavailable: {error}").format(error=error))
 			return
@@ -895,7 +896,7 @@ class Broadcast:
 		if probe.track is None:
 			if (instant >= probe.next_attempt) and (probe.parameters.address is not None):
 				probe.track = self.engine.play(
-					probe.parameters.address, None, silent=True, buffer=probe.parameters.buffer
+					probe.parameters.address, None, TrackOptions(silent=True, buffer=probe.parameters.buffer)
 				)
 			return
 		probe.track.handle()
@@ -999,12 +1000,14 @@ class Broadcast:
 			track = self.engine.play(
 				path,
 				parameters.duration,
-				rise,
-				parameters.end_crossfade,
-				offset=parameters.offset,
-				departure=parameters.departure_volume,
-				arrival=parameters.arrival_volume,
-				buffer=parameters.buffer,
+				TrackOptions(
+					start_crossfade=rise,
+					end_crossfade=parameters.end_crossfade,
+					offset=parameters.offset,
+					departure=parameters.departure_volume,
+					arrival=parameters.arrival_volume,
+					buffer=parameters.buffer,
+				),
 			)
 		play = self._begin(following, instant)
 		if self.current is not None:
@@ -1026,14 +1029,16 @@ class Broadcast:
 			sequence_item = line.id
 		play = self.history.begin_play(
 			self.connection,
-			choice.sound,
-			choice.bank,
-			choice.occurrence.event.id,
-			_play_item(choice),
-			instant,
-			sequence,
-			sequence_item,
-			_lender_id(choice),
+			PlayStart(
+				choice.sound,
+				choice.bank,
+				choice.occurrence.event.id,
+				_play_item(choice),
+				instant,
+				sequence,
+				sequence_item,
+				_lender_id(choice),
+			),
 		)
 		self._announced_lender = self.lender
 		if self.outputs is not None:
@@ -1045,6 +1050,7 @@ class Broadcast:
 		self,
 		play: Play,
 		instant: datetime,
+		*,
 		cut: bool = False,
 		error: str | None = None,
 		kind: str = N_("interrupted playback"),
@@ -1055,11 +1061,11 @@ class Broadcast:
 
 	# ─── Socket d'état (https://github.com/dascritch/machincast/issues/20) ───
 
-	def _publish(self, instant: datetime, stop: bool = False) -> None:
+	def _publish(self, instant: datetime, *, stop: bool = False) -> None:
 		"""Publie l'état s'il a changé, ou si le dernier date de minimal_publication, pour la progression."""
 		if self.state is None:
 			return
-		message = self._state(instant, stop)
+		message = self._state(instant, stop=stop)
 		stable = json.dumps({**message, "current": _without_progress(message["current"])}, default=str)
 		previous, published_to = self._publication
 		old = (published_to is None) or (instant - published_to >= timedelta(seconds=self.minimal_publication))
@@ -1067,7 +1073,7 @@ class Broadcast:
 			self.state.publish({"timestamp": iso(instant), **message})
 			self._publication = (stable, instant)
 
-	def _state(self, instant: datetime, stop: bool) -> dict[str, Any]:
+	def _state(self, instant: datetime, *, stop: bool) -> dict[str, Any]:
 		current = self.current
 		ongoing = None
 		if current is not None:
@@ -1116,7 +1122,12 @@ class Broadcast:
 			):
 				announcements.append(
 					_announces(
-						self._lent(choice, start), announced_parameters, healthy, announced_details, start, cutoff
+						self._lent(choice, start),
+						announced_parameters,
+						healthy=healthy,
+						details=announced_details,
+						start=start,
+						cutoff=cutoff,
 					)
 				)
 			next_, upcoming = announcements[0], announcements[1:]

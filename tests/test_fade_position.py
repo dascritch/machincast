@@ -89,10 +89,11 @@ def put_fades(trial: Trial, entry: str, output: str) -> None:
 		trial.duration,
 		trial.start,
 		trial.end,
-		trial.without_silences,
-		*trial.crossfades,
-		POSITION[entry],
-		POSITION[output],
+		without_silences=trial.without_silences,
+		start_crossfade=trial.crossfades[0],
+		end_crossfade=trial.crossfades[1],
+		entry=POSITION[entry],
+		output=POSITION[output],
 	)
 
 

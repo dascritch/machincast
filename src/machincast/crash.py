@@ -195,7 +195,7 @@ WITH_SOUND_CARDS = {"Machin_player": False, "Machin_interface": True}
 """Les binaires qui jouent du son, et s'ils ont une pré-écoute."""
 
 
-def sound_cards(audio: Audio, preview: bool) -> str:
+def sound_cards(audio: Audio, *, preview: bool) -> str:
 	"""La sortie et le périphérique de l'antenne et, avec preview, ceux de la pré-écoute."""
 	output, device = audio.on_air()
 	lines = [_("On air: output {output}, device {device}").format(output=output, device=device)]
@@ -249,7 +249,7 @@ def completion(program: str, pid: int, configuration: Path | None) -> list[str]:
 	sections: list[tuple[str, str]] = []
 	if program in WITH_SOUND_CARDS:
 		try:
-			cards = sound_cards(load(configuration).audio, WITH_SOUND_CARDS[program])
+			cards = sound_cards(load(configuration).audio, preview=WITH_SOUND_CARDS[program])
 		except (InvalidConfiguration, OSError) as error:
 			cards = _("unreadable configuration: {error}").format(error=error)
 		sections += [(_("Sound cards, from the configuration file"), cards), ("wpctl status", wpctl_status())]
@@ -363,7 +363,7 @@ def _header(watch: Watch) -> list[str]:
 	]
 
 
-def _context(watch: Watch, live: bool) -> list[str]:
+def _context(watch: Watch, *, live: bool) -> list[str]:
 	"""Les versions, puis ce que le binaire a noté et, en direct seulement, ce qu'il donne."""
 	indented_versions = []
 	for line in versions():

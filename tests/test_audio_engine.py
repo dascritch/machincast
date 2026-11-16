@@ -14,7 +14,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.database import Role, open_connection
-from machincast.player.engine import AudioEngine, Track, entry_fade, sequencing
+from machincast.player.engine import AudioEngine, Track, TrackOptions, entry_fade, sequencing
 from machincast.player.files import check_before_playback
 from tests.database_fixtures import configuration_test, sample_database_parameters
 from tests.sounds import SOUND_FILES, sample_copy
@@ -76,8 +76,7 @@ def prepared_track(context: Context, duration: str, start: str, end: str) -> Non
 		SOUND_FILES / "sain.flac",
 		configuration_test().audio,
 		seconds(duration),
-		seconds(start),
-		seconds(end),
+		TrackOptions(start_crossfade=seconds(start), end_crossfade=seconds(end)),
 		real_time=False,
 	)
 
@@ -95,11 +94,13 @@ def overflowing_track(context: Context, duration: str, start: str, departure: st
 		SOUND_FILES / "sain.flac",
 		configuration_test().audio,
 		seconds(duration),
-		seconds(start),
-		seconds(end),
+		TrackOptions(
+			start_crossfade=seconds(start),
+			end_crossfade=seconds(end),
+			departure=float(departure.replace(",", ".")),
+			arrival=float(arrival.replace(",", ".")),
+		),
 		real_time=False,
-		departure=float(departure.replace(",", ".")),
-		arrival=float(arrival.replace(",", ".")),
 	)
 
 
@@ -115,16 +116,14 @@ def trimmed_track(context: Context, duration: str, offset: str, start: str, end:
 		SOUND_FILES / "sain.flac",
 		configuration_test().audio,
 		seconds(duration),
-		seconds(start),
-		seconds(end),
+		TrackOptions(start_crossfade=seconds(start), end_crossfade=seconds(end), offset=seconds(offset)),
 		real_time=False,
-		offset=seconds(offset),
 	)
 
 
 @given("une voie muette, pour un stream")
 def silent_track(context: Context) -> None:
-	context.track = Track("http://127.0.0.1:9/aucun-flux", configuration_test().audio, None, silent=True)
+	context.track = Track("http://127.0.0.1:9/aucun-flux", configuration_test().audio, None, TrackOptions(silent=True))
 
 
 @when(parsers.parse("elle monte à plein volume en {duration} secondes"))
@@ -260,7 +259,7 @@ def play(context: Context, name: str) -> None:
 @when(parsers.parse("il joue le fichier de test « {name} » de {start} à {end} seconde du fichier"))
 def play_trimmed(context: Context, name: str, start: str, end: str) -> None:
 	context.tracks[name] = engine(context).play(
-		SOUND_FILES / name, seconds(end) - seconds(start), offset=seconds(start)
+		SOUND_FILES / name, seconds(end) - seconds(start), TrackOptions(offset=seconds(start))
 	)
 	context.track = context.tracks[name]
 

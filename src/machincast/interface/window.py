@@ -239,7 +239,7 @@ class MainWindow(QMainWindow):
 		self.broadcast = BroadcastControl(self)
 		self.tab_manager = TabManager(self, self.ui.tabs, self._reopen, self._close, self._remove)
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
-		self.home.show_clipping(self.clipping)
+		self.home.show_clipping(poster=self.clipping)
 		self.home.requested_listening.connect(self._listen_on_air)
 		self.tab_manager.add_fixed(self.home, ON_AIR, "on_air")
 		# La grille d'antenne, onglet fixe juste après l'onglet Antenne (https://github.com/dascritch/machincast/issues/307).
@@ -448,7 +448,7 @@ class MainWindow(QMainWindow):
 		"""L'action de chaque mode, selon full_audit : grisée tant que son indexation tourne."""
 		for full_audit in (False, True):
 			action = maintenance.addAction(TITLES[full_audit])
-			action.triggered.connect(lambda _ticked=False, audit=full_audit: self._index(audit))
+			action.triggered.connect(lambda _ticked=False, audit=full_audit: self._index(full_audit=audit))
 			self.indexings[full_audit] = action
 		# Où en sont les indexations (https://github.com/dascritch/machincast/issues/392).
 		self.indexing_status = maintenance.addAction(_("Indexing status…"))
@@ -520,7 +520,7 @@ class MainWindow(QMainWindow):
 		if self.configuration is not None:
 			with contextlib.suppress(InvalidConfiguration, OSError):
 				audio = load(self.configuration).audio
-		return crash.sound_cards(audio, True)
+		return crash.sound_cards(audio, preview=True)
 
 	def _shown_tab(self) -> str:
 		"""Le titre complet de l'onglet au premier plan."""
@@ -681,17 +681,17 @@ class MainWindow(QMainWindow):
 			return
 		self._listen_on_air(launch=True)
 
-	def _show_listening(self, ongoing: bool) -> None:
+	def _show_listening(self, ongoing: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
 		text, tooltip = LISTENING[ongoing]
 		self.listen.setText(text)
-		display.set_preview(self.listen, True, tooltip)
+		display.set_preview(self.listen, active=True, tooltip=tooltip)
 
 	def _follow_preview(self) -> None:
 		"""Sur l'entrée « Sortie factice » de la pré-écoute, ses boutons et ses entrées de menu sont grisés, partout
 		(https://github.com/dascritch/machincast/issues/339) : ceux de la fenêtre, de l'onglet Antenne et des fiches de
 		sonores ouvertes ; les menus contextuels le sont à leur ouverture."""
-		display.disable_preview(self.audio.disabled_preview())
-		display.set_preview(self.preview_action, True, self.preview_action.text())
+		display.disable_preview(disabled=self.audio.disabled_preview())
+		display.set_preview(self.preview_action, active=True, tooltip=self.preview_action.text())
 		ongoing = (self.preview is not None) and (self.preview.on_air_listening())
 		self._show_listening(ongoing)
 		self.home.follow_preview()
@@ -701,7 +701,7 @@ class MainWindow(QMainWindow):
 			if isinstance(screen, SoundCard):
 				screen.follow_preview()
 
-	def _listen_on_air(self, launch: bool = False) -> None:
+	def _listen_on_air(self, launch: bool = False) -> None:  # noqa: FBT001, FBT002  # signal de Qt : le booléen arrive par sa position
 		"""Clic sur le VU-mètre de l'onglet Antenne : l'antenne dans la fenêtre de pré-écoute
 		(https://github.com/dascritch/machincast/issues/24) ; par le bouton « Pré-écoute » de la fenêtre, lancée
 		aussitôt (https://github.com/dascritch/machincast/issues/223)."""
@@ -709,7 +709,7 @@ class MainWindow(QMainWindow):
 		# Désactivée, la pré-écoute ne s'ouvre pas (https://github.com/dascritch/machincast/issues/339).
 		if self.preview is None:
 			return
-		self.preview.listen_on_air(self._public_text, launch)
+		self.preview.listen_on_air(self._public_text, launch=launch)
 
 	def _follow_public_text(self, state: PlaybackState) -> None:
 		self._public_text = None
@@ -963,7 +963,7 @@ class MainWindow(QMainWindow):
 			self.status_window = indexing_status.StatusWindow(self.connection, self)
 		self.status_window.open_()
 
-	def _index(self, full_audit: bool) -> bool:
+	def _index(self, *, full_audit: bool) -> bool:
 		"""Lance Machin indexer dans son propre processus, avec sa fenêtre ; le menu ne propose plus ce mode, ni la
 		maintenance de la base, tant qu'il tourne. L'autre mode reste proposé
 		(https://github.com/dascritch/machincast/issues/401). Vrai s'il est lancé."""
@@ -986,7 +986,7 @@ class MainWindow(QMainWindow):
 		return True
 
 	def _follow_indexing(self) -> None:
-		def follow_full_audit(full_audit: bool, number: int) -> None:
+		def follow_full_audit(*, full_audit: bool, number: int) -> None:
 			if indexer.active_process(number):
 				return
 			del self.launched_indexings[full_audit]
@@ -998,7 +998,7 @@ class MainWindow(QMainWindow):
 			)
 
 		for full_audit, number in list(self.launched_indexings.items()):
-			follow_full_audit(full_audit, number)
+			follow_full_audit(full_audit=full_audit, number=number)
 		if self.launched_indexings == {}:
 			self._indexing_tracking.stop()
 			self.database_maintenance.setEnabled(True)
@@ -1095,7 +1095,7 @@ class MainWindow(QMainWindow):
 		self.dead_air = settings.dead_air
 		self.clipping = settings.clipping
 		self.suggestions = settings.suggestions
-		self.home.show_clipping(self.clipping)
+		self.home.show_clipping(poster=self.clipping)
 		icon = ""
 		if settings.icon != self.icon:
 			icon = self._change_icon(settings.icon)
@@ -1131,7 +1131,7 @@ class MainWindow(QMainWindow):
 				"Silence threshold changed: the ongoing full audit keeps the former threshold, launch “{title}” again "
 				"at its end."
 			).format(title=TITLES[True])
-		if self._index(True):
+		if self._index(full_audit=True):
 			return _("Silence threshold changed: full audit launched, in its own window.")
 		return _("Silence threshold changed: full audit impossible, Machin indexer could not be launched.")
 

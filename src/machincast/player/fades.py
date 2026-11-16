@@ -62,6 +62,7 @@ def put(
 	duration: timedelta,
 	detected_start: timedelta | None,
 	detected_end: timedelta | None,
+	*,
 	without_silences: bool,
 	start_crossfade: timedelta,
 	end_crossfade: timedelta,

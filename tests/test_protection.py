@@ -254,7 +254,7 @@ def justified_code(marks: str) -> None:
 	files = [*sorted((ROOT / "src").rglob("*.py")), ROOT / "bin" / "Machin", ROOT / "install.sh"]
 	faults = []
 	for path in files:
-		for number, line in unjustified(path.read_text(encoding="utf-8"), path.suffix != ".py"):
+		for number, line in unjustified(path.read_text(encoding="utf-8"), bash=path.suffix != ".py"):
 			faults.append(f"{path.relative_to(ROOT)}:{number} : {line.strip()}")
 	assert not faults, "suppressions sans « " + marks + " » :\n" + "\n".join(faults)
 
@@ -262,7 +262,7 @@ def justified_code(marks: str) -> None:
 @then(parsers.re(r"le garde-fou (?P<verdict>refuse|accepte) ce code"))
 def keeps_crazy(context: Context, verdict: str) -> None:
 	bash = context.code.startswith(("rm ", "mv "))
-	found_list = unjustified(context.code, bash)
+	found_list = unjustified(context.code, bash=bash)
 	assert bool(found_list) is (verdict == "refuse"), found_list
 
 

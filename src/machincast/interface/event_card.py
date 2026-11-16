@@ -181,7 +181,7 @@ class EventCard(Card):
 	def _priority(self) -> str:
 		return (*PRIORITIES, BREAKING)[self.ui.priority.currentIndex()][0]
 
-	def _offer_breaking(self, breaking: bool) -> None:
+	def _offer_breaking(self, *, breaking: bool) -> None:
 		"""Le choix de la priorité : les priorités qui se choisissent, et, pour un imprévu, le sien, grisé."""
 		choice = self.ui.priority
 		if (breaking) and (choice.count() == len(PRIORITIES)):
@@ -214,7 +214,7 @@ class EventCard(Card):
 				" AND id IS DISTINCT FROM %s ORDER BY internal_name",
 				(lu,),
 			).fetchall()
-			self.items.load(lu, self.is_copy())
+			self.items.load(lu, copies=self.is_copy())
 		name, public_name, priority, start, end, days, hiding, end_of_list, end_fallback, stream_fallback = event
 		if self.is_copy():
 			start, end, days = None, None, []
@@ -224,7 +224,7 @@ class EventCard(Card):
 		if self.is_copy():
 			ui.internal_name.setText(self.name_of_copy(self._name))
 		ui.public_name.setText(str((public_name) or ("")))
-		self._offer_breaking(priority == BREAKING[0])
+		self._offer_breaking(breaking=priority == BREAKING[0])
 		ui.priority.setCurrentIndex(rank_of((*PRIORITIES, BREAKING), priority))
 		ui.hiding.setCurrentIndex(rank_of(HIDINGS, hiding))
 		now = self.clock.now().replace(second=0, microsecond=0)
@@ -450,7 +450,7 @@ class EventCard(Card):
 		"""Un événement vide, selon sa priorité, ou une banque « ne pas répéter » appelée juste après elle-même : cet
 		appel sera sauté. La liste boucle, sauf pour une émission ou un spécial sans fin."""
 		loop = (self._priority() not in ENDLESS_DOES_NOT_LOOP) or (self.ui.has_end.isChecked())
-		self.ui.warning.setText("\n".join(self.items.warnings(loop)))
+		self.ui.warning.setText("\n".join(self.items.warnings(loop=loop)))
 		empty = ""
 		if self.items.lines() == []:
 			empty = EMPTY_EVENT[self._priority()]

@@ -87,7 +87,7 @@ class VuMeter(QWidget):
 	clicked = Signal()
 
 	def __init__(
-		self, parent: QWidget | None = None, vertical: bool = False, clock: Callable[[], float] = time.monotonic
+		self, parent: QWidget | None = None, *, vertical: bool = False, clock: Callable[[], float] = time.monotonic
 	) -> None:
 		super().__init__(parent)
 		self.vertical = vertical

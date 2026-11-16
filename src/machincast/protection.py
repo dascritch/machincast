@@ -50,7 +50,7 @@ def check_writing(path: Path) -> None:
 		raise ProtectedSoundFile(_("{path}: protected sound file, MachinCast never writes to it").format(path=path))
 
 
-def unjustified(text: str, bash: bool = False) -> list[tuple[int, str]]:
+def unjustified(text: str, *, bash: bool = False) -> list[tuple[int, str]]:
 	"""Lignes qui suppriment, renomment ou remplacent un fichier sans la justification MARQUE (numérotées dès 1)."""
 	pattern = _PYTHON
 	if bash:

@@ -54,6 +54,35 @@ class Play:
 	lender: int | None = None
 	"""L'événement au nom de qui le passage est joué (https://github.com/dascritch/machincast/issues/399)."""
 
+	@classmethod
+	def of(cls, start: "PlayStart") -> "Play":
+		"""Le passage qui commence ainsi, sous un identifiant neuf."""
+		return cls(
+			uuid.uuid4(),
+			start.sound,
+			start.bank,
+			start.event,
+			start.item,
+			start.instant,
+			start.sequence,
+			start.item_sequence,
+			start.lender,
+		)
+
+
+@dataclass(frozen=True)
+class PlayStart:
+	"""Ce qui fait commencer un passage (https://github.com/dascritch/machincast/issues/441)."""
+
+	sound: int
+	bank: int | None
+	event: int | None
+	item: int | None
+	instant: datetime
+	sequence: int | None = None
+	item_sequence: int | None = None
+	lender: int | None = None
+
 
 def record(
 	connection: psycopg.Connection[TupleRow],
@@ -102,7 +131,7 @@ def _start(connection: psycopg.Connection[TupleRow], play: Play) -> None:
 	)
 
 
-def _end(connection: psycopg.Connection[TupleRow], play: Play, instant: datetime, without_incident: bool) -> None:
+def _end(connection: psycopg.Connection[TupleRow], play: Play, instant: datetime, *, without_incident: bool) -> None:
 	# La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage.
 	connection.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
@@ -114,19 +143,9 @@ def _end(connection: psycopg.Connection[TupleRow], play: Play, instant: datetime
 	)
 
 
-def begin_play(
-	connection: psycopg.Connection[TupleRow],
-	sound: int,
-	bank: int | None,
-	event: int | None,
-	item: int | None,
-	instant: datetime,
-	sequence: int | None = None,
-	item_sequence: int | None = None,
-	lender: int | None = None,
-) -> Play:
+def begin_play(connection: psycopg.Connection[TupleRow], start: PlayStart) -> Play:
 	"""Ligne de début d'un passage ; l'artiste et le titre sont recopiés tels qu'ils sont à cet instant."""
-	play = Play(uuid.uuid4(), sound, bank, event, item, instant, sequence, item_sequence, lender)
+	play = Play.of(start)
 	with connection.transaction():
 		_start(connection, play)
 	return play
@@ -136,6 +155,7 @@ def finish_play(
 	connection: psycopg.Connection[TupleRow],
 	play: Play,
 	instant: datetime,
+	*,
 	cut: bool = False,
 	error: str | None = None,
 	kind: str = N_("interrupted playback"),
@@ -143,7 +163,7 @@ def finish_play(
 	"""Ligne de fin d'un passage, avec la durée diffusée ; une coupure ou une erreur est aussi consignée au log,
 	l'erreur en incident de la nature donnée."""
 	with connection.transaction():
-		_end(connection, play, instant, error is None)
+		_end(connection, play, instant, without_incident=error is None)
 		references = {"sound": play.sound, "bank": play.bank, "event": play.event}
 		if error is not None:
 			record(connection, "incident", kind, error, instant, **references)

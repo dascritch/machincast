@@ -93,7 +93,7 @@ class SequenceCard(Card):
 					" WHERE ee.sequence_id = %s AND ev.deleted_at IS NULL ORDER BY ev.internal_name, ev.id",
 					(self.identifier,),
 				).fetchall()
-			self.items.load(lu, self.is_copy())
+			self.items.load(lu, copies=self.is_copy())
 		name, public_name, hiding = sequence
 		self._name = str(name)
 		self.ui.internal_name.setText(self._name)
@@ -142,7 +142,7 @@ class SequenceCard(Card):
 
 	def _warn(self) -> None:
 		"""Une séquence vide, ou une banque « ne pas répéter » appelée juste après elle-même : cet appel sera sauté."""
-		self.ui.warning.setText("\n".join(self.items.warnings(False)))
+		self.ui.warning.setText("\n".join(self.items.warnings(loop=False)))
 		empty = ""
 		if self.items.lines() == []:
 			empty = EMPTY_SEQUENCE

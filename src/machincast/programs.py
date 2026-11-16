@@ -160,7 +160,7 @@ def ongoing(proc: Path = PROC, accounts: Callable[[int], str] = _account) -> lis
 	return sorted(found_list, key=lambda program: program.pid)
 
 
-def _yes(true: bool) -> str:
+def _yes(*, true: bool) -> str:
 	"""« yes » ou « no », pour install.sh (https://github.com/dascritch/machincast/issues/368)."""
 	if true:
 		return "yes"
@@ -172,7 +172,7 @@ def list_items(programs: list[Program], current_account: str) -> str:
 	lines = []
 	for program in programs:
 		lines.append(
-			f"{program.pid}\t{_yes(program.account == current_account)}\t{_yes(program.service)}\t{program.label}\n"
+			f"{program.pid}\t{_yes(true=program.account == current_account)}\t{_yes(true=program.service)}\t{program.label}\n"
 		)
 	return "".join(lines)
 
@@ -220,6 +220,7 @@ def _terminal(find: Callable[[str], str | None]) -> str | None:
 def _reopening(
 	program: Program,
 	current_account: str,
+	*,
 	graphic: bool,
 	terminal: str | None,
 	prefix: str,
@@ -267,6 +268,7 @@ def restart(
 	environment: Mapping[str, str],
 	launch: Launch = launch_detached,
 	find: Callable[[str], str | None] = shutil.which,
+	*,
 	simulation: bool = False,
 ) -> list[str]:
 	"""Relance la diffusion d'essai et l'interface du compte ; ce qu'il faut en dire, ligne par ligne. Le service de
@@ -283,7 +285,15 @@ def restart(
 	if simulation:
 		prefix = "[simulation] "
 	for program in programs:
-		reopening = _reopening(program, current_account, graphic, terminal, prefix, launch, simulation)
+		reopening = _reopening(
+			program,
+			current_account,
+			graphic=graphic,
+			terminal=terminal,
+			prefix=prefix,
+			launch=launch,
+			simulation=simulation,
+		)
 		if reopening is not None:
 			text, relaunched = reopening
 			if relaunched:

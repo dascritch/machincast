@@ -94,5 +94,5 @@ def set_volume(name: str, volume: float) -> None:
 	_run([CONTROL, "set-volume", str(node(name)), f"{max(0.0, min(volume, 1.0)):.2f}"])
 
 
-def set_muted(name: str, muted: bool) -> None:
+def set_muted(name: str, *, muted: bool) -> None:
 	_run([CONTROL, "set-mute", str(node(name)), str(int(muted))])
