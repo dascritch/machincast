@@ -93,7 +93,7 @@ def replace_directories(connection: Connection, bank: int, directories: list[str
 	)
 
 
-def set_state(connection: Connection, sound: int, state: str) -> None:
+def set_sound_state(connection: Connection, sound: int, state: str) -> None:
 	"""Un sonore passé en aperçu entre-temps garde son état."""
 	connection.execute("UPDATE sounds SET state = %s WHERE id = %s AND state <> 'preview'", (state, sound))
 
