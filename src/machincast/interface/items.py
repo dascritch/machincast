@@ -33,6 +33,7 @@ from machincast.interface.card import Card, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
 from machincast.interface.lists import MODES
+from machincast.interface.queries import items as queries
 from machincast.shared.no_repeat import ignored_calls_to_edges
 
 CATEGORY = Qt.ItemDataRole.UserRole
@@ -55,23 +56,6 @@ LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.It
 
 COLUMNS = {"sound": "sound_id", "bank": "bank_id", "sequence": "sequence_id"}
 """Colonne de chaque genre d'élément, dans sequence_items et event_items."""
-TABLES = {"sound": "sounds", "bank": "banks", "sequence": "sequences"}
-PLAYS = {
-	"sound": (
-		"SELECT s.id, s.artist, s.title, s.location, COALESCE(s.location, s.stream_url, m.url)"
-		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = ANY(%s)"
-	),
-	"bank": "SELECT b.id, b.internal_name, b.mode::text, b.no_repeat FROM banks b WHERE b.id = ANY(%s)",
-	"sequence": (
-		"SELECT q.id, q.internal_name, (SELECT count(*) FROM sequence_items e WHERE e.sequence_id = q.id),"
-		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position LIMIT 1),"
-		" (SELECT e.bank_id FROM sequence_items e WHERE e.sequence_id = q.id ORDER BY e.position DESC LIMIT 1)"
-		" FROM sequences q WHERE q.id = ANY(%s)"
-	),
-}
-"""Ce que montre la ligne d'un élément, lu par identifiants."""
-SOUNDS_PER_FILE = PLAYS["sound"].replace("s.id = ANY(%s)", "s.location = ANY(%s)")
-FEED_STREAM = "SELECT id FROM sounds WHERE feed_id = %s AND deleted_at IS NULL ORDER BY title, id LIMIT 1"
 PARTIAL_ITEMS = _("Items: {shown} shown out of {total}, the rest is loaded as you scroll down")
 """Le titre de la liste tant que tous ses éléments ne sont pas lus (https://github.com/dascritch/machincast/issues/383)."""
 """Le stream repris pour un feed : le premier par titre qui le suit."""
@@ -195,22 +179,15 @@ class ItemList(QObject):
 			limit = None
 		else:
 			limit = rows + 1
-		rows_read = self.card.connection.execute(
-			f"SELECT e.id, e.position, {columns} FROM {self.table} e"
-			f" WHERE e.{self.column_parent} = %s AND e.position > %s ORDER BY e.position LIMIT %s",
-			(self._parent, after, limit),
-		).fetchall()
+		rows_read = queries.page(
+			self.card.connection, self.table, self.column_parent, columns, self._parent, after, limit
+		)
 		if (rows is not None) and (len(rows_read) > rows):
 			rows_read = rows_read[:rows]
 			self._after = int(str(rows_read[-1][1]))
-			tail = self.card.connection.execute(
-				f"SELECT count(*), COALESCE(bool_or(s.type = 'stream'), false) FROM {self.table} e"
-				f" LEFT JOIN sounds s ON s.id = e.sound_id WHERE e.{self.column_parent} = %s AND e.position > %s",
-				(self._parent, self._after),
-			).fetchone()
-			assert tail is not None
-			self._tail = int(str(tail[0]))
-			self.tail_stream = bool(tail[1])
+			self._tail, self.tail_stream = queries.tail(
+				self.card.connection, self.table, self.column_parent, self._parent, self._after
+			)
 		categories = list(self._columns())
 		items = []
 		for line_in_database, _position, *identifiers in rows_read:
@@ -342,9 +319,8 @@ class ItemList(QObject):
 			for _line, item_category, item_id in items:
 				if item_category == category:
 					requests.append(item_id)
-			fetched_list = connection.execute(f"SELECT id FROM {TABLES[category]} WHERE id = ANY(%s)", (requests,))
-			for (identifier,) in fetched_list:
-				existing_list.add((category, int(str(identifier))))
+			for identifier in queries.existing(connection, category, requests):
+				existing_list.add((category, identifier))
 		kept_list = []
 		for line, category, item_id in items:
 			if (category, item_id) in existing_list:
@@ -357,16 +333,8 @@ class ItemList(QObject):
 			if line is not None:
 				kept_lines.append(line)
 				kept_positions.append(position)
-		connection.execute(
-			f"DELETE FROM {self.table} WHERE {self.column_parent} = %s AND NOT (id = ANY(%s))",
-			(parent, kept_lines),
-		)
-		# Une ligne n'est jamais reprise d'une autre séquence ou d'un autre événement.
-		connection.execute(
-			f"UPDATE {self.table} e SET position = v.position FROM unnest(%s::bigint[], %s::int[])"
-			f" AS v(id, position) WHERE e.id = v.id AND e.{self.column_parent} = %s",
-			(kept_lines, kept_positions, parent),
-		)
+		queries.delete_others(connection, self.table, self.column_parent, parent, kept_lines)
+		queries.renumber(connection, self.table, self.column_parent, parent, kept_lines, kept_positions)
 		for category, column in COLUMNS.items():
 			self._insert_new(parent, kept_list, category, column)
 
@@ -382,10 +350,8 @@ class ItemList(QObject):
 				new_items.append(item_id)
 		if new_positions == []:
 			return
-		self.card.connection.execute(
-			f"INSERT INTO {self.table} ({self.column_parent}, position, {column})"
-			" SELECT %s, v.position, v.item FROM unnest(%s::int[], %s::bigint[]) AS v(position, item)",
-			(parent, new_positions, new_items),
+		queries.insert_new(
+			self.card.connection, self.table, self.column_parent, column, parent, new_positions, new_items
 		)
 
 	def _save_stream(self, feed: int, name: str) -> int | None:
@@ -393,16 +359,12 @@ class ItemList(QObject):
 		titré du nom du feed ; un second ajout du même feed le reprend. None pour un feed effacé
 		de la base entre-temps : la ligne est oubliée."""
 		connection = self.card.connection
-		if connection.execute("SELECT 1 FROM feeds WHERE id = %s", (feed,)).fetchone() is None:
+		if not queries.feed_exists(connection, feed):
 			return None
-		line = connection.execute(FEED_STREAM, (feed,)).fetchone()
-		if line is None:
-			line = connection.execute(
-				"INSERT INTO sounds (type, feed_id, title, state) VALUES ('stream', %s, %s, 'active') RETURNING id",
-				(feed, name),
-			).fetchone()
-			assert line is not None
-		return int(str(line[0]))
+		stream = queries.feed_stream(connection, feed)
+		if stream is None:
+			stream = queries.create_feed_stream(connection, feed, name)
+		return stream
 
 	def _columns(self) -> dict[str, str]:
 		"""Les genres d'éléments de la liste, et leur colonne : jamais une séquence dans une séquence."""
@@ -413,18 +375,14 @@ class ItemList(QObject):
 		return columns
 
 	def _read_marked(self) -> None:
-		fetched_list = self.card.connection.execute("SELECT id, internal_name FROM banks WHERE no_repeat").fetchall()
-		identifier_dict = {}
-		for identifier, name in fetched_list:
-			identifier_dict[int(str(identifier))] = str(name)
-		self.marked_list = identifier_dict
+		self.marked_list = queries.no_repeat_banks(self.card.connection)
 
 	def _read(self, identifiers: dict[str, list[int]]) -> dict[str, dict[int, QTreeWidgetItem]]:
 		"""Les lignes des éléments, par genre et par identifiant ; un élément absent de la base n'en a pas."""
 		build = {"sound": self._sound_line, "bank": self._bank_line, "sequence": self._sequence_line}
 		lines: dict[str, dict[int, QTreeWidgetItem]] = {}
 		for category, requests in identifiers.items():
-			fetched_list = self.card.connection.execute(PLAYS[category], (requests,)).fetchall()
+			fetched_list = queries.plays(self.card.connection, category, requests)
 			lu_dict = {}
 			for lu in fetched_list:
 				lu_dict[int(str(lu[0]))] = build[category](lu)
@@ -515,12 +473,12 @@ class ItemList(QObject):
 
 			def add_feed(feed: int) -> None:
 				nonlocal lines
-				marks = connection.execute("SELECT name, url FROM feeds WHERE id = %s", (feed,)).fetchone()
+				marks = queries.feed_marks(connection, feed)
 				if marks is None:
 					return
-				stream = connection.execute(FEED_STREAM, (feed,)).fetchone()
+				stream = queries.feed_stream(connection, feed)
 				if stream is not None:
-					lines += self._read({"sound": [int(str(stream[0]))]})["sound"].values()
+					lines += self._read({"sound": [stream]})["sound"].values()
 					return
 				name, url = marks
 				line = self._line("sound", [str(name), _("{url}, new stream").format(url=url)], (None, None))
@@ -538,7 +496,7 @@ class ItemList(QObject):
 		files, ignored = sound_files(paths)
 		self.load_all()
 		with self.card.connection.transaction():
-			fetched_list = self.card.connection.execute(SOUNDS_PER_FILE, (files,)).fetchall()
+			fetched_list = queries.sounds_per_file(self.card.connection, files)
 		by_file = {}
 		for sound in fetched_list:
 			by_file[str(sound[3])] = sound
