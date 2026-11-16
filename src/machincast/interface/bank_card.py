@@ -83,6 +83,7 @@ from machincast.interface.lists import (
 	bank_to_sounds_in_anomaly,
 	without_accents,
 )
+from machincast.interface.queries import banks
 from machincast.interface.ui.bank_card import Ui_BankCard
 
 MODES = (("sequential", _("Sequential")), ("random", _("Random")))
@@ -148,24 +149,6 @@ def _matches(line: QTreeWidgetItem, text: str) -> bool:
 	return False
 
 
-FETCHED_SOUNDS = (
-	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, m.url),"
-	" s.state::text"
-	" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
-)
-PAGE = (
-	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, m.url),"
-	" s.state::text, bs.position"
-	" FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id LEFT JOIN feeds m ON m.id = s.feed_id"
-	" WHERE bs.bank_id = %s AND bs.position > %s ORDER BY bs.position LIMIT %s"
-)
-"""Les sonores de la banque qui suivent une position, dans l'ordre de la banque, au plus un nombre : la fiche les lit
-par pages (https://github.com/dascritch/machincast/issues/383)."""
-TAIL_STATES = (
-	"SELECT s.state::text, count(*) FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
-	" WHERE bs.bank_id = %s AND bs.position > %s GROUP BY 1"
-)
-"""Les états des sonores de la banque qui ne sont pas encore lus, et leur nombre, pour l'avertissement de la fiche."""
 PARTIAL_SOUNDS = _("Sounds: {shown} shown out of {total}, the rest is loaded as you scroll down")
 
 
@@ -312,19 +295,10 @@ class BankCard(Card):
 		lu = self.lu()
 		with self.connection.transaction():
 			if lu is not None:
-				line = self.connection.execute(
-					"SELECT internal_name, public_name, mode::text, hide_metadata, no_repeat,"
-					" crossfade_start_rule::text, crossfade_start, crossfade_end_rule::text, crossfade_end,"
-					" min_duration, max_duration, silence_detection FROM banks WHERE id = %s",
-					(lu,),
-				).fetchone()
+				line = banks.read_bank(self.connection, lu)
 				assert line is not None, f"banque {lu} absente"
 				bank = line
-				directories = []
-				for (directory,) in self.connection.execute(
-					"SELECT directory FROM bank_directories WHERE bank_id = %s", (lu,)
-				):
-					directories.append(str(directory))
+				directories = banks.directories(self.connection, lu)
 			if self.identifier is not None:
 				sounds = self._page(0, preferences.table_rows())
 		name, public_name, mode, hiding, no_repeat, *crossfades, min_duration, max_duration, detection = bank
@@ -373,16 +347,13 @@ class BankCard(Card):
 			limit = None
 		else:
 			limit = rows + 1
-		lines = self.connection.execute(PAGE, (self.identifier, after, limit)).fetchall()
+		lines = banks.page(self.connection, self.identifier, after, limit)
 		self._after = None
 		self._tail = {}
 		if (rows is not None) and (len(lines) > rows):
 			lines = lines[:rows]
 			self._after = int(str(lines[-1][-1]))
-			count_dict = {}
-			for state, count in self.connection.execute(TAIL_STATES, (self.identifier, self._after)):
-				count_dict[str(state)] = int(str(count))
-			self._tail = count_dict
+			self._tail = banks.tail_states(self.connection, self.identifier, self._after)
 		page = []
 		for line in lines:
 			page.append(tuple(line[:-1]))
@@ -445,11 +416,7 @@ class BankCard(Card):
 		name = conform(self.ui.internal_name.text())
 		if name == "":
 			raise Refusal(_("The internal name is required."), self.ui.internal_name)
-		taken = self.connection.execute(
-			"SELECT 1 FROM banks WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
-			(name, self.identifier),
-		).fetchone()
-		if taken is not None:
+		if banks.name_taken(self.connection, name, self.identifier):
 			raise Refusal(_("Another bank is already called “{name}”.").format(name=name), self.ui.internal_name)
 		values: list[object] = [
 			name,
@@ -469,27 +436,11 @@ class BankCard(Card):
 			)
 		values += [minimum, maximum, self.ui.detection_silences.isChecked()]
 		if self.identifier is None:
-			created = self.connection.execute(
-				"INSERT INTO banks (internal_name, public_name, mode, hide_metadata, no_repeat,"
-				" crossfade_start_rule, crossfade_start, crossfade_end_rule, crossfade_end, min_duration, max_duration,"
-				" silence_detection) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
-				values,
-			).fetchone()
-			assert created is not None
-			identifier = int(str(created[0]))
+			identifier = banks.insert(self.connection, values)
 		else:
 			identifier = self.identifier
-			self.connection.execute(
-				"UPDATE banks SET internal_name = %s, public_name = %s, mode = %s, hide_metadata = %s,"
-				" no_repeat = %s, crossfade_start_rule = %s, crossfade_start = %s, crossfade_end_rule = %s,"
-				" crossfade_end = %s, min_duration = %s, max_duration = %s, silence_detection = %s WHERE id = %s",
-				(*values, identifier),
-			)
-		self.connection.execute("DELETE FROM bank_directories WHERE bank_id = %s", (identifier,))
-		self.connection.execute(
-			"INSERT INTO bank_directories (bank_id, directory) SELECT %s, unnest(%s::text[])",
-			(identifier, self._directories()),
-		)
+			banks.update(self.connection, identifier, values)
+		banks.replace_directories(self.connection, identifier, self._directories())
 		# Une liste inchangée n'est pas réécrite (https://github.com/dascritch/machincast/issues/383) ; une nouvelle
 		# banque, ou une copie, écrit toujours la sienne.
 		if (self._sounds_changed) or (identifier != self.identifier):
@@ -503,9 +454,7 @@ class BankCard(Card):
 			chosen = line.data(0, CHOSEN_STATE)
 			sound = line.data(0, SOUND)
 			if (chosen is not None) and (sound is not None):
-				self.connection.execute(
-					"UPDATE sounds SET state = %s WHERE id = %s AND state <> 'preview'", (chosen, int(sound))
-				)
+				banks.set_state(self.connection, int(sound), chosen)
 
 	def sound_menu(self, line: QTreeWidgetItem | None) -> QMenu | None:
 		"""Le menu du clic droit sur cette ligne : « Pré-écoute… » de son sonore, puis l'état des sonores choisis si
@@ -644,11 +593,7 @@ class BankCard(Card):
 			if identifier is None:
 				identifier = self.save_file(str(line.data(0, FILE)))
 			wanted.append(int(identifier))
-		in_database = []
-		for (sound,) in self.connection.execute(
-			"SELECT sound_id FROM bank_sounds WHERE bank_id = %s ORDER BY position FOR UPDATE", (bank,)
-		):
-			in_database.append(int(str(sound)))
+		in_database = banks.locked_sounds(self.connection, bank)
 		# Rattachés par une indexation depuis la lecture de la fiche : gardés, en fin de liste. Un ensemble, et non la
 		# liste voulue, pour qu'une banque de milliers de sonores s'enregistre en un temps linéaire
 		# (https://github.com/dascritch/machincast/issues/187).
@@ -657,23 +602,13 @@ class BankCard(Card):
 		for sound in in_database:
 			if (sound not in self._loaded_list) and (sound not in kept_list):
 				attached_list.append(sound)
-		existing_list = set()
-		for (sound,) in self.connection.execute("SELECT id FROM sounds WHERE id = ANY(%s)", (wanted,)):
-			existing_list.add(int(str(sound)))
+		existing_list = banks.existing_sounds(self.connection, wanted)
 		sound_list = []
 		for sound in wanted:
 			if sound in existing_list:
 				sound_list.append(sound)
 		order = sound_list + attached_list
-		self.connection.execute("DELETE FROM bank_sounds WHERE bank_id = %s", (bank,))
-		with self.connection.cursor() as slider:
-			position_list = []
-			for position, sound in enumerate(order, start=1):
-				position_list.append((bank, sound, position))
-			slider.executemany(
-				"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
-				position_list,
-			)
+		banks.replace_sounds(self.connection, bank, order)
 
 	def _line(self, sound: tuple[object, ...]) -> QTreeWidgetItem:
 		"""Une ligne de sonore ; un fichier déposé, pas encore en base, n'a pas d'identifiant."""
@@ -882,7 +817,7 @@ class BankCard(Card):
 			self.message.setText(screening.text())
 		self.load_all()
 		with self.connection.transaction():
-			fetched_list = self.connection.execute(f"{FETCHED_SOUNDS} WHERE s.location = ANY(%s)", (files,)).fetchall()
+			fetched_list = banks.sounds_by_location(self.connection, files)
 		by_file = {}
 		for fetched in fetched_list:
 			by_file[str(fetched[4])] = fetched
@@ -923,7 +858,7 @@ class BankCard(Card):
 			if sound not in present_list:
 				new_list.append(sound)
 		with self.connection.transaction():
-			fetched_list = self.connection.execute(f"{FETCHED_SOUNDS} WHERE s.id = ANY(%s)", (new_list,)).fetchall()
+			fetched_list = banks.sounds_by_identifier(self.connection, new_list)
 		by_identifier = {}
 		for fetched in fetched_list:
 			by_identifier[int(str(fetched[0]))] = fetched
