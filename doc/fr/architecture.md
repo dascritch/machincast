@@ -512,7 +512,7 @@ Nous essayons de réduire cet encombrement en réfléchissant à passer des fonc
 
 Le pilotage, la relecture et les fusions reposent sur un seul mainteneur. 
 
-Effectivement, notre indice bus factor est de `1`. Le projet a été lancé sur une initiative personnelle. La documentation par public, les règles écrites, les scénarios en français et ce document visent à rendre le projet transmissible. 
+Effectivement, notre indice bus factor est de `1`. Le projet a été lancé sur une initiative personnelle. La documentation par public, les règles écrites, les scénarios en français et ce document visent à rendre le projet transmissible. La situation est provisoire le temps d'asseoir le projet, qui de toutes façons est en licence ouverte.
 
 ### 11.8 Pas d'intégration continue
 
