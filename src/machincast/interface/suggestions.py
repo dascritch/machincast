@@ -38,6 +38,7 @@ from machincast.configuration import Audio, AudioOutput
 from machincast.i18n import _
 from machincast.interface import background_programming
 from machincast.interface.preferences import write_audio
+from machincast.interface.queries import suggestions as queries
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.ui.suggestions import Ui_SuggestionsWindow
 from machincast.service import ABSENT, ServiceState
@@ -130,12 +131,8 @@ class Response:
 def missing_list(connection: psycopg.Connection[TupleRow], audio: Audio) -> Shortfalls:
 	"""Ce qui manque : fil musical, banques suggérées, carte son d'antenne sur une vraie sortie."""
 	with connection.transaction():
-		feed = connection.execute(
-			"SELECT 1 FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL LIMIT 1"
-		).fetchone()
-		existing_list = set()
-		for (name,) in connection.execute("SELECT internal_name FROM banks WHERE deleted_at IS NULL"):
-			existing_list.add(str(name).casefold())
+		feed = queries.has_background_programming(connection)
+		existing_list = queries.bank_names(connection)
 	bank_list = []
 	for bank in BANKS:
 		if bank.casefold() not in existing_list:
@@ -144,7 +141,7 @@ def missing_list(connection: psycopg.Connection[TupleRow], audio: Audio) -> Shor
 	to_choose = None
 	if audio.to_fill_in_on_air():
 		to_choose = audio
-	return Shortfalls(feed is None, banks, to_choose)
+	return Shortfalls(not feed, banks, to_choose)
 
 
 def create(connection: psycopg.Connection[TupleRow], response: Response) -> str | None:
@@ -162,12 +159,7 @@ def create(connection: psycopg.Connection[TupleRow], response: Response) -> str 
 			rule = "sound"
 			if setting.without_crossfade:
 				rule = "forced"
-			connection.execute(
-				"INSERT INTO banks (internal_name, mode, no_repeat, max_duration, crossfade_start_rule,"
-				" crossfade_start, crossfade_end_rule, crossfade_end)"
-				" VALUES (%s, %s, %s, %s, %s, '0 s', %s, '0 s')",
-				(bank, setting.mode, setting.no_repeat, setting.max_duration, rule, rule),
-			)
+			queries.insert_bank(connection, bank, setting.mode, setting.no_repeat, setting.max_duration, rule)
 			new_list.append(_("“{bank}”").format(bank=bank))
 		if len(new_list) == 1:
 			created_list.append(_("the bank {new_list}").format(new_list=new_list[0]))
@@ -182,18 +174,10 @@ def create(connection: psycopg.Connection[TupleRow], response: Response) -> str 
 
 def _fill_empty_feed(connection: psycopg.Connection[TupleRow]) -> None:
 	"""Le premier fil musical sans élément, par nom, reçoit la rotation type, avec les banques qui existent."""
-	empty = connection.execute(
-		"SELECT e.id FROM events e WHERE e.priority = 'background_programming' AND e.deleted_at IS NULL"
-		" AND NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id)"
-		" ORDER BY e.internal_name LIMIT 1"
-	).fetchone()
+	empty = queries.empty_background_programming(connection)
 	if empty is None:
 		return
-	banks = {}
-	for bank_identifier, name in connection.execute(
-		"SELECT id, internal_name FROM banks WHERE deleted_at IS NULL ORDER BY id"
-	):
-		banks[str(name).casefold()] = int(str(bank_identifier))
+	banks = queries.banks_by_name(connection)
 	position = 0
 
 	def add_bank(bank: str) -> None:
@@ -202,10 +186,7 @@ def _fill_empty_feed(connection: psycopg.Connection[TupleRow]) -> None:
 		if identifier is None:
 			return
 		position += 1
-		connection.execute(
-			"INSERT INTO event_items (event_id, position, bank_id) VALUES (%s, %s, %s)",
-			(empty[0], position, identifier),
-		)
+		queries.add_bank_item(connection, empty, position, identifier)
 
 	for bank in ROTATION:
 		add_bank(bank)
