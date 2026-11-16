@@ -23,7 +23,6 @@ from machincast import i18n
 from machincast.log import configure as configure_log
 
 PACKAGE = Path(__file__).parent
-PROJECT = PACKAGE.parent.parent
 SCRIPTS = ("bin/Machin", "bin/i18n.bash", "install.sh")
 """Les scripts bash de MachinCast, dans le dépôt : leurs messages sont relevés aussi (bin/i18n.bash)."""
 BASH_MESSAGE = re.compile(r"\b(?:t|tf|etape|info|echec|avertissement|demander_oui) '([^']+)'")
@@ -251,6 +250,7 @@ def untranslated(messages: dict[str, Message], translations: dict[str, str | tup
 
 
 def main(arguments: list[str] | None = None) -> int:
+	"""Vérifie ou met à jour les catalogues de langue, et en crée un pour une langue nouvelle (--new) ; le code de sortie."""
 	analyser = argparse.ArgumentParser(prog="python -m machincast.catalog", description=__doc__.splitlines()[0])
 	analyser.add_argument("--check", action="store_true", help="checks the catalogues, without writing anything")
 	analyser.add_argument("--new", metavar="LANGUAGE", help="creates the catalogue of a new language, such as de")

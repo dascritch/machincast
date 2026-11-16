@@ -175,6 +175,7 @@ class SimulationScreen(QWidget):
 		"""Rien à relire : le résultat est celui de la dernière simulation, que seul « Simuler » relance."""
 
 	def launch(self) -> None:
+		"""Lance Machin player en simulation sur la période choisie, dans un processus dont la sortie remplit l'écran."""
 		start, end = _instant(self.start), _instant(self.end)
 		if end <= start:
 			self.count.setText(INVALID_PERIOD)

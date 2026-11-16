@@ -68,7 +68,8 @@ indent-style = "tab"
 # RUF100 refuse un « # noqa » qui ne supprime rien : il vise une règle que ruff n'applique pas, ou qui ne se
 # déclenche plus (https://github.com/dascritch/machincast/issues/438).
 # C901 refuse une fonction trop complexe : plus de 15 chemins (https://github.com/dascritch/machincast/issues/439).
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF100", "C901", "FBT001", "FBT002"]
+# PLW0127 refuse une affectation à soi-même, PLW1510 un subprocess.run sans check explicite (https://github.com/dascritch/machincast/issues/443).
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF100", "C901", "FBT001", "FBT002", "PLW0127", "PLW1510"]
 # FBT001 et FBT002 refusent un booléen passé par sa position : un appel se lit sans ouvrir la définition, le booléen est
 # nommé obligatoire (« * »), sauf le paramètre d'un signal de Qt, que Qt passe par sa position, marqué « noqa »
 # (https://github.com/dascritch/machincast/issues/441).
@@ -82,7 +83,7 @@ ignore = ["W191", "SIM108", "SIM110", "E501"]
 
 [tool.ruff.lint.per-file-ignores]
 # Les étapes des scénarios reçoivent leurs paramètres par leur nom, booléens compris.
-"tests/**" = ["FBT001", "FBT002"]
+"tests/**" = ["FBT001", "FBT002", "PLW1510"]
 
 [tool.ruff.lint.mccabe]
 # Les fonctions imbriquées comptent dans celle qui les contient : une fonction qui en déclare beaucoup se découpe en

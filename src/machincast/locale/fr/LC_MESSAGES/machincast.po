@@ -159,15 +159,6 @@ msgstr "FICHIER"
 
 #: machincast/cli.py
 #, python-brace-format
-msgid ""
-"not implemented yet, see "
-"https://github.com/dascritch/machincast/issues/{ticket}"
-msgstr ""
-"pas encore implémenté, voir "
-"https://github.com/dascritch/machincast/issues/{ticket}"
-
-#: machincast/cli.py
-#, python-brace-format
 msgid "TOML configuration file (default: {default_file})"
 msgstr "fichier de configuration TOML (par défaut : {default_file})"
 

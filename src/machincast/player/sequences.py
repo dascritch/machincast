@@ -34,6 +34,7 @@ class Sequence:
 
 
 def read_sequence(connection: psycopg.Connection[TupleRow], identifier: int) -> Sequence | None:
+	"""La séquence et ses éléments, dans leur ordre ; None si elle n'est pas en base."""
 	line = connection.execute("SELECT internal_name FROM sequences WHERE id = %s", (identifier,)).fetchone()
 	if line is None:
 		return None

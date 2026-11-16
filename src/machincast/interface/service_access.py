@@ -58,19 +58,6 @@ def _missing(path: Path, account: access.Account) -> bool:
 	return not access.readable(path, account)
 
 
-def unreadable(paths: list[Path], account: access.Account | None = None) -> list[Path]:
-	"""Les chemins que le service ne lit pas, eux ou ce qu'ils contiennent ; aucun sans service installé."""
-	if account is None:
-		account = access.service_account()
-	if account is None:
-		return []
-	found = []
-	for path in paths:
-		if (path.exists()) and (_missing(path, account)):
-			found.append(path)
-	return found
-
-
 def _names(paths: list[Path]) -> str:
 	names = []
 	for path in paths:

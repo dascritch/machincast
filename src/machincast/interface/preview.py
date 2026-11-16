@@ -188,6 +188,7 @@ class Player:
 		return self._pipeline is not None
 
 	def read(self) -> None:
+		"""Démarre ou reprend la lecture du sonore, dans un pipeline construit au premier appel ; l'erreur est gardée dans self.error."""
 		if self.source is None:
 			return
 		if (not self.source.stream) and (not Path(self.source.address).is_file()):

@@ -571,8 +571,6 @@ def load(path: Path | None = None) -> Configuration:
 			)
 		)
 	device = reader.optional_text("audio", "device")
-	if device is not None:
-		device = device
 	preview = reader.text("audio", "preview")
 	if preview == device:
 		raise reader.error(_("key audio.pre-listen: the pre-listen must use another device than the on-air one"))

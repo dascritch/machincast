@@ -243,6 +243,7 @@ class SimulatedHistory:
 		connection: Connection,
 		start: PlayStart,
 	) -> Play:
+		"""Note le passage sans l'écrire en base, avec l'artiste, le titre et l'emplacement lus à cet instant."""
 		line = connection.execute(
 			"SELECT s.artist, s.title, COALESCE(s.location, s.stream_url, m.url) FROM sounds s"
 			" LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
@@ -273,6 +274,7 @@ class SimulatedHistory:
 		error: str | None = None,
 		kind: str = N_("interrupted playback"),
 	) -> None:
+		"""Note la fin du passage simulé, sa durée, sa coupure ou son erreur."""
 		for simulated in self.simulated_plays:
 			if simulated.play.id == play.id:
 				simulated.end, simulated.without_incident = instant, error is None
@@ -294,6 +296,7 @@ class SimulatedHistory:
 		bank: int | None = None,
 		event: int | None = None,
 	) -> None:
+		"""Garde la ligne du log pour la page de la simulation, sans rien écrire en base ; une simple information n'est pas gardée."""
 		if level != "info":
 			text = _("simulation: {level}: {kind}: {message}").format(
 				level=LEVELS.get(level, level), kind=logged(kind), message=logged(message)
@@ -309,6 +312,7 @@ class SimulatedHistory:
 		self.log.append((level, kind, message))
 
 	def expire(self, connection: Connection, instant: datetime, sound: int | None = None) -> list[Expiry]:
+		"""Les sonores que la simulation fait expirer à cet instant, sans écrire leur état ; ceux déjà expirés ne le sont pas deux fois."""
 		lines = connection.execute(
 			"SELECT id, max_plays, broadcast_end, COALESCE(title, location, stream_url) FROM sounds"
 			" WHERE state = 'active' AND (%s::bigint IS NULL OR id = %s::bigint)"
@@ -515,6 +519,7 @@ def _end_hour(end: datetime | None) -> str:
 
 
 def simulation_page(lines: list[Line], log: list[tuple[str, str, str]], start: datetime, end: datetime) -> str:
+	"""La page HTML de la simulation : la période, le tableau des passages simulés et le journal."""
 	period = _("from {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M}").format(
 		start=start.astimezone(), end=end.astimezone()
 	)

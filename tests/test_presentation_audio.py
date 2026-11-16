@@ -109,7 +109,10 @@ def named_at_launch() -> None:
 			if (isinstance(node, ast.FunctionDef)) and (node.name == "run"):
 				run = node
 		assert run is not None, file
-		first = ast.unparse(run.body[0])
+		statements = run.body
+		if ast.get_docstring(run) is not None:
+			statements = run.body[1:]
+		first = ast.unparse(statements[0])
 		assert first.startswith("audio.identify("), (binary, first)
 
 

@@ -109,6 +109,7 @@ def in_csv(lines: list[Line], metadata: Metadata) -> str:
 
 
 def in_html(lines: list[Line], metadata: Metadata, title: str, instant: datetime) -> str:
+	"""Les passages, avec leurs incidents, en une page HTML autonome exportée à cet instant."""
 	header_list = []
 	for header in HTML_HEADERS:
 		header_list.append(f"<th>{html.escape(header)}</th>")
@@ -151,6 +152,7 @@ def in_html(lines: list[Line], metadata: Metadata, title: str, instant: datetime
 
 
 def in_m3u(lines: list[Line], metadata: Metadata) -> str:
+	"""Les passages qui ont un emplacement, du plus ancien au plus récent, en liste de lecture M3U étendue."""
 	entries = ["#EXTM3U"]
 
 	def in_line(line: Line) -> None:

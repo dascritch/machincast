@@ -181,7 +181,12 @@ def wpctl_status() -> str:
 		return _("wpctl not found")
 	try:
 		result = subprocess.run(
-			[program, "status"], capture_output=True, text=True, timeout=WPCTL_DELAY, stdin=subprocess.DEVNULL
+			[program, "status"],
+			capture_output=True,
+			text=True,
+			timeout=WPCTL_DELAY,
+			stdin=subprocess.DEVNULL,
+			check=False,
 		)
 	except (OSError, subprocess.SubprocessError) as error:
 		return _("wpctl status impossible: {error}").format(error=error)
@@ -214,7 +219,9 @@ def journal(pid: int) -> str:
 		return _("journalctl not found")
 	command = [program, f"_PID={pid}", "--no-pager", "--output=short-iso", f"--lines={JOURNAL_LINES}"]
 	try:
-		result = subprocess.run(command, capture_output=True, text=True, timeout=WPCTL_DELAY, stdin=subprocess.DEVNULL)
+		result = subprocess.run(
+			command, capture_output=True, text=True, timeout=WPCTL_DELAY, stdin=subprocess.DEVNULL, check=False
+		)
 	except (OSError, subprocess.SubprocessError) as error:
 		return _("journalctl impossible: {error}").format(error=error)
 	lines = []

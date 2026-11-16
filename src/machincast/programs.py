@@ -304,6 +304,7 @@ def restart(
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
+	"""Liste les programmes de MachinCast en cours, ou relance ceux du compte, pour install.sh ; le code de sortie."""
 	analyser = argparse.ArgumentParser(prog="machincast.programs", description=__doc__.splitlines()[0])
 	analyser.add_argument("action", choices=("list", "restart"))
 	analyser.add_argument("--state", type=Path, required=True, help=_("state of the running programs, in JSON"))

@@ -104,6 +104,7 @@ class VuMeter(QWidget):
 		self.setToolTip(_("Level of each channel, in decibels"))
 
 	def display(self, levels: list[float], peaks: list[float] | None = None) -> None:
+		"""Montre ces niveaux, et ces crêtes (les niveaux sans elles) ; chaque crête est tenue un moment avant de retomber."""
 		self.levels = _valid_list(levels)
 		self.peaks = _valid_list((peaks) or (levels))
 		now = self.clock()
@@ -209,6 +210,7 @@ class VuMeter(QWidget):
 		return captions
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
+		"""Dessine chaque canal : son fond, sa crête atténuée et sa barre de niveau."""
 		with QPainter(self) as painter:
 			arrangement = self.arrangement()
 			for channel in arrangement.channels:

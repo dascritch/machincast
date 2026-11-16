@@ -173,6 +173,7 @@ class PlannedHistory(HistoryInPlayback):
 		bank: int | None = None,
 		event: int | None = None,
 	) -> None:
+		"""Note la ligne du log sans l'écrire : une anticipation n'écrit rien en base."""
 		self.recorded_list.append(
 			{
 				"level": level,
@@ -250,6 +251,7 @@ class HistoryInDatabase:
 		return int(str(line[0]))
 
 	def last_play(self, connection: Connection) -> LastPlay | None:
+		"""Le passage le plus récent, tous événements confondus ; None si l'historique est vide."""
 		line = connection.execute(
 			"SELECT play_id, bank_id, logged_at, event_id, event_item_id, sequence_item_id FROM airplay"
 			" WHERE line_type = 'start' ORDER BY logged_at DESC, id DESC LIMIT 1"

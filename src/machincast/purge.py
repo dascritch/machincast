@@ -87,6 +87,7 @@ def purge(connection: psycopg.Connection[tuple[object, ...]], limit: datetime) -
 
 
 def run(configuration: Configuration, _options: argparse.Namespace) -> int:
+	"""Efface les passages et lignes du log plus vieux que la durée de péremption, et le consigne au log ; le code de sortie."""
 	database = configuration.database
 	limit = (CLOCK.now() - timedelta(days=database.retention)).astimezone()
 	try:

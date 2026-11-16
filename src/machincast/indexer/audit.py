@@ -59,6 +59,8 @@ def write(anomalies: list[Anomaly], report: str, start: datetime, directory: Pat
 
 
 def page(anomalies: list[Anomaly], report: str, start: datetime) -> str:
+	"""La page HTML du document d'audit : le rapport, et le tableau des anomalies de l'indexation commencée à cet instant."""
+
 	def cell(text: str) -> str:
 		return f"<td>{html.escape(text)}</td>"
 

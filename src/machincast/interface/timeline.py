@@ -672,6 +672,7 @@ class Timeline(QWidget):
 		return super().event(radio_event)
 
 	def mousePressEvent(self, event: QMouseEvent) -> None:
+		"""Un clic gauche prend un curseur de la frise, ou place la tête de lecture ; hors d'une frise interactive, il émet clicked."""
 		if event.button() == Qt.MouseButton.LeftButton:
 			self._taken_slider = self.slider_in(event.position().x())
 			if self._taken_slider is not None:
@@ -747,6 +748,7 @@ class Timeline(QWidget):
 	# ─── Dessin ────────────────────────────────────────────
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
+		"""Dessine la forme d'onde, les zones, les fondus, les curseurs et la tête de lecture."""
 		with QPainter(self) as painter:
 			painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 			palette = self.palette()

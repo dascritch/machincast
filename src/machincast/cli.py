@@ -75,11 +75,3 @@ def launch(
 	if then is not None:
 		then(options)
 	return code
-
-
-def not_implemented(executable: str, ticket: int) -> int:
-	"""Signale une fonctionnalité pas encore développée et renvoie un code d'erreur."""
-	log.error(
-		_("not implemented yet, see https://github.com/dascritch/machincast/issues/{ticket}").format(ticket=ticket)
-	)
-	return 1

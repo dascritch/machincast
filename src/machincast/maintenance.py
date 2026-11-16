@@ -131,6 +131,7 @@ def back_up(configuration: Configuration, directory: Path) -> Path:
 			text=True,
 			timeout=BACKUP_DELAY,
 			stdin=subprocess.DEVNULL,
+			check=False,
 		)
 	except (OSError, subprocess.SubprocessError) as error:
 		raise BackupFailure(str(error)) from error
@@ -231,6 +232,7 @@ def stay_open() -> None:
 
 
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	"""Lance la maintenance de la base, sauvegarde d'abord ; le code de sortie, nul si tout s'est bien passé."""
 	directory = (options.backups) or (default_backups(configuration.path))
 	code = FAILURE_CODE
 	try:
