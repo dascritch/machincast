@@ -23,6 +23,7 @@ from machincast.i18n import _, counted, logged, ngettext
 from machincast.interface import display
 from machincast.interface.columns import Columns
 from machincast.interface.lists import FilterWithoutAccents
+from machincast.interface.queries import incidents as queries
 from machincast.interface.ui.incidents import Ui_IncidentScreen
 from machincast.player.saving import LEVELS
 
@@ -69,15 +70,7 @@ class IncidentScreen(QWidget):
 			levels.append("info")
 		try:
 			with self.connection.transaction():
-				rows = self.connection.execute(
-					"SELECT l.logged_at, l.level::text, l.kind, l.message, s.id, s.artist, s.title, s.location,"
-					" COALESCE(s.stream_url, m.url), b.id, b.internal_name, e.id, e.internal_name FROM log l"
-					" LEFT JOIN sounds s ON s.id = l.sound_id"
-					" LEFT JOIN feeds m ON m.id = s.feed_id"
-					" LEFT JOIN banks b ON b.id = l.bank_id LEFT JOIN events e ON e.id = l.event_id"
-					" WHERE l.level::text = ANY(%s) ORDER BY l.logged_at DESC, l.id DESC LIMIT %s",
-					(levels, LIMIT),
-				).fetchall()
+				rows = queries.log_lines(self.connection, levels, LIMIT)
 		except psycopg.Error as error:
 			log.error(_("unreadable incidents screen: {error}").format(error=error))
 			return

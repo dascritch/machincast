@@ -171,3 +171,6 @@ Fonctionnalité: Socle de test
 	Scénario: L'interface ne dépend ni de la diffusion ni du moteur audio
 		Alors l'interface n'importe ni la diffusion, ni son moteur, ni ses plans
 		Et le paquet partagé n'importe ni Qt, ni GStreamer, ni le player, ni l'interface
+
+	Scénario: Les classes Qt de l'interface n'écrivent aucune requête
+		Alors aucun module de l'interface qui importe Qt n'exécute de requête

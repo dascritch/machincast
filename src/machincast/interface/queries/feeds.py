@@ -42,3 +42,12 @@ def update(connection: Connection, identifier: int, name: str, url: str, buffer:
 		"UPDATE feeds SET name = %s, url = %s, buffer_duration = %s WHERE id = %s",
 		(name, url, buffer, identifier),
 	)
+
+
+def active_stream(connection: Connection, feed: int) -> TupleRow | None:
+	"""Le stream qui suit le feed, un actif d'abord, le plus ancien : identifiant et s'il est actif."""
+	return connection.execute(
+		"SELECT id, state = 'active' FROM sounds WHERE feed_id = %s AND type = 'stream' AND deleted_at IS NULL"
+		" ORDER BY state = 'active' DESC, id LIMIT 1",
+		(feed,),
+	).fetchone()

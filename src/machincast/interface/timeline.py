@@ -50,6 +50,7 @@ from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget  # noqa: E402
 from machincast.configuration import Crossfades  # noqa: E402
 from machincast.i18n import _, decimal  # noqa: E402
 from machincast.interface import states  # noqa: E402
+from machincast.interface.queries import sounds as queries  # noqa: E402
 from machincast.shared.fades import (  # noqa: E402
 	DEFAULT_ENTRY,
 	DEFAULT_OUTPUT,
@@ -350,14 +351,7 @@ def read_plan(
 	retirés si le sonore ou la banque active la détection, ses crossfades selon les règles de la banque ; None pour un
 	stream, un fichier sans durée, ou un sonore qui n'est plus en base (https://github.com/dascritch/machincast/issues/230)."""
 	with connection.transaction():
-		line = connection.execute(
-			"SELECT s.type::text, s.duration, s.detected_start, s.detected_end,"
-			" s.silence_detection OR coalesce(b.silence_detection, false), s.crossfade_start, s.crossfade_end,"
-			" s.audited_at IS NOT NULL, b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text,"
-			" b.crossfade_end"
-			" FROM sounds s LEFT JOIN banks b ON b.id = %s WHERE s.id = %s",
-			(bank, sound),
-		).fetchone()
+		line = queries.plan_row(connection, bank, sound)
 	if line is None:
 		return None
 	category, duration, start, end, detection, cd, cf, audited, *rules = line

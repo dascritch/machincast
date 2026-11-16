@@ -27,6 +27,7 @@ from machincast.indexer.check import check_sounds, threshold_text
 from machincast.indexer.decoding import Check, UnavailableDecoder, check_file
 from machincast.interface import display
 from machincast.interface.lists import STATES
+from machincast.interface.queries import sounds as queries
 
 log = logging.getLogger(__name__)
 
@@ -91,10 +92,7 @@ class Checker(QObject):
 			with open_connection(self.socket, self.database, Role.INDEXING) as connection:
 				check_sounds(connection, _check_file, identifiers=identifiers)
 				with connection.transaction():
-					lines = connection.execute(
-						"SELECT artist, title, location, state::text FROM sounds WHERE id = ANY(%s) ORDER BY id",
-						(identifiers,),
-					).fetchall()
+					lines = queries.states(connection, identifiers)
 		except (UnavailableDecoder, psycopg.Error) as error:
 			log.error(_("check of the added files impossible: {error}").format(error=error))
 			return _("Check impossible: {error}; {after_failure}").format(error=error, after_failure=AFTER_FAILURE)
@@ -107,10 +105,7 @@ class Checker(QObject):
 def sound_states(connection: psycopg.Connection[TupleRow], identifiers: list[int]) -> str:
 	"""« Neige, actif ; Café à minuit, erroné » : chaque sonore et son état, après sa vérification."""
 	with connection.transaction():
-		lines = connection.execute(
-			"SELECT artist, title, location, state::text FROM sounds WHERE id = ANY(%s) ORDER BY id",
-			(identifiers,),
-		).fetchall()
+		lines = queries.states(connection, identifiers)
 	artist_list = []
 	for artist, title, location, state in lines:
 		artist_list.append(

@@ -51,6 +51,7 @@ from machincast.configuration import Audio, AudioOutput, Crossfades  # noqa: E40
 from machincast.i18n import _, decimal  # noqa: E402
 from machincast.interface import binding, display, preferences, states  # noqa: E402
 from machincast.interface.monitor import Unavailable, monitor_source, port_name  # noqa: E402
+from machincast.interface.queries import sounds as queries  # noqa: E402
 from machincast.interface.timeline import Plan, Timeline, WaveShape, sound_plan  # noqa: E402
 from machincast.interface.ui.preview import Ui_PreviewWindow  # noqa: E402
 from machincast.interface.vu_meter import VuMeter  # noqa: E402
@@ -103,13 +104,7 @@ def read_source(
 	"""Le fichier ou l'adresse du sonore, ce qui le nomme, et pour un fichier, le plan de sa frise, ses crossfades non
 	paramétrés pris dans defauts ; None s'il n'est plus en base."""
 	with connection.transaction():
-		line = connection.execute(
-			"SELECT s.type::text, s.location, coalesce(s.stream_url, m.url), s.artist, s.title,"
-			" extract(epoch FROM s.duration), s.duration, s.detected_start, s.detected_end, s.silence_detection,"
-			" s.crossfade_start, s.crossfade_end, s.audited_at IS NOT NULL"
-			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
-			(sound,),
-		).fetchone()
+		line = queries.preview_row(connection, sound)
 	if line is None:
 		return None
 	sound_type, location, url, artist, title, duration, interval, *details = line

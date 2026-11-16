@@ -12,6 +12,15 @@
   - `fetchall()` rend une liste de toutes les lignes ; itérer le curseur côté client n'y change rien, psycopg ayant déjà reçu tout le résultat à l'`execute`. Un résultat qui grossit avec la base se lit par lots, triés par identifiant, chacun dans sa transaction (`check._sounds`, `check.BATCH`, `WHERE id > %s ORDER BY id LIMIT %s`). Un curseur nommé, côté serveur, ne convient pas quand chaque ligne a sa propre transaction sur la même connexion : il se ferme au premier `COMMIT`.
   - Un scénario le vérifie en comptant les requêtes (`directories.feature`, « en comptant ses requêtes »).
 
+## Où écrire une requête
+
+([#442](https://github.com/dascritch/machincast/issues/442))
+
+- **Interface** : une requête d'une fiche ou d'une liste s'écrit dans `src/machincast/interface/queries/`, un module par entité (`banks`, `sounds`, `events`, `sequences`, `feeds`, `items` pour les listes d'éléments d'une séquence ou d'un événement, `lists`, `search`, `incidents`, `indexing`, `suggestions`, `calendar`, `cards` pour ce que les fiches ont en commun). Ces modules n'importent pas Qt : une fonction prend la connexion et ses paramètres, rend des lignes ou des valeurs simples, et s'essaie sans ouvrir de fenêtre. La classe Qt l'appelle, dans sa transaction. Un scénario de `base.feature` refuse un `execute` dans un module de l'interface qui importe Qt. Les modules sans Qt qui font déjà de l'accès aux données (`deletion`, `groups`, `sessions`, `adding`, `airplay`, `background_programming`) restent où ils sont.
+- **Diffusion** : les requêtes de `Machin_player` sont dans ses modules (`saving`, `history`, `banks`, `sequences`, `outputs`…), jamais dans `broadcast`.
+- **Partagé** : ce que l'interface et la diffusion calculent de la même façon, sans Qt ni GStreamer (`grid`, `fades`, `no_repeat`), est dans `src/machincast/shared/`. L'interface n'importe ni `broadcast`, ni `engine`, ni `rundown` (`base.feature`).
+- Un nom de table ou de colonne qui entre dans une requête est une constante du code, jamais une saisie ; une valeur passe toujours en paramètre.
+
 ## Migrations
 
 - Tout changement de schéma passe par une migration **yoyo-migrations** versionnée dans `src/machincast/migrations/` (`NNNN.nom.sql` et son annulation `NNNN.nom.rollback.sql`). Jamais de modification manuelle, jamais de modification d'une migration déjà fusionnée : on en ajoute une nouvelle.

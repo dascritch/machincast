@@ -134,3 +134,34 @@ def plays(connection: Connection, sound: int, limit: int) -> list[TupleRow]:
 		" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
 		(sound, limit),
 	).fetchall()
+
+
+def states(connection: Connection, identifiers: list[int]) -> list[TupleRow]:
+	"""Artiste, titre, emplacement et état de ces sonores, par identifiant."""
+	return connection.execute(
+		"SELECT artist, title, location, state::text FROM sounds WHERE id = ANY(%s) ORDER BY id", (identifiers,)
+	).fetchall()
+
+
+def plan_row(connection: Connection, bank: int | None, sound: int) -> TupleRow | None:
+	"""Ce qui place un fichier comme la diffusion le joue, fourni par cette banque ou sans banque ; None si le sonore
+	est absent (https://github.com/dascritch/machincast/issues/230)."""
+	return connection.execute(
+		"SELECT s.type::text, s.duration, s.detected_start, s.detected_end,"
+		" s.silence_detection OR coalesce(b.silence_detection, false), s.crossfade_start, s.crossfade_end,"
+		" s.audited_at IS NOT NULL, b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text,"
+		" b.crossfade_end"
+		" FROM sounds s LEFT JOIN banks b ON b.id = %s WHERE s.id = %s",
+		(bank, sound),
+	).fetchone()
+
+
+def preview_row(connection: Connection, sound: int) -> TupleRow | None:
+	"""Ce que la pré-écoute sait du sonore ; None s'il est absent."""
+	return connection.execute(
+		"SELECT s.type::text, s.location, coalesce(s.stream_url, m.url), s.artist, s.title,"
+		" extract(epoch FROM s.duration), s.duration, s.detected_start, s.detected_end, s.silence_detection,"
+		" s.crossfade_start, s.crossfade_end, s.audited_at IS NOT NULL"
+		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
+		(sound,),
+	).fetchone()

@@ -16,9 +16,12 @@ def name_in_use(connection: Connection, table: str, name: str) -> bool:
 	return taken is not None
 
 
-def exists(connection: Connection, table: str, identifier: int | None) -> bool:
-	"""L'élément est en base, même supprimé."""
-	return connection.execute(f"SELECT 1 FROM {table} WHERE id = %s", (identifier,)).fetchone() is not None
+def exists(connection: Connection, table: str, identifier: int | None, *, not_deleted: bool = False) -> bool:
+	"""L'élément est en base, même supprimé sauf avec not_deleted ; la table est une constante, jamais une saisie."""
+	condition = ""
+	if not_deleted:
+		condition = " AND deleted_at IS NULL"
+	return connection.execute(f"SELECT 1 FROM {table} WHERE id = %s{condition}", (identifier,)).fetchone() is not None
 
 
 def sound_of_file(connection: Connection, file: str) -> int | None:

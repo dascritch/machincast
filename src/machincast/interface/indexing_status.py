@@ -27,33 +27,11 @@ from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from machincast.i18n import _, date_and_hour
 from machincast.indexer.__main__ import EXECUTABLE
+from machincast.interface.queries import indexing as queries
 from machincast.interface.ui.indexing_status import Ui_StatusWindow
 
 REFRESH = 2000
 """Millisecondes entre deux relectures de la base."""
-
-QUERY = """
-WITH latest AS (
-	SELECT max(logged_at) AS started_at FROM log WHERE kind = 'start' AND starts_with(message, %s || ' ')
-),
-directories AS (
-	SELECT r.directory,
-		bool_and((r.scanned_at IS NOT NULL) AND (r.scanned_at >= COALESCE((SELECT started_at FROM latest), '-infinity')))
-			AS scanned
-	FROM bank_directories r JOIN banks b ON b.id = r.bank_id
-	WHERE b.deleted_at IS NULL
-	GROUP BY r.directory
-)
-SELECT
-	(SELECT started_at FROM latest),
-	(SELECT count(*) FROM directories),
-	(SELECT count(*) FROM directories WHERE scanned),
-	count(*),
-	count(*) FILTER (WHERE (checked_at IS NOT NULL) AND (audited_at IS NULL)),
-	count(*) FILTER (WHERE audited_at IS NOT NULL)
-FROM sounds
-WHERE type = 'file' AND deleted_at IS NULL
-"""
 
 
 @dataclass(frozen=True)
@@ -78,8 +56,7 @@ class Status:
 
 def read(connection: psycopg.Connection[TupleRow]) -> Status:
 	with connection.transaction():
-		line = connection.execute(QUERY, (EXECUTABLE,)).fetchone()
-	assert line is not None
+		line = queries.status(connection, EXECUTABLE)
 	started_at = line[0]
 	if not isinstance(started_at, datetime):
 		started_at = None
