@@ -45,8 +45,6 @@ import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from psycopg import sql
-from psycopg.types.json import Jsonb
 from PySide6.QtCore import QDateTime, Qt, QTimer, Signal
 from PySide6.QtGui import QIntValidator, QStandardItemModel
 from PySide6.QtWidgets import (
@@ -71,6 +69,7 @@ from machincast.interface.columns import Columns
 from machincast.interface.dialogs import Removal
 from machincast.interface.intents import REMOVE, label
 from machincast.interface.lists import STATES, TYPES
+from machincast.interface.queries import sounds as queries
 from machincast.interface.slider import DurationSlider
 from machincast.interface.stream_trial import StreamTrial, trial_result
 from machincast.interface.timeline import Timeline, WaveShape, sound_plan
@@ -170,11 +169,6 @@ MARKERS = {
 """Le nom de chaque silence détecté : mesuré par l'indexeur, ou saisi à la main
 (https://github.com/dascritch/machincast/issues/330)."""
 ITEMS = {"sequence": _("the sequence"), "bank": _("the bank"), "event": _("the event")}
-RELATION_LISTS = {
-	"sequence": ("sequence_items", "sequence_id"),
-	"bank": ("bank_sounds", "bank_id"),
-	"event": ("event_items", "event_id"),
-}
 """La table de la liste de chaque genre de relation, et sa colonne qui désigne l'élément."""
 """Rôle qui porte, sur la cellule du nom d'une relation, son genre et son identifiant."""
 PLAYS = 50
@@ -465,26 +459,16 @@ class SoundCard(Card):
 				line = self._read_sound()
 				plays = self._read_plays()
 				relations = self._read_relations()
-			marks = self.connection.execute("SELECT id, name, url FROM feeds ORDER BY name").fetchall()
-			fallback = self.connection.execute(
-				"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
-				" ORDER BY internal_name"
-			).fetchall()
+			marks = queries.feeds(self.connection)
+			fallback = queries.fallback_events(self.connection)
 		assert line is not None, f"sonore {self.identifier} absent"
 		self._show(line, marks, fallback, plays)
 		self._removed_list = []
 		self._show_relations(relations)
 
 	def _read_sound(self) -> tuple[object, ...] | None:
-		return self.connection.execute(
-			"SELECT s.type::text, s.location, s.stream_url, s.feed_id, m.url, s.fallback_event_id,"
-			" s.artist, s.title, s.music_metadata, s.crossfade_start, s.crossfade_end, s.max_plays,"
-			" s.state::text, s.hide_metadata, s.duration, s.broadcast_start, s.broadcast_end, s.edited_fields,"
-			" s.mime_type, s.checked_at, s.silence_detection, s.detected_start, s.detected_end,"
-			" s.audited_at IS NOT NULL"
-			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
-			(self.identifier,),
-		).fetchone()
+		assert self.identifier is not None
+		return queries.read_sound(self.connection, self.identifier)
 
 	def _show(
 		self,
@@ -725,21 +709,13 @@ class SoundCard(Card):
 
 	def _insert_stream(self, inputs: dict[str, object]) -> int:
 		"""Un nouveau stream entre en base avec son adresse ; ses autres champs s'écrivent comme une modification."""
-		created = self.connection.execute(
-			"INSERT INTO sounds (type, stream_url, feed_id, state) VALUES ('stream', %s, %s, 'active') RETURNING id",
-			(inputs["stream_url"], inputs["feed_id"]),
-		).fetchone()
-		assert created is not None
-		return int(str(created[0]))
+		return queries.insert_stream(self.connection, inputs["stream_url"], inputs["feed_id"])
 
 	def _update_fields(self, identifier: int, inputs: dict[str, object], modified_list: list[str]) -> None:
 		"""Écrit les champs modifiés, et les ajoute à ceux que l'indexeur ne change plus."""
-		line = self.connection.execute(
-			"SELECT edited_fields FROM sounds WHERE id = %s FOR UPDATE", (identifier,)
-		).fetchone()
-		if line is None:
+		edited_list = queries.edited_fields(self.connection, identifier)
+		if edited_list is None:
 			raise Refusal(_("This sound is no longer in the database."))
-		edited_list = list((line[0]) or ([]))
 		field_list = []
 		for field in modified_list:
 			if (field != "state") and (field not in edited_list):
@@ -749,9 +725,6 @@ class SoundCard(Card):
 		for field in modified_list:
 			if not field.startswith("music_metadata."):
 				columns.append(field)
-		assignments: list[sql.Composable] = []
-		for assigned in columns:
-			assignments.append(sql.SQL("{} = %s").format(sql.Identifier(assigned)))
 		values: list[object] = []
 		for given in columns:
 			values.append(inputs[given])
@@ -760,27 +733,12 @@ class SoundCard(Card):
 		for field in modified_list:
 			if field.startswith(prefix):
 				musical_list[field.removeprefix(prefix)] = inputs[field]
-		assignments.append(sql.SQL("music_metadata = (music_metadata - %s::text[]) || %s::jsonb"))
-		key_dict = {}
-		for key, value in musical_list.items():
-			if value is not None:
-				key_dict[key] = value
-		values += [list(musical_list), Jsonb(key_dict)]
-		assignments.append(sql.SQL("edited_fields = %s"))
-		values.append(edited_list)
-		query = sql.SQL("UPDATE sounds SET {} WHERE id = %s").format(sql.SQL(", ").join(assignments))
-		self.connection.execute(query, [*values, identifier])
+		queries.update_fields(self.connection, identifier, columns, values, musical_list, edited_list)
 
 	def _remove_relations(self, identifier: int) -> None:
 		"""Retire du sonore les séquences, banques et événements que la fiche a décochés."""
 		for category, item in self._removed_list:
-			table, column = RELATION_LISTS[category]
-			self.connection.execute(
-				sql.SQL("DELETE FROM {} WHERE {} = %s AND sound_id = %s").format(
-					sql.Identifier(table), sql.Identifier(column)
-				),
-				(item, identifier),
-			)
+			queries.remove_relation(self.connection, category, item, identifier)
 
 	def _write(self) -> int:
 		inputs = self._inputs()
@@ -798,21 +756,8 @@ class SoundCard(Card):
 
 	def _read_relations(self) -> list[tuple[object, ...]]:
 		"""Les séquences, banques et événements dont la liste cite le sonore ; dans une transaction."""
-		return self.connection.execute(
-			"SELECT category, id, name, minimum, maximum, (SELECT duration FROM sounds WHERE id = %s) FROM ("
-			" SELECT 1 AS rank, 'sequence' AS category, q.id, q.internal_name AS name, NULL::interval AS minimum,"
-			"  NULL::interval AS maximum FROM sequences q"
-			"  WHERE q.deleted_at IS NULL"
-			"  AND EXISTS (SELECT 1 FROM sequence_items x WHERE x.sequence_id = q.id AND x.sound_id = %s)"
-			" UNION ALL SELECT 2, 'bank', b.id, b.internal_name, b.min_duration, b.max_duration FROM banks b"
-			"  WHERE b.deleted_at IS NULL"
-			"  AND EXISTS (SELECT 1 FROM bank_sounds x WHERE x.bank_id = b.id AND x.sound_id = %s)"
-			" UNION ALL SELECT 3, 'event', e.id, e.internal_name, NULL, NULL FROM events e"
-			"  WHERE e.deleted_at IS NULL"
-			"  AND EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id AND x.sound_id = %s)"
-			") r ORDER BY rank, name, id",
-			(self.identifier, self.identifier, self.identifier, self.identifier),
-		).fetchall()
+		assert self.identifier is not None
+		return queries.relations(self.connection, self.identifier)
 
 	def _show_relations(self, relations: list[tuple[object, ...]]) -> None:
 		table = self.ui.relations
@@ -879,9 +824,7 @@ class SoundCard(Card):
 			return None
 		path = Path(self.ui.location.text())
 		with self.connection.transaction():
-			directories = self.connection.execute(
-				"SELECT directory FROM bank_directories WHERE bank_id = %s ORDER BY directory", (bank,)
-			).fetchall()
+			directories = queries.bank_directories(self.connection, bank)
 		for (directory,) in directories:
 			if path.is_relative_to(str(directory)):
 				return str(directory)
@@ -919,25 +862,8 @@ class SoundCard(Card):
 
 	def _read_plays(self) -> list[tuple[object, ...]]:
 		"""Les derniers passages, avec les alertes et incidents du log pendant chacun ; dans une transaction."""
-		return self.connection.execute(
-			"SELECT d.logged_at, f.logged_at, f.played_duration, e.internal_name, q.internal_name,"
-			" b.internal_name, i.horodatages, i.natures, i.messages"
-			" FROM airplay d"
-			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
-			" LEFT JOIN events e ON e.id = COALESCE(d.lender_event_id, d.event_id)"
-			" LEFT JOIN sequences q ON q.id = d.sequence_id"
-			" LEFT JOIN banks b ON b.id = d.bank_id"
-			" LEFT JOIN LATERAL ("
-			"  SELECT array_agg(l.logged_at ORDER BY l.logged_at, l.id) AS horodatages,"
-			"   array_agg(l.kind::text ORDER BY l.logged_at, l.id) AS natures,"
-			"   array_agg(l.message ORDER BY l.logged_at, l.id) AS messages"
-			"  FROM log l WHERE l.sound_id = d.sound_id AND l.level <> 'info' AND l.logged_at >= d.logged_at"
-			"   AND (f.logged_at IS NULL OR l.logged_at <= f.logged_at)"
-			" ) i ON true"
-			" WHERE d.line_type = 'start' AND d.sound_id = %s"
-			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
-			(self.identifier, PLAYS),
-		).fetchall()
+		assert self.identifier is not None
+		return queries.plays(self.connection, self.identifier, PLAYS)
 
 	def _show_plays(self, plays: list[tuple[object, ...]]) -> None:
 		table = self.ui.plays
