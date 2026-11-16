@@ -587,7 +587,7 @@ COLUMNS = (
 def read_grid(connection: psycopg.Connection[TupleRow], deleted_list: bool = False) -> list[Event]:
 	"""Événements de la grille, sans les événements de secours ; la connexion a endossé le rôle de la lecture
 	(machincast.database.open_connection). Un événement supprimé ne joue plus
-	(https://github.com/dascritch/machincast/issues/267) : seul le calendrier les demande (supprimes), pour leurs
+	(https://github.com/dascritch/machincast/issues/267) : seul le calendrier les demande (deleted_list), pour leurs
 	occurrences d'avant leur suppression."""
 	condition = "deleted_at IS NULL"
 	if deleted_list:
