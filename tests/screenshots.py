@@ -719,11 +719,11 @@ def produce(directory: Path) -> dict[str, Path]:
 		window.broadcast_menu.hide()
 		_tab(window, "Événements")
 		take("liste-evenements", window)
-		window.open_list("Sonores")
+		window.tab_manager.open_list("Sonores")
 		take("liste-sonores", window)
 		list__list = []
-		for list_ in window.lists:
-			if window._titles[list_] == "Sonores":
+		for list_ in window.tab_manager.lists:
+			if window.tab_manager.titles[list_] == "Sonores":
 				list__list.append(list_)
 		(sounds,) = list__list
 		menu = sounds.columns.menu()

@@ -7,7 +7,7 @@ Les étapes de la fenêtre, des onglets et des éléments en base sont dans test
 from pytest_bdd import given, parsers, scenarios, when
 
 from machincast.interface import columns
-from machincast.interface.window import ACTIVE_TAB_KEY, TAB_KEY
+from machincast.interface.tab_manager import ACTIVE_TAB_KEY, TAB_KEY
 from tests.interface_steps import Connection
 
 scenarios("retained_tabs.feature")
