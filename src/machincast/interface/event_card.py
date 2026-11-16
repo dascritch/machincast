@@ -44,6 +44,7 @@ from machincast.interface.calendar import day_and_month, long_date
 from machincast.interface.card import ORANGE, Card, Connection, Refusal, rank_of
 from machincast.interface.items import CATEGORY, FEED, ITEM, Buttons, ItemList
 from machincast.interface.lists import EMPTY_EVENT, FALLBACK_NOT_LOCAL, calls_stream
+from machincast.interface.queries import events as queries
 from machincast.interface.sessions import Session, next_skipped, overlapped, reinstate, started
 from machincast.interface.ui.event_card import Ui_EventCard
 from machincast.shared.grid import DAYS, NEVER, Event, Priority, overlap, read_grid
@@ -201,19 +202,10 @@ class EventCard(Card):
 		lu = self.lu()
 		with self.connection.transaction():
 			if lu is not None:
-				line = self.connection.execute(
-					"SELECT internal_name, public_name, priority::text, starts_at, ends_at, recurrence_days::text[],"
-					" hide_metadata, end_of_list::text, end_fallback_event_id, stream_fallback_event_id"
-					" FROM events WHERE id = %s",
-					(lu,),
-				).fetchone()
+				line = queries.read_event(self.connection, lu)
 				assert line is not None, f"événement {lu} absent"
 				event = line
-			fallbacks = self.connection.execute(
-				"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
-				" AND id IS DISTINCT FROM %s ORDER BY internal_name",
-				(lu,),
-			).fetchall()
+			fallbacks = queries.fallbacks(self.connection, lu)
 			self.items.load(lu, copies=self.is_copy())
 		name, public_name, priority, start, end, days, hiding, end_of_list, end_fallback, stream_fallback = event
 		if self.is_copy():
@@ -435,10 +427,7 @@ class EventCard(Card):
 		if sounds == []:
 			return False
 		with self.connection.transaction():
-			found = self.connection.execute(
-				"SELECT 1 FROM sounds WHERE type = 'stream' AND id = ANY(%s) LIMIT 1", (sounds,)
-			).fetchone()
-		return found is not None
+			return queries.any_stream(self.connection, sounds)
 
 	def _tick_end(self) -> None:
 		"""Une fin cochée qui ne suit pas le début part d'une heure après lui."""
@@ -481,11 +470,7 @@ class EventCard(Card):
 		name = conform(ui.internal_name.text())
 		if name == "":
 			raise Refusal(_("The internal name is required."), ui.internal_name)
-		taken = self.connection.execute(
-			"SELECT 1 FROM events WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
-			(name, self.identifier),
-		).fetchone()
-		if taken is not None:
+		if queries.name_taken(self.connection, name, self.identifier):
 			raise Refusal(_("Another event is already called “{name}”.").format(name=name), ui.internal_name)
 		priority = self._priority()
 		start, end = display.ticked_date(ui.has_start, ui.start), display.ticked_date(ui.has_end, ui.end)
@@ -524,23 +509,10 @@ class EventCard(Card):
 			stream_fallback,
 		)
 		if self.identifier is None:
-			created = self.connection.execute(
-				"INSERT INTO events"
-				" (internal_name, public_name, priority, starts_at, ends_at, recurrence_days, hide_metadata,"
-				" end_of_list, end_fallback_event_id, stream_fallback_event_id)"
-				" VALUES (%s, %s, %s, %s, %s, %s::weekday[], %s, %s, %s, %s) RETURNING id",
-				values,
-			).fetchone()
-			assert created is not None
-			identifier = int(str(created[0]))
+			identifier = queries.insert(self.connection, values)
 		else:
 			identifier = self.identifier
-			self.connection.execute(
-				"UPDATE events SET internal_name = %s, public_name = %s, priority = %s, starts_at = %s, ends_at = %s,"
-				" recurrence_days = %s::weekday[], hide_metadata = %s, end_of_list = %s, end_fallback_event_id = %s,"
-				" stream_fallback_event_id = %s WHERE id = %s",
-				(*values, identifier),
-			)
+			queries.update(self.connection, identifier, values)
 		self.items.write(identifier)
 		return identifier
 
@@ -580,9 +552,7 @@ class EventCard(Card):
 		"""Les jours de ses sessions sautées, qui ne chevauchent rien (https://github.com/dascritch/machincast/issues/273)."""
 		if self.identifier is None:
 			return frozenset()
-		lines = self.connection.execute(
-			"SELECT day FROM event_skips WHERE event_id = %s", (self.identifier,)
-		).fetchall()
+		lines = queries.skips(self.connection, self.identifier)
 		day_list = []
 		for (day,) in lines:
 			if isinstance(day, date):
@@ -593,15 +563,8 @@ class EventCard(Card):
 		"""Un événement de secours qu'un stream désigne garde sa priorité."""
 		if (self.identifier is None) or (priority == "fallback"):
 			return
-		streams = self.connection.execute(
-			"SELECT COALESCE(title, stream_url) FROM sounds WHERE fallback_event_id = %s ORDER BY 1",
-			(self.identifier,),
-		).fetchall()
-		events = self.connection.execute(
-			"SELECT internal_name FROM events WHERE (end_fallback_event_id = %s OR stream_fallback_event_id = %s)"
-			" AND deleted_at IS NULL ORDER BY 1",
-			(self.identifier, self.identifier),
-		).fetchall()
+		streams = queries.streams_with_fallback(self.connection, self.identifier)
+		events = queries.events_with_fallback(self.connection, self.identifier)
 		if events != []:
 			event_list = []
 			for (event,) in events:
