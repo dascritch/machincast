@@ -99,7 +99,7 @@ msgstr "{path} : introuvable"
 
 #: machincast/audio.py
 #: machincast/interface/preview.py
-#: machincast/interface/window.py
+#: machincast/interface/tab_manager.py
 #: machincast/player/outputs.py
 #: machincast/interface/ui/default_screen.ui
 msgid "On air"
@@ -1536,6 +1536,40 @@ msgid ""
 msgstr ""
 "PipeWire n'a pas de port de monitoring pour {on_air}, ou pas d'entrée pour "
 "{preview}."
+
+#: machincast/interface/broadcast_control.py
+msgid "Without a service: Machin player in a terminal window"
+msgstr "Sans service : Machin player dans une fenêtre de terminal"
+
+#: machincast/interface/broadcast_control.py
+msgid "No trial broadcast running"
+msgstr "Aucune diffusion d'essai en cours"
+
+#: machincast/interface/broadcast_control.py
+msgid ""
+"Without a service: stops the Machin player launched by hand, like Ctrl-C"
+msgstr "Sans service : arrête le Machin player lancé à la main, comme Ctrl-C"
+
+#: machincast/interface/broadcast_control.py
+msgid "The trial broadcast is already running"
+msgstr "La diffusion d'essai tourne déjà"
+
+#: machincast/interface/broadcast_control.py
+msgid ""
+"Broadcast not restarted: the former broadcast service settings are back, in "
+"the configuration file and in the interface."
+msgstr ""
+"Diffusion non redémarrée : les paramètres du service précédents sont "
+"revenus, dans le fichier de configuration et dans l'interface."
+
+#: machincast/interface/broadcast_control.py
+#, python-brace-format
+msgid ""
+"Broadcast not restarted, and the former settings could not be written back "
+"in {configuration}: {error}"
+msgstr ""
+"Diffusion non redémarrée, et les paramètres précédents n'ont pas pu être "
+"réécrits dans {configuration} : {error}"
 
 #: machincast/interface/calendar.py
 msgid ""
@@ -5020,6 +5054,15 @@ msgstr "le fil musical « {name} »"
 msgid "the banks {list}"
 msgstr "les banques {list}"
 
+#: machincast/interface/tab_manager.py
+msgid "Close all closable tabs"
+msgstr "Fermer tous les onglets fermables"
+
+#: machincast/interface/tab_manager.py
+#, python-brace-format
+msgid "tab “{key}” not reopened: {error}"
+msgstr "onglet « {key} » non rouvert : {error}"
+
 #: machincast/interface/timeline.py
 msgid "Waveform unavailable:"
 msgstr "Forme d'onde indisponible :"
@@ -5198,19 +5241,6 @@ msgstr ""
 "./install.sh --service (INSTALL.md, Service de diffusion)."
 
 #: machincast/interface/window.py
-msgid "Without a service: Machin player in a terminal window"
-msgstr "Sans service : Machin player dans une fenêtre de terminal"
-
-#: machincast/interface/window.py
-msgid "No trial broadcast running"
-msgstr "Aucune diffusion d'essai en cours"
-
-#: machincast/interface/window.py
-msgid ""
-"Without a service: stops the Machin player launched by hand, like Ctrl-C"
-msgstr "Sans service : arrête le Machin player lancé à la main, comme Ctrl-C"
-
-#: machincast/interface/window.py
 msgid "On-air device to fill in"
 msgstr "Périphérique de l'antenne à renseigner"
 
@@ -5225,27 +5255,11 @@ msgstr ""
 "fichier de configuration."
 
 #: machincast/interface/window.py
-msgid "The trial broadcast is already running"
-msgstr "La diffusion d'essai tourne déjà"
-
-#: machincast/interface/window.py
 msgid ""
 "Broadcast service settings saved: restarting the broadcast, which takes "
 "them…"
 msgstr ""
 "Paramètres du service enregistrés : la diffusion redémarre pour les prendre…"
-
-#: machincast/interface/window.py
-msgid ""
-"Broadcast not restarted: the former broadcast service settings are back, in "
-"the configuration file and in the interface."
-msgstr ""
-"Diffusion non redémarrée : les paramètres du service précédents sont "
-"revenus, dans le fichier de configuration et dans l'interface."
-
-#: machincast/interface/window.py
-msgid "Close all closable tabs"
-msgstr "Fermer tous les onglets fermables"
 
 #: machincast/interface/window.py
 #: machincast/interface/ui/preferences.ui
@@ -5576,20 +5590,6 @@ msgstr "vérification du fil musical impossible : {error}"
 #, python-brace-format
 msgid "Preferences not saved in {configuration}: {error}"
 msgstr "Préférences non enregistrées dans {configuration} : {error}"
-
-#: machincast/interface/window.py
-#, python-brace-format
-msgid ""
-"Broadcast not restarted, and the former settings could not be written back "
-"in {configuration}: {error}"
-msgstr ""
-"Diffusion non redémarrée, et les paramètres précédents n'ont pas pu être "
-"réécrits dans {configuration} : {error}"
-
-#: machincast/interface/window.py
-#, python-brace-format
-msgid "tab “{key}” not reopened: {error}"
-msgstr "onglet « {key} » non rouvert : {error}"
 
 #: machincast/interface/window.py
 #, python-brace-format
