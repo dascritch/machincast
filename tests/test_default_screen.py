@@ -780,7 +780,7 @@ def airplay_cards(context: Context, empty_database: Connection, datatable: list[
 		category_list.append((category.strip(), name.strip()))
 	for category, name in category_list:
 		table_in_database, column = tables[category]
-		line = empty_database.execute(f"SELECT id FROM {table_in_database} WHERE {column} = %s", (name,)).fetchone()  # noqa: S608
+		line = empty_database.execute(f"SELECT id FROM {table_in_database} WHERE {column} = %s", (name,)).fetchone()
 		assert line is not None, name
 		expected_list.append((category, int(str(line[0])), name))
 	assert context.cards == expected_list

@@ -277,7 +277,7 @@ TABLES = {
 @then(parsers.parse("en base restent les {category} « {names} »"))
 def remain(empty_database: Connection, category: str, names: str) -> None:
 	table, column = TABLES[category]
-	lines = empty_database.execute(f"SELECT {column} FROM {table} ORDER BY {column}").fetchall()  # noqa: S608
+	lines = empty_database.execute(f"SELECT {column} FROM {table} ORDER BY {column}").fetchall()
 	name_list = []
 	for (name,) in lines:
 		name_list.append(name)

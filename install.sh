@@ -412,10 +412,11 @@ installer_venv() {
 		return
 	fi
 	executer "${VENV}/bin/pip" install --upgrade pip
+	# Les versions de constraints.txt, pour que deux postes aient les mêmes (https://github.com/dascritch/machincast/issues/438).
 	if "${DEV}"; then
-		executer "${VENV}/bin/pip" install --editable "${RACINE}[dev]"
+		executer "${VENV}/bin/pip" install --constraint "${RACINE}/constraints.txt" --editable "${RACINE}[dev]"
 	else
-		executer "${VENV}/bin/pip" install --editable "${RACINE}"
+		executer "${VENV}/bin/pip" install --constraint "${RACINE}/constraints.txt" --editable "${RACINE}"
 	fi
 }
 

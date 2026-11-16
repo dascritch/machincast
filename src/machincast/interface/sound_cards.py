@@ -397,7 +397,7 @@ class SoundCards(QWidget):
 			self._connection = None
 		self._refresh()
 
-	def hideEvent(self, event: QHideEvent) -> None:  # noqa: N802 : nom imposé par Qt
+	def hideEvent(self, event: QHideEvent) -> None:
 		self.halt()
 		super().hideEvent(event)
 

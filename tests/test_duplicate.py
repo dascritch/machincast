@@ -179,7 +179,7 @@ def copied_bank(interface: Context, mode: str, directories: str) -> None:
 @then(parsers.re(r"(?:la |l')(?P<category>séquence|événement|banque) « (?P<name>[^»]+) » n'est pas en base"))
 def absent(empty_database: Connection, category: str, name: str) -> None:
 	table = TABLES[category]
-	assert empty_database.execute(f"SELECT 1 FROM {table} WHERE internal_name = %s", (name,)).fetchone() is None  # noqa: S608
+	assert empty_database.execute(f"SELECT 1 FROM {table} WHERE internal_name = %s", (name,)).fetchone() is None
 
 
 def items_in_database(database: Connection, category: str, name: str) -> list[tuple[str, str]]:
@@ -193,7 +193,7 @@ def items_in_database(database: Connection, category: str, name: str) -> list[tu
 	rows = database.execute(
 		"SELECT CASE WHEN e.sound_id IS NOT NULL THEN 'le sonore' WHEN e.bank_id IS NOT NULL THEN 'la banque'"
 		" ELSE 'la séquence' END, COALESCE(s.title, b.internal_name, q.internal_name)"
-		f" FROM {table} e LEFT JOIN sounds s ON s.id = e.sound_id"  # noqa: S608
+		f" FROM {table} e LEFT JOIN sounds s ON s.id = e.sound_id"
 		" LEFT JOIN banks b ON b.id = e.bank_id"
 		f" LEFT JOIN sequences q ON q.id = {cited_sequence}"
 		f" WHERE e.{parent} = %s ORDER BY e.position",

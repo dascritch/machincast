@@ -64,6 +64,7 @@ La PR dit quelles fonctionnalités ont tourné, et pourquoi celles-là.
 - Les tests qui demandent les vrais binaires sont ignorés si le venv du dépôt (`.venv`) n'existe pas.
 - `tests/wrapper/dev.bats` vérifie `Machin dev` et `Machin dev-test` avec des bouchons des outils, qui notent leurs appels ; `Machin dev` y reçoit ses commandes sur l'entrée standard, avec un `HOME` temporaire ([#77](https://github.com/dascritch/machincast/issues/77)).
 - `tests/screenshots.py` ([#128](https://github.com/dascritch/machincast/issues/128)) est l'outil de `Machin dev-screenshots`, pas un test : il remplit la base de test d'une démonstration et capture l'interface hors de l'écran. `screenshots.feature` vérifie qu'il produit une image par capture, et que `doc/fr/captures` et le guide de l'antenne les ont toutes, et seulement elles.
+- La couverture : `Machin dev-test --coverage`, sous-processus compris ([#438](https://github.com/dascritch/machincast/issues/438), [poste de développement](../developpement/poste.md)).
 - Toutes les vérifications d'un coup : `Machin dev-test`, qui lance ruff sans cache (un cache peut masquer un import mal rangé quand un module est créé après coup) ; celles d'un ticket : `Machin dev-test --scenarios …` ([Quels tests lancer](#quels-tests-lancer)).
 
 ## Configuration

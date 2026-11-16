@@ -140,7 +140,7 @@ def copy_name(connection: Connection, table: str, name: str) -> str:
 			suffix = f" (copie {number})"
 		candidate = f"{name[: NAME_LENGTH - len(suffix)]}{suffix}"
 		taken = connection.execute(
-			f"SELECT 1 FROM {table} WHERE internal_name = %s AND deleted_at IS NULL",  # noqa: S608
+			f"SELECT 1 FROM {table} WHERE internal_name = %s AND deleted_at IS NULL",
 			(candidate,),
 		).fetchone()
 		if taken is None:
@@ -477,7 +477,7 @@ class Card(QWidget):
 	def _in_database(self, identifier: int | None) -> bool:
 		table = deletion.CATEGORIES[self.category].table
 		with self.connection.transaction():
-			line = self.connection.execute(f"SELECT 1 FROM {table} WHERE id = %s", (identifier,)).fetchone()  # noqa: S608
+			line = self.connection.execute(f"SELECT 1 FROM {table} WHERE id = %s", (identifier,)).fetchone()
 		return line is not None
 
 	def name_of_copy(self, name: str) -> str:

@@ -521,7 +521,7 @@ CROSSFADE_RULES = {
 def bank_crossfade(empty_database: Connection, name: str, rule: str, duration: str, side: str) -> None:
 	column = {"début": "crossfade_start", "fin": "crossfade_end"}[side]
 	empty_database.execute(
-		f"UPDATE banks SET {column}_rule = %s, {column} = %s WHERE internal_name = %s",  # noqa: S608
+		f"UPDATE banks SET {column}_rule = %s, {column} = %s WHERE internal_name = %s",
 		(CROSSFADE_RULES[rule], timedelta(seconds=seconds(duration)), name),
 	)
 

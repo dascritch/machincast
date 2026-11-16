@@ -4,9 +4,11 @@ import logging
 import random
 import re
 import stat
+import tomllib
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import psycopg
 import pytest
@@ -432,3 +434,57 @@ def braces() -> None:
 			if VARIABLE_WITHOUT_BRACES.search(line):
 				faults.append(f"{path.relative_to(ROOT)}:{number} : {line.strip()}")
 	assert not faults, "écrire ${VARIABLE}, jamais $VARIABLE :\n" + "\n".join(faults[:20])
+
+
+def _package(requirement: str) -> str:
+	name = re.split(r"[\[<>=!~; ]", requirement, maxsplit=1)[0]
+	return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _pyproject() -> dict[str, Any]:
+	return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+
+
+@then("chaque dépendance de pyproject.toml, de développement comprise, a une version exacte dans constraints.txt")
+def constraints_exact() -> None:
+	project = _pyproject()["project"]
+	declared = list(project["dependencies"]) + list(project["optional-dependencies"]["dev"])
+	pinned = {}
+	for line in (ROOT / "constraints.txt").read_text(encoding="utf-8").splitlines():
+		found = re.fullmatch(r"([A-Za-z0-9_.-]+)==([0-9][^ ;]*)", line.strip())
+		if found is not None:
+			pinned[_package(found.group(1))] = found.group(2)
+	missing = []
+	for requirement in declared:
+		if _package(requirement) not in pinned:
+			missing.append(_package(requirement))
+	assert missing == [], f"à ajouter à constraints.txt : {missing}"
+
+
+@then("install.sh passe constraints.txt à pip")
+def constraints_installed() -> None:
+	lines = []
+	for line in (ROOT / "install.sh").read_text(encoding="utf-8").splitlines():
+		if ("pip" in line) and ("install" in line) and ("--editable" in line):
+			lines.append(line)
+	assert len(lines) == 2, lines
+	for line in lines:
+		assert "--constraint" in line, line
+		assert "constraints.txt" in line, line
+
+
+@then("la configuration de ruff active la règle RUF100")
+def ruff_unused_noqa() -> None:
+	assert "RUF100" in _pyproject()["tool"]["ruff"]["lint"]["select"]
+
+
+@then("la configuration de coverage mesure les sous-processus")
+def coverage_subprocess() -> None:
+	run = _pyproject()["tool"]["coverage"]["run"]
+	assert "subprocess" in run["patch"]
+	assert run["parallel"] is True
+	dev = _pyproject()["project"]["optional-dependencies"]["dev"]
+	packages = []
+	for requirement in dev:
+		packages.append(_package(requirement))
+	assert "coverage" in packages

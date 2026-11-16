@@ -130,6 +130,7 @@ MachinCast parle la langue de la session ([#360](https://github.com/dascritch/ma
 
 ## Exécutables
 
-- Une nouvelle dépendance Python se déclare dans `pyproject.toml`, jamais en paquet apt `python3-*` : le venv n'utilise pas les paquets Python du système ([#51](https://github.com/dascritch/machincast/issues/51)).
+- Une nouvelle dépendance Python se déclare dans `pyproject.toml`, jamais en paquet apt `python3-*` : le venv n'utilise pas les paquets Python du système ([#51](https://github.com/dascritch/machincast/issues/51)). Sa version exacte s'ajoute à `constraints.txt`, que `install.sh` passe à pip pour des installations reproductibles ([#438](https://github.com/dascritch/machincast/issues/438)).
+- Un `# noqa` doit supprimer quelque chose : la règle `RUF100` de ruff refuse celui qui vise une règle non appliquée. Une explication se garde dans un commentaire à côté, jamais dans le `# noqa` ([#438](https://github.com/dascritch/machincast/issues/438)).
 - Tout exécutable s'appelle `Machin_<nom>` et est déclaré dans `pyproject.toml` (aucune compilation).
 - Les binaires sans interface se lancent par convention via le wrapper `Machin` (voir [wrapper.md](wrapper.md)).

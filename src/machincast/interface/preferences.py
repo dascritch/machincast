@@ -160,7 +160,7 @@ def crossfades() -> Crossfades:
 
 
 def define(settings: Crossfades) -> None:
-	global _current_list  # noqa: PLW0603 : les préférences de la session, une seule par interface
+	global _current_list
 	_current_list = settings
 
 
@@ -170,7 +170,7 @@ def retention() -> int:
 
 
 def define_retention(days: int) -> None:
-	global _retention  # noqa: PLW0603 : les préférences de la session, une seule par interface
+	global _retention
 	_retention = days
 
 
@@ -180,7 +180,7 @@ def table_rows() -> int:
 
 
 def define_table_rows(rows: int) -> None:
-	global _table_rows  # noqa: PLW0603 : les préférences de la session, une seule par interface
+	global _table_rows
 	_table_rows = rows
 
 

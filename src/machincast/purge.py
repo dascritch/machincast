@@ -79,7 +79,7 @@ def purge(connection: psycopg.Connection[tuple[object, ...]], limit: datetime) -
 		N_counted("{count} line of the log", "{count} lines of the log", lines),
 	]
 	for counting, table, date in ITEMS:
-		erased_list = connection.execute(f"DELETE FROM {table} WHERE {date} < %s", (limit,)).rowcount  # noqa: S608
+		erased_list = connection.execute(f"DELETE FROM {table} WHERE {date} < %s", (limit,)).rowcount
 		report.append(counting(erased_list))
 	# Une session sautée d'avant la limite ne compte plus pour rien (https://github.com/dascritch/machincast/issues/273).
 	connection.execute("DELETE FROM event_skips WHERE day < %s", (limit.date(),))

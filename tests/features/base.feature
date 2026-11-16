@@ -153,3 +153,11 @@ Fonctionnalité: Socle de test
 
 	Scénario: Les variables des scripts bash s'écrivent avec accolades
 		Alors aucun script bash du dépôt n'écrit une variable sans accolades
+
+	Scénario: Chaque dépendance déclarée a sa version exacte dans constraints.txt
+		Alors chaque dépendance de pyproject.toml, de développement comprise, a une version exacte dans constraints.txt
+		Et install.sh passe constraints.txt à pip
+
+	Scénario: Un « # noqa » sans effet est refusé, et la couverture suit les sous-processus
+		Alors la configuration de ruff active la règle RUF100
+		Et la configuration de coverage mesure les sous-processus

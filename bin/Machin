@@ -4,7 +4,7 @@
 #   Machin [--config FICHIER] BINAIRE [OPTIONS…]   appelle Machin_BINAIRE en lui transmettant les options
 #   Machin logs [OPTIONS DE journalctl…]           suit en direct le journal du service de lecture
 #   Machin dev                                      sous-shell de développement, venv activé
-#   Machin dev-test [--scenarios NOM…]              lance les outils de vérification, avec un bilan
+#   Machin dev-test [--coverage] [--scenarios NOM…]  lance les outils de vérification, avec un bilan
 #   Machin dev-screenshots [REPERTOIRE]                refait les captures d'écran du guide de l'antenne
 #
 # Règles : doc/fr/regles/wrapper.md. Tests : bats tests/wrapper.
@@ -41,7 +41,7 @@ aide_complete() {
 Usage:
   Machin [--config FILE] BINARY [OPTIONS…]
   Machin logs [journalctl OPTIONS…]
-  Machin dev | dev-test [--scenarios NAME…] | dev-screenshots [DIRECTORY]
+  Machin dev | dev-test [--coverage] [--scenarios NAME…] | dev-screenshots [DIRECTORY]
   Machin -h | --help | --binaries
 
 Binaries (Machin BINARY calls Machin_BINARY with the options that follow,
@@ -71,7 +71,8 @@ Following the logs:
 Development (computer installed by ./install.sh --dev):
   dev          opens a subshell in the MachinCast directory, venv activated, with
                the prompt “(MachinCast dev)”; exit leaves it
-  dev-test     runs ruff check, ruff format --check, mypy --strict, shellcheck, pytest
+  dev-test [--coverage] [--scenarios NAME…]
+               runs ruff check, ruff format --check, mypy --strict, shellcheck, pytest
                then bats, all even after a failure, with the tools of the venv without it
                being activated; shows a summary per tool and ends in failure if one
                of them fails. A missing tool is reported: ./install.sh --dev installs it.
@@ -80,6 +81,9 @@ Development (computer installed by ./install.sh --dev):
                tests/features/streams.feature), with those of the style, the catalogues
                and the documentation; bats runs only for the name wrapper. The full run
                is for the tests and code review ticket.
+               With --coverage (before --scenarios), pytest runs under coverage, the code
+               started in subprocesses included, and the summary adds the coverage report:
+               the percentage of each module, with the lines never run.
   dev-screenshots redoes the screenshots of the on-air guide, in doc/fr/captures
                or in DIRECTORY: the interface off screen, on a demonstration
                written in the test database, never in the production one.
@@ -99,6 +103,7 @@ Examples:
   Machin logs
   Machin dev-test
   Machin dev-test --scenarios streams feed_card
+  Machin dev-test --coverage
 
 Exit codes:
   the one of the called binary, of journalctl for logs, or of the subshell for dev;
@@ -254,10 +259,26 @@ choisir_scenarios() {
 	done
 }
 
+# pytest sous coverage (https://github.com/dascritch/machincast/issues/438) : un fichier de données par processus,
+# sous-processus compris (patch = ["subprocess"] de pyproject.toml), réunis puis résumés dans le bilan. Les données
+# d'une mesure précédente sont effacées d'abord.
+lancer_pytest_couvert() {
+	local coverage="${VIRTUAL_ENV}/bin/coverage"
+	[[ ! -x "${coverage}" ]] || "${coverage}" erase
+	verifier_avec "pytest" venv coverage run -m pytest "${MODULES[@]}"
+	verifier_avec "coverage combine" venv coverage combine --quiet
+	verifier_avec "coverage report" venv coverage report
+}
+
 lancer_dev_test() {
 	local venv scripts ligne liste
 	MODULES=()
 	BATS_DEMANDE=true
+	COUVERTURE=false
+	if (($# > 0)) && [[ "$1" == --coverage ]]; then
+		COUVERTURE=true
+		shift
+	fi
 	if (($# > 0)); then
 		[[ "$1" == --scenarios ]] || erreur_usage "$(tf 'unknown option of dev-test: %s' "$1")"
 		shift
@@ -280,7 +301,11 @@ lancer_dev_test() {
 	verifier_avec "ruff format --check" venv ruff format --no-cache --check .
 	verifier_avec "mypy --strict" venv mypy --strict src/
 	verifier_avec "shellcheck" PATH shellcheck -x "${scripts[@]}"
-	verifier_avec "pytest" venv pytest "${MODULES[@]}"
+	if "${COUVERTURE}"; then
+		lancer_pytest_couvert
+	else
+		verifier_avec "pytest" venv pytest "${MODULES[@]}"
+	fi
 	if "${BATS_DEMANDE}"; then
 		verifier_avec "bats" PATH bats tests/wrapper
 	else

@@ -56,7 +56,7 @@ from machincast.player.state import StateSocket  # noqa: E402
 from tests.database_fixtures import (  # noqa: E402
 	configuration_test,
 	purge_database,
-	reset_database,  # noqa: E402
+	reset_database,
 	sample_connection,
 	sample_database_parameters,
 )
@@ -287,7 +287,7 @@ def fill(connection: Connection) -> Demonstration:
 		start=1,
 	):
 		connection.execute(
-			f"INSERT INTO sequence_items (sequence_id, position, {column}) VALUES (%s, %s, %s)",  # noqa: S608
+			f"INSERT INTO sequence_items (sequence_id, position, {column}) VALUES (%s, %s, %s)",
 			(sequence, position, value),
 		)
 	events = _events(connection, sounds, banks, sequence)
@@ -376,7 +376,7 @@ def _events(connection: Connection, sounds: dict[str, int], banks: dict[str, int
 				"sequence": ("sequence_id", sequence),
 			}[category]
 			connection.execute(
-				f"INSERT INTO event_items (event_id, position, {column}) VALUES (%s, %s, %s)",  # noqa: S608
+				f"INSERT INTO event_items (event_id, position, {column}) VALUES (%s, %s, %s)",
 				(events[key], position, identifier),
 			)
 	return events

@@ -352,7 +352,7 @@ def event_in_database(empty_database: Connection, name: str, datatable: list[lis
 			"stream_fallback": "(SELECT f.internal_name FROM events f WHERE f.id = events.stream_fallback_event_id)",
 		}.get(field, field)
 		line = empty_database.execute(
-			f"SELECT {column} FROM events WHERE internal_name = %s",  # noqa: S608
+			f"SELECT {column} FROM events WHERE internal_name = %s",
 			(name,),
 		).fetchone()
 		assert line is not None, f"« {name} » absent de la base"

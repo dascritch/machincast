@@ -85,7 +85,7 @@ def sound(database: Connection, name: str) -> int:
 
 
 def name_of(database: Connection, table: str, column: str, identifier: int) -> str:
-	line = database.execute(f"SELECT {column} FROM {table} WHERE id = %s", (identifier,)).fetchone()  # noqa: S608
+	line = database.execute(f"SELECT {column} FROM {table} WHERE id = %s", (identifier,)).fetchone()
 	assert line is not None
 	return str(line[0]).removeprefix("/sons/").removesuffix(".flac")
 
@@ -146,8 +146,7 @@ def playing_sequence(empty_database: Connection, name: str, list_: str) -> None:
 	assert created is not None
 	for position, (category, item_name) in enumerate(ITEM.findall(list_), start=1):
 		empty_database.execute(
-			f"INSERT INTO sequence_items (sequence_id, position, {COLUMNS[category]})"  # noqa: S608
-			" VALUES (%s, %s, %s)",
+			f"INSERT INTO sequence_items (sequence_id, position, {COLUMNS[category]}) VALUES (%s, %s, %s)",
 			(created[0], position, reference(empty_database, category, item_name)),
 		)
 
@@ -188,8 +187,7 @@ def events(empty_database: Connection, datatable: list[list[str]]) -> None:
 		assert created is not None
 		for position, (category, name) in enumerate(ITEM.findall(line["liste"]), start=1):
 			empty_database.execute(
-				f"INSERT INTO event_items (event_id, position, {COLUMNS[category]})"  # noqa: S608
-				" VALUES (%s, %s, %s)",
+				f"INSERT INTO event_items (event_id, position, {COLUMNS[category]}) VALUES (%s, %s, %s)",
 				(created[0], position, reference(empty_database, category, name)),
 			)
 

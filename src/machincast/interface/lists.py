@@ -216,7 +216,7 @@ SOUND_ORDER = "s.artist NULLS LAST, s.title, s.id"
 
 def read_sounds(connection: Connection) -> list[Line]:
 	with connection.transaction():
-		rows = connection.execute(f"SELECT {SOUND_FIELDS} {SOUND_TABLES} ORDER BY {SOUND_ORDER}").fetchall()  # noqa: S608
+		rows = connection.execute(f"SELECT {SOUND_FIELDS} {SOUND_TABLES} ORDER BY {SOUND_ORDER}").fetchall()
 	sounds = []
 	for row in rows:
 		sounds.append(sound_line(row))
@@ -556,19 +556,17 @@ class PagedSounds(QAbstractTableModel):
 		self._order = Qt.SortOrder.AscendingOrder
 		self._read = False
 
-	def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008, N802
+	def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008
 		if parent.isValid():
 			return 0
 		return len(self._lines)
 
-	def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008, N802
+	def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: B008
 		if parent.isValid():
 			return 0
 		return len(self.titles)
 
-	def headerData(  # noqa: N802
-		self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
-	) -> object:
+	def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> object:
 		if orientation != Qt.Orientation.Horizontal:
 			return None
 		if role == Qt.ItemDataRole.DisplayRole:
@@ -598,10 +596,10 @@ class PagedSounds(QAbstractTableModel):
 			return line.name
 		return None
 
-	def canFetchMore(self, parent: QModelIndex | QPersistentModelIndex) -> bool:  # noqa: N802
+	def canFetchMore(self, parent: QModelIndex | QPersistentModelIndex) -> bool:
 		return (not parent.isValid()) and (len(self._lines) < self.total)
 
-	def fetchMore(self, parent: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
+	def fetchMore(self, parent: QModelIndex | QPersistentModelIndex) -> None:
 		if not self.canFetchMore(parent):
 			return
 		lines = self._page(len(self._lines))
@@ -627,7 +625,7 @@ class PagedSounds(QAbstractTableModel):
 		anomaly = "s.state::text = ANY(%s)"
 		with self.connection.transaction():
 			counts = self.connection.execute(
-				f"SELECT count(*) FILTER (WHERE {where}), count(*) FILTER (WHERE ({where}) AND {anomaly}), count(*)"  # noqa: S608
+				f"SELECT count(*) FILTER (WHERE {where}), count(*) FILTER (WHERE ({where}) AND {anomaly}), count(*)"
 				f" {SOUND_TABLES}",
 				[*values, *values, list(SOUND_IN_ANOMALY)],
 			).fetchone()
@@ -646,7 +644,7 @@ class PagedSounds(QAbstractTableModel):
 		where, values = self._filter()
 		order, order_values = self._ordering()
 		rows = self.connection.execute(
-			f"SELECT {SOUND_FIELDS} {SOUND_TABLES} AND ({where}) ORDER BY {order} LIMIT %s OFFSET %s",  # noqa: S608
+			f"SELECT {SOUND_FIELDS} {SOUND_TABLES} AND ({where}) ORDER BY {order} LIMIT %s OFFSET %s",
 			[*values, *order_values, preferences.table_rows(), offset],
 		).fetchall()
 		page = []

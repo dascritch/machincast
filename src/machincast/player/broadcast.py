@@ -1083,7 +1083,7 @@ class Broadcast:
 			return
 		try:
 			message = self._state(instant, False)
-		except Exception as error:  # noqa: BLE001 : le contexte d'un rapport ne doit pas arrêter l'antenne
+		except Exception as error:  # le contexte d'un rapport ne doit pas arrêter l'antenne
 			log.debug(_("crash report context unavailable: {error}").format(error=error))
 			return
 		previous, self._crash_current = self._crash_current, message["current"]

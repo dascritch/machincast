@@ -305,7 +305,7 @@ git pull
 
 ```bash
 git pull
-.venv/bin/pip install --editable .
+.venv/bin/pip install --constraint constraints.txt --editable .
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
 
@@ -350,8 +350,10 @@ sudo apt install python3-venv python3-dev build-essential pkg-config libgireposi
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install --upgrade pip
-.venv/bin/pip install --editable .
+.venv/bin/pip install --constraint constraints.txt --editable .
 ```
+
+`constraints.txt` fixe la version exacte de chaque dépendance Python, de développement comprises ([#438](https://github.com/dascritch/machincast/issues/438)) : `pyproject.toml` ne donne que des minimums, et sans lui deux postes installés à des dates différentes n'auraient pas les mêmes versions. `install.sh` le passe toujours à pip.
 
 **3. Configuration.**
 

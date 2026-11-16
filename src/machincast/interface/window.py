@@ -276,7 +276,7 @@ class TabKey(QObject):
 	pas la demande de la touche, qui va au raccourci ; dans une autre fenêtre, sans ces raccourcis, la touche lui
 	arrive quand même, comme une touche ordinaire. La fenêtre principale n'a pas de texte multiligne."""
 
-	def eventFilter(self, object_: QObject, event: QEvent) -> bool:  # noqa: N802 : nom imposé par Qt
+	def eventFilter(self, object_: QObject, event: QEvent) -> bool:
 		if (event.type() != QEvent.Type.ShortcutOverride) or (not isinstance(event, QKeyEvent)):
 			return False
 		return QKeySequence(event.keyCombination()).toString() in TAB_KEYS
@@ -921,7 +921,7 @@ class MainWindow(QMainWindow):
 			condition = " AND deleted_at IS NULL"
 		with self.connection.transaction():
 			line = self.connection.execute(
-				f"SELECT 1 FROM {table} WHERE id = %s{condition}",  # noqa: S608 : table et condition sont des constantes
+				f"SELECT 1 FROM {table} WHERE id = %s{condition}",
 				(identifier,),
 			).fetchone()
 		return line is not None

@@ -58,9 +58,18 @@ _Machin() {
 		return 0
 	fi
 	if [[ "${binaire}" == dev-test ]]; then
-		if ((COMP_CWORD == i + 1)); then
-			mapfile -t COMPREPLY < <(compgen -W "--scenarios" -- "${courant}")
-		elif [[ "${COMP_WORDS[i + 1]}" == --scenarios ]]; then
+		# --coverage, facultative, vient avant --scenarios (https://github.com/dascritch/machincast/issues/438).
+		local debut=$((i + 1))
+		if [[ "${COMP_WORDS[debut]}" == --coverage ]] && ((COMP_CWORD > debut)); then
+			debut=$((i + 2))
+		fi
+		if ((COMP_CWORD == debut)); then
+			if ((debut == i + 1)); then
+				mapfile -t COMPREPLY < <(compgen -W "--coverage --scenarios" -- "${courant}")
+			else
+				mapfile -t COMPREPLY < <(compgen -W "--scenarios" -- "${courant}")
+			fi
+		elif [[ "${COMP_WORDS[debut]}" == --scenarios ]]; then
 			local wrapper fonctionnalites=(wrapper) fichier
 			wrapper="$(type -P "${commande}" 2>/dev/null)" && wrapper="$(readlink -f "${wrapper}")"
 			for fichier in "${wrapper%/bin/*}"/tests/features/*.feature; do

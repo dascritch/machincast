@@ -101,7 +101,7 @@ def in_database(empty_database: Connection, column: str, table: str, expected: s
 	key = None
 	if "." in column:
 		column, key = column.split(".")
-	lines = empty_database.execute(f"SELECT {column} FROM {table}").fetchall()  # noqa: S608
+	lines = empty_database.execute(f"SELECT {column} FROM {table}").fetchall()
 	assert len(lines) == 1, lines
 	value = lines[0][0]
 	if (key is not None) and (isinstance(value, dict)):

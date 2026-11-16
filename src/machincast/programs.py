@@ -199,7 +199,7 @@ def launch_detached(command: list[str], directory: str) -> None:
 	"""Détachée d'install.sh : elle survit à son terminal. Un répertoire disparu depuis laisse le répertoire courant."""
 	if not Path(directory).is_dir():
 		directory = os.getcwd()
-	subprocess.Popen(  # noqa: S603 : la commande est bin/Machin, et les arguments, ceux du programme arrêté
+	subprocess.Popen(
 		command,
 		cwd=directory,
 		start_new_session=True,

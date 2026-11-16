@@ -43,7 +43,7 @@ class ScreenCatalog(QTranslator):
 		# garde. Une chaîne vide serait une traduction, vide, que reçoivent aussi les textes internes de Qt.
 		return i18n.known(source_text, (disambiguation) or (None))
 
-	def isEmpty(self) -> bool:  # noqa: N802
+	def isEmpty(self) -> bool:
 		return False
 
 

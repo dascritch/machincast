@@ -242,7 +242,7 @@ def check_sounds(
 		except (UnavailableDecoder, psycopg.OperationalError):
 			# Un décodeur absent n'est la faute d'aucun fichier, et une base injoignable arrête tout.
 			raise
-		except Exception as error:  # noqa: BLE001 : un incident sur un sonore n'arrête pas les autres
+		except Exception as error:  # un incident sur un sonore n'arrête pas les autres
 			_incident(report, str(line[1]), error)
 	if report.already_audited:
 		log.info(_already_audited(len(report.already_audited), silence_threshold))
@@ -444,7 +444,7 @@ def watched[T](function: Callable[[], T], limit: timedelta) -> T:
 	def run() -> None:
 		try:
 			outcome.append(function())
-		except BaseException as error:  # noqa: BLE001 : rendue à l'appelant
+		except BaseException as error:  # rendue à l'appelant
 			failure.append(error)
 
 	feed = threading.Thread(target=run, name="examination", daemon=True)

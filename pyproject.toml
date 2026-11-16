@@ -25,6 +25,7 @@ dev = [
 	"pytest-bdd>=8",
 	"pytest-qt>=4.4",
 	"ruff>=0.6",
+	"coverage>=7.10",  # patch = ["subprocess"] : le code lancé en sous-processus est mesuré
 	"mypy>=1.11",
 	"pygobject-stubs>=2.11",
 	# Serveur HTTP/2 du scénario « release » des flux (https://github.com/dascritch/machincast/issues/278).
@@ -64,7 +65,9 @@ extend-exclude = ["src/machincast/interface/ui/*.py"]
 indent-style = "tab"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+# RUF100 refuse un « # noqa » qui ne supprime rien : il vise une règle que ruff n'applique pas, ou qui ne se
+# déclenche plus (https://github.com/dascritch/machincast/issues/438).
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF100"]
 # W191 signale les tabulations : désactivée, puisque les tabulations sont la règle du projet.
 # SIM108 réclame une expression conditionnelle à la place d'un if, SIM110 un any() ou un all() sur une expression
 # génératrice à la place d'une boucle for : désactivées, le code n'a ni expression conditionnelle ni
@@ -92,6 +95,19 @@ disable_error_code = ["union-attr"]
 # yoyo-migrations ne publie pas d'annotations de type.
 module = ["yoyo", "yoyo.*"]
 ignore_missing_imports = true
+
+[tool.coverage.run]
+# Mesure du code de MachinCast, sous-processus compris (Machin dev-test --coverage,
+# https://github.com/dascritch/machincast/issues/438) : un fichier de données par processus, que « coverage combine »
+# réunit.
+source_pkgs = ["machincast"]
+parallel = true
+patch = ["subprocess"]
+data_file = ".coverage/data"
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
 
 # ─── Tests ─────────────────────────────────────────────────
 
