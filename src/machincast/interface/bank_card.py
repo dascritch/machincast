@@ -454,7 +454,7 @@ class BankCard(Card):
 			chosen = line.data(0, CHOSEN_STATE)
 			sound = line.data(0, SOUND)
 			if (chosen is not None) and (sound is not None):
-				banks.set_state(self.connection, int(sound), chosen)
+				banks.set_sound_state(self.connection, int(sound), chosen)
 
 	def sound_menu(self, line: QTreeWidgetItem | None) -> QMenu | None:
 		"""Le menu du clic droit sur cette ligne : « Pré-écoute… » de son sonore, puis l'état des sonores choisis si
