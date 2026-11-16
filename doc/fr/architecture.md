@@ -56,7 +56,7 @@ Par ordre de priorité. Chaque objectif a son scénario et sa solution au [§ 4]
 
 | Contrainte | Détail |
 | --- | --- |
-| Matériel et système dédiés | Un PC autonome, dédié à l'antenne, avec au moins une carte son de qualité, 8 Go de mémoire au minimum et au moins 500 Go de disque disponible. Une seconde carte son sert au monitoring. |
+| Matériel et système dédiés | Un PC autonome, dédié à l'antenne, avec au moins une carte son de qualité, 2 Go de mémoire au minimum et au moins 50 Go de disque disponible. Une seconde carte son sert au monitoring. |
 | Système fiable, prévisible et standard | Ubuntu, versions LTS seulement ; cible actuelle : 26.04 LTS. |
 | Langage ouvert et extensible | Python, interprété, pour qu'une radio puisse faire adapter le code sans chaîne de compilation. |
 | Fonctionnement hors ligne | Aucune clé de licence, aucun service distant nécessaire à la diffusion. Le réseau ne sert qu'à l'installation et aux streams. |
