@@ -23,7 +23,8 @@ from machincast.interface.event_card import EventCard
 from machincast.interface.lists import List
 from machincast.interface.sequence_card import SequenceCard
 from machincast.interface.sound_card import SoundCard
-from tests.interface_steps import Context, actions, identifier, list_, same_icon, slide, window
+from tests.interface_steps import Context, actions, identifier, list_, slide, window
+from tests.menu_steps import same_icon
 
 scenarios("preview_menu.feature")
 
@@ -255,8 +256,3 @@ def click_on_vu_meter(interface: Context, qtbot: QtBot) -> None:
 def ask_preview(interface: Context, empty_database: Connection, title: str) -> None:
 	"""Comme un clic sur la frise du prochain sonore : la fenêtre refuse elle-même une pré-écoute désactivée."""
 	window(interface).home.requested_preview.emit(identifier(empty_database, "sounds", "title", title))
-
-
-@then("il n'y a pas de fenêtre de pré-écoute")
-def without_preview(interface: Context) -> None:
-	assert window(interface).preview is None

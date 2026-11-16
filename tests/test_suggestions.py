@@ -224,11 +224,6 @@ def maximal_duration(empty_database: Connection, name: str, maximum: str) -> Non
 	assert (line[0], str(line[1])) == (None, maximum)
 
 
-@then(parsers.parse("le fichier de configuration contient la ligne « {line} »"))
-def contains_line(interface: Context, line: str) -> None:
-	assert line in configuration_file(interface).read_text(encoding="utf-8").splitlines()
-
-
 @then(parsers.parse("le fichier de configuration contient encore « {text} »"))
 def contains_still(interface: Context, text: str) -> None:
 	assert text in configuration_file(interface).read_text(encoding="utf-8")

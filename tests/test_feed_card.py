@@ -53,17 +53,6 @@ def launch_trial(interface: Context, qtbot: QtBot) -> None:
 	qtbot.mouseClick(card(interface).ui.test, Qt.MouseButton.LeftButton)
 
 
-@when(parsers.parse("le serveur de flux local a bientôt {count:d} connexion"))
-@then(parsers.parse("le serveur de flux local a bientôt {count:d} connexion"))
-def connections(server: StreamServer, qtbot: QtBot, count: int) -> None:
-	qtbot.waitUntil(lambda: server.connections == count, timeout=5000)
-
-
-@then("le serveur de flux local n'a bientôt plus de connexion")
-def more_connection(server: StreamServer, qtbot: QtBot) -> None:
-	qtbot.waitUntil(lambda: server.connections == 0, timeout=5000)
-
-
 @when(parsers.parse("j'ouvre le stream « {title} » du feed"))
 def open_stream(interface: Context, qtbot: QtBot, title: str) -> None:
 	open_in(qtbot, card(interface).ui.streams, title)

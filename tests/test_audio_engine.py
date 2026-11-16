@@ -18,6 +18,7 @@ from machincast.player.engine import AudioEngine, Track, TrackOptions, entry_fad
 from machincast.player.files import check_before_playback
 from tests.database_fixtures import configuration_test, sample_database_parameters
 from tests.sounds import SOUND_FILES, sample_copy
+from tests.waiting import quiet
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
@@ -296,7 +297,7 @@ def wait(context: Context) -> None:
 
 @when(parsers.parse("{milliseconds:d} millisecondes passent"))
 def hold_on(context: Context, milliseconds: int) -> None:
-	time.sleep(milliseconds / 1000)
+	quiet(None, milliseconds, reason="le temps du scénario, que le moteur doit suivre")
 	engine(context).handle_messages()
 
 

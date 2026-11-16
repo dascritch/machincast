@@ -17,6 +17,7 @@ from pytestqt.qtbot import QtBot
 from machincast.interface import indexer
 from machincast.interface.window import INDEXING_TRACKING
 from tests.interface_steps import NAME, WAITING, Context, window
+from tests.waiting import quiet
 
 scenarios("interface_indexing.feature")
 
@@ -57,7 +58,7 @@ def not_found_machin(interface: Context) -> None:
 
 @when("l'interface a regardé plusieurs fois si le Machin indexer factice tourne")
 def several_views(qtbot: QtBot) -> None:
-	qtbot.wait(INDEXING_TRACKING * 2 + 500)
+	quiet(qtbot, INDEXING_TRACKING * 2 + 500, reason="plusieurs observations de l'indexation")
 
 
 @when("le Machin indexer factice se termine")

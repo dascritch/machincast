@@ -178,3 +178,10 @@ Fonctionnalité: Socle de test
 	Scénario: Une fonction publique longue est documentée, sans affectation à soi-même ni subprocess sans check
 		Alors la configuration de ruff active les règles PLW0127 et PLW1510 sur le code de src
 		Et chaque fonction publique de plus de 15 lignes a une docstring
+
+	Scénario: Un test n'attend jamais une durée fixe sans la nommer
+		Alors aucun test n'appelle qtbot.wait ni time.sleep hors d'une boucle d'attente, sauf par tests/waiting.py
+
+	Scénario: Un fichier d'étapes partagées reste lisible
+		Alors aucun fichier d'étapes partagées de tests/ ne dépasse 1500 lignes
+

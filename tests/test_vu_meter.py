@@ -307,11 +307,6 @@ def port_channels(port: object, count: int) -> None:
 		assert (found, channels) == (True, count), caps.to_string()
 
 
-@then("il n'y a pas de fenêtre de pré-écoute")
-def without_preview(interface: Context) -> None:
-	assert window(interface).preview is None
-
-
 @when("l'onglet Antenne rouvre le port de monitoring de la même antenne", target_fixture="previous_screenshot")
 def reopen(interface: Context) -> object:
 	screen = home(interface)

@@ -36,12 +36,14 @@ from machincast.interface.default_screen import DefaultScreen
 from machincast.interface.error import UnreachableDatabaseWindow
 from machincast.interface.timeline import HEIGHT, Timeline
 from machincast.player.state import StateSocket
+from tests.airplay_steps import insert_play
 from tests.categories import AIRPLAY_KEYS as KEYS
 from tests.categories import HATCHINGS, SCENARIO
 from tests.database_fixtures import CONFIGURATION_TEST, sample_database_parameters
-from tests.interface_steps import insert_play, open_in
+from tests.interface_steps import open_in
 from tests.sounds import SOUND_FILES
 from tests.stream import StreamServer
+from tests.waiting import quiet, settle
 
 scenarios("default_screen.feature")
 
@@ -492,7 +494,7 @@ def in_sendings_two(context: Context, qtbot: QtBot) -> None:
 	line = dead_air_line()
 	half = len(line) // 2
 	send_raw(context, line[:half])
-	qtbot.wait(300)
+	quiet(qtbot, 300, reason="le premier envoi, arrivé seul sur la socket")
 	send_raw(context, line[half:])
 
 
@@ -791,7 +793,7 @@ def halves(context: Context, qtbot: QtBot) -> None:
 	"""La colonne de l'antenne est entre eux (https://github.com/dascritch/machincast/issues/24) : ils se partagent
 	le reste de la largeur."""
 	ui = screen(context).ui
-	qtbot.wait(100)
+	settle(qtbot)
 	left, column, right = ui.ongoing_frame.width(), ui.on_air_column.width(), ui.next_frame.width()
 	assert abs(left - right) <= 1, (left, right)
 	space = ui.sounds.spacing()
@@ -906,7 +908,7 @@ def upcoming_columns(context: Context) -> None:
 def upcoming_to_above(context: Context, qtbot: QtBot) -> None:
 	ui = screen(context).ui
 	screen(context).show()
-	qtbot.wait(50)
+	settle(qtbot)
 	airplay_top = ui.table_airplay.mapTo(screen(context), ui.table_airplay.rect().topLeft()).y()
 	upcoming_bottom = ui.upcoming_table.mapTo(screen(context), ui.upcoming_table.rect().bottomLeft()).y()
 	assert upcoming_bottom < airplay_top, (upcoming_bottom, airplay_top)
@@ -1052,7 +1054,7 @@ def plays(context: Context, qtbot: QtBot, soon: str | None, count: str) -> None:
 		wait(qtbot, lambda: len(context.plays) == int(count))
 	else:
 		# Laisse arriver les états publiés : aucun ne doit relire l'airplay.
-		qtbot.wait(500)
+		quiet(qtbot, 500, reason="un état publié qui relirait l'airplay")
 	assert len(context.plays) == int(count), context.plays
 
 

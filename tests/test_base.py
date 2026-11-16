@@ -609,3 +609,35 @@ def long_public_functions_documented() -> None:
 					if (undocumented) and (generated not in path.parents):
 						faults.append(f"{path.relative_to(ROOT)}:{node.lineno} {node.name}")
 	assert not faults, faults
+
+
+@then("aucun test n'appelle qtbot.wait ni time.sleep hors d'une boucle d'attente, sauf par tests/waiting.py")
+def no_fixed_waiting() -> None:
+	"""https://github.com/dascritch/machincast/issues/444 : une attente à durée fixe passe par `quiet` (l'absence d'un
+	événement) ou `settle` (une condition) de tests/waiting.py ; un sondage dans une boucle, qui lit une condition à
+	chaque tour, est une attente sur condition."""
+	faults = []
+	for path in sorted((ROOT / "tests").glob("*.py")):
+		tree = ast.parse(path.read_text(encoding="utf-8"))
+		in_loop = set()
+		for node in ast.walk(tree):
+			if isinstance(node, ast.While | ast.For):
+				for inner in ast.walk(node):
+					in_loop.add(id(inner))
+		for node in ast.walk(tree):
+			waiting = (isinstance(node, ast.Call)) and (ast.unparse(node.func) in ("qtbot.wait", "time.sleep"))
+			if (waiting) and (id(node) not in in_loop) and (path.name != "waiting.py"):
+				faults.append(f"{path.name}:{node.lineno}")
+	assert not faults, faults
+
+
+@then("aucun fichier d'étapes partagées de tests/ ne dépasse 1500 lignes")
+def steps_size() -> None:
+	"""https://github.com/dascritch/machincast/issues/444 : les étapes d'un domaine ont leur greffon, au lieu d'un
+	seul fichier qui grossit."""
+	faults = []
+	for path in sorted((ROOT / "tests").glob("*_steps.py")):
+		lines = len(path.read_text(encoding="utf-8").splitlines())
+		if lines > 1500:
+			faults.append(f"{path.name} : {lines} lignes")
+	assert not faults, faults

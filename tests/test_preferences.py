@@ -315,11 +315,6 @@ def provided_settings(
 	assert opened.provided_list == expected_list
 
 
-@then(parsers.parse("le fichier de configuration contient la ligne « {line} »"))
-def contains_line(interface: Context, line: str) -> None:
-	assert line in configuration_file(interface).read_text(encoding="utf-8").splitlines()
-
-
 @then("le fichier de configuration n'a plus de section [blancs]")
 def more_dead_airs(interface: Context) -> None:
 	"""https://github.com/dascritch/machincast/issues/291"""

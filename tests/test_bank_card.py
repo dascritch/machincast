@@ -38,6 +38,7 @@ from tests.interface_steps import (
 	type_,
 	window,
 )
+from tests.waiting import settle
 
 scenarios("bank_card.feature")
 
@@ -679,7 +680,7 @@ def last_corrupt(empty_database: Connection, name: str) -> None:
 def scroll_to_bottom(interface: Context, qtbot: QtBot) -> None:
 	bar = card(interface).ui.sounds.verticalScrollBar()
 	bar.setValue(bar.maximum())
-	qtbot.wait(10)
+	settle(qtbot)
 
 
 @when("je compte les réécritures des sonores de la banque")

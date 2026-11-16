@@ -27,6 +27,7 @@ from machincast.interface import columns as column_module
 from machincast.interface.columns import EXPORT, REINSTATE, Columns
 from machincast.interface.search import SearchScreen
 from tests.interface_steps import NAME, Context, choose_in_menu, tab, window
+from tests.waiting import settle
 
 scenarios("columns.feature")
 
@@ -151,7 +152,7 @@ def old_layout(view: str, titles: str) -> None:
 def widen(interface: Context, qtbot: QtBot, title: str, place: str, pixels: str) -> None:
 	"""À la souris, comme l'utilisateur : la bordure droite du titre glisse jusqu'à la largeur voulue."""
 	columns = columns_of(interface, place)
-	qtbot.wait(50)
+	settle(qtbot)
 	header = columns.header
 	column = index(columns, title)
 	edge = header.sectionViewportPosition(column) + header.sectionSize(column) - 1
@@ -228,7 +229,7 @@ def all_open(interface: Context, qtbot: QtBot) -> None:
 		choose_in_menu(interface, menu_entry, "Affichage")
 	for category in ("bank", "sequence", "event", "sound"):
 		opened._open_card(category, None)
-	qtbot.wait(50)
+	settle(qtbot)
 
 
 # ─── Alors ─────────────────────────────────────────────────
@@ -243,7 +244,7 @@ def in_integer(interface: Context, qtbot: QtBot, title: str, place: str, text: s
 
 @then(parsers.re(rf"la colonne « (?P<title>[^»]+) » {PLACE} (?P<verdict>fait|ne fait pas) (?P<pixels>\d+) pixels"))
 def done(interface: Context, qtbot: QtBot, title: str, place: str, verdict: str, pixels: str) -> None:
-	qtbot.wait(100)
+	settle(qtbot)
 	columns = columns_of(interface, place)
 	assert (width(columns, title) == int(pixels)) == (verdict == "fait"), width(columns, title)
 

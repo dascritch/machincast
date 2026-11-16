@@ -8,6 +8,7 @@ from typing import Any
 
 import psycopg
 import pytest
+from PySide6.QtGui import QPalette
 
 from machincast import crash
 from machincast.clock import FixedClock
@@ -21,6 +22,12 @@ pytest_plugins = [
 	"tests.playback_steps",
 	"tests.broadcast_steps",
 	"tests.interface_steps",
+	"tests.menu_steps",
+	"tests.list_steps",
+	"tests.tab_steps",
+	"tests.player_socket_steps",
+	"tests.airplay_steps",
+	"tests.indexer_launch_steps",
 	"tests.preview_steps",
 	"tests.end_of_list_steps",
 ]
@@ -137,3 +144,12 @@ def empty_database() -> Iterator[psycopg.Connection[tuple[object, ...]]]:
 			_recreated_schema = True
 		purge_database(connection)
 		yield connection
+
+
+@pytest.fixture
+def origin_palette(qapp: Any) -> Iterator[None]:
+	"""La palette de l'application avant le scénario, remise à la fin : un scénario qui écrit un thème ne le laisse
+	pas aux suivants (https://github.com/dascritch/machincast/issues/444)."""
+	origin = QPalette(qapp.palette())
+	yield
+	qapp.setPalette(origin)
