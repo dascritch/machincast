@@ -103,6 +103,7 @@ from machincast.interface.incidents import IncidentScreen
 from machincast.interface.indexer import FINISHED, LAUNCHED, TITLES
 from machincast.interface.lists import BANKS, EVENTS, FEEDS, SEQUENCES, SOUNDS, List, Source
 from machincast.interface.preview import PreviewWindow
+from machincast.interface.queries import cards as cards_queries
 from machincast.interface.search import SearchScreen
 from machincast.interface.sequence_card import SequenceCard
 from machincast.interface.simulation import SimulationScreen
@@ -588,15 +589,8 @@ class MainWindow(QMainWindow):
 	def _in_database(self, category: str, identifier: int) -> bool:
 		"""L'élément est en base, et n'est pas supprimé."""
 		table = CARD_TABLES[category]
-		condition = ""
-		if table in DELETABLE:
-			condition = " AND deleted_at IS NULL"
 		with self.connection.transaction():
-			line = self.connection.execute(
-				f"SELECT 1 FROM {table} WHERE id = %s{condition}",
-				(identifier,),
-			).fetchone()
-		return line is not None
+			return cards_queries.exists(self.connection, table, identifier, not_deleted=table in DELETABLE)
 
 	def _open_card(self, category: str, identifier: int | None) -> None:
 		"""Ouvre la fiche d'un élément, ou ramène au premier plan celle déjà ouverte ; None pour un nouvel élément."""

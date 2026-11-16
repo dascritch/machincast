@@ -83,3 +83,11 @@ def events_with_fallback(connection: Connection, event: int) -> list[TupleRow]:
 		" AND deleted_at IS NULL ORDER BY 1",
 		(event, event),
 	).fetchall()
+
+
+def fallback_events(connection: Connection) -> list[TupleRow]:
+	"""Les événements de secours, non supprimés, par nom puis identifiant."""
+	return connection.execute(
+		"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
+		" ORDER BY internal_name, id"
+	).fetchall()

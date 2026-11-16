@@ -34,6 +34,7 @@ from machincast.i18n import _, counted
 from machincast.interface import icons
 from machincast.interface.columns import Columns
 from machincast.interface.lists import STATES, without_accents
+from machincast.interface.queries import search as queries
 
 log = logging.getLogger(__name__)
 
@@ -44,10 +45,6 @@ LIMIT = 500
 """Lignes de la table des résultats, au plus."""
 COLUMNS = (_("Type"), _("Internal name"), _("Public name"), _("Status"))
 TYPES = {"event": _("Event"), "sequence": _("Sequence"), "bank": _("Bank"), "sound": _("Sound")}
-ACCENTED = "àâäáãåçéèêëíìîïñóòôöõúùûüýÿÀÂÄÁÃÅÇÉÈÊËÍÌÎÏÑÓÒÔÖÕÚÙÛÜÝ"
-WITHOUT_ACCENT = "aaaaaaceeeeiiiinooooouuuuyyaaaaaaceeeeiiiinooooouuuuy"
-"""Les lettres accentuées, minuscules et majuscules, que la base ramène à leur lettre de base, dans le même ordre :
-avant lower(), qui ne sait pas toujours abaisser une majuscule accentuée, selon la locale de la base."""
 TOO_SHORT = _("Type at least {minimum} characters.").format(minimum=MINIMUM)
 
 
@@ -63,39 +60,10 @@ class Result:
 	"""L'état d'un sonore ; rien pour les autres."""
 
 
-def _normalised(column: str) -> str:
-	return f"lower(translate(COALESCE({column}, ''), '{ACCENTED}', '{WITHOUT_ACCENT}'))"
-
-
 def _pattern(text: str) -> str:
 	"""Le texte, sans accents ni majuscules, entre deux % de LIKE ; ses \\, % et _ sont cherchés tels quels."""
 	escapes = without_accents(text).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 	return f"%{escapes}%"
-
-
-def _finds(*columns: str) -> str:
-	column_list = []
-	for column in columns:
-		column_list.append(f"{_normalised(column)} LIKE query.pattern")
-	return " OR ".join(column_list)
-
-
-FOUND_LIST = f"""
-	WITH query AS (SELECT %s::text AS pattern)
-	SELECT 1 AS rank, 'event' AS category, id, internal_name AS name, public_name, NULL AS state FROM events, query
-		WHERE (deleted_at IS NULL) AND ({_finds("internal_name", "public_name")})
-	UNION ALL
-	SELECT 2, 'sequence', id, internal_name, public_name, NULL FROM sequences, query
-		WHERE (deleted_at IS NULL) AND ({_finds("internal_name", "public_name")})
-	UNION ALL
-	SELECT 3, 'bank', id, internal_name, public_name, NULL FROM banks, query
-		WHERE (deleted_at IS NULL) AND ({_finds("internal_name", "public_name")})
-	UNION ALL
-	SELECT 4, 'sound', id, concat_ws(' – ', artist, title), NULL, state::text FROM sounds, query
-		WHERE (deleted_at IS NULL) AND ({_finds("artist", "title")})
-"""
-"""Les éléments où se trouve le motif, lié une seule fois (query.pattern), avec le rang de leur type (rank) ; jamais un
-élément supprimé (https://github.com/dascritch/machincast/issues/267)."""
 
 
 def _status(state: object) -> str:
@@ -111,13 +79,8 @@ def find(connection: Connection, text: str, limit: int) -> tuple[list[Result], i
 		return [], 0
 	pattern = _pattern(text.strip())
 	with connection.transaction():
-		lines = connection.execute(
-			f"SELECT category, id, name, public_name, state FROM ({FOUND_LIST}) t ORDER BY rank, lower(name), id"
-			" LIMIT %s",
-			(pattern, limit),
-		).fetchall()
-		line = connection.execute(f"SELECT count(*) FROM ({FOUND_LIST}) t", (pattern,)).fetchone()
-	assert line is not None
+		lines = queries.found(connection, pattern, limit)
+		total = queries.count(connection, pattern)
 	results = []
 	for category, identifier, name, public_name, state in lines:
 		results.append(
@@ -129,7 +92,7 @@ def find(connection: Connection, text: str, limit: int) -> tuple[list[Result], i
 				_status(state),
 			)
 		)
-	return results, int(str(line[0]))
+	return results, total
 
 
 class SearchScreen(QWidget):

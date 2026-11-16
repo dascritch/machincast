@@ -553,3 +553,26 @@ def shared_without_dependencies() -> None:
 			if (library) or (own):
 				faults.append(f"{name} importe {module}")
 	assert not faults, faults
+
+
+@then("aucun module de l'interface qui importe Qt n'exécute de requête")
+def interface_without_queries() -> None:
+	"""https://github.com/dascritch/machincast/issues/442 : les requêtes sont dans machincast.interface.queries, ou dans
+	les modules sans Qt (deletion, groups, sessions…) ; une classe Qt les appelle."""
+	faults = []
+	for path in sorted((ROOT / "src" / "machincast" / "interface").glob("*.py")):
+		tree = ast.parse(path.read_text(encoding="utf-8"))
+		qt = False
+		executed = []
+		for node in ast.walk(tree):
+			if (isinstance(node, ast.ImportFrom)) and (node.module is not None) and (node.module.startswith("PySide6")):
+				qt = True
+			if (
+				(isinstance(node, ast.Call))
+				and (isinstance(node.func, ast.Attribute))
+				and (node.func.attr == "execute")
+			):
+				executed.append(node.lineno)
+		if (qt) and (executed):
+			faults.append(f"{path.name}:{executed[0]}")
+	assert not faults, faults

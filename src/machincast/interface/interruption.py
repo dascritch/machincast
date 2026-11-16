@@ -32,6 +32,8 @@ from machincast.i18n import _
 from machincast.interface import display
 from machincast.interface.calendar import day_and_month
 from machincast.interface.intents import RESTART, SKIP, label
+from machincast.interface.queries import events as events_queries
+from machincast.interface.queries import feeds as feeds_queries
 from machincast.interface.state import FollowingEvent, PlaybackState
 
 log = logging.getLogger(__name__)
@@ -196,10 +198,7 @@ def read_fallback(connection: psycopg.Connection[TupleRow]) -> list[Fallback]:
 	"""Les événements de secours en base, non supprimés, par nom ; aucun si la base est injoignable."""
 	try:
 		with connection.transaction():
-			lines = connection.execute(
-				"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
-				" ORDER BY internal_name, id"
-			).fetchall()
+			lines = events_queries.fallback_events(connection)
 	except psycopg.Error as error:
 		log.error(_("unreadable fallback events: {error}").format(error=error))
 		return []
@@ -288,11 +287,7 @@ def feed_stream(connection: psycopg.Connection[TupleRow], feed: int) -> tuple[in
 	injoignable."""
 	try:
 		with connection.transaction():
-			line = connection.execute(
-				"SELECT id, state = 'active' FROM sounds WHERE feed_id = %s AND type = 'stream' AND deleted_at IS NULL"
-				" ORDER BY state = 'active' DESC, id LIMIT 1",
-				(feed,),
-			).fetchone()
+			line = feeds_queries.active_stream(connection, feed)
 	except psycopg.Error as error:
 		log.error(_("unreadable stream of feed {feed}: {error}").format(feed=feed, error=error))
 		return None, False
