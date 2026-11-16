@@ -8,6 +8,7 @@
 - [Quel sonore une banque fournit](#quel-sonore-une-banque-fournit)
 - [Expiration des sonores](#expiration-des-sonores)
 - [Enchaînements](#enchaînements)
+- [Blanc dans un sonore](#blanc-dans-un-sonore)
 - [Silences au début et à la fin](#silences-au-début-et-à-la-fin)
 - [Streams](#streams)
 - [Page publique et masquage](#page-publique-et-masquage)
@@ -143,9 +144,9 @@ L'onglet Antenne montre le texte public du sonore en cours, tel que la page publ
 
 ## Piloter la diffusion
 
-Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la redémarrer, l'arrêter puis la démarrer ([#223](https://github.com/dascritch/machincast/issues/223)). Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu. Dans ce menu comme dans les clics droits de l'onglet Antenne, ⏵ marque ce qui démarre la diffusion, ⏹ ce qui l'arrête, et ⏭ ce qui saute le sonore ou l'événement en cours ([#322](https://github.com/dascritch/machincast/issues/322)). Tant que la diffusion ne tourne pas, la dernière ligne de la fenêtre affiche **🔇 Diffusion arrêtée**.
+Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la redémarrer, l'arrêter puis la démarrer ([#223](https://github.com/dascritch/machincast/issues/223)). Seuls les **Paramètres du service…** la redémarrent d'eux-mêmes, à leur validation ([Préférences](prise-en-main.md#préférences), [#389](https://github.com/dascritch/machincast/issues/389)). Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu. Dans ce menu comme dans les clics droits de l'onglet Antenne, ⏵ marque ce qui démarre la diffusion, ⏹ ce qui l'arrête, et ⏭ ce qui saute le sonore ou l'événement en cours ([#322](https://github.com/dascritch/machincast/issues/322)). Tant que la diffusion ne tourne pas, la dernière ligne de la fenêtre affiche **🔇 Diffusion arrêtée**.
 
-![Le menu Diffusion : démarrer, arrêter, puis les trois interruptions](../captures/menu-diffusion.png)
+![Le menu Diffusion : démarrer, arrêter, puis les interruptions](../captures/menu-diffusion.png)
 
 **Sur un poste installé pour l'antenne**, la diffusion tourne comme un service du poste :
 

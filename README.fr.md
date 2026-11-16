@@ -4,7 +4,7 @@
 
 **Version 0.9.0**, publiée le 2026-10-28, première version publiée, avant la 1.0 : [ce qu'elle apporte](RELEASE.fr.md), et [son archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
 
-Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores, de *feeds* externes et d'événements horaires. Le service a des tolérance de sources, des scénarios de secours et sépare les services métiers. Les fichiers sonores sont immuables, les traitements sont faits sans les modifier.
+Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores, de *feeds* externes et d'événements horaires. Le service a des tolérances de sources, des scénarios de secours et sépare les services métiers. Les fichiers sonores sont immuables, les traitements sont faits sans les modifier.
 
 ![une discothèque](doc/banner.jpg)
 
@@ -55,6 +55,6 @@ La construction de code avec et par une IA est [dans le cadre d'une future émis
  - Pascal Bouche "Raskal"
  - Fabrice Serin "DJ Tro"
 
-Aux animateurs, bénévoles, soutients et aux artistes passés et à venir qui ont fait vivre l'antenne de Radio &lt;FMR&gt;
+Aux animateurs, bénévoles, soutiens et aux artistes passés et à venir qui ont fait vivre l'antenne de Radio &lt;FMR&gt;
 
 Cultivé avec ♡ depuis Toulouse, France.

@@ -396,7 +396,7 @@ Fonctionnalité: Fiche d'une banque
 		Et je fixe la durée maximale des sonores à « 0:04:00 »
 		Et j'enregistre la fiche
 		Alors la fiche signale « La durée minimale des sonores dépasse la durée maximale. »
-		Et l'erreur est en haut de la fiche, sur un liseret rouge de 4 pixels
+		Et l'erreur est en haut de la fiche, sur un liseré rouge de 4 pixels
 		Et les champs signalés par ⚠️ sont « Durée minimale des sonores », « Durée maximale des sonores »
 		Et la banque « Jingles » a en base les durées des sonores d'aucune à aucune secondes
 

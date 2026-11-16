@@ -10,6 +10,7 @@
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
 - [Messages et codes de sortie](#messages-et-codes-de-sortie)
 - [Démarrages et fins dans le log](#démarrages-et-fins-dans-le-log)
+- [Rapports de crash](#rapports-de-crash)
 
 ## Lancer les programmes : Machin
 

@@ -352,7 +352,7 @@ def contains(archive: dict[str, tarfile.TarInfo], names: str) -> None:
 
 # ─── Documentation par langue (https://github.com/dascritch/machincast/issues/355) ───
 
-FIRST_LEVEL = ("README", "INSTALL", "TROUBLESHOOTING", "CONTRIBUTION", "RELEASE")
+FIRST_LEVEL = ("README", "INSTALL", "TROUBLESHOOTING", "CONTRIBUTING", "RELEASE")
 
 
 @then("chaque document de premier niveau est en anglais, avec sa source française, et chacun mène à l'autre")
@@ -365,9 +365,12 @@ def first_level() -> None:
 
 @then("doc ne contient que des répertoires de langue, dont la source française doc/fr")
 def doc_by_language() -> None:
+	# Un fichier commun à toutes les langues, comme la bannière du README, a sa place à la racine de doc
+	# (https://github.com/dascritch/machincast/issues/461) : seuls les répertoires y sont des langues.
 	path_list = []
 	for path in (ROOT / "doc").iterdir():
-		path_list.append(path.name)
+		if path.is_dir():
+			path_list.append(path.name)
 	content = sorted(path_list)
 	assert "fr" in content, content
 	assert set(content) <= {"fr", "en"}, content

@@ -21,7 +21,7 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   liste : elle boucle, sauf pour une émission ou un spécial sans fin.
 - Session sautée (https://github.com/dascritch/machincast/issues/295) : la prochaine session sautée de l'événement,
   en cours ou à venir (machincast.interface.sessions.next_skipped), s'annonce en haut de la fiche, sous l'erreur,
-  sur un liseret orange (skipped_session, SESSION_OUTLINE) : un avertissement, qui ne refuse rien. Le saut tient au
+  sur un liseré orange (skipped_session, SESSION_OUTLINE) : un avertissement, qui ne refuse rien. Le saut tient au
   jour : il suit l'heure de l'événement quand elle change. Son bouton « Rétablir » la rétablit, comme le clic droit du
   calendrier, sans toucher aux champs de la fiche ; il est inactif, avec une infobulle qui dit pourquoi, pour une
   session commencée, ou dont un événement de même priorité a pris la place. Rétablie, la session s'annonce
@@ -93,7 +93,7 @@ WITHOUT_STREAM = _("Only for an event whose list has a stream.")
 DEFAULT_DURATION = timedelta(hours=1)
 """Écart entre le début et une fin qui se coche."""
 SESSION_OUTLINE = f"QFrame#session_sautee {{ border: 4px solid {ORANGE}; }}"
-"""Le liseret d'une session sautée : un avertissement, de l'orange de ceux de la fiche."""
+"""Le liseré d'une session sautée : un avertissement, de l'orange de ceux de la fiche."""
 REINSTATE = _("Reinstate")
 STARTED = _("It has already started: it can no longer be reinstated.")
 

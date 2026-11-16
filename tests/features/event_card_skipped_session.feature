@@ -7,7 +7,7 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 	https://github.com/dascritch/machincast/issues/295. Une session sautée
 	(https://github.com/dascritch/machincast/issues/273) se note par le jour où elle commence : elle reste sautée quand
 	l'heure de l'événement change. La fiche annonce la première session sautée qui n'est pas passée, en cours ou à
-	venir, en haut, sous l'erreur, sur un liseret orange : c'est un avertissement, qui ne refuse rien. Son bouton
+	venir, en haut, sous l'erreur, sur un liseré orange : c'est un avertissement, qui ne refuse rien. Son bouton
 	« Rétablir » la rétablit comme le clic droit du calendrier, aux mêmes règles : pas une session commencée, ni une
 	session dont un événement de même priorité a pris la place. « Matinale » revient du lundi au vendredi ; le
 	20 octobre 2026 est un mardi.
@@ -20,13 +20,13 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 			| Matinale | Le réveil   | show                   | 2026-10-05 07:00 | 2026-10-05 09:00 | monday, tuesday, wednesday, thursday, friday |
 			| Direct   |             | special                | 2026-10-05 20:00 |                  | monday, tuesday, wednesday, thursday, friday |
 
-	Scénario: La prochaine session sautée s'annonce en haut de la fiche, sur un liseret orange
+	Scénario: La prochaine session sautée s'annonce en haut de la fiche, sur un liseré orange
 		Étant donné l'horloge de l'interface au « 2026-10-20 16:40:00 »
 		Et la session du 2026-10-22 de l'événement « Matinale » est sautée
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Alors la fiche annonce « La session du jeudi 22 octobre 2026 à 07:00 est sautée : elle ne jouera pas. »
-		Et l'annonce est sous l'erreur de la fiche, sur un liseret orange de 4 pixels
+		Et l'annonce est sous l'erreur de la fiche, sur un liseré orange de 4 pixels
 		Et le bouton « Rétablir » de l'annonce est actif
 		Et la fiche ne signale rien
 

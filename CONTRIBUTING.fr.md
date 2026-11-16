@@ -15,8 +15,8 @@ bin/Machin dev           # sous-shell dans le dépôt, venv activé
 pyside6-designer src/machincast/interface/ui/bank_card.ui
 ```
 
-- Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en français et en `snake_case`, comme le module qu'il produira : `bank_card.ui`, `event_card.ui`.
-- Les `objectName` des widgets sont en français et en `snake_case` (`internal_name`, `public_name`, `sound_list`), puisqu'ils deviennent des attributs Python : `self.ui.internal_name`.
+- Un écran = un fichier `.ui` dans `src/machincast/interface/ui/`, nommé en anglais et en `snake_case` ([#368](https://github.com/dascritch/machincast/issues/368)), comme le module qu'il produira : `bank_card.ui`, `event_card.ui`.
+- Les `objectName` des widgets sont en anglais et en `snake_case` (`internal_name`, `public_name`, `sound_list`), puisqu'ils deviennent des attributs Python : `self.ui.internal_name`.
 - Les textes de l'écran sont en anglais ; ils se traduisent par le catalogue de MachinCast ([traduire MachinCast](#traduire-machincast)). Un texte qui ne se traduit pas (un symbole, un format) se coche « non traduisible » (`notr`) ; un même mot anglais aux traductions différentes reçoit un commentaire (`comment`), qui devient son contexte.
 - Vocabulaire à l'écran : celui de la spécification ([§ 1](doc/fr/spec.md#1-vocabulaire)) et des [règles de l'interface](doc/fr/regles/interface.md), « banque » et jamais « playlist » ; en anglais, *bank*.
 - Les champs de texte courts sont limités à 255 caractères (`maxLength`), comme en base.
@@ -27,7 +27,7 @@ pyside6-designer src/machincast/interface/ui/bank_card.ui
 Après chaque enregistrement dans le Designer, régénérer le module Python :
 
 ```bash
-pyside6-uic src/machincast/interface/ui/bank_card.ui -o src/machincast/interface/ui/fiche_banque.py
+pyside6-uic src/machincast/interface/ui/bank_card.ui -o src/machincast/interface/ui/bank_card.py
 ```
 
 - Le fichier `.ui` et le module généré sont versionnés ensemble, dans le même commit.
@@ -39,15 +39,15 @@ pyside6-uic src/machincast/interface/ui/bank_card.ui -o src/machincast/interface
 ```python
 from PySide6.QtWidgets import QWidget
 
-from machincast.interface.ui.bank_card import Ui_FicheBanque
+from machincast.interface.ui.bank_card import Ui_BankCard
 
 
-class FicheBanque(QWidget):
+class BankCard(QWidget):
 	def __init__(self) -> None:
 		super().__init__()
-		self.ui = Ui_FicheBanque()
+		self.ui = Ui_BankCard()
 		self.ui.setupUi(self)
-		self.ui.nom_interne.textChanged.connect(self._nom_modifie)
+		self.ui.internal_name.textChanged.connect(self._modify)
 ```
 
 `mypy --strict` connaît les widgets créés par `setupUi` : un `objectName` mal orthographié, ou un widget retiré du `.ui`, est signalé à la vérification de types.
