@@ -17,12 +17,12 @@ from machincast.player.broadcast_plan import (
 	_continues_sequence,
 )
 from machincast.player.broadcast_types import (
-	NO_CROSSFADE,
 	Planned,
 	Playback,
 )
-from machincast.player.grid import Event, Occurrence, Priority, read_event, wall_hour
 from machincast.player.rundown import Choice
+from machincast.shared.fades import NO_CROSSFADE
+from machincast.shared.grid import Event, Occurrence, Priority, read_event, wall_hour
 
 if TYPE_CHECKING:
 	from machincast.player.broadcast import Broadcast

@@ -8,7 +8,7 @@ Machin purge efface de la base ce qui est plus vieux (https://github.com/dascrit
 semaine, les jours d'avant sont grisés, vides.
 
 - Prévu : chaque occurrence d'un événement, récurrences comprises, et ce qui en joue
-  (machincast.player.grid.plan). Un bloc qu'un autre événement masque en entier est estompé ; en partie, seuls ses
+  (machincast.shared.grid.plan). Un bloc qu'un autre événement masque en entier est estompé ; en partie, seuls ses
   moments à l'antenne sont pleins. Une occurrence de 24 heures ou plus, et un fil musical permanent, vont dans la bande
   de la journée entière, entre le nom du jour et les heures. Deux blocs qui se chevauchent se placent côte à côte.
   Un événement supprimé garde ses occurrences d'avant sa suppression, jusqu'à leur péremption.
@@ -72,7 +72,7 @@ from machincast.i18n import N_, _, ngettext, pgettext
 from machincast.interface import dialogs, preferences
 from machincast.interface.display import MONTH
 from machincast.interface.sessions import Session, overlapped, reinstate
-from machincast.player.grid import (
+from machincast.shared.grid import (
 	DAY_NAMES,
 	RANKS,
 	Event,

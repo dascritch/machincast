@@ -4,10 +4,10 @@ La frise remplace la barre de position de la pré-écoute d'un fichier. Elle s'�
 
 - Plan : ce que l'antenne fera du fichier, d'après la base. Ses silences détectés (detected_start, detected_end,
   https://github.com/dascritch/machincast/issues/146), retirés s'il active la détection ; la partie jouée et ses
-  fondus, placés autour des silences comme la diffusion les place (machincast.player.fades.put, selon les positions
+  fondus, placés autour des silences comme la diffusion les place (machincast.shared.fades.put, selon les positions
   des fondus, https://github.com/dascritch/machincast/issues/234) ; ses crossfades, ceux des préférences pour un
-  crossfade non paramétré (machincast.player.broadcast.crossfade), et le volume de l'écoute comme à l'antenne, le
-  long de l'enveloppe de la diffusion (machincast.player.engine.envelope). Ouverte depuis une fiche, la pré-écoute
+  crossfade non paramétré (machincast.shared.fades.crossfade), et le volume de l'écoute comme à l'antenne, le
+  long de l'enveloppe de la diffusion (machincast.shared.fades.envelope). Ouverte depuis une fiche, la pré-écoute
   ne connaît pas la banque par laquelle passera le sonore : ses règles n'y figurent pas ; l'onglet Antenne les connaît.
 - FormeDOnde : la forme d'onde, calculée en tâche de fond par un pipeline GStreamer à part (uridecodebin, level,
   fakesink sans synchronisation : aussi vite que le décodage). Le minuteur de la pré-écoute relève son bus : rien ne
@@ -50,14 +50,14 @@ from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget  # noqa: E402
 from machincast.configuration import Crossfades  # noqa: E402
 from machincast.i18n import _, decimal  # noqa: E402
 from machincast.interface import states  # noqa: E402
-from machincast.player.broadcast_types import crossfade  # noqa: E402
-from machincast.player.engine import envelope  # noqa: E402
-from machincast.player.fades import (  # noqa: E402
+from machincast.shared.fades import (  # noqa: E402
 	DEFAULT_ENTRY,
 	DEFAULT_OUTPUT,
 	LABELS,
 	Placement,
 	Position,
+	crossfade,
+	envelope,
 	put,
 )
 
@@ -134,7 +134,7 @@ class Plan:
 	"""Où le fade-out se place par rapport à la fin détectée, de même."""
 
 	def placement(self) -> Placement:
-		"""La lecture et ses fondus, comme la diffusion les place (machincast.player.fades.put) : autour des
+		"""La lecture et ses fondus, comme la diffusion les place (machincast.shared.fades.put) : autour des
 		silences détectés d'un sonore joué sans eux, selon les positions des fondus
 		(https://github.com/dascritch/machincast/issues/234)."""
 		return put(
@@ -292,7 +292,7 @@ WITHOUT_BANK = BankRule()
 
 
 def crossfade_origin(of_sound: timedelta | None, bank: BankRule, default: timedelta | None) -> str | None:
-	"""D'où vient le crossfade que retient machincast.player.broadcast.crossfade, dans le même ordre."""
+	"""D'où vient le crossfade que retient machincast.shared.fades.crossfade, dans le même ordre."""
 	if bank.rule == "forced":
 		return _("imposed by the bank")
 	if of_sound is not None:

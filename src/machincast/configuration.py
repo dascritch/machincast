@@ -14,8 +14,8 @@ from typing import Any, Literal, cast
 from machincast import service
 from machincast.database import SHORT_TEXT_LENGTH
 from machincast.i18n import _
-from machincast.player.fades import DEFAULT_ENTRY, DEFAULT_OUTPUT, POSITIONS, Position
 from machincast.protection import is_sound_file
+from machincast.shared.fades import DEFAULT_ENTRY, DEFAULT_OUTPUT, POSITIONS, Position
 
 log = logging.getLogger(__name__)
 

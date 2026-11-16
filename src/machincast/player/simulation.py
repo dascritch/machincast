@@ -36,11 +36,11 @@ from machincast.player.broadcast import Broadcast
 from machincast.player.engine import DeadAir, PlaybackTrack, TrackOptions, TrackState
 from machincast.player.expiry import KIND as EXPIRED_SOUND
 from machincast.player.expiry import Expiry, _cause
-from machincast.player.grid import next_change, read_grid
 from machincast.player.history import IN_DATABASE, LastPlay
 from machincast.player.outputs import CSV_COLUMNS, Line, csv_line, first_public_name, hides, playlist
 from machincast.player.saving import LEVELS, Play, PlayStart
 from machincast.randomness import create_randomness
+from machincast.shared.grid import next_change, read_grid
 
 log = logging.getLogger(__name__)
 

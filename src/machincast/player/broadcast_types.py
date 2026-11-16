@@ -16,14 +16,13 @@ from machincast.i18n import N_
 from machincast.player.engine import (
 	PlaybackTrack,
 )
-from machincast.player.fades import Placement, put
-from machincast.player.grid import Priority
 from machincast.player.rundown import Choice, Cutoff, Ongoing
 from machincast.player.saving import Play
+from machincast.shared.fades import Placement, crossfade, put
+from machincast.shared.grid import Priority
 
 log = logging.getLogger(__name__)
 
-NO_CROSSFADE = timedelta(0)
 PRIORITIES = {
 	Priority.BREAKING: N_("breaking"),
 	Priority.SPECIAL: N_("special"),
@@ -36,22 +35,6 @@ WITHOUT_DEFECTS = Crossfades()
 CUTOFF_HORIZON = timedelta(hours=12)
 """Jusqu'où chercher l'événement qui coupera un sonore de durée inconnue, un stream
 (https://github.com/dascritch/machincast/issues/169)."""
-
-
-def crossfade(of_sound: object, rule: object, of_the_bank: object, default: timedelta | None = None) -> timedelta:
-	"""Le crossfade retenu, d'un côté : celui que la banque impose ; sinon celui du sonore, s'il est paramétré
-	(0 seconde en est un) ; sinon celui que la banque applique à défaut ; sinon celui de la configuration ; sinon
-	aucun. Sans banque, la règle est None (https://github.com/dascritch/machincast/issues/145)."""
-	bank = NO_CROSSFADE
-	if isinstance(of_the_bank, timedelta):
-		bank = of_the_bank
-	if rule == "forced":
-		return bank
-	if isinstance(of_sound, timedelta):
-		return of_sound
-	if rule == "default":
-		return bank
-	return (default) or (NO_CROSSFADE)
 
 
 @dataclass(frozen=True)
@@ -173,7 +156,7 @@ def read_parameters(
 	(https://github.com/dascritch/machincast/issues/143), puis, s'il n'en a pas de paramétré, les crossfades par défaut
 	de la configuration (https://github.com/dascritch/machincast/issues/145). Un fichier qui active la détection de
 	silence, ou fourni par une banque qui l'active, est joué sans ses silences détectés
-	(https://github.com/dascritch/machincast/issues/146, machincast.player.fades.put)."""
+	(https://github.com/dascritch/machincast/issues/146, machincast.shared.fades.put)."""
 	with connection.transaction():
 		line = connection.execute(
 			"SELECT s.duration, s.crossfade_start, s.crossfade_end, s.type::text, COALESCE(s.stream_url, m.url),"

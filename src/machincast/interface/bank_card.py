@@ -11,7 +11,7 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
   durée. « Garder ceux des sonores » laisse le crossfade de chaque sonore, et la durée de la banque, gardée pour
   plus tard, ne se modifie pas ; « Appliquer si le sonore n'en a pas » la donne aux sonores sans crossfade
   (0 seconde) ; « Imposer à tous les sonores », à tous. La diffusion l'applique aux sonores joués via la banque
-  (machincast.player.broadcast.crossfade).
+  (machincast.shared.fades.crossfade).
 - Durées des sonores (https://github.com/dascritch/machincast/issues/147) : une durée minimale et une durée maximale,
   facultatives, à cocher. Un sonore qui en sort est marqué dans la liste, d'après les durées de la fiche, avant même
   l'enregistrement ; rien n'est refusé, la diffusion n'en tient pas compte. Une minimale qui dépasse la maximale

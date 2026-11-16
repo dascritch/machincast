@@ -1,5 +1,6 @@
 """Étapes des scénarios du socle de test (https://github.com/dascritch/machincast/issues/5)."""
 
+import ast
 import logging
 import random
 import re
@@ -505,3 +506,50 @@ def ruff_keyword_booleans() -> None:
 	assert {"FBT001", "FBT002"} <= set(ruff["select"])
 	assert "tests/**" in ruff["per-file-ignores"]
 	assert "src/**" not in ruff["per-file-ignores"]
+
+
+def _imports(directory: Path) -> dict[str, set[str]]:
+	"""Les modules de MachinCast que chaque fichier du répertoire importe, et ceux des autres bibliothèques."""
+	found: dict[str, set[str]] = {}
+	for path in sorted(directory.glob("*.py")):
+		modules = set()
+		for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+			if (isinstance(node, ast.ImportFrom)) and (node.module is not None):
+				modules.add(node.module)
+			if isinstance(node, ast.Import):
+				for name in node.names:
+					modules.add(name.name)
+		found[path.name] = modules
+	return found
+
+
+@then("l'interface n'importe ni la diffusion, ni son moteur, ni ses plans")
+def interface_without_broadcast() -> None:
+	"""https://github.com/dascritch/machincast/issues/442 : ce que l'interface partage avec la diffusion est dans
+	machincast.shared."""
+	forbidden = {
+		"machincast.player.broadcast",
+		"machincast.player.broadcast_types",
+		"machincast.player.broadcast_plan",
+		"machincast.player.broadcast_text",
+		"machincast.player.engine",
+		"machincast.player.interruptions",
+		"machincast.player.rundown",
+	}
+	faults = []
+	for name, modules in _imports(ROOT / "src" / "machincast" / "interface").items():
+		for module in sorted(modules & forbidden):
+			faults.append(f"{name} importe {module}")
+	assert not faults, faults
+
+
+@then("le paquet partagé n'importe ni Qt, ni GStreamer, ni le player, ni l'interface")
+def shared_without_dependencies() -> None:
+	faults = []
+	for name, modules in _imports(ROOT / "src" / "machincast" / "shared").items():
+		for module in sorted(modules):
+			library = module.split(".")[0] in ("PySide6", "gi")
+			own = module.startswith(("machincast.player", "machincast.interface"))
+			if (library) or (own):
+				faults.append(f"{name} importe {module}")
+	assert not faults, faults

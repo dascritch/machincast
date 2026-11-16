@@ -8,7 +8,7 @@ base, comme les écrirait la fiche de l'événement.
 import psycopg
 from pytest_bdd import given, parsers, scenarios, when
 
-from machincast.player.grid import DAY_NAMES, DAYS
+from machincast.shared.grid import DAY_NAMES, DAYS
 from tests.broadcast_steps import hour
 
 scenarios("event_editing.feature")

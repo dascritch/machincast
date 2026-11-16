@@ -9,7 +9,7 @@ from datetime import date
 import psycopg
 from pytest_bdd import given, parsers, scenarios
 
-from machincast.player.grid import DAY_NAMES, DAYS
+from machincast.shared.grid import DAY_NAMES, DAYS
 
 scenarios("skipped_sessions.feature")
 

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.player.grid import NEVER, Event, overlap, read_grid, sessions, wall_hour
+from machincast.shared.grid import NEVER, Event, overlap, read_grid, sessions, wall_hour
 
 Connection = psycopg.Connection[TupleRow]
 ONE_DAY = timedelta(days=1)

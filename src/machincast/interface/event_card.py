@@ -11,7 +11,7 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
   Sans début, ni fin ni jours : un fil musical sans début est permanent. Un événement de secours n'a ni dates ni
   jours : il ne joue qu'à la place d'un stream tombé. Une émission ou un spécial a un début ; une fin suit le début.
   Une date cochée part de l'heure de l'horloge, à la minute ; une fin, d'une heure après le début.
-- Un événement ne chevauche pas un autre événement de même priorité (machincast.player.grid.overlap) ; une
+- Un événement ne chevauche pas un autre événement de même priorité (machincast.shared.grid.overlap) ; une
   session sautée ne chevauche rien (https://github.com/dascritch/machincast/issues/273).
 - Un événement de secours qu'un stream désigne reste de priorité secours : la base le refuserait aussi.
 - La liste de lecture : sonores, banques et séquences (machincast.interface.items). Un événement vide
@@ -46,7 +46,7 @@ from machincast.interface.items import CATEGORY, FEED, ITEM, Buttons, ItemList
 from machincast.interface.lists import EMPTY_EVENT, FALLBACK_NOT_LOCAL, calls_stream
 from machincast.interface.sessions import Session, next_skipped, overlapped, reinstate, started
 from machincast.interface.ui.event_card import Ui_EventCard
-from machincast.player.grid import DAYS, NEVER, Event, Priority, overlap, read_grid
+from machincast.shared.grid import DAYS, NEVER, Event, Priority, overlap, read_grid
 
 PRIORITIES: tuple[tuple[str, str], ...] = (
 	("fallback", _("Fallback")),

@@ -167,3 +167,7 @@ Fonctionnalité: Socle de test
 
 	Scénario: Un booléen se passe par son nom
 		Alors la configuration de ruff active les règles FBT001 et FBT002 sur le code de src
+
+	Scénario: L'interface ne dépend ni de la diffusion ni du moteur audio
+		Alors l'interface n'importe ni la diffusion, ni son moteur, ni ses plans
+		Et le paquet partagé n'importe ni Qt, ni GStreamer, ni le player, ni l'interface

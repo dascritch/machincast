@@ -15,7 +15,7 @@ from machincast import configuration as module_configuration
 from machincast.cli import INVALID_CONFIGURATION_CODE
 from machincast.cli import launch as launch_binary
 from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
-from machincast.player.fades import LABELS
+from machincast.shared.fades import LABELS
 
 scenarios("configuration.feature")
 

@@ -15,9 +15,10 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.database import Role, open_connection
-from machincast.player.rundown import Ongoing, Scheduler, ignored_calls
+from machincast.player.rundown import Ongoing, Scheduler
 from machincast.player.saving import LEVELS
 from machincast.randomness import create_randomness
+from machincast.shared.no_repeat import ignored_calls
 from tests.categories import inverted
 from tests.database_fixtures import sample_database_parameters
 from tests.log_texts import stored

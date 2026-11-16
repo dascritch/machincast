@@ -11,9 +11,9 @@ from machincast.player.broadcast_types import Parameters
 from machincast.player.engine import (
 	DeadAir,
 )
-from machincast.player.grid import Occurrence
 from machincast.player.rundown import Choice, Cutoff
 from machincast.player.state import instant as iso
+from machincast.shared.grid import Occurrence
 
 log = logging.getLogger(__name__)
 

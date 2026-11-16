@@ -13,7 +13,7 @@ Fonctionnalité: Calendrier de la grille
 	suppression, jusqu'à leur péremption.
 
 	Chaque occurrence d'un événement prévu est un bloc ; deux blocs qui se chevauchent se placent côte à côte. Un bloc
-	« joue » quand son événement serait à l'antenne pendant toute l'occurrence (machincast.player.grid) ; il est
+	« joue » quand son événement serait à l'antenne pendant toute l'occurrence (machincast.shared.grid) ; il est
 	« estompé » quand un autre événement le masque entièrement, et ne « joue qu'en partie » entre les deux. Une
 	occurrence de 24 heures ou plus, ou un fil musical permanent, se montre dans la bande de la journée entière, entre
 	le nom du jour et les heures. Une occurrence sans fin se dessine jusqu'au début suivant d'une priorité égale ou plus

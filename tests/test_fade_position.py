@@ -1,7 +1,7 @@
 """Scénarios de la position des fondus par rapport aux silences détectés
 (https://github.com/dascritch/machincast/issues/234).
 
-Le placement s'essaie seul (machincast.player.fades.put) ; la diffusion, par les paramètres de lecture qu'elle lit
+Le placement s'essaie seul (machincast.shared.fades.put) ; la diffusion, par les paramètres de lecture qu'elle lit
 en base de test (machincast.player.broadcast.read_parameters), avec le rôle de Machin player.
 """
 
@@ -17,8 +17,8 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast.configuration import Crossfades
 from machincast.database import Role, open_connection
 from machincast.player.broadcast_types import Parameters, read_parameters
-from machincast.player.fades import LABELS, POSITIONS, Placement, Position, put
 from machincast.player.rundown import Choice
+from machincast.shared.fades import LABELS, POSITIONS, Placement, Position, put
 from tests.categories import inverted
 from tests.database_fixtures import sample_database_parameters
 
