@@ -28,6 +28,9 @@ from tests.database_fixtures import configuration_test
 
 scenarios("crash_report.feature")
 
+# Le fil qui plante est voulu : son exception est celle que le scénario fait vérifier, pas un avertissement.
+pytestmark = pytest.mark.filterwarnings("ignore::pytest.PytestUnhandledThreadExceptionWarning")
+
 Connection = psycopg.Connection[tuple[object, ...]]
 BINARIES: dict[str, Callable[[list[str]], int]] = {"purge": purge.main, "indexer": indexer.main}
 CRASHING = """
@@ -37,6 +40,10 @@ from machincast.indexer.check import ANALYSED
 with crash.watch(sys.argv[1]):
 	crash.note(ANALYSED, sys.argv[2])
 	if sys.argv[3] == "segv":
+		# Un crash imité ne doit pas remonter au système (apport, systemd-coredump) : ni core, ni rapport.
+		import ctypes, resource
+		resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+		ctypes.CDLL(None).prctl(4, 0, 0, 0, 0)  # PR_SET_DUMPABLE
 		faulthandler._sigsegv()
 	print("prêt", flush=True)
 	time.sleep(300)

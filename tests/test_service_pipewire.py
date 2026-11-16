@@ -276,20 +276,20 @@ def _reach_service(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) ->
 def level_set(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, card: str, percent: int) -> None:
 	_reach_service(context, monkeypatch)
 	service_mixer.set_volume(card, percent / 100)
-	service_mixer.set_muted(card, False)
+	service_mixer.set_muted(card, muted=False)
 
 
 @when(parsers.parse("le niveau de la carte de l'antenne « {card} » est réglé à {percent:d} %, sourdine mise"))
 def level_and_mute(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, card: str, percent: int) -> None:
 	_reach_service(context, monkeypatch)
 	service_mixer.set_volume(card, percent / 100)
-	service_mixer.set_muted(card, True)
+	service_mixer.set_muted(card, muted=True)
 
 
 @when(parsers.parse("la sourdine de la carte de l'antenne « {card} » est levée"))
 def unmute(context: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, card: str) -> None:
 	_reach_service(context, monkeypatch)
-	service_mixer.set_muted(card, False)
+	service_mixer.set_muted(card, muted=False)
 
 
 @then(
