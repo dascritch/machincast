@@ -8,7 +8,7 @@ https://github.com/dascritch/machincast/issues/366), puis de sauter au sonore su
 cours, ou de couper l'événement par le fil musical (ENTRIES). Chaque entrée suit l'état que Machin player publie sur sa socket d'état
 (proposer) : elle n'est active que si son élément est à l'antenne, et, pour l'événement, hors du fil musical ; son
 infobulle le nomme, ou dit pourquoi elle est inactive. Choisie, elle envoie la demande sur la
-socket (StateClient.envoyer), aussitôt, sans question : Machin player la traite à son pas suivant
+socket (StateClient.send), aussitôt, sans question : Machin player la traite à son pas suivant
 (machincast.player.broadcast.Broadcast.interrupt). La barre d'état l'annonce (ANNONCES).
 
 Coupures (https://github.com/dascritch/machincast/issues/323) : « ⏭ Couper par le secours », dans le menu « Diffusion »

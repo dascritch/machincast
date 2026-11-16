@@ -6,7 +6,7 @@ celle de MachinCast, ICONE, si aucune n'est choisie ou si l'image choisie n'exis
 menu des applications du compte (menu_folder) et, sur demande, sur son bureau (desktop_folder), par
 machincast.installation shortcut.
 
-reecrire est appelé par les préférences de l'interface quand l'icône change : sous Wayland, la barre des tâches et le
+rewrite est appelé par les préférences de l'interface quand l'icône change : sous Wayland, la barre des tâches et le
 menu prennent l'icône du raccourci, et non celle de la fenêtre. Il ne réécrit que les raccourcis déjà installés, en
 gardant leurs droits (exécutable sur le bureau, pour Plasma), et n'en crée jamais.
 

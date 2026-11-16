@@ -24,7 +24,7 @@ class SystemClock:
 
 
 class FixedClock:
-	"""Heure choisie par le test ; elle ne change que par avancer()."""
+	"""Heure choisie par le test ; elle ne change que par advance()."""
 
 	def __init__(self, instant: datetime) -> None:
 		if instant.tzinfo is None:

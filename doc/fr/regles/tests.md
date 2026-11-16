@@ -53,7 +53,7 @@ La PR dit quelles fonctionnalités ont tourné, et pourquoi celles-là.
 ## Hasard et temps
 
 - Tout tirage aléatoire passe par un `random.Random` reçu en paramètre, créé par `machincast.randomness.create_randomness(graine)` : même graine, mêmes tirages.
-- L'heure courante passe par une `machincast.clock.Clock` reçue en paramètre : `SystemClock` en production, `FixedClock` dans les tests, que le test fait avancer avec `avancer()`. Les heures ont toujours un fuseau.
+- L'heure courante passe par une `machincast.clock.Clock` reçue en paramètre : `SystemClock` en production, `FixedClock` dans les tests, que le test fait avancer avec `advance()`. Les heures ont toujours un fuseau.
 - Un scénario de [`tests/features/base.feature`](../../../tests/features/base.feature) refuse, dans `src/`, tout appel direct à `datetime.now()`, `time.time()` ou au module `random` en dehors de ces deux modules.
 
 ## Wrapper
