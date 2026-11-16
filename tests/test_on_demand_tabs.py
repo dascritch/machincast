@@ -28,7 +28,7 @@ def release(interface: Context, window_lists: list[QWidget], request: pytest.Fix
 	"""Comme pytest-qt en fin de scénario, puis la suppression aussitôt faite ; la fenêtre, déjà libérée, est retirée
 	de celles que pytest-qt fermera."""
 	opened = window(interface)
-	window_lists.extend(opened.lists)
+	window_lists.extend(opened.tab_manager.lists)
 	opened.close()
 	opened.deleteLater()
 	QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
