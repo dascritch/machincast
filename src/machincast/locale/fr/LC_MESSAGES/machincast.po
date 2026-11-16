@@ -6053,14 +6053,6 @@ msgstr "{name} : {cause}"
 msgid "sound {sound}"
 msgstr "sonore {sound}"
 
-#: machincast/player/fades.py
-msgid "is ongoing"
-msgstr "est en cours"
-
-#: machincast/player/fades.py
-msgid "ends"
-msgstr "se termine"
-
 #: machincast/player/files.py
 msgid "unreadable file"
 msgstr "fichier illisible"
@@ -6105,41 +6097,6 @@ msgstr "{path} : {list} ; l'indexeur mettra la base à jour"
 #, python-brace-format
 msgid "{path}: no file at this location"
 msgstr "{path} : aucun fichier à cet emplacement"
-
-#: machincast/player/grid.py
-#: machincast/interface/ui/event_card.ui
-msgid "Monday"
-msgstr "lundi"
-
-#: machincast/player/grid.py
-#: machincast/interface/ui/event_card.ui
-msgid "Tuesday"
-msgstr "mardi"
-
-#: machincast/player/grid.py
-#: machincast/interface/ui/event_card.ui
-msgid "Wednesday"
-msgstr "mercredi"
-
-#: machincast/player/grid.py
-#: machincast/interface/ui/event_card.ui
-msgid "Thursday"
-msgstr "jeudi"
-
-#: machincast/player/grid.py
-#: machincast/interface/ui/event_card.ui
-msgid "Friday"
-msgstr "vendredi"
-
-#: machincast/player/grid.py
-#: machincast/interface/ui/event_card.ui
-msgid "Saturday"
-msgstr "samedi"
-
-#: machincast/player/grid.py
-#: machincast/interface/ui/event_card.ui
-msgid "Sunday"
-msgstr "dimanche"
 
 #: machincast/player/interruptions.py
 msgid "manual interruption"
@@ -6667,6 +6624,49 @@ msgstr "{program} ne répond pas"
 #, python-brace-format
 msgid "{program} failed"
 msgstr "{program} a échoué"
+
+#: machincast/shared/fades.py
+msgid "is ongoing"
+msgstr "est en cours"
+
+#: machincast/shared/fades.py
+msgid "ends"
+msgstr "se termine"
+
+#: machincast/shared/grid.py
+#: machincast/interface/ui/event_card.ui
+msgid "Monday"
+msgstr "lundi"
+
+#: machincast/shared/grid.py
+#: machincast/interface/ui/event_card.ui
+msgid "Tuesday"
+msgstr "mardi"
+
+#: machincast/shared/grid.py
+#: machincast/interface/ui/event_card.ui
+msgid "Wednesday"
+msgstr "mercredi"
+
+#: machincast/shared/grid.py
+#: machincast/interface/ui/event_card.ui
+msgid "Thursday"
+msgstr "jeudi"
+
+#: machincast/shared/grid.py
+#: machincast/interface/ui/event_card.ui
+msgid "Friday"
+msgstr "vendredi"
+
+#: machincast/shared/grid.py
+#: machincast/interface/ui/event_card.ui
+msgid "Saturday"
+msgstr "samedi"
+
+#: machincast/shared/grid.py
+#: machincast/interface/ui/event_card.ui
+msgid "Sunday"
+msgstr "dimanche"
 
 #: machincast/shortcut.py
 msgid "Automated radio broadcasting"

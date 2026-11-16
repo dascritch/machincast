@@ -13,7 +13,7 @@ Fonctionnalité: Position des fondus par rapport aux silences détectés
 	joué avec ses silences l'est en entier, fondus aux bouts du fichier. La position se règle dans les préférences
 	(section [crossfades]), pour tous les sonores : une banque ne règle que la présence et la durée des crossfades.
 
-	Ces scénarios essaient le placement seul (machincast.player.fades), puis la diffusion sur la base de test.
+	Ces scénarios essaient le placement seul (machincast.shared.fades), puis la diffusion sur la base de test.
 
 	# ─── Placement ─────────────────────────────────────────────
 

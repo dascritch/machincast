@@ -115,7 +115,6 @@ from machincast.player.broadcast_text import (
 	crash_text,
 )
 from machincast.player.broadcast_types import (
-	NO_CROSSFADE,
 	PRELOAD,
 	WITHOUT_DEFECTS,
 	Planned,
@@ -134,7 +133,6 @@ from machincast.player.engine import (
 	overlay,
 )
 from machincast.player.files import check_before_playback
-from machincast.player.grid import Occurrence, wall_hour
 from machincast.player.history import IN_DATABASE, History
 from machincast.player.interruptions import Interruptions
 from machincast.player.outputs import Outputs, public_text, read_plays
@@ -152,6 +150,8 @@ from machincast.player.state import (
 )
 from machincast.player.state import instant as iso
 from machincast.randomness import Randomness
+from machincast.shared.fades import NO_CROSSFADE
+from machincast.shared.grid import Occurrence, wall_hour
 
 log = logging.getLogger(__name__)
 

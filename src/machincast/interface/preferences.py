@@ -3,8 +3,8 @@
 « Préférences… », dans le menu « Fichier », ouvre PreferencesWindow. Sa page « Crossfades », la première
 (https://github.com/dascritch/machincast/issues/234), règle les crossfades : leur granularité (à la seconde ou au
 dixième de seconde), leur durée maximale, leurs durées par défaut, celles d'un sonore sans crossfade paramétré que sa
-banque ne règle pas (machincast.player.broadcast.crossfade), et la position des fondus par rapport aux silences
-détectés d'un sonore joué sans eux (crossfades.fade_in_position et fade_out_position, machincast.player.fades). Une
+banque ne règle pas (machincast.shared.fades.crossfade), et la position des fondus par rapport aux silences
+détectés d'un sonore joué sans eux (crossfades.fade_in_position et fade_out_position, machincast.shared.fades). Une
 frise de démonstration (machincast.interface.timeline) montre où tombent les fondus, sur un sonore inventé, et suit les
 réglages. Elle règle aussi le seuil de silence (silences.threshold, https://github.com/dascritch/machincast/issues/146),
 que l'audit complet prend à son prochain passage, à côté des fondus qu'il place
@@ -55,8 +55,8 @@ from machincast.interface.application import ICON, readable
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.timeline import Plan, Timeline, demonstration_shape
 from machincast.interface.ui.preferences import Ui_PreferencesWindow
-from machincast.player.fades import LABELS, POSITIONS, Position
 from machincast.service import ABSENT, ServiceState
+from machincast.shared.fades import LABELS, POSITIONS, Position
 
 FRENCH = QLocale(QLocale.Language.French, QLocale.Country.France)
 """Les durées s'écrivent avec une virgule."""

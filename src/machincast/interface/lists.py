@@ -43,7 +43,7 @@ from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
 from machincast.interface.intents import ADD, label
 from machincast.interface.ui.list_view import Ui_List
-from machincast.player.grid import DAY_NAMES, DAYS, ranks
+from machincast.shared.grid import DAY_NAMES, DAYS, ranks
 
 log = logging.getLogger(__name__)
 

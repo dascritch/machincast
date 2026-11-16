@@ -14,7 +14,7 @@ Commune aux fiches d'une séquence (machincast.interface.sequence_card) et d'un 
   le suit ; sans stream qui le suive, un stream actif, titré du nom du feed, est créé à l'enregistrement, un
   seul par feed (https://github.com/dascritch/machincast/issues/167) ;
 - une banque « ne pas répéter » appelée juste après elle-même est signalée : cet appel sera sauté à la diffusion
-  (machincast.player.rundown.ignored_calls_to_edges). Une séquence compte par la première et la dernière de ses
+  (machincast.shared.no_repeat.ignored_calls_to_edges). Une séquence compte par la première et la dernière de ses
   lignes, quand ce sont des banques ;
 - à l'enregistrement, une ligne restée dans la liste garde son identifiant en base, à sa nouvelle position :
   l'historique de diffusion la désigne pour reprendre la liste. Un élément effacé de la base entre-temps est oublié.
@@ -33,7 +33,7 @@ from machincast.interface.card import Card, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
 from machincast.interface.lists import MODES
-from machincast.player.rundown import ignored_calls_to_edges
+from machincast.shared.no_repeat import ignored_calls_to_edges
 
 CATEGORY = Qt.ItemDataRole.UserRole
 """Rôle qui porte, sur la première colonne d'une ligne, le genre de l'élément : « sonore », « banque », « séquence »."""

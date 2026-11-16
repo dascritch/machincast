@@ -13,9 +13,9 @@ from machincast.player.engine import (
 	overlay,
 	sequencing,
 )
-from machincast.player.grid import Occurrence
 from machincast.player.rundown import OUTSIDE_LIST, Choice, Cutoff
 from machincast.player.saving import Play
+from machincast.shared.grid import Occurrence
 
 log = logging.getLogger(__name__)
 

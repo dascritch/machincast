@@ -60,6 +60,7 @@ from gi.repository import Gst, GstController  # type: ignore[attr-defined]  # no
 from machincast.audio import ON_AIR, PLAYER, UnavailableAudioOutput, create_output  # noqa: E402
 from machincast.configuration import Audio, DeadAirSettings  # noqa: E402
 from machincast.i18n import _  # noqa: E402
+from machincast.shared.fades import envelope  # noqa: E402
 
 TrackState = Literal["ready", "playing", "finished", "cut", "error"]
 
@@ -137,26 +138,6 @@ def entry_fade(previous_end_crossfade: timedelta, start_crossfade: timedelta) ->
 	return start_crossfade
 
 
-def envelope(
-	duration: timedelta | None,
-	start_crossfade: timedelta,
-	end_crossfade: timedelta,
-	departure: float = 0.0,
-	arrival: float = 0.0,
-) -> list[tuple[timedelta, float]]:
-	"""Points du volume au fil du sonore, reliés par des droites : montée, plein volume, extinction. Un fade-in qui a
-	commencé avant le fichier part du volume depart ; un fade-out qui finit après lui s'arrête au volume arrivee
-	(https://github.com/dascritch/machincast/issues/234)."""
-	points: list[tuple[timedelta, float]] = []
-	if start_crossfade > timedelta(0):
-		points += [(timedelta(0), departure), (start_crossfade, 1.0)]
-	else:
-		points.append((timedelta(0), 1.0))
-	if (duration is not None) and (end_crossfade > timedelta(0)):
-		points += [(max(duration - end_crossfade, points[-1][0]), 1.0), (duration, arrival)]
-	return points
-
-
 def _nanoseconds(duration: timedelta) -> int:
 	return round(duration.total_seconds() * Gst.SECOND)
 
@@ -194,7 +175,7 @@ class Track:
 		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
 
 		depart, arrivee : volumes au début et à la fin de la voie, quand ses fondus débordent du fichier
-		(https://github.com/dascritch/machincast/issues/234, machincast.player.fades).
+		(https://github.com/dascritch/machincast/issues/234, machincast.shared.fades).
 
 		decalage : pour un sonore rogné par la détection de silence, la voie commence à cette position du fichier, et
 		s'arrête après duree (https://github.com/dascritch/machincast/issues/146) ; None : le fichier est joué en

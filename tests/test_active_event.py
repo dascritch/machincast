@@ -10,7 +10,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.clock import FixedClock
 from machincast.database import Role, open_connection
-from machincast.player.grid import (
+from machincast.shared.grid import (
 	Event,
 	Occurrence,
 	Priority,

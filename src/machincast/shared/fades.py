@@ -101,3 +101,42 @@ def _share(passes: timedelta, fade: timedelta) -> float:
 	if fade <= timedelta(0):
 		return 0.0
 	return min(1.0, max(0.0, passes / fade))
+
+
+NO_CROSSFADE = timedelta(0)
+
+
+def crossfade(of_sound: object, rule: object, of_the_bank: object, default: timedelta | None = None) -> timedelta:
+	"""Le crossfade retenu, d'un côté : celui que la banque impose ; sinon celui du sonore, s'il est paramétré
+	(0 seconde en est un) ; sinon celui que la banque applique à défaut ; sinon celui de la configuration ; sinon
+	aucun. Sans banque, la règle est None (https://github.com/dascritch/machincast/issues/145)."""
+	bank = NO_CROSSFADE
+	if isinstance(of_the_bank, timedelta):
+		bank = of_the_bank
+	if rule == "forced":
+		return bank
+	if isinstance(of_sound, timedelta):
+		return of_sound
+	if rule == "default":
+		return bank
+	return (default) or (NO_CROSSFADE)
+
+
+def envelope(
+	duration: timedelta | None,
+	start_crossfade: timedelta,
+	end_crossfade: timedelta,
+	departure: float = 0.0,
+	arrival: float = 0.0,
+) -> list[tuple[timedelta, float]]:
+	"""Points du volume au fil du sonore, reliés par des droites : montée, plein volume, extinction. Un fade-in qui a
+	commencé avant le fichier part du volume depart ; un fade-out qui finit après lui s'arrête au volume arrivee
+	(https://github.com/dascritch/machincast/issues/234)."""
+	points: list[tuple[timedelta, float]] = []
+	if start_crossfade > timedelta(0):
+		points += [(timedelta(0), departure), (start_crossfade, 1.0)]
+	else:
+		points.append((timedelta(0), 1.0))
+	if (duration is not None) and (end_crossfade > timedelta(0)):
+		points += [(max(duration - end_crossfade, points[-1][0]), 1.0), (duration, arrival)]
+	return points

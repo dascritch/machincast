@@ -5,7 +5,7 @@ from datetime import datetime
 import pytest
 from pytest_bdd import given, parsers, scenarios, then
 
-from machincast.player.grid import DAYS, NEVER, Event, Priority, overlap
+from machincast.shared.grid import DAYS, NEVER, Event, Priority, overlap
 
 scenarios("overlaps.feature")
 

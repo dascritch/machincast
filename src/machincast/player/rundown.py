@@ -77,7 +77,7 @@ NOT_FOUND_FILE_RETRY : il est traité comme non jouable, pour ne pas le réessay
 
 import dataclasses
 import uuid
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -88,7 +88,11 @@ from psycopg.rows import TupleRow
 from machincast.conversion import integer_or_none
 from machincast.i18n import N_, _
 from machincast.player.banks import choose_sound, has_no_repeat, playable_sound
-from machincast.player.grid import (
+from machincast.player.history import IN_DATABASE, History, HistoryInPlayback, LastPlay, PlannedHistory
+from machincast.player.saving import Play
+from machincast.player.sequences import SequenceItem, items_after, read_sequence
+from machincast.randomness import Randomness
+from machincast.shared.grid import (
 	Event,
 	Occurrence,
 	Priority,
@@ -99,10 +103,6 @@ from machincast.player.grid import (
 	read_grid,
 	wall_hour,
 )
-from machincast.player.history import IN_DATABASE, History, HistoryInPlayback, LastPlay, PlannedHistory
-from machincast.player.saving import Play
-from machincast.player.sequences import SequenceItem, items_after, read_sequence
-from machincast.randomness import Randomness
 
 NOT_FOUND_FILE_RETRY = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
@@ -1009,38 +1009,3 @@ class Scheduler:
 def _fallback_occurrence(event: Event) -> Occurrence:
 	"""Un événement de secours n'a pas de dates : une seule occurrence, sans début ni fin."""
 	return Occurrence(event, None, None)
-
-
-def ignored_calls(banks: Sequence[int | None], no_repeat: Collection[int], *, loop: bool) -> list[int]:
-	"""Lignes de la liste d'un événement, numérotées dès 1, qui rappellent la banque « ne pas répéter » de la ligne
-	précédente : elles seront toujours sautées à la diffusion. Pour un événement qui boucle, la première ligne suit la
-	dernière.
-
-	banques : la banque de chaque ligne, None pour un sonore. Pour l'avertissement de l'interface à l'édition d'une
-	séquence (https://github.com/dascritch/machincast/issues/112), qui n'empêche pas d'enregistrer.
-	"""
-	bank_list = []
-	for bank in banks:
-		bank_list.append((bank, bank))
-	return ignored_calls_to_edges(bank_list, no_repeat, loop=loop)
-
-
-def ignored_calls_to_edges(
-	edges: Sequence[tuple[int | None, int | None]], no_repeat: Collection[int], *, loop: bool
-) -> list[int]:
-	"""Comme ignored_calls, quand une ligne commence et finit par des banques différentes : une séquence
-	(https://github.com/dascritch/machincast/issues/32). Chaque ligne donne sa première banque, celle que la ligne
-	précédente peut avoir déjà fait passer, et sa dernière, que la ligne suivante peut rappeler ; None pour un
-	sonore.
-	"""
-	reported_list = []
-
-	def ignored_last(_last: int | None, first: int | None, index: int) -> None:
-		if (first not in no_repeat) or ((index == 0) and (not loop)):
-			return
-		if edges[index - 1][1] == first:
-			reported_list.append(index + 1)
-
-	for index, (first, _last) in enumerate(edges):
-		ignored_last(_last, first, index)
-	return reported_list
