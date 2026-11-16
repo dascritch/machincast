@@ -42,6 +42,8 @@ from machincast.interface import display, groups, preferences
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
 from machincast.interface.intents import ADD, label
+from machincast.interface.queries import lists as queries
+from machincast.interface.queries.lists import SOUND_LOCATION, SOUND_ORDER
 from machincast.interface.ui.list_view import Ui_List
 from machincast.shared.grid import DAY_NAMES, DAYS, ranks
 
@@ -100,29 +102,12 @@ FALLBACK_NOT_LOCAL = _(
 )
 """Un secours qui fait appel à un stream, directement, par une banque ou par une séquence
 (https://github.com/dascritch/machincast/issues/403) : il sert quand un flux tombe, souvent à une perte du réseau."""
-STREAMS_CALLED = (
-	"SELECT EXISTS (SELECT 1 FROM sounds s WHERE s.type = 'stream' AND s.deleted_at IS NULL AND (s.id = ANY(%s)"
-	" OR s.id IN (SELECT b.sound_id FROM bank_sounds b WHERE b.bank_id = ANY(%s))"
-	" OR s.id IN (SELECT q.sound_id FROM sequence_items q WHERE q.sequence_id = ANY(%s))"
-	" OR s.id IN (SELECT b.sound_id FROM sequence_items q JOIN bank_sounds b ON b.bank_id = q.bank_id"
-	" WHERE q.sequence_id = ANY(%s))))"
-)
-"""Un stream parmi des sonores, des banques et des séquences, en une requête : les sonores, les banques, et deux fois
-les séquences."""
-EVENT_CALLS_STREAM = (
-	"EXISTS (SELECT 1 FROM event_items x LEFT JOIN sequence_items q ON q.sequence_id = x.sequence_id"
-	" LEFT JOIN bank_sounds b ON b.bank_id IN (x.bank_id, q.bank_id)"
-	" JOIN sounds s ON s.id IN (x.sound_id, q.sound_id, b.sound_id)"
-	" WHERE x.event_id = e.id AND s.type = 'stream' AND s.deleted_at IS NULL)"
-)
-"""L'événement e fait appel à un stream, directement, par une banque ou par une séquence."""
 
 
 def calls_stream(connection: Connection, sounds: list[int], banks: list[int], sequences: list[int]) -> bool:
 	"""Un stream parmi ces sonores, dans ces banques, ou dans ces séquences et leurs banques."""
 	with connection.transaction():
-		line = connection.execute(STREAMS_CALLED, (sounds, banks, sequences, sequences)).fetchone()
-	return (line is not None) and (bool(line[0]))
+		return queries.streams_called(connection, sounds, banks, sequences)
 
 
 BANK_WITHOUT_ACTIVE_SOUND = _(
@@ -205,18 +190,9 @@ SOUND_COLUMNS = (_("Artist"), _("Title"), _("Type"), _("State"), _("Duration"), 
 DURATION_POSITION = SOUND_COLUMNS.index(_("Duration"))
 
 
-SOUND_FIELDS = (
-	"s.id, s.artist, s.title, s.type::text, s.state::text, s.audit_requested, s.duration,"
-	" COALESCE(s.location, s.stream_url, m.url)"
-)
-SOUND_TABLES = "FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.deleted_at IS NULL"
-SOUND_ORDER = "s.artist NULLS LAST, s.title, s.id"
-"""L'ordre de la base, avant tout clic sur un titre de colonne."""
-
-
 def read_sounds(connection: Connection) -> list[Line]:
 	with connection.transaction():
-		rows = connection.execute(f"SELECT {SOUND_FIELDS} {SOUND_TABLES} ORDER BY {SOUND_ORDER}").fetchall()
+		rows = queries.sounds(connection)
 	sounds = []
 	for row in rows:
 		sounds.append(sound_line(row))
@@ -266,15 +242,7 @@ def sound_line(row: tuple[object, ...]) -> Line:
 
 def read_banks(connection: Connection) -> list[Line]:
 	with connection.transaction():
-		rows = connection.execute(
-			"SELECT b.id, b.internal_name, b.public_name, b.mode::text, b.no_repeat,"
-			" (SELECT min(r.directory) FROM bank_directories r WHERE r.bank_id = b.id),"
-			" NOT EXISTS (SELECT 1 FROM bank_sounds x JOIN sounds s ON s.id = x.sound_id"
-			" WHERE x.bank_id = b.id AND s.state = 'active' AND s.deleted_at IS NULL),"
-			" (SELECT count(*) FROM bank_sounds x JOIN sounds s ON s.id = x.sound_id"
-			" WHERE x.bank_id = b.id AND s.state IN ('corrupt', 'unsupported') AND s.deleted_at IS NULL)"
-			" FROM banks b WHERE b.deleted_at IS NULL ORDER BY b.internal_name, b.id"
-		).fetchall()
+		rows = queries.banks(connection)
 	lines = []
 	for identifier, name, public_name, mode, marked, directory, without_active_sound, in_anomaly in rows:
 		cells = [str(name), _text(public_name), MODES.get(str(mode), str(mode))]
@@ -291,11 +259,7 @@ def read_banks(connection: Connection) -> list[Line]:
 
 def read_sequences(connection: Connection) -> list[Line]:
 	with connection.transaction():
-		rows = connection.execute(
-			"SELECT q.id, q.internal_name, q.public_name,"
-			" NOT EXISTS (SELECT 1 FROM sequence_items e WHERE e.sequence_id = q.id)"
-			" FROM sequences q WHERE q.deleted_at IS NULL ORDER BY q.internal_name, q.id"
-		).fetchall()
+		rows = queries.sequences(connection)
 	lines = []
 	for identifier, name, public_name, empty in rows:
 		cells = [str(name), _text(public_name), ""]
@@ -310,11 +274,7 @@ def read_sequences(connection: Connection) -> list[Line]:
 def read_feeds(connection: Connection) -> list[Line]:
 	"""Par nom, avec le nombre de streams qui suivent chacun (https://github.com/dascritch/machincast/issues/34)."""
 	with connection.transaction():
-		rows = connection.execute(
-			"SELECT m.id, m.name, m.url,"
-			" (SELECT count(*) FROM sounds s WHERE s.feed_id = m.id AND s.deleted_at IS NULL)"
-			" FROM feeds m ORDER BY m.name, m.id"
-		).fetchall()
+		rows = queries.feeds(connection)
 	feeds = []
 	for identifier, name, url, streams in rows:
 		feeds.append(Line(int(str(identifier)), str(name), [str(name), str(url), str(streams)]))
@@ -349,16 +309,7 @@ def _days(value: object) -> str:
 def read_events(connection: Connection) -> list[Line]:
 	"""Du plus prioritaire au moins prioritaire, puis par nom."""
 	with connection.transaction():
-		rows = connection.execute(
-			"SELECT e.id, e.internal_name, e.public_name, e.priority::text, e.starts_at, e.ends_at,"
-			" e.recurrence_days::text[],"
-			# Une liste vide qui prête son nom n'est pas une anomalie (https://github.com/dascritch/machincast/issues/399).
-			" NOT EXISTS (SELECT 1 FROM event_items x WHERE x.event_id = e.id) AND e.end_of_list <> 'lend_name',"
-			# Un secours non local (https://github.com/dascritch/machincast/issues/403).
-			f" e.priority = 'fallback' AND {EVENT_CALLS_STREAM}"
-			# e.priorite : l'ordre du type énuméré, pas celui du texte de la colonne affichée.
-			" FROM events e WHERE e.deleted_at IS NULL ORDER BY e.priority DESC, e.internal_name, e.id"
-		).fetchall()
+		rows = queries.events(connection)
 	lines = []
 	for identifier, name, public_name, priority, start, end, days, empty, not_local in rows:
 		recurrence = ""
@@ -504,7 +455,6 @@ def _fold(expression: str) -> str:
 	return f"lower(translate({expression}, %s, %s))"
 
 
-SOUND_LOCATION = "COALESCE(s.location, s.stream_url, m.url)"
 DURATION_SECONDS = "floor(extract(epoch FROM s.duration))::bigint"
 DURATION_TEXT = (
 	"CASE WHEN s.type = 'stream' THEN %s WHEN s.duration IS NULL THEN ''"
@@ -622,14 +572,8 @@ class PagedSounds(QAbstractTableModel):
 	def reload(self) -> None:
 		"""Les comptes, et la première page ; psycopg.Error laisse la liste telle qu'elle était."""
 		where, values = self._filter()
-		anomaly = "s.state::text = ANY(%s)"
 		with self.connection.transaction():
-			counts = self.connection.execute(
-				f"SELECT count(*) FILTER (WHERE {where}), count(*) FILTER (WHERE ({where}) AND {anomaly}), count(*)"
-				f" {SOUND_TABLES}",
-				[*values, *values, list(SOUND_IN_ANOMALY)],
-			).fetchone()
-			assert counts is not None
+			counts = queries.sound_counts(self.connection, where, values, list(SOUND_IN_ANOMALY))
 			count_list = []
 			for count in counts:
 				count_list.append(int(str(count)))
@@ -643,10 +587,9 @@ class PagedSounds(QAbstractTableModel):
 	def _page(self, offset: int) -> list[Line]:
 		where, values = self._filter()
 		order, order_values = self._ordering()
-		rows = self.connection.execute(
-			f"SELECT {SOUND_FIELDS} {SOUND_TABLES} AND ({where}) ORDER BY {order} LIMIT %s OFFSET %s",
-			[*values, *order_values, preferences.table_rows(), offset],
-		).fetchall()
+		rows = queries.sound_page(
+			self.connection, where, [*values, *order_values], order, preferences.table_rows(), offset
+		)
 		page = []
 		for row in rows:
 			page.append(sound_line(row))
