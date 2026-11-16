@@ -174,3 +174,7 @@ Fonctionnalité: Socle de test
 
 	Scénario: Les classes Qt de l'interface n'écrivent aucune requête
 		Alors aucun module de l'interface qui importe Qt n'exécute de requête
+
+	Scénario: Une fonction publique longue est documentée, sans affectation à soi-même ni subprocess sans check
+		Alors la configuration de ruff active les règles PLW0127 et PLW1510 sur le code de src
+		Et chaque fonction publique de plus de 15 lignes a une docstring

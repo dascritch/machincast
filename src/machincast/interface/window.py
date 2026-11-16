@@ -541,6 +541,7 @@ class MainWindow(QMainWindow):
 		return f"{source.title} : {source.address}"
 
 	def closeEvent(self, event: QCloseEvent) -> None:
+		"""Ferme la fenêtre, sauf si une fiche refuse de se fermer ; les onglets ouverts sont retenus et les écrans arrêtés."""
 		for card in self.cards():
 			if not card.can_close():
 				event.ignore()

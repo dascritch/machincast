@@ -39,6 +39,7 @@ log = logging.getLogger("machincast.indexer")
 
 
 def own_options(analyser: argparse.ArgumentParser) -> None:
+	"""Les options de Machin indexer : audit complet, --force, --window et --sound."""
 	analyser.add_argument(
 		"--full-audit",
 		action="store_true",
@@ -70,6 +71,7 @@ def own_options(analyser: argparse.ArgumentParser) -> None:
 
 
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	"""Lance l'indexation, en une fenêtre (--window), pour un seul sonore (--sound) ou sur toutes les banques ; le code de sortie."""
 	database = configuration.database
 	if (options.sound is not None) and (options.window):
 		log.error(_("--sound is not used with --window"))

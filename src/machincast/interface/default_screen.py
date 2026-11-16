@@ -291,6 +291,7 @@ class DefaultScreen(QWidget):
 	# ─── État du binaire lecture ───────────────────────────
 
 	def show_state(self, state: PlaybackState, *, reread: bool = True) -> None:
+		"""Montre l'état de la diffusion : sonore en cours, suivant, à venir, avancement, et ce que l'antenne dit de l'état du service."""
 		self.state = state
 		self.ui.playback_state.setText(STATES.get(state.state, state.state))
 		self._ongoing, self._next = state.ongoing, state.next_
@@ -707,6 +708,7 @@ def _show_location(field: QLineEdit, sound: DisplayedSound | None) -> None:
 
 
 def play_cells(play: DisplayedPlay) -> list[str]:
+	"""Les cellules du tableau des passages : début, fin, durée, artiste, titre, événement, séquence, banque, emplacement et incident."""
 	end = _("ongoing")
 	duration = ""
 	if play.end is not None:

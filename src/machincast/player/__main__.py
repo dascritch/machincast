@@ -68,6 +68,7 @@ def output_name(text: str) -> str:
 
 
 def own_options(analyser: argparse.ArgumentParser) -> None:
+	"""Les options de Machin player : simulation, période, répertoire et nom des fichiers de sortie."""
 	simulation = analyser.add_argument_group(_("simulation (https://github.com/dascritch/machincast/issues/21)"))
 	simulation.add_argument(
 		"--simulation",
@@ -105,6 +106,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 
 
 def run_simulation(configuration: Configuration, options: argparse.Namespace) -> int:
+	"""Simule la diffusion entre deux dates, sans son et sans écrire en base ; le code de sortie."""
 	start, end = options.simulation
 	if end <= start:
 		log.error(_("invalid simulation period: the end must follow the start"))
@@ -156,6 +158,7 @@ def run_simulation(configuration: Configuration, options: argparse.Namespace) ->
 
 
 def run_broadcast(configuration: Configuration) -> int:
+	"""Lance la diffusion sur la sortie son configurée, jusqu'à son arrêt ; le code de sortie."""
 	database = configuration.database
 	audio = configuration.audio
 	if audio.to_fill_in_on_air():

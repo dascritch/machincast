@@ -317,6 +317,7 @@ def playlist(lines: list[Line]) -> str:
 
 
 def csv_line(line: Line) -> str:
+	"""La ligne CSV d'un passage, séparée par des points-virgules et finie par un retour à la ligne de Windows."""
 	buffer = io.StringIO()
 	if line.without_incident is None:
 		without_incident = ""

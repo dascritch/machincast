@@ -60,6 +60,7 @@ def _exists(program: str, environment: Mapping[str, str] | None) -> bool:
 			timeout=QUERY_DELAY,
 			stdin=subprocess.DEVNULL,
 			env=environment,
+			check=False,
 		)
 	except (OSError, subprocess.SubprocessError):
 		return False

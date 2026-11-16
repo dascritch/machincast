@@ -526,6 +526,7 @@ class PagedSounds(QAbstractTableModel):
 		return None
 
 	def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> object:
+		"""La donnée de la cellule pour le rôle demandé : le texte, l'anomalie en infobulle, l'alignement et l'identifiant du sonore."""
 		if (not index.isValid()) or (index.row() >= len(self._lines)):
 			return None
 		line = self._lines[index.row()]

@@ -251,6 +251,7 @@ class Block:
 		return N_("partly plays")
 
 	def tooltip(self) -> str:
+		"""L'infobulle du bloc : l'événement, ses horaires, ses jours de retour, sa suppression et ce qui le masque."""
 		event = self.event
 		name = event.name
 		if self.public_name:
@@ -339,6 +340,7 @@ class Strip:
 	"""Fin du dernier passage, à la seconde ; None pour un passage en cours."""
 
 	def tooltip(self) -> str:
+		"""L'infobulle du passage : son nom, ses moments de début et de fin, son nombre de passages, et comment ouvrir l'événement."""
 		departure = f"{day_and_month(self.departure.date())}, "
 		if self.arrival is None:
 			moments = _("{departure}since {departure2:%H:%M:%S}, ongoing").format(
@@ -899,6 +901,7 @@ class Header(QWidget):
 			menu.exec(event.globalPos())
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
+		"""Dessine le nom de chaque jour, en gras pour aujourd'hui, estompé s'il est révolu."""
 		with QPainter(self) as painter:
 			days = self.calendar.days()
 			x = _day_x(self, len(days))
@@ -945,6 +948,7 @@ class Grid(QWidget):
 		return (moment - midnight(day)) / timedelta(hours=1) * self.calendar.hour_height()
 
 	def rectangle(self, item: Block | Strip) -> QRectF:
+		"""Le rectangle d'un bloc ou d'un passage dans la grille : sa colonne parmi celles du jour, ou la bande des passages."""
 		days = self.calendar.days()
 		x = self._x()
 		index = days.index(item.day)
@@ -1031,6 +1035,7 @@ class Grid(QWidget):
 		self.calendar.requested_creation.emit(start)
 
 	def paintEvent(self, _event: QPaintEvent) -> None:
+		"""Dessine les heures, les séparations des jours, les blocs prévus et les bandes des passages."""
 		with QPainter(self) as painter:
 			days = self.calendar.days()
 			x = self._x()

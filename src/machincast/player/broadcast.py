@@ -300,6 +300,7 @@ class Broadcast:
 		self._publish(instant)
 
 	def step(self) -> None:
+		"""Un pas de la diffusion : les messages du moteur, les fins de voie, les silences et blocages, les demandes de l'interface, puis la décision pour l'instant."""
 		instant = self.clock.now()
 		self._check_expiries(instant)
 		self.engine.handle_messages()

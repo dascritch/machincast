@@ -109,7 +109,6 @@ NOT_FOUND_FILE_RETRY = timedelta(hours=1)
 OUTSIDE_LIST = 0
 """Identifiant de l'élément d'un passage qui ne vient d'aucune liste : le stream d'un feed qui coupe l'antenne."""
 END_REPLAY = "replay"
-END_TO_BACKGROUND = "background_programming"
 END_TO_FALLBACK = "fallback"
 END_LEND_NAME = "lend_name"
 """Les valeurs de events.end_of_list (https://github.com/dascritch/machincast/issues/350,

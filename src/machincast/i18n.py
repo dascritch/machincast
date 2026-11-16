@@ -209,17 +209,6 @@ def current() -> str:
 	return _language
 
 
-def activate(code: str) -> None:
-	"""Change la langue des messages, pour ceux traduits désormais ; ceux déjà traduits, comme les constantes des
-	modules, gardent la leur. Sert aux tests ; les exécutables prennent la langue de leur session."""
-	global _catalog, _language
-	_language = SOURCE
-	if code in LANGUAGES:
-		_language = code
-	_catalog = load(_language)
-	_templates.cache_clear()
-
-
 def _(message: str) -> str:
 	"""Le message traduit dans la langue de la session."""
 	return _catalog.gettext(message)

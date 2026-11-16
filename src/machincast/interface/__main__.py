@@ -59,6 +59,7 @@ def flag_database(configuration: Configuration, error: psycopg.Error) -> None:
 
 
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	"""Ouvre la connexion de l'interface, puis sa fenêtre principale ; le code de sortie."""
 	audio.identify(audio.PREVIEW, EXECUTABLE)
 	database = configuration.database
 	try:

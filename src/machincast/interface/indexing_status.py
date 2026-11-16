@@ -188,6 +188,7 @@ class StatusWindow(QWidget):
 		self.timer.start()
 
 	def refresh(self) -> None:
+		"""Relit l'avancement de l'indexation et remet à jour les nombres et les camemberts ; une base illisible est dite à la place."""
 		try:
 			status = self.reading(self.connection)
 		except psycopg.Error as error:

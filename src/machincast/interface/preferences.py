@@ -472,6 +472,7 @@ class PreferencesWindow(QDialog):
 		self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.cards.valid())
 
 	def settings(self) -> Settings:
+		"""Les réglages tels que la fenêtre les montre : crossfades, cartes son, seuil de silence et positions des fondus."""
 		ui = self.ui
 		durations: list[timedelta | None] = []
 		for box, field in ((ui.has_start, ui.start), (ui.has_end, ui.end)):

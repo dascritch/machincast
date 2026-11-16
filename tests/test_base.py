@@ -576,3 +576,36 @@ def interface_without_queries() -> None:
 		if (qt) and (executed):
 			faults.append(f"{path.name}:{executed[0]}")
 	assert not faults, faults
+
+
+@then("la configuration de ruff active les règles PLW0127 et PLW1510 sur le code de src")
+def ruff_cleanups() -> None:
+	"""https://github.com/dascritch/machincast/issues/443 : pas d'affectation à soi-même, un subprocess.run avec son
+	check ; les tests en sont dispensés pour PLW1510. G004 reste inactive : le style du dépôt impose les f-strings."""
+	ruff = _pyproject()["tool"]["ruff"]["lint"]
+	assert {"PLW0127", "PLW1510"} <= set(ruff["select"])
+	assert "PLW0127" not in ruff["per-file-ignores"]["tests/**"]
+	assert "src/**" not in ruff["per-file-ignores"]
+
+
+@then("chaque fonction publique de plus de 15 lignes a une docstring")
+def long_public_functions_documented() -> None:
+	"""https://github.com/dascritch/machincast/issues/443 : une fonction ou une méthode publique, sans « _ » initial,
+	de plus de 15 lignes explique ce qu'elle fait ; le code généré (interface/ui), les fonctions imbriquées et les classes privées en sont dispensées."""
+	limit = 15
+	faults = []
+	generated = ROOT / "src" / "machincast" / "interface" / "ui"
+	for path in sorted((ROOT / "src" / "machincast").rglob("*.py")):
+		tree = ast.parse(path.read_text(encoding="utf-8"))
+		scopes = [tree.body]
+		for node in tree.body:
+			if (isinstance(node, ast.ClassDef)) and (not node.name.startswith("_")):
+				scopes.append(node.body)
+		for body in scopes:
+			for node in body:
+				if (isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)) and (not node.name.startswith("_")):
+					length = ((node.end_lineno) or (node.lineno)) - node.lineno + 1
+					undocumented = (length > limit) and ((ast.get_docstring(node)) is None)
+					if (undocumented) and (generated not in path.parents):
+						faults.append(f"{path.relative_to(ROOT)}:{node.lineno} {node.name}")
+	assert not faults, faults
