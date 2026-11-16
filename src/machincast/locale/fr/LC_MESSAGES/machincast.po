@@ -2628,7 +2628,7 @@ msgid "Its sounds stay in the database."
 msgstr "Ses sonores restent en base."
 
 #: machincast/interface/deletion.py
-#: machincast/player/broadcast.py
+#: machincast/player/interruptions.py
 #, python-brace-format
 msgid "“{line}”"
 msgstr "« {line} »"
@@ -3955,22 +3955,22 @@ msgid "deleted"
 msgstr "supprimé"
 
 #: machincast/interface/lists.py
-#: machincast/player/broadcast.py
+#: machincast/player/broadcast_types.py
 msgid "breaking"
 msgstr "imprévu"
 
 #: machincast/interface/lists.py
-#: machincast/player/broadcast.py
+#: machincast/player/broadcast_types.py
 msgid "special"
 msgstr "spécial"
 
 #: machincast/interface/lists.py
-#: machincast/player/broadcast.py
+#: machincast/player/broadcast_types.py
 msgid "show"
 msgstr "émission"
 
 #: machincast/interface/lists.py
-#: machincast/player/broadcast.py
+#: machincast/player/broadcast_types.py
 msgid "background programming"
 msgstr "fil musical"
 
@@ -4925,7 +4925,7 @@ msgid "a next event has a start"
 msgstr "un événement suivant a un début"
 
 #: machincast/interface/state.py
-#: machincast/player/broadcast.py
+#: machincast/player/broadcast_text.py
 #, python-brace-format
 msgid "{event}, in the name of “{lender}”"
 msgstr "{event}, au nom de « {lender} »"
@@ -5843,22 +5843,6 @@ msgid "blocked playback"
 msgstr "lecture bloquée"
 
 #: machincast/player/broadcast.py
-msgid "manual interruption"
-msgstr "interruption manuelle"
-
-#: machincast/player/broadcast.py
-msgid "advanced event"
-msgstr "événement avancé"
-
-#: machincast/player/broadcast.py
-msgid "advance ignored"
-msgstr "avance ignorée"
-
-#: machincast/player/broadcast.py
-msgid "Sounds on air"
-msgstr "Sonores de l'antenne"
-
-#: machincast/player/broadcast.py
 msgid "event start"
 msgstr "début d'événement"
 
@@ -5873,22 +5857,6 @@ msgstr "début de séquence"
 #: machincast/player/broadcast.py
 msgid "sequence end"
 msgstr "fin de séquence"
-
-#: machincast/player/broadcast.py
-msgid "fallback"
-msgstr "secours"
-
-#: machincast/player/broadcast.py
-msgid "digital silence"
-msgstr "silence numérique"
-
-#: machincast/player/broadcast.py
-msgid "of the sound"
-msgstr "du sonore"
-
-#: machincast/player/broadcast.py
-msgid "permanent"
-msgstr "permanent"
 
 #: machincast/player/broadcast.py
 #, python-brace-format
@@ -5908,24 +5876,11 @@ msgstr ""
 "est joué"
 
 #: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{manual_interruption} ignored"
-msgstr "{manual_interruption} ignorée"
-
-#: machincast/player/broadcast.py
 #: machincast/player/history.py
 #: machincast/player/saving.py
 #: machincast/player/simulation.py
 msgid "interrupted playback"
 msgstr "lecture interrompue"
-
-#: machincast/player/broadcast.py
-msgid "of its playback"
-msgstr "de sa lecture"
-
-#: machincast/player/broadcast.py
-msgid "Event / sequence / bank / sound / file"
-msgstr "Événement / séquence / banque / sonore / fichier"
 
 #: machincast/player/broadcast.py
 msgid "stop"
@@ -5936,61 +5891,8 @@ msgid "stop requested"
 msgstr "arrêt demandé"
 
 #: machincast/player/broadcast.py
-#: install.sh
-msgid "none"
-msgstr "aucun"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the background programming “{name}” by the fallback “{by}”"
-msgstr "du fil musical « {name} » par le secours « {by} »"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the event “{name}” by the fallback “{by}”"
-msgstr "de l'événement « {name} » par le secours « {by} »"
-
-#: machincast/player/broadcast.py
 msgid "analysis of the next sound"
 msgstr "analyse du prochain sonore"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{sound}: dead air of {duration} s at {timecode} {ou}, {level}"
-msgstr "{sound} : blanc de {duration} s à {timecode} {ou}, {level}"
-
-#: machincast/player/broadcast.py
-msgid "Previous"
-msgstr "Précédent"
-
-#: machincast/player/broadcast.py
-msgid "Playing now"
-msgstr "À l'antenne"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "“{name}”, {priorities}, {hours}"
-msgstr "« {name} », {priorities}, {hours}"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the event “{name}”, planned on {start:%Y-%m-%d %H:%M}"
-msgstr "de l'événement « {name} », prévu le {start:%Y-%m-%d %H:%M}"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the sound “{sound_name}”"
-msgstr "du sonore « {sound_name} »"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the background programming “{name}” by the feed “{by}”"
-msgstr "du fil musical « {name} » par le feed « {by} »"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the event “{name}” by the feed “{by}”"
-msgstr "de l'événement « {name} » par le feed « {by} »"
 
 #: machincast/player/broadcast.py
 #, python-brace-format
@@ -6001,26 +5903,6 @@ msgstr "{message}, le stream laisse l'antenne jusqu'au retour de son son"
 #: machincast/player/broadcast.py
 msgid "reconnection abandoned"
 msgstr "reconnexion abandonnée"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "average level {level:.1f} dB"
-msgstr "niveau moyen {level:.1f} dB"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "since {hour}"
-msgstr "depuis {hour}"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "from {hour} to {hour2}"
-msgstr "de {hour} à {hour2}"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "event no. {event}, unknown"
-msgstr "l'événement n°{event}, inconnu"
 
 #: machincast/player/broadcast.py
 msgid "analysis impossible"
@@ -6052,79 +5934,8 @@ msgstr "socket d'état indisponible"
 
 #: machincast/player/broadcast.py
 #, python-brace-format
-msgid "{ignored_advance}: no next event"
-msgstr "{ignored_advance} : aucun événement suivant"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored_advance}: the next event is “{name}”, not {expected}"
-msgstr ""
-"{ignored_advance} : l'événement suivant est « {name} », pas {expected}"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored}: nothing on air"
-msgstr "{ignored} : rien à l'antenne"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored}: no sequence on air"
-msgstr "{ignored} : aucune séquence à l'antenne"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored}: the background programming is already on air"
-msgstr "{ignored} : le fil musical est déjà à l'antenne"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored}: a stream has no beginning"
-msgstr "{ignored} : un stream n'a pas de début"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the sequence {on_air_sequence}"
-msgstr "de la séquence {on_air_sequence}"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "of the event “{name}”"
-msgstr "de l'événement « {name} »"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "back to the start of the sound “{sound_name}”"
-msgstr "retour au début du sonore « {sound_name} »"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "back to the start of the event “{name}”"
-msgstr "retour au début de l'événement « {name} »"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored}: event no. {event} is not a fallback"
-msgstr "{ignored} : l'événement n°{event} n'est pas un secours"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored}: feed no. {feed} does not exist"
-msgstr "{ignored} : le feed n°{feed} n'existe pas"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "{ignored}: no active stream follows the feed “{name}”"
-msgstr "{ignored} : aucun stream actif ne suit le feed « {name} »"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
 msgid "{address}: the event of the stream is no longer on air"
 msgstr "{address} : l'événement du stream n'est plus à l'antenne"
-
-#: machincast/player/broadcast.py
-#, python-brace-format
-msgid "Next {rank}"
-msgstr "Suivant {rank}"
 
 #: machincast/player/broadcast.py
 #, python-brace-format
@@ -6135,6 +5946,72 @@ msgstr "{message}, le sonore suivant est joué"
 #, python-brace-format
 msgid "crash report context unavailable: {error}"
 msgstr "contexte du rapport de crash indisponible : {error}"
+
+#: machincast/player/broadcast_plan.py
+msgid "permanent"
+msgstr "permanent"
+
+#: machincast/player/broadcast_plan.py
+#, python-brace-format
+msgid "“{name}”, {priorities}, {hours}"
+msgstr "« {name} », {priorities}, {hours}"
+
+#: machincast/player/broadcast_plan.py
+#, python-brace-format
+msgid "since {hour}"
+msgstr "depuis {hour}"
+
+#: machincast/player/broadcast_plan.py
+#, python-brace-format
+msgid "from {hour} to {hour2}"
+msgstr "de {hour} à {hour2}"
+
+#: machincast/player/broadcast_text.py
+msgid "Sounds on air"
+msgstr "Sonores de l'antenne"
+
+#: machincast/player/broadcast_text.py
+msgid "digital silence"
+msgstr "silence numérique"
+
+#: machincast/player/broadcast_text.py
+msgid "of the sound"
+msgstr "du sonore"
+
+#: machincast/player/broadcast_text.py
+msgid "of its playback"
+msgstr "de sa lecture"
+
+#: machincast/player/broadcast_text.py
+msgid "Event / sequence / bank / sound / file"
+msgstr "Événement / séquence / banque / sonore / fichier"
+
+#: machincast/player/broadcast_text.py
+#, python-brace-format
+msgid "{sound}: dead air of {duration} s at {timecode} {ou}, {level}"
+msgstr "{sound} : blanc de {duration} s à {timecode} {ou}, {level}"
+
+#: machincast/player/broadcast_text.py
+msgid "Previous"
+msgstr "Précédent"
+
+#: machincast/player/broadcast_text.py
+msgid "Playing now"
+msgstr "À l'antenne"
+
+#: machincast/player/broadcast_text.py
+#, python-brace-format
+msgid "average level {level:.1f} dB"
+msgstr "niveau moyen {level:.1f} dB"
+
+#: machincast/player/broadcast_text.py
+#, python-brace-format
+msgid "Next {rank}"
+msgstr "Suivant {rank}"
+
+#: machincast/player/broadcast_types.py
+msgid "fallback"
+msgstr "secours"
 
 #: machincast/player/engine.py
 msgid "the stream did not start after its buffer"
@@ -6263,6 +6140,129 @@ msgstr "samedi"
 #: machincast/interface/ui/event_card.ui
 msgid "Sunday"
 msgstr "dimanche"
+
+#: machincast/player/interruptions.py
+msgid "manual interruption"
+msgstr "interruption manuelle"
+
+#: machincast/player/interruptions.py
+msgid "advanced event"
+msgstr "événement avancé"
+
+#: machincast/player/interruptions.py
+msgid "advance ignored"
+msgstr "avance ignorée"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{manual_interruption} ignored"
+msgstr "{manual_interruption} ignorée"
+
+#: machincast/player/interruptions.py
+#: install.sh
+msgid "none"
+msgstr "aucun"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the background programming “{name}” by the fallback “{by}”"
+msgstr "du fil musical « {name} » par le secours « {by} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the event “{name}” by the fallback “{by}”"
+msgstr "de l'événement « {name} » par le secours « {by} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the event “{name}”, planned on {start:%Y-%m-%d %H:%M}"
+msgstr "de l'événement « {name} », prévu le {start:%Y-%m-%d %H:%M}"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the sound “{sound_name}”"
+msgstr "du sonore « {sound_name} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the background programming “{name}” by the feed “{by}”"
+msgstr "du fil musical « {name} » par le feed « {by} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the event “{name}” by the feed “{by}”"
+msgstr "de l'événement « {name} » par le feed « {by} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "event no. {event}, unknown"
+msgstr "l'événement n°{event}, inconnu"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored_advance}: no next event"
+msgstr "{ignored_advance} : aucun événement suivant"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored_advance}: the next event is “{name}”, not {expected}"
+msgstr ""
+"{ignored_advance} : l'événement suivant est « {name} », pas {expected}"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: nothing on air"
+msgstr "{ignored} : rien à l'antenne"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: no sequence on air"
+msgstr "{ignored} : aucune séquence à l'antenne"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: the background programming is already on air"
+msgstr "{ignored} : le fil musical est déjà à l'antenne"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: a stream has no beginning"
+msgstr "{ignored} : un stream n'a pas de début"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the sequence {on_air_sequence}"
+msgstr "de la séquence {on_air_sequence}"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the event “{name}”"
+msgstr "de l'événement « {name} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "back to the start of the sound “{sound_name}”"
+msgstr "retour au début du sonore « {sound_name} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "back to the start of the event “{name}”"
+msgstr "retour au début de l'événement « {name} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: event no. {event} is not a fallback"
+msgstr "{ignored} : l'événement n°{event} n'est pas un secours"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: feed no. {feed} does not exist"
+msgstr "{ignored} : le feed n°{feed} n'existe pas"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: no active stream follows the feed “{name}”"
+msgstr "{ignored} : aucun stream actif ne suit le feed « {name} »"
 
 #: machincast/player/outputs.py
 msgid "inaccessible output"

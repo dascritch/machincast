@@ -50,7 +50,7 @@ from PySide6.QtWidgets import QSizePolicy, QToolTip, QWidget  # noqa: E402
 from machincast.configuration import Crossfades  # noqa: E402
 from machincast.i18n import _, decimal  # noqa: E402
 from machincast.interface import states  # noqa: E402
-from machincast.player.broadcast import crossfade  # noqa: E402
+from machincast.player.broadcast_types import crossfade  # noqa: E402
 from machincast.player.engine import envelope  # noqa: E402
 from machincast.player.fades import (  # noqa: E402
 	DEFAULT_ENTRY,
