@@ -101,7 +101,7 @@ def without_decoder(monkeypatch: pytest.MonkeyPatch) -> None:
 def open_(tracking: Log, empty_database: Connection, qtbot: QtBot, title: str) -> None:
 	socket, database = sample_database_parameters()
 	full_audit = {"Indexation rapide": False, "Audit complet": True}[title]
-	tracking.window = LogWindow(socket, database, full_audit)
+	tracking.window = LogWindow(socket, database, full_audit=full_audit)
 	qtbot.addWidget(tracking.window)
 	tracking.window.launch()
 

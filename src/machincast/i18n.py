@@ -361,7 +361,7 @@ def _templates() -> list[tuple[re.Pattern[str], str | tuple[str, ...], bool | No
 	return templates
 
 
-def _fill(text: str, weak: bool | None) -> str | None:
+def _fill(text: str, *, weak: bool | None) -> str | None:
 	"""Le message traduit par le premier gabarit qui lui correspond, parmi les forts (False), les faibles (True) ou
 	ceux d'une énumération (None) ; None sans gabarit."""
 	for pattern, msgstr, weak_template, quoted in _templates():

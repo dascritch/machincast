@@ -78,7 +78,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 		log.error(_("--force is only used with --full-audit"))
 		return INVALID_CONFIGURATION_CODE
 	if options.sound is not None:
-		return check_sound(configuration, options.sound, options.full_audit, options.force)
+		return check_sound(configuration, options.sound, full_audit=options.full_audit, force=options.force)
 	if options.window:
 		if not available_display():
 			log.error(_("--window needs a graphical display: without one, run Machin indexer without --window"))
@@ -87,7 +87,11 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 		from machincast.interface.indexing_log import launch_window
 
 		return launch_window(
-			database.socket, database.production, options.full_audit, configuration.silences.threshold, options.force
+			database.socket,
+			database.production,
+			full_audit=options.full_audit,
+			silence_threshold=configuration.silences.threshold,
+			force=options.force,
 		)
 	start = audit.CLOCK.now()
 	try:
@@ -119,7 +123,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 	return 0
 
 
-def check_sound(configuration: Configuration, sound: int, full_audit: bool, force: bool = False) -> int:
+def check_sound(configuration: Configuration, sound: int, *, full_audit: bool, force: bool = False) -> int:
 	"""Ce sonore seulement, s'il est un fichier : sans verrou, comme la vérification des fichiers ajoutés depuis
 	l'interface, car une indexation en cours peut le vérifier aussi sans dommage."""
 	database = configuration.database
@@ -130,7 +134,13 @@ def check_sound(configuration: Configuration, sound: int, full_audit: bool, forc
 			if file is None:
 				log.error(_("sound {sound}: unknown, or not a file").format(sound=sound))
 				return FAILURE_CODE
-			report = index_sound(connection, sound, full_audit, configuration.silences.threshold, force)
+			report = index_sound(
+				connection,
+				sound,
+				full_audit=full_audit,
+				silence_threshold=configuration.silences.threshold,
+				force=force,
+			)
 	except psycopg.OperationalError as error:
 		log.error(
 			_("database unreachable ({production} through {socket}): {error}").format(

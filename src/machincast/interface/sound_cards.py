@@ -250,11 +250,11 @@ class SoundCards(QWidget):
 			for item in (ui.output, ui.on_air):
 				item.setToolTip(RUNNING_BROADCAST)
 		ongoing = self._pipeline is not None
-		_set_button(ui.test_on_air, on_air, ongoing, locked)
-		_set_button(ui.test_preview, preview, ongoing, False)
+		_set_button(ui.test_on_air, on_air, ongoing=ongoing, locked=locked)
+		_set_button(ui.test_preview, preview, ongoing=ongoing, locked=False)
 		self.changed.emit()
 
-	def keep_rows(self, on_air: bool, preview: bool) -> None:
+	def keep_rows(self, *, on_air: bool, preview: bool) -> None:
 		"""Les lignes que montre la fenêtre qui l'accueille (https://github.com/dascritch/machincast/issues/389) : le
 		type de sortie, l'antenne et son niveau pour les paramètres du service ; la pré-écoute pour les préférences de
 		l'interface. Une ligne cachée garde son choix, que rendent chosen_output, chosen_on_air et chosen_preview."""
@@ -279,7 +279,7 @@ class SoundCards(QWidget):
 			return None
 		return card
 
-	def _show_level(self, visible: bool) -> None:
+	def _show_level(self, *, visible: bool) -> None:
 		self.ui.form.setRowVisible(2, visible)
 
 	def _read_level(self) -> None:
@@ -287,7 +287,7 @@ class SoundCards(QWidget):
 		dans l'infobulle."""
 		ui = self.ui
 		card = self._service_card()
-		self._show_level(card is not None)
+		self._show_level(visible=card is not None)
 		if card is None:
 			return
 		try:
@@ -323,12 +323,12 @@ class SoundCards(QWidget):
 		except service_mixer.Unavailable as error:
 			self._say(LEVEL_UNAVAILABLE.format(error=error))
 
-	def _mute(self, muted: bool) -> None:
+	def _mute(self, muted: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
 		card = self._service_card()
 		if card is None:
 			return
 		try:
-			service_mixer.set_muted(card, muted)
+			service_mixer.set_muted(card, muted=muted)
 		except service_mixer.Unavailable as error:
 			self._say(LEVEL_UNAVAILABLE.format(error=error))
 
@@ -433,7 +433,7 @@ def _fill(choice: QComboBox, current: str | None, found_list: list[audio_outputs
 	choice.setCurrentIndex(0)
 
 
-def _grey_out(choice: QComboBox, excluded: object, refuse_dummy: bool) -> None:
+def _grey_out(choice: QComboBox, excluded: object, *, refuse_dummy: bool) -> None:
 	"""La carte de l'autre choix est grisée ; la sortie factice aussi, si elle est refusée."""
 	model = choice.model()
 	assert isinstance(model, QStandardItemModel)
@@ -448,7 +448,7 @@ def _grey_out(choice: QComboBox, excluded: object, refuse_dummy: bool) -> None:
 		line.setToolTip(tooltip)
 
 
-def _set_button(button: QPushButton, card: str | None, ongoing: bool, locked: bool) -> None:
+def _set_button(button: QPushButton, card: str | None, *, ongoing: bool, locked: bool) -> None:
 	tooltip = TEST
 	if locked:
 		tooltip = RUNNING_BROADCAST

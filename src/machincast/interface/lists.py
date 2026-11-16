@@ -223,7 +223,7 @@ def read_sounds(connection: Connection) -> list[Line]:
 	return sounds
 
 
-def _state_text(state: str, requested_audit: bool) -> str:
+def _state_text(state: str, *, requested_audit: bool) -> str:
 	state_text = STATES.get(state, state)
 	if requested_audit:
 		# https://github.com/dascritch/machincast/issues/114
@@ -246,7 +246,7 @@ def sound_line(row: tuple[object, ...]) -> Line:
 		_text(artist),
 		_text(title),
 		TYPES.get(str(sound_type), str(sound_type)),
-		_state_text(str(state), requested_audit is True),
+		_state_text(str(state), requested_audit=requested_audit is True),
 		duration_text,
 	]
 	cells.append(_text(location))
@@ -278,7 +278,7 @@ def read_banks(connection: Connection) -> list[Line]:
 	lines = []
 	for identifier, name, public_name, mode, marked, directory, without_active_sound, in_anomaly in rows:
 		cells = [str(name), _text(public_name), MODES.get(str(mode), str(mode))]
-		cells += [display.yes_no(bool(marked)), _text(directory)]
+		cells += [display.yes_no(value=bool(marked)), _text(directory)]
 		anomaly = ""
 		if without_active_sound:
 			anomaly = BANK_WITHOUT_ACTIVE_SOUND
@@ -521,7 +521,7 @@ def _state_expression() -> tuple[str, list[object]]:
 	values: list[object] = []
 	for state, text in STATES.items():
 		parts.append("WHEN s.state::text = %s AND s.audit_requested THEN %s WHEN s.state::text = %s THEN %s")
-		values += [state, _state_text(state, True), state, text]
+		values += [state, _state_text(state, requested_audit=True), state, text]
 	return f"CASE {' '.join(parts)} ELSE s.state::text END", values
 
 
@@ -672,11 +672,11 @@ class PagedSounds(QAbstractTableModel):
 				types.append(sound_type)
 		plain = []
 		for state in STATES:
-			if text in without_accents(_state_text(state, False)):
+			if text in without_accents(_state_text(state, requested_audit=False)):
 				plain.append(state)
 		audited = []
 		for state in STATES:
-			if text in without_accents(_state_text(state, True)):
+			if text in without_accents(_state_text(state, requested_audit=True)):
 				audited.append(state)
 		parts += [
 			"s.type::text = ANY(%s)",
@@ -742,6 +742,7 @@ class List(QWidget):
 		source: Source,
 		connection: Connection,
 		parent: QWidget | None = None,
+		*,
 		actions: bool = True,
 		view: str | None = None,
 	) -> None:

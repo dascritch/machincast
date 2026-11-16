@@ -43,6 +43,7 @@ class OngoingIndexing(Exception):
 
 def index(
 	connection: psycopg.Connection[TupleRow],
+	*,
 	full_audit: bool = False,
 	check: Checker = check_file,
 	stop: threading.Event | None = None,
@@ -68,7 +69,15 @@ def index(
 	try:
 		report = Report(full_audit=full_audit)
 		scan = index_directories(connection, report, stop)
-		check_sounds(connection, check, full_audit, report, stop=stop, silence_threshold=silence_threshold, force=force)
+		check_sounds(
+			connection,
+			check,
+			full_audit=full_audit,
+			report=report,
+			stop=stop,
+			silence_threshold=silence_threshold,
+			force=force,
+		)
 		# Les durées vérifiées, les sonores en attente n'entrent que dans les banques dont ils sont dans les durées,
 		# même après un arrêt (https://github.com/dascritch/machincast/issues/210) ; puis chaque banque ne garde que les
 		# sonores dans ses durées, sauf après un arrêt (https://github.com/dascritch/machincast/issues/195).
@@ -84,6 +93,7 @@ def index(
 def index_sound(
 	connection: psycopg.Connection[TupleRow],
 	sound: int,
+	*,
 	full_audit: bool = False,
 	silence_threshold: float = SILENCE_THRESHOLD,
 	force: bool = False,

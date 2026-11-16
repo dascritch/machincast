@@ -278,7 +278,7 @@ class Card(QWidget):
 			self.message.setText(_("The original is no longer in the database: the copy stays as it is."))
 			return
 		self._read()
-		self._mark(self.is_copy())
+		self._mark(modified=self.is_copy())
 		self.button_delete.setEnabled(self.identifier is not None)
 		self.message.clear()
 		self.erase_error()
@@ -526,9 +526,9 @@ class Card(QWidget):
 		raise NotImplementedError
 
 	def _modify(self) -> None:
-		self._mark(True)
+		self._mark(modified=True)
 
-	def _mark(self, modified: bool) -> None:
+	def _mark(self, *, modified: bool) -> None:
 		self.modified = modified
 		self.button_save.setEnabled(modified)
 		self.button_cancel.setEnabled(modified)

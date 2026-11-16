@@ -265,7 +265,7 @@ def fallback_announcement(name: str) -> str:
 	return _("Cut by the fallback “{name}” requested.").format(name=name)
 
 
-def offer_feed(state: PlaybackState, active_stream: bool) -> NextEntry:
+def offer_feed(state: PlaybackState, *, active_stream: bool) -> NextEntry:
 	"""Couper par un feed, au clic droit sur sa ligne : l'événement à l'antenne, ou le fil musical. Il faut un sonore à
 	l'antenne, et un stream actif qui suive le feed."""
 	ongoing = state.ongoing
@@ -314,7 +314,7 @@ def fill_feed(
 	stream, active = feed_stream(connection, feed)
 	if stream is not None:
 		display.offer_preview(menu, stream, preview)
-	entry = offer_feed(state, active)
+	entry = offer_feed(state, active_stream=active)
 	action = menu.addAction(entry.text)
 	action.setEnabled(entry.proposal.active)
 	action.setToolTip(entry.proposal.tooltip)

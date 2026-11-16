@@ -179,7 +179,7 @@ class BroadcastControl(QObject):
 		self.window.ui.state_bar.showMessage(text)
 		self.reread_service()
 
-	def restarted(self, success: bool) -> None:
+	def restarted(self, success: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
 		"""La diffusion redémarrée prend les nouveaux paramètres ; sinon, les précédents reviennent, dans le fichier et
 		dans l'interface (https://github.com/dascritch/machincast/issues/389)."""
 		restoring = self.restoring

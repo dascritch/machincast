@@ -42,6 +42,7 @@ def _display(choice: Choice, parameters: Parameters) -> dict[str, Any]:
 def _announces(
 	choice: Choice,
 	parameters: Parameters,
+	*,
 	healthy: bool | None,
 	details: dict[str, Any],
 	start: datetime | None,

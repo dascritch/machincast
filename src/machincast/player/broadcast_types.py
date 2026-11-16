@@ -200,11 +200,11 @@ def read_parameters(
 			duration,
 			_interval(detected_start),
 			_interval(detected_end),
-			(detection is True) and (sound_type == "file"),
-			start_crossfade,
-			end_crossfade,
-			defects.entry,
-			defects.output,
+			without_silences=(detection is True) and (sound_type == "file"),
+			start_crossfade=start_crossfade,
+			end_crossfade=end_crossfade,
+			entry=defects.entry,
+			output=defects.output,
 		)
 		played_duration = placement.duration
 	return Parameters(

@@ -10,7 +10,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.database import Role, open_connection
-from machincast.player.saving import Play, begin_play, finish_play, record
+from machincast.player.saving import Play, PlayStart, begin_play, finish_play, record
 from tests.database_fixtures import sample_database_parameters
 from tests.log_texts import shown
 
@@ -109,13 +109,13 @@ def direct_show(context: Context, empty_database: Connection, name: str) -> None
 @when(parsers.parse("le binaire lecture commence ce passage à « {instant} »"))
 def begin(context: Context, playback: Connection, instant: str) -> None:
 	i = context.ids
-	context.play = begin_play(playback, i["sonore"], i["Titres"], i["Magazine"], i["element"], hour(instant))
+	context.play = begin_play(playback, PlayStart(i["sonore"], i["Titres"], i["Magazine"], i["element"], hour(instant)))
 
 
 @when(parsers.parse("le binaire lecture commence le passage de l'émission « {name} » à « {instant} »"))
 def begin_live(context: Context, playback: Connection, name: str, instant: str) -> None:
 	i = context.ids
-	context.play = begin_play(playback, i["sonore"], None, i[name], i[f"element {name}"], hour(instant))
+	context.play = begin_play(playback, PlayStart(i["sonore"], None, i[name], i[f"element {name}"], hour(instant)))
 
 
 @when(parsers.parse("le titre du sonore devient « {title} »"))

@@ -657,7 +657,7 @@ def _expand(window: MainWindow, title: str) -> None:
 		if candidate.property(expandable.TITLE) == title:
 			group_list.append(candidate)
 	(group,) = group_list
-	expandable.display(group, True)
+	expandable.display(group, expanded=True)
 
 
 def produce(directory: Path) -> dict[str, Path]:

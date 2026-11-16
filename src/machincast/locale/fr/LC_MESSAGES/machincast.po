@@ -2375,13 +2375,13 @@ msgstr ""
 "Port de monitoring : {port_name}. Clic : écouter l'antenne en pré-écoute."
 
 #: machincast/interface/default_screen.py
-msgid "not tested"
-msgstr "non testé"
-
-#: machincast/interface/default_screen.py
 #, python-brace-format
 msgid "out of {duration}"
 msgstr "sur {duration}"
+
+#: machincast/interface/default_screen.py
+msgid "not tested"
+msgstr "non testé"
 
 #: machincast/interface/default_screen.py
 #, python-brace-format
@@ -3429,18 +3429,6 @@ msgid "Remove from banks…"
 msgstr "Retirer de banques…"
 
 #: machincast/interface/groups.py
-msgid "hidden"
-msgstr "masqués"
-
-#: machincast/interface/groups.py
-msgid "shown"
-msgstr "affichés"
-
-#: machincast/interface/groups.py
-msgid "inherited from the sound"
-msgstr "hérités du sonore"
-
-#: machincast/interface/groups.py
 #, python-brace-format
 msgid "to bank {names}"
 msgstr "à la banque {names}"
@@ -3473,6 +3461,18 @@ msgstr[1] "{count} sonores désactivés."
 #, python-brace-format
 msgid "Artist and title {state} for {banks}."
 msgstr "Artiste et titre {state} pour {banks}."
+
+#: machincast/interface/groups.py
+msgid "hidden"
+msgstr "masqués"
+
+#: machincast/interface/groups.py
+msgid "shown"
+msgstr "affichés"
+
+#: machincast/interface/groups.py
+msgid "inherited from the sound"
+msgstr "hérités du sonore"
 
 #: machincast/interface/groups.py
 #: machincast/interface/interruption.py
@@ -4984,13 +4984,13 @@ msgstr "à {bitrate} kbit/s"
 
 #: machincast/interface/stream_trial.py
 #, python-brace-format
-msgid "the sound does not arrive within {delay} s."
-msgstr "le son n'arrive pas en {delay} s."
+msgid "“{address}” is not an address."
+msgstr "« {address} » n'est pas une adresse."
 
 #: machincast/interface/stream_trial.py
 #, python-brace-format
-msgid "“{address}” is not an address."
-msgstr "« {address} » n'est pas une adresse."
+msgid "the sound does not arrive within {delay} s."
+msgstr "le son n'arrive pas en {delay} s."
 
 #: machincast/interface/stream_trial.py
 #, python-brace-format
@@ -6306,14 +6306,6 @@ msgid "dead air"
 msgstr "blanc"
 
 #: machincast/player/rundown.py
-msgid "no active event"
-msgstr "aucun événement actif"
-
-#: machincast/player/rundown.py
-msgid "nothing to broadcast in the background programming"
-msgstr "rien à diffuser dans le fil musical"
-
-#: machincast/player/rundown.py
 msgid "event ended earlier"
 msgstr "événement terminé plus tôt"
 
@@ -6329,6 +6321,14 @@ msgid ""
 msgstr ""
 "banque « {name} » à ne pas répéter : elle vient de passer, {description} "
 "est sauté"
+
+#: machincast/player/rundown.py
+msgid "no active event"
+msgstr "aucun événement actif"
+
+#: machincast/player/rundown.py
+msgid "nothing to broadcast in the background programming"
+msgstr "rien à diffuser dans le fil musical"
 
 #: machincast/player/rundown.py
 #, python-brace-format

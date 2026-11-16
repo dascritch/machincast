@@ -107,8 +107,10 @@ class Indexing(QObject):
 		# Les lignes de chaque sonore sont des informations : sans ce niveau, elles ne seraient pas écrites.
 		logging.getLogger(INDEXER_LOG).setLevel(logging.INFO)
 
-	def launch(self, full_audit: bool) -> None:
-		self._feed = threading.Thread(target=self._index, args=(full_audit,), name="indexation", daemon=True)
+	def launch(self, *, full_audit: bool) -> None:
+		self._feed = threading.Thread(
+			target=self._index, kwargs={"full_audit": full_audit}, name="indexation", daemon=True
+		)
 		self._feed.start()
 
 	def ongoing(self) -> bool:
@@ -126,7 +128,7 @@ class Indexing(QObject):
 		self._feed = None
 		self.finished.emit(report)
 
-	def _index(self, full_audit: bool) -> None:
+	def _index(self, *, full_audit: bool) -> None:
 		indexer = logging.getLogger(INDEXER_LOG)
 		lines = _Lines(self._line)
 		indexer.addHandler(lines)
@@ -134,7 +136,12 @@ class Indexing(QObject):
 		try:
 			with open_connection(self.socket, self.database, Role.INDEXING) as connection:
 				report = index(
-					connection, full_audit, _check_file, self._stop, self.silence_threshold, force=self.force
+					connection,
+					full_audit=full_audit,
+					check=_check_file,
+					stop=self._stop,
+					silence_threshold=self.silence_threshold,
+					force=self.force,
 				)
 			# Le bilan, puis le document d'audit, comme Machin indexer les écrit à la fin.
 			indexer.info(report_text(report))

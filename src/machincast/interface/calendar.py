@@ -361,7 +361,7 @@ def split(planned_list: Iterable[Planned], days: list[date], public_names: dict[
 	for planned in planned_list:
 		whole_day = (planned.occurrence.start is None) or (planned.end - planned.start >= ONE_DAY)
 
-		def add_block(day: date, planned: Planned, whole_day: bool) -> None:
+		def add_block(day: date, planned: Planned, *, whole_day: bool) -> None:
 			start, end = max(planned.start, midnight(day)), min(planned.end, midnight(day + ONE_DAY))
 			if start >= end:
 				return
@@ -369,7 +369,7 @@ def split(planned_list: Iterable[Planned], days: list[date], public_names: dict[
 			blocks.append(Block(planned, day, start, end, _cross(planned.plays, start, end), whole_day, public_name))
 
 		for day in days:
-			add_block(day, planned, whole_day)
+			add_block(day, planned, whole_day=whole_day)
 	return sorted(blocks, key=lambda b: (b.day, b.start, RANKS[b.event.priority], b.event.id))
 
 
@@ -557,7 +557,7 @@ class Calendar(QWidget):
 		self.previous.clicked.connect(lambda: self._advance(-1))
 		self.following.clicked.connect(lambda: self._advance(1))
 		self.today.clicked.connect(self._come_back)
-		self.view.activated.connect(lambda index: self._change_view(VIEWS[index][1]))
+		self.view.activated.connect(lambda index: self._change_view(week=VIEWS[index][1]))
 		self.zoom.activated.connect(lambda index: self.zoom_in(ZOOMS[index]))
 		self.header = Header(self)
 		self.grid = Grid(self)
@@ -589,7 +589,7 @@ class Calendar(QWidget):
 		self.zoom.setCurrentIndex(ZOOMS.index(hours))
 		self._adjust_height()
 
-	def zoom_in_notch(self, more_near: bool) -> None:
+	def zoom_in_notch(self, *, more_near: bool) -> None:
 		"""Le zoom voisin : moins d'heures, plus près, ou plus d'heures ; rien au-delà des bouts."""
 		step = 1
 		if more_near:
@@ -722,7 +722,7 @@ class Calendar(QWidget):
 			self._start = self._monday(self._start)
 		self.refresh()
 
-	def _change_view(self, week: bool) -> None:
+	def _change_view(self, *, week: bool) -> None:
 		"""La vue jour montre aujourd'hui s'il est dans la semaine montrée, sinon son lundi."""
 		today = self._today()
 		if week:
@@ -1023,7 +1023,7 @@ class Grid(QWidget):
 		angle = event.angleDelta()
 		notch = (angle.y()) or (angle.x())
 		if notch != 0:
-			self.calendar.zoom_in_notch(notch > 0)
+			self.calendar.zoom_in_notch(more_near=notch > 0)
 		event.accept()
 
 	def mousePressEvent(self, event: QMouseEvent) -> None:

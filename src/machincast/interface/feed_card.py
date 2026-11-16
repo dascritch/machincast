@@ -125,8 +125,8 @@ class FeedCard(Card):
 		self.ui.trial_result.setText(_("Stream test running…"))
 		self.trial.launch(self.ui.url.text().strip())
 
-	def _finished_trial(self, answers: bool, detail: str) -> None:
-		self.ui.trial_result.setText(trial_result(answers, detail))
+	def _finished_trial(self, answers: bool, detail: str) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
+		self.ui.trial_result.setText(trial_result(answers=answers, detail=detail))
 		self.ui.test.setEnabled(True)
 
 	def _open_stream(self, item: QListWidgetItem) -> None:

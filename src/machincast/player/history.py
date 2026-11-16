@@ -27,7 +27,7 @@ from machincast.conversion import integer_or_none
 from machincast.i18n import N_
 from machincast.player import saving
 from machincast.player.expiry import Expiry, expire
-from machincast.player.saving import Play
+from machincast.player.saving import Play, PlayStart
 
 Connection = psycopg.Connection[TupleRow]
 
@@ -67,14 +67,7 @@ class History(Protocol):
 	def begin_play(
 		self,
 		connection: Connection,
-		sound: int,
-		bank: int | None,
-		event: int | None,
-		item: int | None,
-		instant: datetime,
-		sequence: int | None = None,
-		item_sequence: int | None = None,
-		lender: int | None = None,
+		start: PlayStart,
 	) -> Play: ...
 
 	def finish_play(
@@ -82,6 +75,7 @@ class History(Protocol):
 		connection: Connection,
 		play: Play,
 		instant: datetime,
+		*,
 		cut: bool = False,
 		error: str | None = None,
 		kind: str = N_("interrupted playback"),
@@ -124,14 +118,7 @@ class HistoryInPlayback:
 	def begin_play(
 		self,
 		connection: Connection,
-		sound: int,
-		bank: int | None,
-		event: int | None,
-		item: int | None,
-		instant: datetime,
-		sequence: int | None = None,
-		item_sequence: int | None = None,
-		lender: int | None = None,
+		start: PlayStart,
 	) -> Play:
 		raise AssertionError("une anticipation ne commence aucun passage")
 
@@ -140,6 +127,7 @@ class HistoryInPlayback:
 		connection: Connection,
 		play: Play,
 		instant: datetime,
+		*,
 		cut: bool = False,
 		error: str | None = None,
 		kind: str = N_("interrupted playback"),
@@ -285,22 +273,16 @@ class HistoryInDatabase:
 	def begin_play(
 		self,
 		connection: Connection,
-		sound: int,
-		bank: int | None,
-		event: int | None,
-		item: int | None,
-		instant: datetime,
-		sequence: int | None = None,
-		item_sequence: int | None = None,
-		lender: int | None = None,
+		start: PlayStart,
 	) -> Play:
-		return saving.begin_play(connection, sound, bank, event, item, instant, sequence, item_sequence, lender)
+		return saving.begin_play(connection, start)
 
 	def finish_play(
 		self,
 		connection: Connection,
 		play: Play,
 		instant: datetime,
+		*,
 		cut: bool = False,
 		error: str | None = None,
 		kind: str = N_("interrupted playback"),

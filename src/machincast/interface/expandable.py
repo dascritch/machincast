@@ -8,7 +8,7 @@ retenir, facultative, apprend chaque dépliage ou repliage fait à la main, pour
 vues du compte (machincast.interface.columns), et retenus les y relit.
 """
 
-from collections.abc import Callable
+from typing import Protocol
 
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QKeyEvent, QMouseEvent
@@ -28,7 +28,12 @@ FREE_HEIGHT = 16777215
 """La hauteur maximale d'un widget de Qt (QWIDGETSIZE_MAX) : celle d'un encart déplié."""
 
 
-Retain = Callable[[QGroupBox, bool], None]
+class Retain(Protocol):
+	"""Retient l'encart déplié ou replié."""
+
+	def __call__(self, group: QGroupBox, *, expanded: bool) -> None: ...
+
+
 """Ce qui retient un encart déplié (True) ou replié (False) à la main."""
 
 
@@ -45,10 +50,10 @@ def retained(key: str) -> set[str]:
 	return set()
 
 
-def retain_in(key: str, expanded_list: bool = True) -> Retain:
+def retain_in(key: str, *, expanded_list: bool = True) -> Retain:
 	"""Garde sous cette clé les noms des encarts dépliés, ou, deplies faux, ceux des encarts repliés."""
 
-	def retain(group: QGroupBox, expanded: bool) -> None:
+	def retain(group: QGroupBox, *, expanded: bool) -> None:
 		names = retained(key)
 		if expanded is expanded_list:
 			names.add(group.objectName())
@@ -59,7 +64,7 @@ def retain_in(key: str, expanded_list: bool = True) -> Retain:
 	return retain
 
 
-def make_expandable(group: QGroupBox, expanded: bool = False, retain: Retain | None = None) -> None:
+def make_expandable(group: QGroupBox, *, expanded: bool = False, retain: Retain | None = None) -> None:
 	content = QWidget(group)
 	content.setObjectName(CONTENT)
 	arrangement = group.layout()
@@ -73,7 +78,7 @@ def make_expandable(group: QGroupBox, expanded: bool = False, retain: Retain | N
 	group.setFocusPolicy(Qt.FocusPolicy.TabFocus)
 	group.setToolTip(_("Click on the title to expand or collapse"))
 	group.installEventFilter(_Title(group, retain))
-	display(group, expanded)
+	display(group, expanded=expanded)
 
 
 def _content(group: QGroupBox) -> QWidget:
@@ -88,7 +93,7 @@ def is_collapsed(group: QGroupBox) -> bool:
 	return (content is not None) and (content.isHidden())
 
 
-def display(group: QGroupBox, expanded: bool) -> None:
+def display(group: QGroupBox, *, expanded: bool) -> None:
 	"""Replié, l'encart n'a plus de cadre : il ne reste que son titre."""
 	_content(group).setVisible(expanded)
 	group.setFlat(not expanded)
@@ -103,7 +108,7 @@ def display(group: QGroupBox, expanded: bool) -> None:
 
 
 def switch(group: QGroupBox) -> None:
-	display(group, is_collapsed(group))
+	display(group, expanded=is_collapsed(group))
 
 
 class _Title(QObject):
@@ -117,7 +122,7 @@ class _Title(QObject):
 	def _switch(self) -> None:
 		switch(self.group)
 		if self.retain is not None:
-			self.retain(self.group, not is_collapsed(self.group))
+			self.retain(self.group, expanded=not is_collapsed(self.group))
 
 	def eventFilter(self, _object: QObject, event: QEvent) -> bool:
 		if event.type() == QEvent.Type.MouseButtonPress:

@@ -161,6 +161,22 @@ def _nanoseconds(duration: timedelta) -> int:
 	return round(duration.total_seconds() * Gst.SECOND)
 
 
+@dataclass(frozen=True)
+class TrackOptions:
+	"""Ce qui règle une voie en plus de son sonore et de sa durée (https://github.com/dascritch/machincast/issues/441)."""
+
+	start_crossfade: timedelta = timedelta(0)
+	end_crossfade: timedelta = timedelta(0)
+	silent: bool = False
+	"""Muette, la voie joue à volume nul jusqu'à un fondu."""
+	offset: timedelta | None = None
+	departure: float = 0.0
+	"""Volume au début de la voie, quand son fondu d'entrée déborde du fichier."""
+	arrival: float = 0.0
+	"""Volume à la fin de la voie, quand son fondu de sortie déborde du fichier."""
+	buffer: timedelta | None = None
+
+
 class Track:
 	"""Un sonore joué sur la sortie, avec son enveloppe de volume."""
 
@@ -169,16 +185,11 @@ class Track:
 		path: Path | str,
 		audio: Audio,
 		duration: timedelta | None,
-		start_crossfade: timedelta = timedelta(0),
-		end_crossfade: timedelta = timedelta(0),
+		options: TrackOptions | None = None,
+		*,
 		real_time: bool = True,
-		silent: bool = False,
-		offset: timedelta | None = None,
-		departure: float = 0.0,
-		arrival: float = 0.0,
 		clock: Callable[[], float] = time.monotonic,
 		dead_air: DeadAirSettings | None = None,
-		buffer: timedelta | None = None,
 	) -> None:
 		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
 
@@ -195,6 +206,14 @@ class Track:
 		tampon : pour le stream d'un feed, la durée de sa mémoire tampon
 		(https://github.com/dascritch/machincast/issues/351) : la voie attend qu'elle soit pleine pour jouer, et en
 		publie le remplissage (tampon_rempli) ; None : le stream joue dès son premier son, comme un fichier."""
+		options = (options) or (TrackOptions())
+		start_crossfade = options.start_crossfade
+		end_crossfade = options.end_crossfade
+		silent = options.silent
+		offset = options.offset
+		departure = options.departure
+		arrival = options.arrival
+		buffer = options.buffer
 		Gst.init(None)
 		self.path = path
 		self.state: TrackState = "ready"
@@ -563,16 +582,7 @@ class Engine(Protocol):
 	"""Ce que la diffusion attend du moteur : AudioEngine, ou le moteur simulé de la simulation."""
 
 	def play(
-		self,
-		path: Path | str,
-		duration: timedelta | None,
-		start_crossfade: timedelta = ...,
-		end_crossfade: timedelta = ...,
-		silent: bool = ...,
-		offset: timedelta | None = ...,
-		departure: float = ...,
-		arrival: float = ...,
-		buffer: timedelta | None = ...,
+		self, path: Path | str, duration: timedelta | None, options: TrackOptions | None = None
 	) -> PlaybackTrack: ...
 
 	def handle_messages(self) -> None: ...
@@ -588,6 +598,7 @@ class AudioEngine:
 	def __init__(
 		self,
 		audio: Audio,
+		*,
 		real_time: bool = True,
 		clock: Callable[[], float] = time.monotonic,
 		dead_air: DeadAirSettings | None = None,
@@ -600,34 +611,17 @@ class AudioEngine:
 		"""L'horloge des voies, qui constate un lecteur bloqué ; les scénarios la remplacent."""
 		self._tracks: list[Track] = []
 
-	def play(
-		self,
-		path: Path | str,
-		duration: timedelta | None,
-		start_crossfade: timedelta = timedelta(0),
-		end_crossfade: timedelta = timedelta(0),
-		silent: bool = False,
-		offset: timedelta | None = None,
-		departure: float = 0.0,
-		arrival: float = 0.0,
-		buffer: timedelta | None = None,
-	) -> Track:
+	def play(self, path: Path | str, duration: timedelta | None, options: TrackOptions | None = None) -> Track:
 		"""Démarre le sonore dans une nouvelle voie, en plus de celles en cours (crossfade) ; un sonore rogné commence à
 		decalage secondes du début de son fichier (https://github.com/dascritch/machincast/issues/146)."""
 		track = Track(
 			path,
 			self.audio,
 			duration,
-			start_crossfade,
-			end_crossfade,
-			self.real_time,
-			silent,
-			offset,
-			departure,
-			arrival,
-			self.clock,
-			self.dead_air,
-			buffer,
+			options,
+			real_time=self.real_time,
+			clock=self.clock,
+			dead_air=self.dead_air,
 		)
 		track.start()
 		self._tracks.append(track)

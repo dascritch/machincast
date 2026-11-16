@@ -168,7 +168,7 @@ class Interruptions:
 				self.broadcast.scheduler.restart((choice.lender) or (choice.occurrence), instant)
 				self.broadcast.upcoming = []
 			case _:
-				following = self._skip(current, item == "sequence", instant)
+				following = self._skip(current, after_sequence=item == "sequence", instant=instant)
 		if following is None:
 			following = self.broadcast._decide(instant, None).play
 		fade = (self.broadcast.crossfades.end) or (NO_CROSSFADE)
@@ -270,7 +270,7 @@ class Interruptions:
 		self.broadcast._publish(instant)
 		return True
 
-	def _skip(self, current: Playback, after_sequence: bool, instant: datetime) -> Choice | None:
+	def _skip(self, current: Playback, *, after_sequence: bool, instant: datetime) -> Choice | None:
 		"""Le sonore où sauter : le prochain, ou, après la séquence, le premier sonore prévu qui ne la continue pas ;
 		les sonores à venir qui le suivent sont gardés. None s'il n'est pas prévu, ou plus jouable : l'ordonnanceur
 		décide alors, et la liste sera recalculée."""

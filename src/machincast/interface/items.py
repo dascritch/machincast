@@ -155,7 +155,7 @@ class ItemList(QObject):
 		buttons.raise_.clicked.connect(lambda: self._move(-1))
 		buttons.go_down.clicked.connect(lambda: self._move(1))
 
-	def load(self, parent: int | None, copies: bool = False) -> None:
+	def load(self, parent: int | None, *, copies: bool = False) -> None:
 		"""Lit en base les éléments de la séquence ou de l'événement, dans l'ordre, par pages de
 		preferences.table_rows ; aucun pour un nouveau (https://github.com/dascritch/machincast/issues/383). Une copie
 		(https://github.com/dascritch/machincast/issues/130) les lit tous, comme des lignes ajoutées : l'enregistrement
@@ -292,7 +292,7 @@ class ItemList(QObject):
 				line_list.append(line)
 		return line_list
 
-	def warnings(self, loop: bool) -> list[str]:
+	def warnings(self, *, loop: bool) -> list[str]:
 		"""Une ligne par appel d'une banque « ne pas répéter » juste après elle-même ; pour une liste qui boucle, la
 		première ligne suit la dernière. Tant que tous les éléments ne sont pas lus, seulement parmi ceux qui le sont, et
 		sans boucler (https://github.com/dascritch/machincast/issues/383)."""
@@ -302,7 +302,7 @@ class ItemList(QObject):
 		for edge_line in lines:
 			edges.append((edge_line.data(0, ENTRY), edge_line.data(0, OUTPUT)))
 		texts = []
-		for number in ignored_calls_to_edges(edges, self.marked_list, loop):
+		for number in ignored_calls_to_edges(edges, self.marked_list, loop=loop):
 			line = lines[number - 1]
 			bank = self.marked_list[edges[number - 1][0]]
 			text = _("Line {number}: the bank “{bank}” has just played, and {skipped}").format(

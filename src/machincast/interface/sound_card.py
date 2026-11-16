@@ -256,7 +256,7 @@ class SoundCard(Card):
 			self.ui.file_group,
 		):
 			expandable.make_expandable(
-				group, group.objectName() in expanded_list, expandable.retain_in(EXPANDED_PANELS)
+				group, expanded=group.objectName() in expanded_list, retain=expandable.retain_in(EXPANDED_PANELS)
 			)
 		self.trial.finished.connect(self._finished_trial)
 		self._name = ""
@@ -327,11 +327,11 @@ class SoundCard(Card):
 			duration,
 			_crossfade(ui.has_detected_start, ui.detected_start),
 			_crossfade(ui.has_detected_end, ui.detected_end),
-			ui.detection_silences.isChecked(),
-			_crossfade(ui.has_start_crossfade, ui.start_crossfade),
-			_crossfade(ui.has_end_crossfade, ui.end_crossfade),
-			preferences.crossfades(),
-			self._audited,
+			detection_silences=ui.detection_silences.isChecked(),
+			start_crossfade=_crossfade(ui.has_start_crossfade, ui.start_crossfade),
+			end_crossfade=_crossfade(ui.has_end_crossfade, ui.end_crossfade),
+			defects=preferences.crossfades(),
+			audited=self._audited,
 		)
 		self.timeline.display(plan, duration.total_seconds())
 		self.ui.timeline_place.setToolTip(f"{plan.summary()}\n{TIMELINE_TITLE}")
@@ -426,7 +426,7 @@ class SoundCard(Card):
 	def follow_preview(self) -> None:
 		"""« Pré-écoute… » sert à un sonore en base, sauf sur l'entrée « Sortie factice » de la pré-écoute
 		(https://github.com/dascritch/machincast/issues/339)."""
-		display.set_preview(self.ui.preview, self.identifier is not None, PREVIEW)
+		display.set_preview(self.ui.preview, active=self.identifier is not None, tooltip=PREVIEW)
 
 	def _check(self) -> None:
 		if self.identifier is not None:
@@ -985,8 +985,8 @@ class SoundCard(Card):
 		self.ui.trial_result.setText(_("Stream test running…"))
 		self.trial.launch(self._address())
 
-	def _finished_trial(self, answers: bool, detail: str) -> None:
-		self.ui.trial_result.setText(trial_result(answers, detail))
+	def _finished_trial(self, answers: bool, detail: str) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
+		self.ui.trial_result.setText(trial_result(answers=answers, detail=detail))
 		self.ui.test.setEnabled(True)
 
 

@@ -740,7 +740,7 @@ class BankCard(Card):
 		qu'en mode séquentiel : « Monter » et « Descendre » ne servent pas en tête et en fin de liste."""
 		self.ui.remove_directory.setEnabled(self.ui.directories.currentItem() is not None)
 		sequential = self.ui.mode.currentData() == "sequential"
-		self._follow_mode(sequential)
+		self._follow_mode(sequential=sequential)
 		filtered = self.ui.sound_filter.text() != ""
 		# Pendant un filtre, l'ordre ne se change pas : des lignes cachées sépareraient les lignes montrées.
 		movable = (sequential) and (not filtered)
@@ -758,7 +758,7 @@ class BankCard(Card):
 		self.ui.raise_.setEnabled((movable) and (row > 0))
 		self.ui.go_down.setEnabled((movable) and (0 <= row < list_.topLevelItemCount() - 1))
 
-	def _follow_mode(self, sequential: bool) -> None:
+	def _follow_mode(self, *, sequential: bool) -> None:
 		"""En mode aléatoire, les sonores se trient par colonne ; en séquentiel, non, et l'ordre d'avant le tri revient
 		(https://github.com/dascritch/machincast/issues/393)."""
 		tree = self.ui.sounds

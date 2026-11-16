@@ -119,7 +119,7 @@ def no_advanced(empty_database: Connection) -> None:
 
 @then(parsers.parse("Machin player annonce l'événement suivant « {name} », du « {start} » au « {end} »"))
 def following_announcement(bench: Bench, empty_database: Connection, name: str, start: str, end: str) -> None:
-	announces = broadcast(bench)._state(clock(bench).now(), False)["next_event"]
+	announces = broadcast(bench)._state(clock(bench).now(), stop=False)["next_event"]
 	expected = {"id": identifier(empty_database, name), "name": name, "priority": "show", "start": start, "end": end}
 	assert announces == expected
 

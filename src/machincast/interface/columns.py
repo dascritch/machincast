@@ -183,7 +183,7 @@ class Columns(QObject):
 		finally:
 			self._adjustment = False
 
-	def display(self, column: int, visible: bool) -> None:
+	def display(self, column: int, *, visible: bool) -> None:
 		self.header.setSectionHidden(column, not visible)
 		self.save()
 
@@ -212,7 +212,7 @@ class Columns(QObject):
 			action.setChecked(visible)
 			# La dernière colonne montrée ne se cache pas : la vue resterait vide.
 			action.setEnabled((not visible) or (shown_list > 1))
-			action.toggled.connect(lambda ticked, column=column: self.display(column, ticked))
+			action.toggled.connect(lambda ticked, column=column: self.display(column, visible=ticked))
 			menu.addAction(action)
 		menu.addSeparator()
 		menu.addAction(REINSTATE).triggered.connect(self.reinstate)

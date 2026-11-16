@@ -495,3 +495,13 @@ def ruff_complexity() -> None:
 	ruff = _pyproject()["tool"]["ruff"]["lint"]
 	assert "C901" in ruff["select"]
 	assert ruff["mccabe"]["max-complexity"] <= 15
+
+
+@then("la configuration de ruff active les règles FBT001 et FBT002 sur le code de src")
+def ruff_keyword_booleans() -> None:
+	"""Un booléen positionnel est refusé dans src (https://github.com/dascritch/machincast/issues/441) ; les tests,
+	dont les étapes reçoivent leurs paramètres par leur nom, en sont dispensés."""
+	ruff = _pyproject()["tool"]["ruff"]["lint"]
+	assert {"FBT001", "FBT002"} <= set(ruff["select"])
+	assert "tests/**" in ruff["per-file-ignores"]
+	assert "src/**" not in ruff["per-file-ignores"]

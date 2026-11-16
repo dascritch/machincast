@@ -84,7 +84,7 @@ def sound_name(artist: object, title: object, location: object, address: object)
 	return artist_and_title(text_or_none(artist), text_or_none(title))
 
 
-def yes_no(value: bool | None, unknown: str = "") -> str:
+def yes_no(*, value: bool | None, unknown: str = "") -> str:
 	if value is None:
 		return unknown
 	if value:
@@ -162,7 +162,7 @@ DISABLED_PREVIEW = _(
 _disabled_preview = False
 
 
-def disable_preview(disabled: bool) -> None:
+def disable_preview(*, disabled: bool) -> None:
 	"""La pré-écoute de la session, désactivée sur l'entrée « Sortie factice » (audio.preview) : la fenêtre
 	principale la règle à son ouverture, et après les préférences ou les suggestions."""
 	global _disabled_preview
@@ -173,7 +173,7 @@ def disabled_preview() -> bool:
 	return _disabled_preview
 
 
-def set_preview(item: QAction | QAbstractButton, active: bool, tooltip: str) -> None:
+def set_preview(item: QAction | QAbstractButton, *, active: bool, tooltip: str) -> None:
 	"""Un bouton ou une entrée de menu qui lance une pré-écoute : grisé, avec l'infobulle qui dit pourquoi, quand la
 	pré-écoute est désactivée ; sinon actif selon ce qu'il pré-écoute, avec son infobulle."""
 	if _disabled_preview:
@@ -192,7 +192,7 @@ def offer_preview(menu: QMenu, sound: int, ask: Callable[[int], None]) -> None:
 		first = menu.actions()[0]
 	entry = menu.addAction(icons.icon("preview"), PREVIEW)
 	entry.triggered.connect(lambda _ticked=False: ask(sound))
-	set_preview(entry, True, PREVIEW)
+	set_preview(entry, active=True, tooltip=PREVIEW)
 	menu.setToolTipsVisible(True)
 	if first is not None:
 		menu.removeAction(entry)
@@ -219,7 +219,7 @@ def copy_text(text: str) -> None:
 		clipboard.setText(text)
 
 
-def offer_location(menu: QMenu, location: str | None, stream: bool, open_folder: Callable[[Path], None]) -> None:
+def offer_location(menu: QMenu, location: str | None, *, stream: bool, open_folder: Callable[[Path], None]) -> None:
 	"""À la fin du menu d'un sonore, ce que l'onglet Antenne ne montre plus de son emplacement : « Copier
 	l'emplacement » et « Ouvrir le dossier » d'un fichier, « Copier l'URL du feed » d'un stream. Rien pour un sonore
 	à l'emplacement inconnu. Ouvrir le dossier ne fait que le montrer : jamais un fichier modifié."""

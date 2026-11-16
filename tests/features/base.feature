@@ -164,3 +164,6 @@ Fonctionnalité: Socle de test
 
 	Scénario: Une fonction trop complexe est refusée
 		Alors la configuration de ruff active la règle C901, avec une complexité d'au plus 15
+
+	Scénario: Un booléen se passe par son nom
+		Alors la configuration de ruff active les règles FBT001 et FBT002 sur le code de src

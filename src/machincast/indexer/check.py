@@ -198,6 +198,7 @@ def _consequence(before: SoundState, after: SoundState) -> str:
 def check_sounds(
 	connection: psycopg.Connection[TupleRow],
 	check: Checker = check_file,
+	*,
 	full_audit: bool = False,
 	report: Report | None = None,
 	identifiers: Collection[int] | None = None,
@@ -239,7 +240,15 @@ def check_sounds(
 		if (stop is not None) and (stop.is_set()):
 			break
 		try:
-			_check_sound(connection, line, check, full_audit, report, silence_threshold, force)
+			_check_sound(
+				connection,
+				line,
+				check,
+				full_audit=full_audit,
+				report=report,
+				silence_threshold=silence_threshold,
+				force=force,
+			)
 		except (UnavailableDecoder, psycopg.OperationalError):
 			# Un décodeur absent n'est la faute d'aucun fichier, et une base injoignable arrête tout.
 			raise
@@ -326,6 +335,7 @@ def _write_check(
 	merged: _Merged,
 	file: tuple[datetime, int] | None,
 	file_type: str | None,
+	*,
 	audited: bool,
 	silence_threshold: float,
 ) -> None:
@@ -407,6 +417,7 @@ def _check_sound(
 	connection: psycopg.Connection[TupleRow],
 	line: TupleRow,
 	check: Checker,
+	*,
 	full_audit: bool,
 	report: Report,
 	silence_threshold: float,
@@ -454,17 +465,28 @@ def _check_sound(
 	log.info(_("{location}: analysis…").format(location=location))
 	# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.
 	# Un fichier dont le type n'est pas sonore n'est pas décodé non plus.
-	file_type, result = watched(lambda: _examine(path, check, audited, silence_threshold), AUDIT_LIMIT)
+	file_type, result = watched(
+		lambda: _examine(path, check, audited=audited, silence_threshold=silence_threshold), AUDIT_LIMIT
+	)
 	after = new_state(before, result.state)
 	merged = _merge_result(result, edited_fields, artist, title, metadata, detected_start, detected_end)
-	_write_check(connection, identifier, after, merged, file_state(path), file_type, audited, silence_threshold)
+	_write_check(
+		connection,
+		identifier,
+		after,
+		merged,
+		file_state(path),
+		file_type,
+		audited=audited,
+		silence_threshold=silence_threshold,
+	)
 	if decode:
 		report.checked_list += 1
 	_count_change(report, before, after)
 	_log_check(report, location, result, before, after, merged)
 
 
-def _examine(path: Path, check: Checker, audited: bool, silence_threshold: float) -> tuple[str | None, Check]:
+def _examine(path: Path, check: Checker, *, audited: bool, silence_threshold: float) -> tuple[str | None, Check]:
 	"""Le type du fichier, puis son décodage, sauf s'il n'est pas du son ; un fichier introuvable est déclaré tel
 	par le décodage."""
 	file_type = type_mime(path)

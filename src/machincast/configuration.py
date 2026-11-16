@@ -302,7 +302,7 @@ class _Player:
 				if key not in KEYS[section]:
 					raise self.error(_("unknown key {section}.{key}").format(section=section, key=key))
 
-	def _value(self, section: str, key: str, mandatory: bool) -> object:
+	def _value(self, section: str, key: str, *, mandatory: bool) -> object:
 		content = self.document.get(section, {})
 		if key not in content:
 			if mandatory:
@@ -371,7 +371,7 @@ class _Player:
 			)
 		return value
 
-	def optional_boolean(self, section: str, key: str, default: bool) -> bool:
+	def optional_boolean(self, section: str, key: str, *, default: bool) -> bool:
 		value = self._value(section, key, mandatory=False)
 		if value is None:
 			return default
@@ -509,7 +509,7 @@ class _Player:
 						"0 dB excluded is expected, {threshold:g} found"
 					).format(minimum_silence_threshold=MINIMUM_SILENCE_THRESHOLD, threshold=threshold)
 				)
-		return DeadAirSettings(duration, threshold, self.optional_boolean("dead_air", "fallback", False))
+		return DeadAirSettings(duration, threshold, self.optional_boolean("dead_air", "fallback", default=False))
 
 	def file_path(self, section: str, key: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
@@ -612,8 +612,8 @@ def load(path: Path | None = None) -> Configuration:
 		silences=reader.silences(),
 		dead_air=reader.dead_air(),
 		interface=Interface(
-			clipping=reader.optional_boolean("interface", "clipping", True),
-			suggestions=reader.optional_boolean("interface", "suggestions", True),
+			clipping=reader.optional_boolean("interface", "clipping", default=True),
+			suggestions=reader.optional_boolean("interface", "suggestions", default=True),
 			icon=reader.icon(),
 			table_rows=reader.rows("interface", "table_rows", TABLE_ROWS),
 		),

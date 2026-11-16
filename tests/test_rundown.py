@@ -297,7 +297,7 @@ def check_list(context: Context, empty_database: Connection, list_: str, loop: s
 	marked_list = set()
 	for line in empty_database.execute("SELECT id FROM banks WHERE no_repeat"):
 		marked_list.add(int(str(line[0])))
-	context.reported_list = ignored_calls(banks, marked_list, loop == "boucle")
+	context.reported_list = ignored_calls(banks, marked_list, loop=loop == "boucle")
 
 
 # ─── Alors ─────────────────────────────────────────────────

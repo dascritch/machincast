@@ -97,7 +97,7 @@ class Line:
 	"""Masquage de l'événement, de la séquence, de la banque et du sonore ; None : non renseigné."""
 
 
-def hides(hidings: tuple[bool | None, ...], default: bool) -> bool:
+def hides(hidings: tuple[bool | None, ...], *, default: bool) -> bool:
 	"""Premier niveau renseigné, dans l'ordre événement, séquence, banque, sonore ; sinon la valeur de la
 	configuration."""
 	first = default
@@ -128,7 +128,7 @@ def artist_and_title(line: Line) -> str:
 
 def public_text(line: Line, metadata: Metadata) -> str:
 	"""Ce que la sortie publique affiche du passage : l'artiste et le titre, sauf s'ils sont masqués."""
-	if not hides(line.hidings, metadata.hide):
+	if not hides(line.hidings, default=metadata.hide):
 		visible = artist_and_title(line)
 		if visible:
 			return visible

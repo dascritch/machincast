@@ -158,8 +158,8 @@ class DefaultScreen(QWidget):
 		for group in (self.ui.upcoming_frame, self.ui.airplay_frame):
 			expandable.make_expandable(
 				group,
-				group.objectName() not in collapsed_list,
-				expandable.retain_in(COLLAPSED_PANELS, expanded_list=False),
+				expanded=group.objectName() not in collapsed_list,
+				retain=expandable.retain_in(COLLAPSED_PANELS, expanded_list=False),
 			)
 		self._ongoing: DisplayedSound | None = None
 		self._next: DisplayedSound | None = None
@@ -246,7 +246,7 @@ class DefaultScreen(QWidget):
 		self.vu_meter.setToolTip(tooltip)
 		self.monitor.start()
 
-	def show_clipping(self, poster: bool) -> None:
+	def show_clipping(self, *, poster: bool) -> None:
 		"""Le voyant « Saturation » de la colonne Antenne, affiché ou caché selon les préférences
 		(https://github.com/dascritch/machincast/issues/191) ; le VU-mètre montre toujours les crêtes."""
 		self.ui.clipping_light.setVisible(poster)
@@ -290,7 +290,7 @@ class DefaultScreen(QWidget):
 
 	# ─── État du binaire lecture ───────────────────────────
 
-	def show_state(self, state: PlaybackState, reread: bool = True) -> None:
+	def show_state(self, state: PlaybackState, *, reread: bool = True) -> None:
 		self.state = state
 		self.ui.playback_state.setText(STATES.get(state.state, state.state))
 		self._ongoing, self._next = state.ongoing, state.next_
@@ -304,7 +304,7 @@ class DefaultScreen(QWidget):
 		next_ = state.next_
 		self.ui.next_healthy.setText(display.EMPTY)
 		if next_ is not None:
-			self.ui.next_healthy.setText(display.yes_no(next_.healthy, _("not tested")))
+			self.ui.next_healthy.setText(display.yes_no(value=next_.healthy, unknown=_("not tested")))
 		self._offer_listened(next_)
 		start = None
 		if state.ongoing is not None:
@@ -529,7 +529,7 @@ class DefaultScreen(QWidget):
 			action.setToolTip(entry.proposal.tooltip)
 		if self._next is not None:
 			display.offer_preview(menu, self._next.sound, self.requested_preview.emit)
-			display.offer_location(menu, self._next.location, self._next.stream, _open_folder)
+			display.offer_location(menu, self._next.location, stream=self._next.stream, open_folder=_open_folder)
 		return menu
 
 	def ongoing_menu(self) -> QMenu | None:
@@ -549,7 +549,7 @@ class DefaultScreen(QWidget):
 			restart.setToolTip(proposals[item].tooltip)
 			restart.triggered.connect(lambda _ticked=False, item=item: self.requested_interruption.emit(item))
 		# Un trait sépare l'emplacement, s'il est connu.
-		display.offer_location(menu, sound.location, sound.stream, _open_folder)
+		display.offer_location(menu, sound.location, stream=sound.stream, open_folder=_open_folder)
 		return menu
 
 	def _ongoing_menu(self, position: QPoint) -> None:
@@ -570,7 +570,7 @@ class DefaultScreen(QWidget):
 		"""La pré-écoute, s'il y a un prochain sonore ; le test du flux, pour un stream. Un autre prochain sonore
 		efface le résultat du test précédent."""
 		ui = self.ui
-		display.set_preview(ui.preview_next, next_ is not None, PREVIEW_NEXT)
+		display.set_preview(ui.preview_next, active=next_ is not None, tooltip=PREVIEW_NEXT)
 		stream = (next_ is not None) and (next_.stream)
 		ui.test_next_stream.setVisible(stream)
 		ui.test_next_stream.setEnabled((stream) and (not self.stream_trial.ongoing()))
@@ -602,9 +602,9 @@ class DefaultScreen(QWidget):
 		self.ui.next_stream.setVisible(True)
 		self.stream_trial.launch(next_.location)
 
-	def _finished_stream_trial(self, answers: bool, detail: str) -> None:
+	def _finished_stream_trial(self, answers: bool, detail: str) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
 		if self._tested_stream is not None:
-			self.ui.next_stream.setText(trial_result(answers, detail))
+			self.ui.next_stream.setText(trial_result(answers=answers, detail=detail))
 		self._offer_listened(self._next)
 
 	# ─── Sonores à venir ───────────────────────────────────
@@ -692,7 +692,7 @@ def line_menu(
 	menu = QMenu(parent)
 	if sound is not None:
 		display.offer_preview(menu, sound, ask_preview)
-	display.offer_location(menu, location, stream, _open_folder)
+	display.offer_location(menu, location, stream=stream, open_folder=_open_folder)
 	return menu
 
 

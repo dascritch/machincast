@@ -232,7 +232,7 @@ def _skips_event(skipped_list: list[Skip], event: int) -> bool:
 	return False
 
 
-def items_to_try(items: list[Item], last: int | None, loop: bool) -> list[Item]:
+def items_to_try(items: list[Item], last: int | None, *, loop: bool) -> list[Item]:
 	"""Éléments à essayer dans l'ordre, à partir de celui qui suit le dernier joué.
 
 	Avec boucle, la liste fait un tour complet ; sans boucle, elle s'arrête à son dernier élément. Un dernier
@@ -330,7 +330,7 @@ def next_(
 	"""
 	items = read_items(connection, occurrence.event.id)
 	last = last_item(connection, occurrence, history)
-	for item in items_to_try(items, last, loop(occurrence)):
+	for item in items_to_try(items, last, loop=loop(occurrence)):
 		if item.sequence is not None:
 			choice = in_sequence(
 				connection, occurrence, item, None, instant, randomness, excluded_list, history, forbidden, skipped_list
@@ -886,10 +886,16 @@ class Scheduler:
 				self.in_dead_air = False
 				return Decision(cut=cut, switch_off=switch_off, play=choice)
 			if active is None:
-				return self._dead_air(instant, cut, switch_off, None, N_("no active event"))
+				return self._dead_air(
+					instant, cut=cut, switch_off=switch_off, active=None, message=N_("no active event")
+				)
 			if active.event.priority is Priority.BACKGROUND_PROGRAMMING:
 				return self._dead_air(
-					instant, cut, switch_off, active, N_("nothing to broadcast in the background programming")
+					instant,
+					cut=cut,
+					switch_off=switch_off,
+					active=active,
+					message=N_("nothing to broadcast in the background programming"),
 				)
 			# Liste épuisée, ou plus rien de jouable : l'occurrence se termine, l'événement inférieur reprend. Le sonore
 			# en cours est jugé de nouveau face à lui : il continue si c'est son événement
@@ -986,7 +992,7 @@ class Scheduler:
 		return (active.start is not None) and (active.start > wall_hour(since))
 
 	def _dead_air(
-		self, instant: datetime, cut: bool, switch_off: bool, active: Occurrence | None, message: str
+		self, instant: datetime, *, cut: bool, switch_off: bool, active: Occurrence | None, message: str
 	) -> Decision:
 		if self._reservation:
 			return Decision(cut=cut, switch_off=switch_off, dead_air=True, occurrence=active)
@@ -1005,7 +1011,7 @@ def _fallback_occurrence(event: Event) -> Occurrence:
 	return Occurrence(event, None, None)
 
 
-def ignored_calls(banks: Sequence[int | None], no_repeat: Collection[int], loop: bool) -> list[int]:
+def ignored_calls(banks: Sequence[int | None], no_repeat: Collection[int], *, loop: bool) -> list[int]:
 	"""Lignes de la liste d'un événement, numérotées dès 1, qui rappellent la banque « ne pas répéter » de la ligne
 	précédente : elles seront toujours sautées à la diffusion. Pour un événement qui boucle, la première ligne suit la
 	dernière.
@@ -1016,11 +1022,11 @@ def ignored_calls(banks: Sequence[int | None], no_repeat: Collection[int], loop:
 	bank_list = []
 	for bank in banks:
 		bank_list.append((bank, bank))
-	return ignored_calls_to_edges(bank_list, no_repeat, loop)
+	return ignored_calls_to_edges(bank_list, no_repeat, loop=loop)
 
 
 def ignored_calls_to_edges(
-	edges: Sequence[tuple[int | None, int | None]], no_repeat: Collection[int], loop: bool
+	edges: Sequence[tuple[int | None, int | None]], no_repeat: Collection[int], *, loop: bool
 ) -> list[int]:
 	"""Comme ignored_calls, quand une ligne commence et finit par des banques différentes : une séquence
 	(https://github.com/dascritch/machincast/issues/32). Chaque ligne donne sa première banque, celle que la ligne
