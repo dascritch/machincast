@@ -159,7 +159,14 @@ def create(connection: psycopg.Connection[TupleRow], response: Response) -> str 
 			rule = "sound"
 			if setting.without_crossfade:
 				rule = "forced"
-			queries.insert_bank(connection, bank, setting.mode, setting.no_repeat, setting.max_duration, rule)
+			queries.insert_bank(
+				connection,
+				bank,
+				setting.mode,
+				no_repeat=setting.no_repeat,
+				max_duration=setting.max_duration,
+				rule=rule,
+			)
 			new_list.append(_("“{bank}”").format(bank=bank))
 		if len(new_list) == 1:
 			created_list.append(_("the bank {new_list}").format(new_list=new_list[0]))

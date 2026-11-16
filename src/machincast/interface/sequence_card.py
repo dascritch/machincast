@@ -26,6 +26,7 @@ from machincast.i18n import _
 from machincast.interface.card import Card, Connection, Refusal, rank_of
 from machincast.interface.items import Buttons, ItemList
 from machincast.interface.lists import EMPTY_SEQUENCE
+from machincast.interface.queries import sequences as queries
 from machincast.interface.ui.sequence_card import Ui_SequenceCard
 
 HIDINGS: tuple[tuple[bool | None, str], ...] = (
@@ -81,18 +82,11 @@ class SequenceCard(Card):
 		lu = self.lu()
 		with self.connection.transaction():
 			if lu is not None:
-				line = self.connection.execute(
-					"SELECT internal_name, public_name, hide_metadata FROM sequences WHERE id = %s", (lu,)
-				).fetchone()
+				line = queries.read_sequence(self.connection, lu)
 				assert line is not None, f"séquence {lu} absente"
 				sequence = line
 			if self.identifier is not None:
-				events = self.connection.execute(
-					"SELECT DISTINCT ev.id, ev.internal_name FROM events ev"
-					" JOIN event_items ee ON ee.event_id = ev.id"
-					" WHERE ee.sequence_id = %s AND ev.deleted_at IS NULL ORDER BY ev.internal_name, ev.id",
-					(self.identifier,),
-				).fetchall()
+				events = queries.events_calling(self.connection, self.identifier)
 			self.items.load(lu, copies=self.is_copy())
 		name, public_name, hiding = sequence
 		self._name = str(name)
@@ -113,11 +107,7 @@ class SequenceCard(Card):
 		name = conform(self.ui.internal_name.text())
 		if name == "":
 			raise Refusal(_("The internal name is required."), self.ui.internal_name)
-		taken = self.connection.execute(
-			"SELECT 1 FROM sequences WHERE internal_name = %s AND id IS DISTINCT FROM %s AND deleted_at IS NULL",
-			(name, self.identifier),
-		).fetchone()
-		if taken is not None:
+		if queries.name_taken(self.connection, name, self.identifier):
 			raise Refusal(_("Another sequence is already called “{name}”.").format(name=name), self.ui.internal_name)
 		values = (
 			name,
@@ -125,18 +115,10 @@ class SequenceCard(Card):
 			HIDINGS[self.ui.hiding.currentIndex()][0],
 		)
 		if self.identifier is None:
-			created = self.connection.execute(
-				"INSERT INTO sequences (internal_name, public_name, hide_metadata) VALUES (%s, %s, %s) RETURNING id",
-				values,
-			).fetchone()
-			assert created is not None
-			identifier = int(str(created[0]))
+			identifier = queries.insert(self.connection, values)
 		else:
 			identifier = self.identifier
-			self.connection.execute(
-				"UPDATE sequences SET internal_name = %s, public_name = %s, hide_metadata = %s WHERE id = %s",
-				(*values, identifier),
-			)
+			queries.update(self.connection, identifier, values)
 		self.items.write(identifier)
 		return identifier
 
