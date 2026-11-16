@@ -25,6 +25,7 @@ from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.i18n import _
 from machincast.interface.card import Card, Connection, Refusal
+from machincast.interface.queries import feeds as queries
 from machincast.interface.stream_trial import StreamTrial, trial_result
 from machincast.interface.ui.feed_card import Ui_FeedCard
 
@@ -69,16 +70,10 @@ class FeedCard(Card):
 		streams: list[tuple[object, ...]] = []
 		with self.connection.transaction():
 			if self.identifier is not None:
-				line = self.connection.execute(
-					"SELECT name, url, buffer_duration FROM feeds WHERE id = %s", (self.identifier,)
-				).fetchone()
+				line = queries.read_feed(self.connection, self.identifier)
 				assert line is not None, f"feed {self.identifier} absent"
 				marks = line
-				streams = self.connection.execute(
-					"SELECT id, COALESCE(title, %s) FROM sounds WHERE feed_id = %s AND deleted_at IS NULL"
-					" ORDER BY 2, id",
-					(str(marks[1]), self.identifier),
-				).fetchall()
+				streams = queries.streams(self.connection, self.identifier, str(marks[1]))
 		name, url, buffer = marks
 		self._name = str(name)
 		self.ui.name.setText(self._name)
@@ -97,24 +92,14 @@ class FeedCard(Card):
 		url = self.ui.url.text().strip()
 		if name == "":
 			raise Refusal(_("The name is required."), self.ui.name)
-		taken = self.connection.execute(
-			"SELECT 1 FROM feeds WHERE name = %s AND id IS DISTINCT FROM %s", (name, self.identifier)
-		).fetchone()
-		if taken is not None:
+		if queries.name_taken(self.connection, name, self.identifier):
 			raise Refusal(_("Another feed is already called “{name}”.").format(name=name), self.ui.name)
 		if url == "":
 			raise Refusal(_("The address is required."), self.ui.url)
 		buffer = timedelta(seconds=self.ui.buffer.value())
 		if self.identifier is None:
-			created = self.connection.execute(
-				"INSERT INTO feeds (name, url, buffer_duration) VALUES (%s, %s, %s) RETURNING id", (name, url, buffer)
-			).fetchone()
-			assert created is not None
-			return int(str(created[0]))
-		self.connection.execute(
-			"UPDATE feeds SET name = %s, url = %s, buffer_duration = %s WHERE id = %s",
-			(name, url, buffer, self.identifier),
-		)
+			return queries.insert(self.connection, name, url, buffer)
+		queries.update(self.connection, self.identifier, name, url, buffer)
 		return self.identifier
 
 	def _show_buffer(self) -> None:

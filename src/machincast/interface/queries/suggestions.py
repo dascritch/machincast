@@ -22,7 +22,9 @@ def bank_names(connection: Connection) -> set[str]:
 	return names
 
 
-def insert_bank(connection: Connection, name: str, mode: str, no_repeat: bool, max_duration: object, rule: str) -> None:
+def insert_bank(
+	connection: Connection, name: str, mode: str, *, no_repeat: bool, max_duration: object, rule: str
+) -> None:
 	"""Crée une banque suggérée, sans crossfade propre."""
 	connection.execute(
 		"INSERT INTO banks (internal_name, mode, no_repeat, max_duration, crossfade_start_rule,"

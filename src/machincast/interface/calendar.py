@@ -71,6 +71,7 @@ from machincast.conversion import text_or_none
 from machincast.i18n import N_, _, ngettext, pgettext
 from machincast.interface import dialogs, preferences
 from machincast.interface.display import MONTH
+from machincast.interface.queries import calendar as queries
 from machincast.interface.sessions import Session, overlapped, reinstate
 from machincast.shared.grid import (
 	DAY_NAMES,
@@ -379,16 +380,7 @@ def read_plays(connection: Connection, de: datetime, a: datetime, first: datetim
 	since = de - ONE_DAY
 	if first is not None:
 		since = max(since, first)
-	lines = connection.execute(
-		# L'événement à l'antenne : celui qui prête son nom (https://github.com/dascritch/machincast/issues/399).
-		"SELECT d.logged_at, f.logged_at, e.id, e.internal_name, e.priority::text"
-		" FROM airplay d"
-		" LEFT JOIN airplay f ON (f.play_id = d.play_id) AND (f.line_type = 'end')"
-		" LEFT JOIN events e ON e.id = COALESCE(d.lender_event_id, d.event_id)"
-		" WHERE (d.line_type = 'start') AND (d.logged_at >= %s) AND (d.logged_at < %s)"
-		" ORDER BY d.logged_at, d.id",
-		(since.astimezone(), a.astimezone()),
-	).fetchall()
+	lines = queries.airplay(connection, since.astimezone(), a.astimezone())
 	plays = []
 	for start, end, id_event, name, priority in lines:
 		assert isinstance(start, datetime)
@@ -702,7 +694,7 @@ class Calendar(QWidget):
 		with self.connection.transaction():
 			events = read_grid(self.connection, deleted_list=True)
 			public_names = {}
-			for identifier, public_name in self.connection.execute("SELECT id, public_name FROM events"):
+			for identifier, public_name in queries.public_names(self.connection):
 				public_names[int(str(identifier))] = text_or_none(public_name)
 			plays = read_plays(self.connection, de, a, midnight(self.first_day()))
 		self._blocks = split(plan(events, de, a), days, public_names)
@@ -762,10 +754,7 @@ class Calendar(QWidget):
 	def _skip(self, event: Event, starts: list[datetime]) -> None:
 		with self.connection.transaction():
 			for start in starts:
-				self.connection.execute(
-					"INSERT INTO event_skips (event_id, day) VALUES (%s, %s) ON CONFLICT DO NOTHING",
-					(event.id, start.date()),
-				)
+				queries.skip_session(self.connection, event.id, start.date())
 		first, last = starts[0], starts[-1]
 		text = _("Session of “{name}” of {day_and_month} at {first:%H:%M} skipped.").format(
 			name=event.name, day_and_month=day_and_month(first.date()), first=first

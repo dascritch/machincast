@@ -72,6 +72,7 @@ from machincast.clock import Clock
 from machincast.i18n import _
 from machincast.interface import deletion, dialogs, intents, preferences
 from machincast.interface.dialogs import Closing
+from machincast.interface.queries import cards as queries
 from machincast.protection import is_sound_file
 
 log = logging.getLogger(__name__)
@@ -139,11 +140,7 @@ def copy_name(connection: Connection, table: str, name: str) -> str:
 		if number > 1:
 			suffix = f" (copie {number})"
 		candidate = f"{name[: NAME_LENGTH - len(suffix)]}{suffix}"
-		taken = connection.execute(
-			f"SELECT 1 FROM {table} WHERE internal_name = %s AND deleted_at IS NULL",
-			(candidate,),
-		).fetchone()
-		if taken is None:
+		if not queries.name_in_use(connection, table, candidate):
 			return candidate
 		number += 1
 
@@ -477,8 +474,7 @@ class Card(QWidget):
 	def _in_database(self, identifier: int | None) -> bool:
 		table = deletion.CATEGORIES[self.category].table
 		with self.connection.transaction():
-			line = self.connection.execute(f"SELECT 1 FROM {table} WHERE id = %s", (identifier,)).fetchone()
-		return line is not None
+			return queries.exists(self.connection, table, identifier)
 
 	def name_of_copy(self, name: str) -> str:
 		"""Le nom interne d'une copie de l'élément nommé ainsi."""
@@ -494,16 +490,10 @@ class Card(QWidget):
 	def save_file(self, file: str) -> int:
 		"""Dans la transaction d'« Enregistrer » : un fichier déposé devient un sonore à l'état aperçu, que Machin
 		indexation décodera ; s'il a été enregistré entre-temps, le sonore est repris."""
-		line = self.connection.execute(
-			"SELECT id FROM sounds WHERE location = %s AND deleted_at IS NULL", (file,)
-		).fetchone()
-		if line is None:
-			line = self.connection.execute(
-				"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'preview') RETURNING id",
-				(file,),
-			).fetchone()
-			assert line is not None
-		return int(str(line[0]))
+		sound = queries.sound_of_file(self.connection, file)
+		if sound is None:
+			sound = queries.create_preview_sound(self.connection, file)
+		return sound
 
 	def flag_ignored(self, ignored: list[Path], reason: str, advice: str = "") -> None:
 		"""Ce que la fiche n'a pas pris d'un dépôt, et pourquoi."""
