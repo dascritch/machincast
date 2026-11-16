@@ -54,9 +54,9 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget
 
-from machincast import access, crash, service, shortcut
+from machincast import crash, shortcut
 from machincast.clock import Clock
 from machincast.configuration import (
 	RETENTION,
@@ -90,6 +90,9 @@ from machincast.interface.airplay_tab import WITHOUT_METADATA, AirplayScreen
 from machincast.interface.application import identify
 from machincast.interface.background_programming import guarantee
 from machincast.interface.bank_card import BankCard
+from machincast.interface.broadcast_control import (
+	BroadcastControl,
+)
 from machincast.interface.calendar import ONE_HOUR, Calendar, long_date
 from machincast.interface.card import Card, Refreshed
 from machincast.interface.check import Checker, FullCheck
@@ -105,15 +108,8 @@ from machincast.interface.sequence_card import SequenceCard
 from machincast.interface.simulation import SimulationScreen
 from machincast.interface.sound_card import SoundCard
 from machincast.interface.state import STOP, PlaybackState
-from machincast.interface.tab_manager import ON_DEMAND, TabManager
+from machincast.interface.tab_manager import ON_AIR, ON_DEMAND, TabManager
 from machincast.interface.ui.main_window import Ui_MainWindow
-from machincast.player.state import (
-	advance_request,
-	cutoff_request_by_fallback,
-	cutoff_request_by_feed,
-	interruption_request,
-	request_reread_grid,
-)
 
 log = logging.getLogger(__name__)
 
@@ -139,7 +135,6 @@ INDEXING_TRACKING = 1000
 """Millisecondes entre deux regards sur le processus de l'indexation lancée depuis le menu."""
 TICKETS = "https://github.com/dascritch/machincast/issues"
 """Les tickets de MachinCast, qu'ouvre « Signaler un problème… » ; comme dans pyproject.toml."""
-ON_AIR = _("On air")
 CARD_TABLES = {
 	"sound": "sounds",
 	"bank": "banks",
@@ -150,8 +145,6 @@ CARD_TABLES = {
 DELETABLE = frozenset({"sounds", "banks", "sequences", "events"})
 """Les tables dont un élément peut être supprimé sans être effacé de la base (deleted_at)."""
 """L'onglet de l'écran par défaut, l'onglet Antenne, qui suit l'antenne (https://github.com/dascritch/machincast/issues/322)."""
-INCOMPLETE_SERVICE, INSTALLED_SERVICE = "🟩", "🟥"
-"""Le témoin du service de diffusion, devant le titre de l'onglet Antenne : pas complètement installé, ou installé."""
 STOPPED_BROADCAST = _("🔇 Broadcast stopped")
 WITHOUT_SERVICE = _("Non-final installation: broadcast without a service")
 """Ce que montre la barre d'état tant que le service n'est pas installé (https://github.com/dascritch/machincast/issues/25)."""
@@ -160,20 +153,12 @@ INSTALL_SERVICE = _(
 	"crash. On a computer dedicated to the on-air output, install the service: ./install.sh "
 	"--service (INSTALL.md, Broadcast service)."
 )
-WITHOUT_SERVICE_START = _("Without a service: Machin player in a terminal window")
-WITHOUT_TRIAL = _("No trial broadcast running")
-TRIAL_HALT = _("Without a service: stops the Machin player launched by hand, like Ctrl-C")
 TO_FILL_IN_ON_AIR = _("On-air device to fill in")
 SET_ON_AIR = _(
 	"Machin player refuses to broadcast without it: choose it in File → Broadcast service settings…, Audio "
 	"page, or give it in audio.device of the configuration file."
 )
-ALREADY_RUNNING = _("The trial broadcast is already running")
 RESTARTING_FOR_SETTINGS = _("Broadcast service settings saved: restarting the broadcast, which takes them…")
-SETTINGS_RESTORED = _(
-	"Broadcast not restarted: the former broadcast service settings are back, in the configuration file and in the "
-	"interface."
-)
 LISTENING = {
 	False: (_("On-air pre-listen"), _("Listen to the on-air output on the pre-listen output, at once")),
 	True: (_("Stop the on-air pre-listen"), _("Stop listening to the on-air output on the pre-listen output")),
@@ -251,6 +236,7 @@ class MainWindow(QMainWindow):
 		self.ui.tabs.setTabsClosable(True)
 		# Déplaçables, l'onglet Antenne toujours le premier (https://github.com/dascritch/machincast/issues/405).
 		self.ui.tabs.setMovable(True)
+		self.broadcast = BroadcastControl(self)
 		self.tab_manager = TabManager(self, self.ui.tabs, self._reopen, self._close, self._remove)
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
 		self.home.show_clipping(self.clipping)
@@ -261,20 +247,16 @@ class MainWindow(QMainWindow):
 		self.calendar.opened.connect(self._open)
 		self.calendar.requested_creation.connect(self._create_event)
 		self.calendar.announces.connect(self.ui.state_bar.showMessage)
-		self.calendar.modified_grid.connect(self._modified_grid)
+		self.calendar.modified_grid.connect(self.broadcast.modified_grid)
 		self.tab_manager.add_fixed(self.calendar, _("Calendar"), "calendar")
 		self.home.opened.connect(self._open)
 		self.home.requested_preview.connect(self._preview)
 		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
-		self.home.requested_skip.connect(lambda: self._interrupt("sound"))
-		self.home.requested_advance.connect(self._advance)
+		self.home.requested_skip.connect(lambda: self.broadcast.interrupt("sound"))
+		self.home.requested_advance.connect(self.broadcast.advance)
 		# Les coupures, depuis le prochain sonore (https://github.com/dascritch/machincast/issues/323).
-		self.home.requested_interruption.connect(self._interrupt)
-		self.home.requested_fallback.connect(self._cut_by_fallback)
-		self._on_air: PlaybackState = STOP
-		"""Le dernier état de Machin player, pour les coupures proposées."""
-		self._fallback: list[interruption.Fallback] = []
-		"""Les événements de secours, relus à l'ouverture du menu « Diffusion » et quand la grille change."""
+		self.home.requested_interruption.connect(self.broadcast.interrupt)
+		self.home.requested_fallback.connect(self.broadcast.cut_by_fallback)
 		self.checker = Checker(connection, self)
 		self.checker.finished.connect(self._finished_check)
 		self.full_check = FullCheck(connection, self)
@@ -291,17 +273,6 @@ class MainWindow(QMainWindow):
 		self._indexing_tracking.setInterval(INDEXING_TRACKING)
 		self._indexing_tracking.timeout.connect(self._follow_indexing)
 		"""Audit complet ou indexation rapide, pour l'indexation lancée."""
-		self.control = control.Control(self)
-		self.control.finished.connect(self._finished_control)
-		self.control.restarted.connect(self._restarted)
-		self._restoring: tuple[str, preferences.Settings] | None = None
-		"""Le fichier de configuration et les réglages d'avant des paramètres du service, le temps que la diffusion
-		redémarre (https://github.com/dascritch/machincast/issues/389)."""
-		self.control.not_started.connect(lambda text, journal: dialogs.warn_not_started(self, text, journal))
-		self.service = service.ABSENT
-		"""L'état du service de diffusion, relu au lancement, à l'ouverture du menu et après chaque commande."""
-		self._requested_stop = False
-		"""Sans service : l'arrêt de la diffusion d'essai, demandé depuis le menu, est à annoncer quand il a lieu."""
 		self.without_service = QLabel(WITHOUT_SERVICE)
 		self.without_service.setToolTip(INSTALL_SERVICE)
 		self.ui.state_bar.addPermanentWidget(self.without_service)
@@ -315,17 +286,17 @@ class MainWindow(QMainWindow):
 		self._flag_on_air()
 		self._fill_menus()
 		self._follow_preview()
-		self.home.client.received_state.connect(self._playback_state)
+		self.home.client.received_state.connect(self.broadcast.playback_state)
 		self.home.client.received_state.connect(
 			lambda state: self.stopped_broadcast.setVisible(state.state == "stopped")
 		)
 		self.home.client.received_state.connect(self._follow_public_text)
 		self._public_text: str | None = None
 		"""Le texte public du sonore en cours, titre de l'écoute de l'antenne."""
-		self.home.client.received_state.connect(self._offer_interruptions)
-		self._offer_interruptions(STOP)
-		self._reread_fallback()
-		self._reread_service()
+		self.home.client.received_state.connect(self.broadcast.offer_interruptions)
+		self.broadcast.offer_interruptions(STOP)
+		self.broadcast.reread_fallback()
+		self.broadcast.reread_service()
 		self._fetched_just: Card | None = None
 		"""La fiche qui vient de s'ouvrir, et de se lire : son passage au premier plan ne la relit pas."""
 
@@ -337,7 +308,7 @@ class MainWindow(QMainWindow):
 			list_.requested_preview.connect(self._preview)
 			if source.category == "feed":
 				# https://github.com/dascritch/machincast/issues/323
-				list_.item_menu = self._feed_menu
+				list_.item_menu = self.broadcast.feed_menu
 			list_.requested_action.connect(lambda key, items, list_=list_: self._act(list_, key, items))
 			list_.requested_addition.connect(lambda list_=list_: self._add_files(list_, dialogs.choose_files(self)))
 			list_.dropped_files.connect(lambda paths, list_=list_: self._add_files(list_, paths))
@@ -437,7 +408,7 @@ class MainWindow(QMainWindow):
 		self.tabs_menu = self.menuBar().addMenu(_("&Tabs"))
 		self.tabs_menu.aboutToShow.connect(lambda: self.tab_manager.list_tabs(self.tabs_menu))
 		self.broadcast_menu = self.menuBar().addMenu(_("&Broadcast"))
-		self.broadcast_menu.aboutToShow.connect(self._reread_service)
+		self.broadcast_menu.aboutToShow.connect(self.broadcast.reread_service)
 		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245) ;
 		# pendant l'écoute, elle l'arrête, et Alt+P fait l'un ou l'autre (https://github.com/dascritch/machincast/issues/256).
 		self.listen = self.broadcast_menu.addAction(icons.icon("preview"), "")
@@ -448,7 +419,7 @@ class MainWindow(QMainWindow):
 		self.controlled_list: dict[str, QAction] = {}
 		for verb, (entry, _success, _failure) in control.VERBS.items():
 			action = self.broadcast_menu.addAction(entry)
-			action.triggered.connect(lambda _ticked=False, verb=verb: self._control(verb))
+			action.triggered.connect(lambda _ticked=False, verb=verb: self.broadcast.run(verb))
 			self.controlled_list[verb] = action
 		self.broadcast_menu.addSeparator()
 		self.interruptions: dict[str, QAction] = {}
@@ -457,15 +428,17 @@ class MainWindow(QMainWindow):
 		for entries in (interruption.RESTARTS, interruption.ENTRIES):
 			for item, entry in entries.items():
 				action = self.broadcast_menu.addAction(entry)
-				action.triggered.connect(lambda _ticked=False, item=item: self._interrupt(item))
+				action.triggered.connect(lambda _ticked=False, item=item: self.broadcast.interrupt(item))
 				self.interruptions[item] = action
 			if entries is interruption.RESTARTS:
 				self.broadcast_menu.addSeparator()
 		# https://github.com/dascritch/machincast/issues/323 : relu à l'ouverture du menu, et quand la grille change.
 		self.cutoff_by_fallback = self.broadcast_menu.addAction(interruption.CUT_BY_FALLBACK)
 		fallback = self.cutoff_by_fallback
-		fallback.triggered.connect(lambda _ticked=False: interruption.ask_fallback(fallback, self._cut_by_fallback))
-		self.broadcast_menu.aboutToShow.connect(self._reread_fallback)
+		fallback.triggered.connect(
+			lambda _ticked=False: interruption.ask_fallback(fallback, self.broadcast.cut_by_fallback)
+		)
+		self.broadcast_menu.aboutToShow.connect(self.broadcast.reread_fallback)
 		maintenance = self.menuBar().addMenu(_("&Maintenance"))
 		_upcoming(
 			maintenance.addAction(_("Output monitor…")), "ticket 85"
@@ -488,9 +461,9 @@ class MainWindow(QMainWindow):
 		self.database_maintenance.triggered.connect(self._maintain_database)
 		# La lecture des sonores par le service de diffusion (https://github.com/dascritch/machincast/issues/381).
 		self.grant_read = maintenance.addAction(control.GRANT_READ)
-		self.grant_read.triggered.connect(self._grant_read)
-		maintenance.aboutToShow.connect(self._reread_grant_read)
-		self._reread_grant_read()
+		self.grant_read.triggered.connect(self.broadcast.grant_read_files)
+		maintenance.aboutToShow.connect(self.broadcast.reread_grant_read)
+		self.broadcast.reread_grant_read()
 		help_ = self.menuBar().addMenu(_("&Help"))
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
 		help_.addAction(_("Report a problem…")).triggered.connect(lambda: dialogs.open_page(TICKETS))
@@ -508,119 +481,6 @@ class MainWindow(QMainWindow):
 			return
 		dialogs.show_news(self, news)
 		settings.setValue(version.NEWS_KEY, news.version)
-
-	def _reread_service(self) -> None:
-		self.service = service.read_state()
-		self._present_broadcast()
-
-	def _playback_state(self, state: PlaybackState) -> None:
-		"""La diffusion d'essai arrêtée depuis le menu : l'annoncer."""
-		if (state.state != "stopped") or (not self._requested_stop):
-			return
-		self._requested_stop = False
-		self.ui.state_bar.showMessage(control.STOPPED)
-
-	def _offer_interruptions(self, state: PlaybackState) -> None:
-		"""Les interruptions du menu « Diffusion » suivent ce qui est à l'antenne, comme la coupure par le secours, et
-		le clic droit sur un feed (https://github.com/dascritch/machincast/issues/323)."""
-		for item, proposal in interruption.offer(state).items():
-			action = self.interruptions[item]
-			action.setEnabled(proposal.active)
-			action.setToolTip(proposal.tooltip)
-		self._on_air = state
-		self._fill_fallback()
-
-	def _reread_fallback(self) -> None:
-		self._fallback = interruption.read_fallback(self.connection)
-		self._fill_fallback()
-
-	def _fill_fallback(self) -> None:
-		interruption.fill_fallback(self.cutoff_by_fallback, self._on_air, self._fallback, self._cut_by_fallback)
-
-	def _cut_by_fallback(self, fallback: interruption.Fallback) -> None:
-		"""Demande à Machin player de couper l'antenne par ce secours, sans question."""
-		announces = interruption.CUTOFF_WITHOUT_PLAYBACK
-		if self.home.client.send(cutoff_request_by_fallback(fallback.identifier)):
-			announces = interruption.fallback_announcement(fallback.name)
-		self.ui.state_bar.showMessage(announces)
-
-	def _cut_by_feed(self, feed: int, name: str) -> None:
-		"""Demande à Machin player de couper l'antenne par le stream de ce feed, sans question."""
-		announces = interruption.CUTOFF_WITHOUT_PLAYBACK
-		if self.home.client.send(cutoff_request_by_feed(feed)):
-			announces = interruption.feed_announcement(name)
-		self.ui.state_bar.showMessage(announces)
-
-	def _feed_menu(self, menu: QMenu, feed: int, name: str) -> None:
-		interruption.fill_feed(menu, self._on_air, self.connection, feed, name, self._preview, self._cut_by_feed)
-
-	def _modified_grid(self) -> None:
-		"""Une session sautée ou rétablie (https://github.com/dascritch/machincast/issues/273), une fiche enregistrée,
-		supprimée ou restaurée (https://github.com/dascritch/machincast/issues/266) valent aussitôt à l'antenne :
-		Machin player relit la grille, s'il diffuse ; sinon, il la lira à son démarrage. Les événements de secours
-		ont pu changer."""
-		self.home.client.send(request_reread_grid())
-		self._reread_fallback()
-
-	def _interrupt(self, item: str) -> None:
-		"""Demande à Machin player d'interrompre l'élément, sans question : l'antenne n'attend pas."""
-		announces = interruption.WITHOUT_PLAYBACK
-		if self.home.client.send(interruption_request(item)):
-			announces = interruption.ANNOUNCEMENTS[item]
-		self.ui.state_bar.showMessage(announces)
-
-	def _advance(self, event: int, name: str) -> None:
-		"""Demande à Machin player d'avancer l'événement suivant qu'il a annoncé, sans question
-		(https://github.com/dascritch/machincast/issues/257)."""
-		announces = interruption.ADVANCE_WITHOUT_PLAYBACK
-		if self.home.client.send(advance_request(event)):
-			announces = interruption.advance_announcement(name)
-		self.ui.state_bar.showMessage(announces)
-
-	def _present_broadcast(self) -> None:
-		"""Les entrées du menu « Diffusion » selon l'état du service ; sans lui, le signal d'installation à terminer. Le
-		titre de l'onglet Antenne en porte le témoin (https://github.com/dascritch/machincast/issues/322)."""
-		self.without_service.setVisible(not self.service.installed)
-		indicator = INCOMPLETE_SERVICE
-		if self.service.installed:
-			indicator = INSTALLED_SERVICE
-		index = self.ui.tabs.indexOf(self.home)
-		self.tab_manager.title_tab(index, f"{indicator} {ON_AIR}")
-		if self.service.installed:
-			# En marche : arrêter ; arrêté ou en échec : démarrer.
-			allowed = {"start": not self.service.running, "stop": self.service.running}
-			for verb, action in self.controlled_list.items():
-				action.setText(control.VERBS[verb][0])
-				action.setEnabled(allowed[verb])
-				action.setToolTip("")
-			return
-		ongoing = self.home.client.player_pid() is not None
-		tooltips = {"start": WITHOUT_SERVICE_START, "stop": WITHOUT_TRIAL}
-		if ongoing:
-			tooltips = {"start": ALREADY_RUNNING, "stop": TRIAL_HALT}
-		for verb, action in self.controlled_list.items():
-			action.setText(control.TRIAL[verb])
-			action.setEnabled((verb == "start") != ongoing)
-			action.setToolTip(tooltips[verb])
-
-	def _control(self, verb: str) -> None:
-		if self.service.installed:
-			self.control.control(verb)
-			return
-		if verb == "start":
-			self.ui.state_bar.showMessage(control.launch_in_terminal(self.configuration))
-			return
-		pid = self.home.client.player_pid()
-		if pid is None:
-			# Le menu relu à son ouverture n'active l'entrée qu'avec une diffusion d'essai : elle vient de s'arrêter.
-			return
-		text = control.halt_player(pid)
-		self.ui.state_bar.showMessage(text)
-		self._requested_stop = text == control.REQUESTED_STOP
-
-	def _finished_control(self, text: str) -> None:
-		self.ui.state_bar.showMessage(text)
-		self._reread_service()
 
 	def refresh(self) -> None:
 		"""Relit l'onglet ouvert, l'airplay de l'onglet Antenne et les fiches ; une liste se relit déjà à son
@@ -761,12 +621,12 @@ class MainWindow(QMainWindow):
 			# Une session rétablie depuis la fiche (https://github.com/dascritch/machincast/issues/295), comme depuis le
 			# calendrier : la barre d'état l'annonce, et Machin player relit la grille.
 			card.restored_session.connect(self.ui.state_bar.showMessage)
-			card.restored_session.connect(self._modified_grid)
+			card.restored_session.connect(self.broadcast.modified_grid)
 		# Une fiche enregistrée, supprimée ou restaurée vaut aussitôt à l'antenne
 		# (https://github.com/dascritch/machincast/issues/266) : Machin player relit la grille, et ne recalcule que si
 		# ce qui règle l'antenne a changé. Un sonore ou une banque supprimé quitte les listes des événements.
-		card.saved.connect(self._modified_grid)
-		card.deleted.connect(self._modified_grid)
+		card.saved.connect(self.broadcast.modified_grid)
+		card.deleted.connect(self.broadcast.modified_grid)
 		self.tab_manager.add_tab(card, card.title())
 		# Elle vient de se lire : passer au premier plan ne la relit pas (https://github.com/dascritch/machincast/issues/305).
 		self._fetched_just = card
@@ -998,17 +858,6 @@ class MainWindow(QMainWindow):
 		self.ui.state_bar.showMessage(announces)
 		list_.refresh()
 
-	def _reread_grant_read(self) -> None:
-		"""Sans compte du service, Machin player lit avec le compte qui le lance : rien à donner."""
-		installed = access.service_account() is not None
-		self.grant_read.setEnabled(installed)
-		self.grant_read.setToolTip("")
-		if not installed:
-			self.grant_read.setToolTip(control.WITHOUT_SERVICE_ACCOUNT)
-
-	def _grant_read(self) -> None:
-		self.ui.state_bar.showMessage(control.launch_grant_read(self.configuration))
-
 	def _add_files(self, list_: List, paths: list[Path]) -> None:
 		"""Les fichiers entrent en base à l'état aperçu, puis l'indexeur les vérifie, en tâche de fond."""
 		if paths == []:
@@ -1046,7 +895,7 @@ class MainWindow(QMainWindow):
 			return
 		if gaps.empty():
 			return
-		response = dialogs.suggest(self, gaps, self.service)
+		response = dialogs.suggest(self, gaps, self.broadcast.service)
 		if self.configuration is not None:
 			try:
 				suggestions.save(self.configuration, response)
@@ -1207,8 +1056,8 @@ class MainWindow(QMainWindow):
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
-		self._reread_service()
-		settings = dialogs.set_preferences(self, shown_list, audio.output, self.service, kind)
+		self.broadcast.reread_service()
+		settings = dialogs.set_preferences(self, shown_list, audio.output, self.broadcast.service, kind)
 		if settings is None:
 			return
 		try:
@@ -1221,42 +1070,20 @@ class MainWindow(QMainWindow):
 				)
 			)
 			return
-		text = self._apply_preferences(settings)
+		text = self.apply_preferences(settings)
 		if not preferences.service_changed(shown_list, settings):
 			self.statusBar().showMessage(text)
 			return
-		self._reread_service()
-		if (self.service.installed) and (self.service.running):
+		self.broadcast.reread_service()
+		if (self.broadcast.service.installed) and (self.broadcast.service.running):
 			# Le redémarrage demande le mot de passe d'un administrateur : refusé, les paramètres reviennent.
-			self._restoring = (former, shown_list)
+			self.broadcast.restoring = (former, shown_list)
 			self.statusBar().showMessage(RESTARTING_FOR_SETTINGS)
-			self.control.control("restart")
+			self.broadcast.control.control("restart")
 			return
 		self.statusBar().showMessage(text)
 
-	def _restarted(self, success: bool) -> None:
-		"""La diffusion redémarrée prend les nouveaux paramètres ; sinon, les précédents reviennent, dans le fichier et
-		dans l'interface (https://github.com/dascritch/machincast/issues/389)."""
-		restoring = self._restoring
-		self._restoring = None
-		if (restoring is None) or (success):
-			return
-		former, previous = restoring
-		assert self.configuration is not None
-		try:
-			self.configuration.write_text(former, encoding="utf-8")
-		except OSError as error:
-			self.statusBar().showMessage(
-				_(
-					"Broadcast not restarted, and the former settings could not be written back in {configuration}: "
-					"{error}"
-				).format(configuration=self.configuration, error=error)
-			)
-			return
-		self._apply_preferences(previous)
-		self.statusBar().showMessage(SETTINGS_RESTORED)
-
-	def _apply_preferences(self, settings: preferences.Settings) -> str:
+	def apply_preferences(self, settings: preferences.Settings) -> str:
 		"""Les réglages valent dans l'interface ; ce qu'en dit la barre d'état."""
 		assert self.configuration is not None
 		audio = self.audio

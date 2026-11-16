@@ -28,6 +28,8 @@ from machincast.interface.simulation import SimulationScreen
 
 log = logging.getLogger(__name__)
 
+ON_AIR = _("On air")
+"""Le titre de l'onglet de l'écran par défaut, l'onglet Antenne."""
 ON_DEMAND = frozenset({"sound", "feed"})
 """Les listes qui ne s'ouvrent pas au lancement, mais par le menu « Affichage », et qui se ferment
 (https://github.com/dascritch/machincast/issues/180), par leur genre."""
