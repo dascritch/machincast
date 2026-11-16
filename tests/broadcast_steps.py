@@ -659,7 +659,7 @@ def advance(bench: Bench, count: str) -> None:
 	)
 )
 def interrupt(bench: Bench, what: str) -> None:
-	broadcast(bench).interrupt(ITEMS[what])
+	broadcast(bench).interruptions.interrupt(ITEMS[what])
 
 
 @when(parsers.parse("je coupe l'antenne par le secours « {name} »"))
@@ -670,7 +670,7 @@ def cut_by_fallback(bench: Bench, empty_database: Connection, name: str) -> None
 		cut_event = 0
 	else:
 		cut_event = int(str(line[0]))
-	broadcast(bench).cut_by_fallback(cut_event)
+	broadcast(bench).interruptions.cut_by_fallback(cut_event)
 
 
 @when(parsers.parse("je coupe l'antenne par le feed « {name} »"))
@@ -680,7 +680,7 @@ def cut_by_feed(bench: Bench, empty_database: Connection, name: str) -> None:
 		cut_feed = 0
 	else:
 		cut_feed = int(str(line[0]))
-	broadcast(bench).cut_by_feed(cut_feed)
+	broadcast(bench).interruptions.cut_by_feed(cut_feed)
 
 
 @given(parsers.parse("le stream « {name} » sur le feed « {feed} », à une adresse factice"))

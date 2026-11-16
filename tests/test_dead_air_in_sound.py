@@ -22,7 +22,7 @@ from machincast.clock import FixedClock
 from machincast.configuration import Configuration, DeadAirSettings
 from machincast.i18n import decimal
 from machincast.player import __main__ as playback_module
-from machincast.player import broadcast
+from machincast.player import broadcast_text
 from machincast.player.engine import DeadAir, PlaybackTrack, Track
 from machincast.player.simulation import SimulatedEngine, SimulatedTrack
 from tests.broadcast_steps import Bench, hour, plays, seconds, sound
@@ -330,4 +330,4 @@ def taken_dead_air(launching: dict[str, object], duration: str, threshold: str) 
 @then(parsers.parse("un blanc à {position} secondes s'écrit « {text} »"))
 def timecode(position: str, text: str) -> None:
 	# Gardée en anglais dans le log, la position s'affiche à la décimale du français (https://github.com/dascritch/machincast/issues/360).
-	assert decimal(broadcast._timecode(timedelta(seconds=seconds(position)))) == text
+	assert decimal(broadcast_text._timecode(timedelta(seconds=seconds(position)))) == text

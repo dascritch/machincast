@@ -14,7 +14,7 @@ import psycopg
 import pytest
 from pytest_bdd import parsers, scenarios, then, when
 
-from machincast.player.broadcast import ADVANCED_EVENT, MANUAL_INTERRUPTION
+from machincast.player.interruptions import ADVANCED_EVENT, MANUAL_INTERRUPTION
 from machincast.player.state import IGNORED_REQUEST, advance_request, cutoff_request_by_fallback
 from tests.broadcast_steps import Bench, broadcast, clock
 from tests.log_texts import shown
@@ -61,7 +61,7 @@ def identifier(database: Connection, name: str) -> int:
 @when(parsers.parse("j'avance l'événement suivant « {name} »"))
 def advance_event(bench: Bench, empty_database: Connection, name: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/257 : la demande nomme l'événement suivant attendu."""
-	broadcast(bench).advance(identifier(empty_database, name))
+	broadcast(bench).interruptions.advance(identifier(empty_database, name))
 
 
 @when(parsers.parse("un client de la socket d'état demande d'avancer l'événement « {name} »"))

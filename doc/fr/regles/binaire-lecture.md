@@ -105,3 +105,5 @@ Aucune écriture en base, aucune sortie sonore, état tenu en mémoire, graine r
 - La socket ne doit jamais bloquer la diffusion : un fil par client, et `publish` ne fait que déposer le dernier message.
 - Le prochain sonore est réservé au début de chaque passage (`Scheduler.reserve`, sans alerte de blanc), et revalidé avant d'être joué (`Scheduler.validate`).
 - Sortie audio GStreamer choisie dans la configuration (ALSA, PulseAudio, PipeWire).
+
+- **Découpage de `Broadcast`** ([#440](https://github.com/dascritch/machincast/issues/440)) : `player/broadcast.py` garde la machine à états ; les types (`Parameters`, `Playback`, `Planned`…, `crossfade`) sont à `broadcast_types.py`, les textes annoncés à `broadcast_text.py`, le calcul du plan et des horizons à `broadcast_plan.py`, et les interruptions (avancer, interrompre, couper par secours ou par feed) à `interruptions.py` (`Broadcast.interruptions`). Un comportement neuf va dans le module de sa responsabilité.

@@ -16,7 +16,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.configuration import Crossfades
 from machincast.database import Role, open_connection
-from machincast.player.broadcast import Parameters, read_parameters
+from machincast.player.broadcast_types import Parameters, read_parameters
 from machincast.player.fades import LABELS, POSITIONS, Placement, Position, put
 from machincast.player.rundown import Choice
 from tests.categories import inverted
