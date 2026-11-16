@@ -71,6 +71,7 @@ ACTIVE_TAB_KEY = "onglets/actif"
 
 
 TAB_SHORTCUTS = 12
+"""Les onglets qui ont un raccourci, Maj+F1 à Maj+F12 (https://github.com/dascritch/machincast/issues/192)."""
 
 
 CLOSE_ALL = _("Close all closable tabs")
@@ -87,12 +88,6 @@ def short_title(title: str) -> str:
 	if len(title) <= TAB_TITLE:
 		return title
 	return f"{title[: TAB_TITLE - 1].rstrip()}…"
-
-
-"""Les onglets qui ont un raccourci, Maj+F1 à Maj+F12 (https://github.com/dascritch/machincast/issues/192)."""
-
-
-"""Les onglets qui ont un raccourci, Maj+F1 à Maj+F12 (https://github.com/dascritch/machincast/issues/192)."""
 
 
 def screen_category(screen: QWidget) -> str:
