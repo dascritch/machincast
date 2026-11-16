@@ -65,7 +65,7 @@ L'interface garde, pour chaque compte, la disposition des colonnes de chacun de 
 
 ```toml
 [database]
-peremption = 90
+retention = 90
 ```
 
 ## Droits de chaque programme dans la base
@@ -75,7 +75,7 @@ Chaque programme agit dans la base avec ses propres droits : le compte qui le la
 | Programme | Rôle PostgreSQL | Ce qu'il peut faire |
 | --- | --- | --- |
 | `Machin player` | `machincast_player` | Lire la programmation, séquences comprises ; passer un sonore à `expiré` ; ajouter des lignes à l'airplay et au log, sans jamais les modifier ni les supprimer. |
-| `Machin indexer` | `machincast_indexer` | Lire les banques et leurs répertoires ; ajouter et mettre à jour des sonores, et les ranger dans les banques. Il ne supprime rien et n'écrit pas dans le log. |
+| `Machin indexer` | `machincast_indexer` | Lire les banques et leurs répertoires ; ajouter et mettre à jour des sonores, les ranger dans les banques, et en retirer ceux qui sortent de leurs durées ; noter la fin du parcours de chaque répertoire. Il ne supprime aucun sonore, et n'ajoute au log que ses démarrages et ses fins ([Démarrages et fins dans le log](commandes.md#démarrages-et-fins-dans-le-log)). |
 | `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques, les séquences et les événements ; lire l'airplay et le log, sans les modifier. |
 
 `Machin maintenance-db` et `Machin purge` n'endossent aucun rôle : ils agissent en propriétaire de la base, ce qu'est le compte de MachinCast. Seule la purge efface des lignes de l'airplay et du log.
