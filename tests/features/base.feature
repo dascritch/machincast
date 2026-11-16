@@ -161,3 +161,6 @@ Fonctionnalité: Socle de test
 	Scénario: Un « # noqa » sans effet est refusé, et la couverture suit les sous-processus
 		Alors la configuration de ruff active la règle RUF100
 		Et la configuration de coverage mesure les sous-processus
+
+	Scénario: Une fonction trop complexe est refusée
+		Alors la configuration de ruff active la règle C901, avec une complexité d'au plus 15

@@ -339,53 +339,68 @@ def _covered_days(event: Event) -> int:
 	return (wall_hour(event.end).date() - wall_hour(event.start).date()).days
 
 
+def _single_bounds(event: Event, start: datetime, end: datetime | None) -> list[datetime]:
+	"""Début et fin d'un événement sans jours de répétition, sauf si sa session est sautée."""
+	bounds: list[datetime] = []
+	if start.date() in event.skipped_list:
+		return bounds
+	bounds.append(start)
+	if end is not None:
+		bounds.append(end)
+	return bounds
+
+
+def _day_bounds(
+	event: Event, day: date, start: datetime, end: datetime | None, duration_in_days: int | None
+) -> list[datetime]:
+	"""Début et fin de l'occurrence d'un événement répété qui commence ce jour-là ; aucun si le jour n'est pas le sien
+	ou si sa session est sautée."""
+	bounds: list[datetime] = []
+	if (day < start.date()) or ((day != start.date()) and (day.weekday() not in event.days)):
+		return bounds
+	if day in event.skipped_list:
+		return bounds
+	bounds.append(datetime.combine(day, start.time()))
+	if (end is not None) and (duration_in_days is not None):
+		bounds.append(datetime.combine(day + timedelta(days=duration_in_days), end.time()))
+	return bounds
+
+
+def _weekly_bounds(event: Event, moment: datetime, start: datetime, end: datetime | None) -> list[datetime]:
+	"""Débuts et fins d'un événement répété, autour de l'instant : les occurrences commencées dans la semaine passée
+	peuvent encore finir, celles de la semaine à venir, commencer."""
+	duration_in_days: int | None = None
+	if end is not None:
+		duration_in_days = (end.date() - start.date()).days
+	bounds: list[datetime] = []
+	for gap in range(-8 - ((duration_in_days) or (0)), 8):
+		day = moment.date() + timedelta(days=gap)
+		bounds += _day_bounds(event, day, start, end, duration_in_days)
+	return bounds
+
+
+def _event_bounds(event: Event, moment: datetime) -> list[datetime]:
+	"""Débuts et fins de l'événement qui comptent pour la grille, autour de l'instant."""
+	if (event.priority is Priority.FALLBACK) or (event.start is None):
+		return []
+	start = wall_hour(event.start)
+	end = _wall_hour_or_none(event.end)
+	if not event.days:
+		return _single_bounds(event, start, end)
+	return _weekly_bounds(event, moment, start, end)
+
+
 def next_change(events: Iterable[Event], instant: datetime) -> datetime | None:
 	"""Prochain début ou fin d'une occurrence après l'instant, ou None : la grille ne change plus.
 
 	Sert à la simulation (https://github.com/dascritch/machincast/issues/21), qui avance d'échéance en échéance.
 	"""
 	moment = wall_hour(instant)
-	candidates: list[datetime] = []
-
-	def next_event(event: Event) -> None:
-		nonlocal candidates
-		if (event.priority is Priority.FALLBACK) or (event.start is None):
-			return
-		start = wall_hour(event.start)
-		end = _wall_hour_or_none(event.end)
-		if not event.days:
-			if start.date() not in event.skipped_list:
-				bounds = []
-				for c in (start, end):
-					if c is not None:
-						bounds.append(c)
-				candidates += bounds
-			return
-		duration_in_days: int | None = None
-		if end is not None:
-			duration_in_days = (end.date() - start.date()).days
-
-		# Les occurrences commencées dans la semaine passée peuvent encore finir ; celles de la semaine à venir,
-		# commencer.
-		def next_gap(gap: int) -> None:
-			day = moment.date() + timedelta(days=gap)
-			if (day < start.date()) or ((day != start.date()) and (day.weekday() not in event.days)):
-				return
-			if day in event.skipped_list:
-				return
-			candidates.append(datetime.combine(day, start.time()))
-			if (end is not None) and (duration_in_days is not None):
-				candidates.append(datetime.combine(day + timedelta(days=duration_in_days), end.time()))
-
-		for gap in range(-8 - ((duration_in_days) or (0)), 8):
-			next_gap(gap)
-
-	for event in events:
-		next_event(event)
 	after = []
-	for candidate in candidates:
-		if candidate > moment:
-			after.append(candidate)
+	for event in events:
+		for candidate in _event_bounds(event, moment):
+			if candidate > moment:
+				after.append(candidate)
 	if not after:
 		return None
 	return min(after).astimezone()
@@ -441,6 +456,100 @@ class Planned:
 	"""Une session sautée (https://github.com/dascritch/machincast/issues/273) : elle ne joue rien, ne cache rien."""
 
 
+def _add_occurrence(
+	event: Event,
+	deleted: datetime | None,
+	start: datetime,
+	end: datetime | None,
+	occurrences: list[Occurrence],
+	skipped_list: list[Occurrence],
+) -> None:
+	"""Range une occurrence parmi celles qui jouent, ou parmi les sessions sautées ; aucune après la suppression."""
+	if (deleted is not None) and (start >= deleted):
+		return
+	if start.date() in event.skipped_list:
+		skipped_list.append(Occurrence(event, start, end))
+	else:
+		occurrences.append(Occurrence(event, start, end))
+
+
+def _collect_occurrences(
+	event: Event, de: datetime, a: datetime, occurrences: list[Occurrence], skipped_list: list[Occurrence]
+) -> None:
+	"""Ajoute aux occurrences, ou aux sessions sautées, celles de l'événement qui touchent la période."""
+	deleted = _wall_hour_or_none(event.deleted_at)
+	if event.start is None:
+		if (deleted is None) or (deleted > de):
+			occurrences.append(Occurrence(event, None, None))
+		return
+	# Une occurrence commencée avant la période peut encore la toucher : autant de jours qu'elle en couvre.
+	since = de.date() - timedelta(days=_covered_days(event) + 1)
+	for start, end in _occurrences(event, since, a.date() + timedelta(days=1), with_skipped=True):
+		_add_occurrence(event, deleted, start, end, occurrences, skipped_list)
+
+
+def _drawn_ends(occurrences: list[Occurrence], a: datetime) -> dict[tuple[int, datetime | None], datetime]:
+	"""La fin dessinée de chaque occurrence, arrêtée à la suppression de son événement s'il l'est."""
+	ends = {}
+	for drawn in occurrences:
+		ends[drawn.key] = _drawn_end(drawn, occurrences, a)
+	for o in occurrences:
+		deleted = _wall_hour_or_none(o.event.deleted_at)
+		if deleted is not None:
+			ends[o.key] = min(ends[o.key], deleted)
+	return ends
+
+
+def _period_bounds(
+	occurrences: list[Occurrence], ends: dict[tuple[int, datetime | None], datetime], de: datetime, a: datetime
+) -> list[datetime]:
+	"""Les bornes de la période et les débuts et fins d'occurrence qui y tombent, dans l'ordre."""
+	inner_starts = set()
+	for starting in occurrences:
+		if (starting.start is not None) and (de < starting.start < a):
+			inner_starts.add(starting.start)
+	inner_ends = set()
+	for ending in occurrences:
+		if de < ends[ending.key] < a:
+			inner_ends.add(ends[ending.key])
+	return sorted({de, a} | inner_starts | inner_ends)
+
+
+def _attribute_interval(
+	occurrences: list[Occurrence],
+	ends: dict[tuple[int, datetime | None], datetime],
+	plays: dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]],
+	departure: datetime,
+	arrival: datetime,
+) -> None:
+	"""L'intervalle entre deux bornes revient à l'occurrence qui l'emporte ; il prolonge son moment précédent s'il le
+	suit sans interruption."""
+	covering = []
+	for o in occurrences:
+		if ((o.start is None) or (o.start <= departure)) and (ends[o.key] > departure):
+			covering.append(o)
+	winning = _winning(covering)
+	if winning is None:
+		return
+	moments = plays[winning.key]
+	if (moments) and (moments[-1][1] == departure):
+		moments[-1] = (moments[-1][0], arrival)
+		return
+	moments.append((departure, arrival))
+
+
+def _attribute_plays(
+	occurrences: list[Occurrence], ends: dict[tuple[int, datetime | None], datetime], bounds: list[datetime]
+) -> dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]]:
+	"""Les moments où chaque occurrence est à l'antenne, dans l'ordre."""
+	plays: dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]] = {}
+	for kept in occurrences:
+		plays[kept.key] = []
+	for departure, arrival in zip(bounds, bounds[1:], strict=False):
+		_attribute_interval(occurrences, ends, plays, departure, arrival)
+	return plays
+
+
 def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 	"""Les occurrences qui touchent la période [de, a[, en heure murale, et ce que chacune en joue.
 
@@ -452,75 +561,16 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 	(https://github.com/dascritch/machincast/issues/273).
 	"""
 	de, a = wall_hour(de), wall_hour(a)
-	grid = []
-	for candidate in events:
-		if candidate.priority is not Priority.FALLBACK:
-			grid.append(candidate)
 	occurrences: list[Occurrence] = []
 	skipped_list: list[Occurrence] = []
-
-	def add_occurrences(event: Event) -> None:
-		deleted = _wall_hour_or_none(event.deleted_at)
-		if event.start is None:
-			if (deleted is None) or (deleted > de):
-				occurrences.append(Occurrence(event, None, None))
-			return
-		# Une occurrence commencée avant la période peut encore la toucher : autant de jours qu'elle en couvre.
-		since = de.date() - timedelta(days=_covered_days(event) + 1)
-
-		def add_occurrence(end: datetime | None, start: datetime) -> None:
-			if (deleted is not None) and (start >= deleted):
-				return
-			if start.date() in event.skipped_list:
-				skipped_list.append(Occurrence(event, start, end))
-			else:
-				occurrences.append(Occurrence(event, start, end))
-
-		for start, end in _occurrences(event, since, a.date() + timedelta(days=1), with_skipped=True):
-			add_occurrence(end, start)
-
-	for event in grid:
-		add_occurrences(event)
-	ends = {}
-	for drawn in occurrences:
-		ends[drawn.key] = _drawn_end(drawn, occurrences, a)
-	for o in occurrences:
-		deleted = _wall_hour_or_none(o.event.deleted_at)
-		if deleted is not None:
-			ends[o.key] = min(ends[o.key], deleted)
+	for event in events:
+		if event.priority is not Priority.FALLBACK:
+			_collect_occurrences(event, de, a, occurrences, skipped_list)
+	ends = _drawn_ends(occurrences, a)
 	# Une occurrence hors de la période n'y couvre aucun moment : elle n'y joue pas, et n'y est pas dessinée.
-	kept_list = occurrences
-	inner_starts = set()
-	for starting in kept_list:
-		if (starting.start is not None) and (de < starting.start < a):
-			inner_starts.add(starting.start)
-	inner_ends = set()
-	for ending in kept_list:
-		if de < ends[ending.key] < a:
-			inner_ends.add(ends[ending.key])
-	bounds = sorted({de, a} | inner_starts | inner_ends)
-	plays: dict[tuple[int, datetime | None], list[tuple[datetime, datetime]]] = {}
-	for kept in kept_list:
-		plays[kept.key] = []
-
-	def attribute_interval(arrival: datetime, departure: datetime) -> None:
-		covering = []
-		for o in kept_list:
-			if ((o.start is None) or (o.start <= departure)) and (ends[o.key] > departure):
-				covering.append(o)
-		winning = _winning(covering)
-		if winning is None:
-			return
-		moments = plays[winning.key]
-		if (moments) and (moments[-1][1] == departure):
-			moments[-1] = (moments[-1][0], arrival)
-			return
-		moments.append((departure, arrival))
-
-	for departure, arrival in zip(bounds, bounds[1:], strict=False):
-		attribute_interval(arrival, departure)
+	plays = _attribute_plays(occurrences, ends, _period_bounds(occurrences, ends, de, a))
 	planned_list = []
-	for kept_occurrence in kept_list:
+	for kept_occurrence in occurrences:
 		planned_list.append(
 			Planned(
 				kept_occurrence,
@@ -529,9 +579,8 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 				tuple(plays[kept_occurrence.key]),
 			)
 		)
-	skipped_planned = []
 	for skipped_occurrence in skipped_list:
-		skipped_planned.append(
+		planned_list.append(
 			Planned(
 				skipped_occurrence,
 				(skipped_occurrence.start) or (de),
@@ -540,7 +589,6 @@ def plan(events: Iterable[Event], de: datetime, a: datetime) -> list[Planned]:
 				skipped=True,
 			)
 		)
-	planned_list += skipped_planned
 	return sorted(planned_list, key=lambda p: (p.start, RANKS[p.occurrence.event.priority], p.occurrence.event.id))
 
 

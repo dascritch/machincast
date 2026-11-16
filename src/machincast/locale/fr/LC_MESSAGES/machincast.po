@@ -935,6 +935,11 @@ msgstr "état {labels} conservé"
 
 #: machincast/indexer/check.py
 #, python-brace-format
+msgid "  {healthy}; {consequence}"
+msgstr "  {healthy} ; {consequence}"
+
+#: machincast/indexer/check.py
+#, python-brace-format
 msgid "{location}: analysis…"
 msgstr "{location} : analyse…"
 
@@ -964,11 +969,6 @@ msgstr "sonore toujours {labels}"
 #, python-brace-format
 msgid "  {problem}; {consequence}"
 msgstr "  {problem} ; {consequence}"
-
-#: machincast/indexer/check.py
-#, python-brace-format
-msgid "  {healthy}; {consequence}"
-msgstr "  {healthy} ; {consequence}"
 
 #: machincast/indexer/check.py
 #, python-brace-format
@@ -6486,6 +6486,18 @@ msgid "broadcast service"
 msgstr "service de diffusion"
 
 #: machincast/programs.py
+msgid ""
+"simulation interrupted: launch it again from the Simulation tab of the "
+"interface"
+msgstr ""
+"simulation interrompue : la relancer depuis l'onglet Simulation de "
+"l'interface"
+
+#: machincast/programs.py
+msgid "a terminal"
+msgstr "un terminal"
+
+#: machincast/programs.py
 msgid "state of the running programs, in JSON"
 msgstr "état des programmes en cours, en JSON"
 
@@ -6499,25 +6511,13 @@ msgid "{command} ({kind}), account {account}"
 msgstr "{command} ({kind}), compte {account}"
 
 #: machincast/programs.py
-msgid ""
-"simulation interrupted: launch it again from the Simulation tab of the "
-"interface"
-msgstr ""
-"simulation interrompue : la relancer depuis l'onglet Simulation de "
-"l'interface"
+msgid "the graphical session"
+msgstr "la session graphique"
 
 #: machincast/programs.py
 #, python-brace-format
 msgid "to reopen by the account {account}: {command}"
 msgstr "à rouvrir par le compte {account} : {command}"
-
-#: machincast/programs.py
-msgid "a terminal"
-msgstr "un terminal"
-
-#: machincast/programs.py
-msgid "the graphical session"
-msgstr "la session graphique"
 
 #: machincast/programs.py
 #, python-brace-format

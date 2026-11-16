@@ -270,6 +270,12 @@ CHANGE_QUESTIONS = {"fermer la fiche": "fermeture", "rafraîchir la fiche": "raf
 
 def replace_dialogs(interface: Context) -> None:
 	"""Les fenêtres de dialogue donnent les réponses du scénario, et notent les questions posées."""
+	_replace_confirmations(interface)
+	_replace_choices(interface)
+
+
+def _replace_confirmations(interface: Context) -> None:
+	"""Les confirmations : les réponses du scénario, et les questions posées, notées."""
 	monkeypatch = interface.monkeypatch
 
 	def closing(_parent: QWidget, title: str, before: str = "fermer la fiche") -> Closing:
@@ -287,18 +293,6 @@ def replace_dialogs(interface: Context) -> None:
 	def creation(_parent: QWidget, text: str) -> bool:
 		interface.questions.append(f"création : {text}")
 		return interface.creation
-
-	def directory(_parent: QWidget, *_title_and_departure: str) -> str | None:
-		return interface.chosen_directories.pop(0)
-
-	def sounds(_parent: QWidget, _connection: Connection, remark: str = "") -> list[int]:
-		interface.remarks.append(remark)
-		return interface.chosen_sounds
-
-	def banks(_parent: QWidget, _connection: Connection, remark: str = "", among: list[int] | None = None) -> list[int]:
-		interface.remarks.append(remark)
-		interface.offered_banks.append(among)
-		return interface.chosen_banks
 
 	def action(_parent: QWidget, title: str, text: str, button: str | None = None) -> bool:
 		interface.questions.append(f"action : {title}\n{text}")
@@ -324,6 +318,24 @@ def replace_dialogs(interface: Context) -> None:
 		return interface.refresh_after_check
 
 	monkeypatch.setattr(dialogs, "offer_refresh", after_check)
+
+
+def _replace_choices(interface: Context) -> None:
+	"""Les choix de répertoires, de fichiers, d'éléments, de jours et les fenêtres d'information."""
+	monkeypatch = interface.monkeypatch
+
+	def directory(_parent: QWidget, *_title_and_departure: str) -> str | None:
+		return interface.chosen_directories.pop(0)
+
+	def sounds(_parent: QWidget, _connection: Connection, remark: str = "") -> list[int]:
+		interface.remarks.append(remark)
+		return interface.chosen_sounds
+
+	def banks(_parent: QWidget, _connection: Connection, remark: str = "", among: list[int] | None = None) -> list[int]:
+		interface.remarks.append(remark)
+		interface.offered_banks.append(among)
+		return interface.chosen_banks
+
 	monkeypatch.setattr(dialogs, "choose_directory", directory)
 	monkeypatch.setattr(dialogs, "choose_files", lambda _parent: interface.chosen_files)
 	monkeypatch.setattr(dialogs, "choose_sounds", sounds)
