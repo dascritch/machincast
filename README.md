@@ -42,15 +42,6 @@ MachinCast speaks English and French, following the language of the session: its
 - Handling of dead air, with a fallback programme
 - Immutable audio files, real-time treatments
 
-### To come
-
-- Sending the names of the sound and the show to external services
-- Broadcasting a stream pilot
-- Automated mixing of a pre-recorded show made of segments
-- Input of audio sources through a sound card
-- Metadata mixing
-- Remote recording in MP3, Ogg, M4A, DASH and HLS
-
 ## Recommended setup
 
 A graphical Linux system, with the PipeWire sound server, ideally Debian or Ubuntu LTS, and two separate sound outputs, one of them a <q>good quality</q> one, for the feed to the station's final control room or its master control.
@@ -61,6 +52,8 @@ Technical requirements:
 - a processor of 1 GHz at least;
 - 2 GB of RAM;
 - 50 GB of disk space for the sounds.
+
+![a side by side comparison. On the left, a service mode, in light theme in english. On the right, a test mode, in dark theme in French](doc/side_by_side.jpg)
 
 ## Background
 
