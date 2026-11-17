@@ -105,7 +105,12 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 **Saisi à la main** : chaque champ modifié est noté comme saisi à la main, et la fiche en donne la liste : les tags ne l'écraseront plus.
 
-**Boutons** : **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). **Vérification complète** vérifie le fichier en entier et mesure ses silences, sans attendre la prochaine indexation, puis propose de **Rafraîchir** la fiche pour voir le résultat. Un fichier déjà vérifié ainsi, qui n'a pas changé depuis, n'est pas relu : la barre d'état dit `Déjà audité au seuil de -40 dB, fichier inchangé`.
+**Boutons** : **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). **Vérification complète** vérifie le fichier en entier et mesure ses silences, sans attendre la prochaine indexation, puis propose de **Rafraîchir** la fiche pour voir le résultat. Un fichier déjà vérifié ainsi, qui n'a pas changé depuis, n'est pas relu : la barre d'état dit `Déjà audité au seuil de -40 dB, fichier inchangé`. Elle peut se lancer même pendant une indexation. Le temps qu'elle tourne, le bouton devient **Vérification…**, la dernière vérification complète dit `en cours…`, et l'artiste, le titre, la durée, le début et la fin détectés, qu'elle va mettre à jour, le disent dans leur infobulle ([#388](https://github.com/dascritch/machincast/issues/388)).
+
+**Ce que la fiche propose**, au-dessus de ses boutons :
+
+- un fichier **jamais vérifié en entier** le dit : ses silences ne sont pas mesurés, et **Vérification complète** le fait tout de suite ;
+- des valeurs lues dans le fichier, **saisies à la main** (artiste, titre, métadonnées, durée, début et fin détectés), sont nommées, avec le bouton **Revenir aux valeurs du fichier…** : après confirmation, elles ne sont plus marquées saisies à la main, et la vérification complète relit le fichier pour les remplacer, même s'il avait déjà été vérifié. Le bouton attend que la fiche soit enregistrée ou annulée.
 
 ## Pré-écoute
 

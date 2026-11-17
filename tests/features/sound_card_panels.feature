@@ -190,3 +190,73 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Direct »
 		Alors le bouton « Vérification complète » de la fiche est inactif
+
+	# ─── Proposer l'analyse complète (https://github.com/dascritch/machincast/issues/388) ───
+	# Un sonore jamais vérifié en entier le dit sous ses champs, et propose « Vérification complète ». Des valeurs que
+	# l'indexeur remplit, saisies à la main (artiste, titre, métadonnées, durée, début et fin détectés), se rendent à
+	# l'indexeur par « Revenir aux valeurs du fichier… » : après confirmation, elles ne sont plus marquées saisies, et la
+	# vérification complète repasse sur le fichier, même déjà audité. Pendant la vérification, le bouton et les valeurs
+	# qu'elle remplira le disent. Elle tourne même pendant une indexation.
+
+	Scénario: Un sonore jamais vérifié en entier propose de le faire maintenant
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors la fiche propose « Jamais vérifié en entier : ses silences ne sont pas mesurés. « Vérification complète » le fait maintenant. »
+		Et le bouton « Revenir aux valeurs du fichier… » de la fiche est caché
+
+	Scénario: Un sonore déjà vérifié en entier, sans saisie à la main, ne propose rien
+		Étant donné le sonore « Neige » déjà audité au seuil de -40 dB, son fichier inchangé depuis
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors la fiche ne propose rien
+
+	Scénario: Pendant la vérification complète, le bouton et les valeurs qu'elle remplira le disent
+		Étant donné la vérification complète retenue par le scénario
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Et je clique sur « Vérification complète »
+		Alors le bouton « Vérification… » de la fiche est inactif
+		Et la fiche montre la dernière vérification complète « en cours… »
+		Et l'artiste, le titre, la durée et le début et la fin détectés de la fiche disent « Vérification complète en cours : cette valeur sera mise à jour. »
+		Et la fiche ne propose rien
+		Quand la vérification complète se termine
+		Alors l'artiste, le titre, la durée et le début et la fin détectés de la fiche ne disent plus rien de la vérification
+
+	Scénario: Des valeurs du fichier saisies à la main proposent d'y revenir, par une vérification complète
+		Étant donné le sonore « Neige » déjà audité au seuil de -40 dB, son fichier inchangé depuis
+		Et le titre et le début détecté du sonore « Neige » saisis à la main
+		Et la vérification complète retenue par le scénario
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Alors la fiche propose « Saisis à la main : titre, début détecté. « Revenir aux valeurs du fichier… » les rend à l'analyse du fichier. »
+		Et le bouton « Revenir aux valeurs du fichier… » de la fiche est actif
+		Quand je clique sur « Revenir aux valeurs du fichier… »
+		Alors la question d'action a dit « Revenir aux valeurs du fichier » : « Ces valeurs, saisies à la main, seront remplacées par ce que la vérification complète trouvera dans le fichier : titre, début détecté. »
+		Et le bouton « Vérification… » de la fiche est inactif
+		Quand la vérification complète se termine
+		Alors la question suivante, après la vérification, a dit « Vérification terminée : neige.flac, actif. Rafraîchir la fiche ? »
+		Et le sonore « neige.flac » n'a plus de champ saisi à la main, et son fichier a été relu
+
+	Scénario: Revenir aux valeurs du fichier, refusé, ne change rien
+		Étant donné le titre et le début détecté du sonore « Neige » saisis à la main
+		Et le refus des actions demandées
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Et je clique sur « Revenir aux valeurs du fichier… »
+		Alors le bouton « Vérification complète » de la fiche est actif
+		Et le sonore « Neige » a toujours le titre et le début détecté saisis à la main
+
+	Scénario: Une fiche modifiée ne revient pas aux valeurs du fichier avant d'être enregistrée ou annulée
+		Étant donné le titre et le début détecté du sonore « Neige » saisis à la main
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Et je saisis l'artiste « Anonyme »
+		Alors le bouton « Revenir aux valeurs du fichier… » de la fiche est inactif, avec l'infobulle « Enregistrer ou annuler d'abord les modifications de la fiche. »
+
+	Scénario: La vérification complète tourne même pendant une indexation
+		Étant donné une indexation rapide et un audit complet en cours, qui tiennent leur verrou sur la base
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Neige »
+		Et je clique sur « Vérification complète »
+		Et la vérification complète se termine
+		Alors la question après la vérification a dit « Vérification terminée : neige.flac, actif. Rafraîchir la fiche ? »
