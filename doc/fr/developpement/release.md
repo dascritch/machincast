@@ -10,9 +10,17 @@ Chaque version publiée de MachinCast a son tag git, `v<version>`, sa release Gi
 
 Tout vient du tag `v<version>` et des fichiers des nouveautés, un par langue ([#369](https://github.com/dascritch/machincast/issues/369)) : `src/machincast/interface/news.fr.md` en français, `src/machincast/interface/news.md` en anglais (`machincast.interface.version`). L'interface montre celui de la langue de la session, `news.<langue>.md`, et `news.md` pour une langue qui n'a pas le sien.
 
+## Le chemin d'une version
+
+Une version passe par trois branches protégées ([Branches](../regles/developpement.md#branches), [#480](https://github.com/dascritch/machincast/issues/480)) :
+
+1. **`preprod`** reçoit les tickets, puis le commit « Version <version> » ([Préparer la version](#préparer-la-version)).
+2. **`qualif`** reçoit la release candidate, par une PR de `preprod` vers `qualif`. Cette PR s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites : les étapes 6 à 9 ci-dessous. La release candidate tourne ensuite une semaine à l'antenne. Un défaut trouvé pendant cette semaine se corrige par un ticket sur `preprod`, puis une nouvelle PR vers `qualif`, et la semaine reprend.
+3. **`main`** reçoit la version qualifiée, par une PR de `qualif` vers `main`, puis elle est taguée et publiée ([Publier](#publier)).
+
 ## Préparer la version
 
-Sur une branche `release/<version>`, en un seul commit, « Version <version> », lié aux tickets de la release :
+Sur une branche `release/<version>`, tirée de `preprod`, en un seul commit, « Version <version> », lié aux tickets de la release, puis une PR vers `preprod` :
 
 1. **Le numéro**, dans `pyproject.toml`. Avant 1.0 : `0.<mineure>.<correctif>`. Et **`constraints.txt`**, les versions exactes des dépendances ([#438](https://github.com/dascritch/machincast/issues/438)) : dans un venv neuf, `pip install --editable ".[dev]"` sans contrainte, la suite complète, puis `pip freeze --exclude-editable | sort -f` en gardant l'en-tête du fichier. Le scénario « Chaque dépendance déclarée a sa version exacte dans constraints.txt » refuse une dépendance de `pyproject.toml` qui n'y serait pas.
 2. **Les tickets résolus** depuis la release précédente (ou depuis le début du dépôt, pour la première) :
@@ -35,7 +43,7 @@ Le scénario « Les informations des versions publiées concordent », dans `tes
 
 ## Publier
 
-Une fois le commit « Version <version> » mergé dans `main` :
+Une fois la semaine de qualification passée, et la PR de `qualif` vers `main` mergée :
 
 ```bash
 git checkout main && git pull
