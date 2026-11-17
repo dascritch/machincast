@@ -278,6 +278,22 @@ def choose_directory(
 	return directory
 
 
+def choose_document(parent: QWidget, departure: str) -> Path | None:
+	"""Le document « Votre installation », choisi, ou à créer, dans le sélecteur du poste ; None si le choix est
+	abandonné (https://github.com/dascritch/machincast/issues/451). Un document existant n'est jamais remplacé : il
+	sera ouvert tel quel."""
+	path, _filter = QFileDialog.getSaveFileName(
+		parent,
+		_("Your installation document"),
+		departure,
+		_("Markdown documents (*.md);;All files (*)"),
+		options=QFileDialog.Option.DontConfirmOverwrite,
+	)
+	if path == "":
+		return None
+	return Path(path)
+
+
 def choose_sounds(parent: QWidget, connection: psycopg.Connection[TupleRow], remark: str = "") -> list[int]:
 	"""Les sonores choisis dans la liste des sonores en base ; aucun si le choix est abandonné."""
 	return _choose(Choice(SOUNDS, connection, remark, parent))

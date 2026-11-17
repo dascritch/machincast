@@ -174,6 +174,8 @@ class Context:
 	"""L'heure de la tâche quotidienne que règlent les préférences (https://github.com/dascritch/machincast/issues/455)."""
 	shown_dailies: list[time] = field(default_factory=list)
 	adjusted_backups: Path | None = None
+	adjusted_notes: tuple[Path | None, str | None] | None = None
+	"""Le document et le lien de l'équipe que règlent les préférences (https://github.com/dascritch/machincast/issues/451)."""
 	"""Le répertoire des sauvegardes que règlent les préférences (https://github.com/dascritch/machincast/issues/347)."""
 	shown_backups: list[Path] = field(default_factory=list)
 	preferences_configurations: list[Path | None] = field(default_factory=list)
@@ -400,6 +402,7 @@ def _replace_choices(interface: Context) -> None:
 			and (interface.adjusted_retention is None)
 			and (interface.adjusted_daily is None)
 			and (interface.adjusted_backups is None)
+			and (interface.adjusted_notes is None)
 			and (interface.adjusted_table_rows is None)
 			and (interface.adjusted_clipping is None)
 			and (interface.adjusted_icon is None)
@@ -432,6 +435,7 @@ def _replace_choices(interface: Context) -> None:
 			(interface.adjusted_table_rows) or (shown_list.table_rows),
 			(interface.adjusted_daily) or (shown_list.daily),
 			(interface.adjusted_backups) or (shown_list.backup_directory),
+			*((interface.adjusted_notes) or ((shown_list.notes, shown_list.team_link))),
 		)
 
 	monkeypatch.setattr(dialogs, "set_preferences", preferences)
