@@ -1743,6 +1743,12 @@ Mise en œuvre (`Card.copy`, `machincast.interface.card.copy_name`, `MainWindow.
 		Il ne retire un répertoire que par `retirer_repertoires` ([#430](https://github.com/dascritch/machincast/issues/430)), qui garde le répertoire d'accueil des sonores, même vide, et tout répertoire qui contient un fichier sonore, quelle que soit la casse de son extension, et le dit.
 	- Règle `/etc/polkit-1/rules.d/50-machincast.rules`, rédigée par `machincast.installation rule` : sur `machincast.service` seulement, les verbes `start`, `stop` et `restart` de `org.freedesktop.systemd1.manage-units`, pour le seul compte de MachinCast, avec l'authentification d'un administrateur (`AUTH_ADMIN` : mot de passe, ou empreinte si PAM la propose) ; elle ne décide de rien d'autre.
 		Jamais de `sudo` pour piloter la diffusion.
+		La même règle protège le poste d'antenne ([#448](https://github.com/dascritch/machincast/issues/448), `installation.POWER_ACTIONS`) : les actions `power-off`, `reboot`, `halt`, `suspend` et `hibernate` de `org.freedesktop.login1`, et leurs variantes `-multiple-sessions` et `-ignore-inhibit`, demandent l'authentification d'un administrateur (`AUTH_ADMIN`) à tout compte, écran de connexion compris, quand Ubuntu les permet à toute session active (`allow_active` à `yes`).
+		Elle est écrite en ES5, comme Duktape, le moteur de polkitd ; ses scénarios l'exécutent par `dukpy` ([#470](https://github.com/dascritch/machincast/issues/470)).
+	- Protection du poste ([#448](https://github.com/dascritch/machincast/issues/448)) : le fragment `/etc/systemd/logind.conf.d/50-machincast.conf`, rédigé par `machincast.installation logind`, ignore les touches d'alimentation, de redémarrage, de veille et d'hibernation, leur appui long, et le capot (`installation.LOGIND_KEYS`), que logind traiterait sans polkit ; install.sh le relit par `systemctl reload systemd-logind`, sans fermer les sessions.
+		Dans une session, le bureau garde la main sur la touche, et passe par logind, donc par la règle ; un appui long sur le bouton d'alimentation, que le matériel traite seul, éteint toujours.
+		Le fragment `/etc/systemd/system.conf.d/50-machincast.conf`, rédigé par `machincast.installation system-conf`, annule la rafale de Ctrl+Alt+Suppr en console (`CtrlAltDelBurstAction=none`), relu par `systemctl daemon-reexec` ; install.sh masque `ctrl-alt-del.target`, s'il ne l'est pas.
+		`--remove-service` retire les deux fragments, démasque `ctrl-alt-del.target` s'il est masqué, et relit logind et systemd : la politique d'Ubuntu revient.
 
 ## 11. Développements ultérieurs
 

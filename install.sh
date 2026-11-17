@@ -39,6 +39,11 @@ LIEN_COMPLETION="/usr/share/bash-completion/completions/Machin"
 UNITE="machincast.service"
 FICHIER_UNITE="/etc/systemd/system/${UNITE}"
 FICHIER_REGLE="/etc/polkit-1/rules.d/50-machincast.rules"
+# Le poste d'antenne ne s'éteint, ne redémarre ni ne se met en veille par mégarde
+# (https://github.com/dascritch/machincast/issues/448) : la règle polkit le demande à un administrateur, ces fragments
+# neutralisent les touches, le capot et Ctrl+Alt+Suppr en console.
+FICHIER_LOGIND="/etc/systemd/logind.conf.d/50-machincast.conf"
+FICHIER_SYSTEME="/etc/systemd/system.conf.d/50-machincast.conf"
 # Purge quotidienne de la base, installée avec le service (https://github.com/dascritch/machincast/issues/268) : les
 # mêmes noms dans machincast.installation.
 UNITE_PURGE="machincast-purge.service"
@@ -155,7 +160,9 @@ own account %s, with its own PipeWire, and restarts after a crash. %s joins the 
 reads its logs (%s) and pre-listens to the on-air output; the on-air card is reserved for the
 service. The sound files go in /home/machincast: those of the database in a personal directory
 are moved there, removed from the database, or left, not played, as chosen. A polkit rule lets it start, stop and
-restart with the password of an administrator; a systemd timer, %s, launches every day at noon
+restart with the password of an administrator, and asks for that password to power off, reboot or suspend the
+computer; its power, reboot and suspend keys, its lid and Ctrl+Alt+Del on the console are ignored. A systemd
+timer, %s, launches every day at noon
 Machin purge, which erases from the database what exceeds the expiry duration. Without --service, none
 of this is installed: the broadcast and the purge are launched by hand. A service installed before is
 checked: if it is not up to date for this version, the question is asked whether to update it.
@@ -168,8 +175,8 @@ Options:
   --dev         also installs the tools of the development computer
   --service     also installs the broadcast service (computer dedicated to the on-air output only)
   --remove-service
-                removes the broadcast service, its PipeWire, its account, its polkit rule and the purge
-                timer; the logs and /home/machincast stay
+                removes the broadcast service, its PipeWire, its account, its polkit rule, the
+                protection of the computer and the purge timer; the logs and /home/machincast stay
   --dedicated   with --service, dedicates the computer and moves MachinCast to /opt/machincast,
                 without asking
   --desktop      also puts the shortcut of the interface on the desktop, without asking
@@ -689,7 +696,7 @@ fichiers_du_service_perimes() {
 		"wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" "wireplumber-service:${FICHIER_WIREPLUMBER_SERVICE}" \
 		"wireplumber-desktop:${FICHIER_WIREPLUMBER_BUREAU}" "tmpfiles:${FICHIER_TMPFILES}" \
 		"logrotate:${FICHIER_LOGROTATE}" "purge-unit:${FICHIER_UNITE_PURGE}" "purge-timer:${FICHIER_MINUTEUR_PURGE}" \
-		"rule:${FICHIER_REGLE}"; do
+		"rule:${FICHIER_REGLE}" "logind:${FICHIER_LOGIND}" "system-conf:${FICHIER_SYSTEME}"; do
 		fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
 	done
 }
@@ -1004,6 +1011,7 @@ installer_service() {
 		executer sudo systemctl daemon-reload
 	fi
 	installer_fichier rule "${FICHIER_REGLE}" || true
+	proteger_le_poste
 	executer sudo systemctl enable --now "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
 	if "${unites_changees}" || "${service_change}"; then
 		# Une unité ou une configuration modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
@@ -1012,6 +1020,22 @@ installer_service() {
 	# La purge de la base, chaque jour à midi : Machin purge, sous le compte de MachinCast, propriétaire de la base.
 	executer sudo systemctl enable --now "${MINUTEUR_PURGE}"
 	info 'follow the broadcast: Machin logs; the daily purge: journalctl --unit=%s' "${UNITE_PURGE}"
+}
+
+# Le poste d'antenne ne s'éteint, ne redémarre ni ne se met en veille par mégarde
+# (https://github.com/dascritch/machincast/issues/448) : la règle polkit le demande à un administrateur ; logind ignore
+# les touches et le capot, relu sans fermer les sessions ; systemd ignore la rafale de Ctrl+Alt+Suppr, relu en se
+# réexécutant ; ctrl-alt-del.target est masqué.
+proteger_le_poste() {
+	if installer_fichier logind "${FICHIER_LOGIND}"; then
+		executer sudo systemctl reload systemd-logind
+	fi
+	if installer_fichier system-conf "${FICHIER_SYSTEME}"; then
+		executer sudo systemctl daemon-reexec
+	fi
+	if [[ "$(systemctl is-enabled ctrl-alt-del.target 2>/dev/null || true)" != "masked" ]]; then
+		executer sudo systemctl mask ctrl-alt-del.target
+	fi
 }
 
 # Retire un fichier installé par --service, s'il existe ; vrai s'il existait.
@@ -1036,10 +1060,17 @@ retirer_service() {
 	local fichier
 	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
 		"${FICHIER_MINUTEUR_PURGE}" "${FICHIER_UNITE_PURGE}" "${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
-		"${FICHIER_LOGROTATE}" "${FICHIER_WIREPLUMBER_SERVICE}"; do
+		"${FICHIER_LOGROTATE}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}"; do
 		retirer_fichier "${fichier}" || true
 	done
 	executer sudo systemctl daemon-reload
+	# La politique d'Ubuntu revient (https://github.com/dascritch/machincast/issues/448) : extinction, redémarrage et
+	# veille sans mot de passe, touches, capot et Ctrl+Alt+Suppr actifs.
+	if [[ "$(systemctl is-enabled ctrl-alt-del.target 2>/dev/null || true)" == "masked" ]]; then
+		executer sudo systemctl unmask ctrl-alt-del.target
+	fi
+	executer sudo systemctl reload systemd-logind
+	executer sudo systemctl daemon-reexec
 	if [[ -d "${DOSSIER_WIREPLUMBER_SERVICE}" ]]; then
 		# fichier de MachinCast : ses répertoires, vides une fois son fragment retiré, et seulement s'ils sont vides
 		executer sudo rmdir --ignore-fail-on-non-empty --parents "$(dirname "${FICHIER_WIREPLUMBER_SERVICE}")"

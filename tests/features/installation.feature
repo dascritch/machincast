@@ -298,6 +298,64 @@ Fonctionnalité: Vérifications de l'installation
 			| org.freedesktop.systemd1.manage-units  | machincast.service | stop    | un autre compte      | rien            |
 			| org.freedesktop.systemd1.manage-unit-files | machincast.service | stop | le compte          | rien            |
 
+	Plan du scénario: La règle polkit demande le mot de passe d'un administrateur pour éteindre, redémarrer ou mettre en veille le poste, à tout compte, écran de connexion compris
+		https://github.com/dascritch/machincast/issues/448 : sur un poste d'antenne, une extinction, un redémarrage ou une
+		mise en veille par mégarde coupe l'antenne. Ubuntu les permet sans mot de passe à toute session active, écran de
+		connexion compris (allow_active de org.freedesktop.login1.policy) ; la règle du service les soumet à
+		l'authentification d'un administrateur, pour tout compte. Le retrait du service retire la règle, et rend la
+		politique d'Ubuntu.
+		Quand je lance « python -m machincast.installation rule » avec la configuration de test
+		Alors la règle polkit répond <reponse> à l'action « <action> », pour <qui>
+
+		Exemples:
+			| action                                            | qui             | reponse        |
+			| org.freedesktop.login1.power-off                  | le compte       | « auth_admin » |
+			| org.freedesktop.login1.power-off                  | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.power-off-multiple-sessions | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.power-off-ignore-inhibit   | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.reboot                     | le compte       | « auth_admin » |
+			| org.freedesktop.login1.reboot                     | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.reboot-multiple-sessions   | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.reboot-ignore-inhibit      | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.halt                       | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.halt-multiple-sessions     | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.halt-ignore-inhibit        | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.suspend                    | le compte       | « auth_admin » |
+			| org.freedesktop.login1.suspend-multiple-sessions  | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.suspend-ignore-inhibit     | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.hibernate                  | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.hibernate-multiple-sessions | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.hibernate-ignore-inhibit   | un autre compte | « auth_admin » |
+			| org.freedesktop.login1.inhibit-block-sleep        | le compte       | rien           |
+			| org.freedesktop.login1.set-reboot-to-firmware-setup | le compte     | rien           |
+
+	Scénario: Le service neutralise les touches d'alimentation, de redémarrage et de veille, et le capot
+		https://github.com/dascritch/machincast/issues/448 : logind éteint, redémarre ou met en veille sans passer par
+		polkit à l'appui d'une touche ou à la fermeture du capot. Le fragment de logind du service les ignore ; dans une
+		session, le bureau garde la main sur la touche, et passe par logind, donc par la règle polkit. Un appui long sur
+		le bouton d'alimentation, que le matériel traite seul, éteint toujours.
+		Quand je lance « python -m machincast.installation logind » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et sa sortie annonce « [Login] »
+		Et sa sortie règle à « ignore » « HandlePowerKey », « HandlePowerKeyLongPress », « HandleRebootKey », « HandleRebootKeyLongPress », « HandleSuspendKey », « HandleSuspendKeyLongPress », « HandleHibernateKey », « HandleHibernateKeyLongPress », « HandleLidSwitch », « HandleLidSwitchExternalPower », « HandleLidSwitchDocked »
+
+	Scénario: Le service neutralise la rafale de Ctrl+Alt+Suppr en console
+		https://github.com/dascritch/machincast/issues/448 : en console, Ctrl+Alt+Suppr redémarre (ctrl-alt-del.target,
+		qu'install.sh --service masque), et sept appuis en deux secondes forcent le redémarrage, même masqué
+		(CtrlAltDelBurstAction) : le fragment de systemd du service l'annule.
+		Quand je lance « python -m machincast.installation system-conf » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et sa sortie annonce « [Manager] »
+		Et sa sortie règle à « none » « CtrlAltDelBurstAction »
+
+	Scénario: install.sh --service masque Ctrl+Alt+Suppr et recharge logind ; --remove-service rend les deux
+		https://github.com/dascritch/machincast/issues/448 : logind relit son fragment sans fermer les sessions
+		(systemctl reload) ; systemd relit le sien en se réexécutant (daemon-reexec), seulement quand il change. Le
+		retrait démasque ctrl-alt-del.target s'il est masqué, et retire les fragments : la politique d'Ubuntu revient.
+		Alors install.sh, en installant le service, recharge « systemd-logind » quand « FICHIER_LOGIND » change, et réexécute systemd quand « FICHIER_SYSTEME » change
+		Et install.sh, en installant le service, masque « ctrl-alt-del.target » s'il ne l'est pas
+		Et install.sh, en retirant le service, démasque « ctrl-alt-del.target » s'il est masqué, recharge « systemd-logind » et réexécute systemd
+
 	Scénario: L'unité porte le nom que le wrapper suit dans le journal
 		Alors l'unité de machincast.installation est celle de « Machin logs »
 
@@ -315,6 +373,8 @@ Fonctionnalité: Vérifications de l'installation
 			| purge-unit          | FICHIER_UNITE_PURGE         |
 			| purge-timer         | FICHIER_MINUTEUR_PURGE      |
 			| rule                | FICHIER_REGLE               |
+			| logind              | FICHIER_LOGIND              |
+			| system-conf         | FICHIER_SYSTEME             |
 
 	Scénario: install.sh --service demande d'abord de dédier le poste à l'antenne, puis de sortir MachinCast d'un répertoire personnel
 		Alors install.sh, avec --service, demande de dédier le poste puis déplace MachinCast, avant toute autre étape
