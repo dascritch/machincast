@@ -17,6 +17,14 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 
 ![Capture de l'interface de pilotage de MachinCast](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)
 
+## Cas d'usage
+
+- Continuité d'antenne en régie finale
+- Alimentation de l'entrée audio d'un émetteur à partir d'un flux, avec secours
+- Production d'une radio streamée événementielle
+- Insertion de programmes locaux et d'espaces publicitaires sur un réseau syndiqué
+- Sonorisation d'un espace recevant du public
+
 ## Fonctionnalités
 
 - Gestion d'une grille horaire
@@ -40,14 +48,6 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 - Entrée de sources audio par carte son
 - Mixage de métadonnées
 - Enregistrement distant en MP3, Ogg, M4A, DASH et HLS
-
-## Cas d'usage
-
-- Continuité d'antenne en régie finale
-- Alimentation de l'entrée audio d'un émetteur à partir d'un flux, avec secours
-- Production d'une radio streamée événementielle
-- Insertion de programmes locaux et d'espaces publicitaires sur un réseau syndiqué
-- Sonorisation d'un espace recevant du public
 
 ## Configuration recommandée
 
