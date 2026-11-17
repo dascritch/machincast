@@ -423,3 +423,41 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et l'onglet Antenne rouvre le port de monitoring de la même antenne
 		Alors la capture précédente de l'antenne est arrêtée
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+
+	# ─── Session en veille ─────────────────────────────────────
+
+	Scénario: Un port de monitoring qui ne se libère pas n'en fait ouvrir aucun autre
+		https://github.com/dascritch/machincast/issues/346 : au retour d'une session verrouillée, le serveur audio peut ne
+		plus répondre aux changements d'état. Chaque port rouvert attendait alors dans son propre fil, avec son pipeline et
+		ses descripteurs : au bout de quelques heures, l'interface n'en avait plus. Un seul port à la fois attend : tant que
+		le précédent n'est pas fermé, aucun autre ne s'ouvre, et le VU-mètre le dit.
+
+		Étant donné le signal de test « coupable » sur l'antenne factice
+		Et un nouvel essai du port de monitoring après une demi-seconde
+		Et un serveur audio qui ne répond plus aux changements d'état
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring précédent ne s'est pas encore fermé. »
+		Et le port de monitoring n'a été ouvert qu'une fois en 5 secondes
+		Quand le serveur audio répond de nouveau
+		Alors le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+		Et le VU-mètre de l'antenne est disponible
+
+	Scénario: L'économiseur d'écran, ou le verrouillage de la session, met le VU-mètre en pause ; leur fin le relance
+		https://github.com/dascritch/machincast/issues/346 : personne ne regarde le VU-mètre pendant que l'écran est
+		verrouillé ou éteint, et le serveur audio peut alors cesser de répondre. Le signal ActiveChanged de
+		org.freedesktop.ScreenSaver, sur le bus de session, que KDE émet au verrouillage comme à l'économiseur d'écran,
+		ferme le port de monitoring ; son retour le rouvre.
+
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Et un bus de session à part
+		Quand la fenêtre de l'interface s'ouvre
+		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+		Et l'économiseur d'écran s'active
+		Alors l'onglet Antenne ne capture bientôt plus rien
+		Et le VU-mètre de l'antenne est indisponible : « En pause : session verrouillée ou économiseur d'écran actif. »
+		Et le port de monitoring ne sera pas rouvert
+		Quand l'onglet Antenne rouvre le port de monitoring de la même antenne
+		Alors l'onglet Antenne ne capture rien
+		Quand l'économiseur d'écran s'arrête
+		Alors le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+		Et le VU-mètre de l'antenne est disponible

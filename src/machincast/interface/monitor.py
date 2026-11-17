@@ -27,6 +27,12 @@ Un port qui ne donne plus aucun relevé pendant FREEZE_DELAY secondes, depuis so
 est gelé (https://github.com/dascritch/machincast/issues/311) : au retour d'une session verrouillée et d'un écran
 éteint, un flux PipeWire peut cesser de donner du son, sans erreur ni fin. Le moniteur l'arrête, ce qui efface ses
 niveaux : le VU-mètre ne reste pas figé sur les derniers. Il le dit, et le rouvre comme un port qui ne s'ouvre pas.
+
+Un seul port attend à la fois (https://github.com/dascritch/machincast/issues/346) : un port arrêté a RELEASE secondes
+pour libérer son périphérique ; sinon, aucun autre ne s'ouvre, et le moniteur réessaie plus tard. Un serveur audio qui
+ne répondait plus retenait sinon un fil, un pipeline et leurs descripteurs à chaque essai, jusqu'à épuiser ceux du
+processus. Pendant la veille de la session (machincast.interface.screen_saver), le moniteur est en pause : port
+fermé, sans nouvel essai.
 """
 
 import socket
@@ -56,12 +62,17 @@ READING = 50
 RETRY = 5000
 """Millisecondes avant de rouvrir un port de monitoring qui ne s'est pas ouvert, ou qui s'est fermé."""
 LEVEL_INTERVAL = 50 * Gst.MSECOND
+RELEASE = 0.5
+"""Secondes qu'un port arrêté a pour libérer son périphérique avant qu'un autre s'ouvre
+(https://github.com/dascritch/machincast/issues/346)."""
 FREEZE_DELAY = 3.0
 """Secondes sans relevé au-delà desquelles le port de monitoring est gelé
 (https://github.com/dascritch/machincast/issues/311)."""
 FROZEN = _("Unavailable: the monitoring port has given nothing for {freeze_delay:g} seconds.").format(
 	freeze_delay=FREEZE_DELAY
 )
+NOT_RELEASED = _("Unavailable: the previous monitoring port has not closed yet.")
+PAUSED = _("Paused: session locked or screen saver active.")
 CHANNELS = "audio/x-raw,channels=2"
 """Ce que donne le port de monitoring : les deux canaux de l'antenne."""
 WITHOUT_ALSA = _("Unavailable with the ALSA output, which has no monitoring port.")
@@ -186,6 +197,10 @@ class Monitor(QObject):
 		self._pipeline: Gst.Pipeline | None = None
 		self._piloted: states.Pilot | None = None
 		"""Les changements d'état du port, hors du fil de l'interface (https://github.com/dascritch/machincast/issues/259)."""
+		self._closing: states.Pilot | None = None
+		"""Le pilote du port arrêté en dernier, tant qu'il n'a pas libéré son périphérique."""
+		self.paused = False
+		"""La session est en veille : le port reste fermé (https://github.com/dascritch/machincast/issues/346)."""
 		self._level: Gst.Element | None = None
 		self.levels: list[float] = []
 		self.peaks: list[float] = []
@@ -212,8 +227,16 @@ class Monitor(QObject):
 		return self._retry.isActive()
 
 	def start(self) -> None:
-		"""Ouvre le port de monitoring ; indisponible, il le dit, et réessaie si l'antenne a bien un port."""
+		"""Ouvre le port de monitoring ; indisponible, il le dit, et réessaie si l'antenne a bien un port. En pause, il
+		reste fermé ; tant que le port précédent n'a pas libéré son périphérique, aucun autre ne s'ouvre."""
 		self.halt()
+		if self.paused:
+			self.unavailable = PAUSED
+			self.changed.emit()
+			return
+		if not self._previous_released():
+			self._unavailable(NOT_RELEASED)
+			return
 		if self.audio is None:
 			self.unavailable = _("Unavailable: unknown on-air output.")
 			self.changed.emit()
@@ -245,11 +268,31 @@ class Monitor(QObject):
 		self._reading.start()
 		self.changed.emit()
 
+	def pause(self) -> None:
+		"""Ferme le port le temps de la veille de la session, sans le rouvrir."""
+		self.paused = True
+		self.start()
+
+	def resume(self) -> None:
+		"""Rouvre le port au retour de la session."""
+		self.paused = False
+		self.start()
+
+	def _previous_released(self) -> bool:
+		"""Le port arrêté en dernier a libéré son périphérique : sinon, un serveur audio qui ne répond plus retiendrait
+		un fil, un pipeline et leurs descripteurs à chaque essai (https://github.com/dascritch/machincast/issues/346)."""
+		closing = self._closing
+		if (closing is not None) and (not closing.released(RELEASE)):
+			return False
+		self._closing = None
+		return True
+
 	def halt(self) -> None:
 		self._reading.stop()
 		self._retry.stop()
 		if self._piloted is not None:
 			self._piloted.switch_off()
+			self._closing = self._piloted
 		self._pipeline, self._piloted, self._level = None, None, None
 		self.levels, self.peaks = [], []
 		self.dead_air, self.clipping = False, False
