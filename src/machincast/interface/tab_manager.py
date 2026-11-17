@@ -5,9 +5,9 @@ fermeture, rouverts au lancement (https://github.com/dascritch/machincast/issues
 peut changer (https://github.com/dascritch/machincast/issues/405) ; leur titre, coupé au besoin, et l'infobulle de
 leur raccourci (https://github.com/dascritch/machincast/issues/398) ; les raccourcis Maj+F1 à Maj+F12, Ctrl+PageUp,
 Ctrl+PageDown, Ctrl+Home et Ctrl+End (https://github.com/dascritch/machincast/issues/192,
-https://github.com/dascritch/machincast/issues/318) ; le menu « Onglets » ; Ctrl+W, Ctrl+S, et les onglets fermés,
-que Ctrl+Maj+T et le menu « Affichage » rouvrent (https://github.com/dascritch/machincast/issues/428). Ce que la fenêtre sait seule, ouvrir un
-écran d'après sa clé, fermer ou retirer une fiche, lui est donné à la construction.
+https://github.com/dascritch/machincast/issues/318) ; le menu « Onglets » ; Ctrl+W, Ctrl+S, Ctrl+Entrée, et les onglets
+fermés, que Ctrl+Maj+T et le menu « Affichage » rouvrent (https://github.com/dascritch/machincast/issues/428). Ce que
+la fenêtre sait seule, ouvrir un écran d'après sa clé, fermer ou retirer une fiche, lui est donné à la construction.
 """
 
 import logging
@@ -124,7 +124,9 @@ TAB_KEYS = _shortcut_texts((LEFT_TAB, RIGHT_TAB, FIRST_TAB, LAST_TAB))
 
 
 CLOSE_TAB, SAVE_TAB, REOPEN_TAB = "Ctrl+W", "Ctrl+S", "Ctrl+Shift+T"
-"""Les raccourcis qui ferment l'onglet ouvert, l'enregistrent, et rouvrent le dernier fermé
+SAVE_AND_CLOSE_TAB = ("Ctrl+Return", "Ctrl+Enter")
+"""Les raccourcis qui ferment l'onglet ouvert, l'enregistrent, l'enregistrent puis le ferment (les deux touches
+Entrée, du clavier principal et du pavé numérique), et rouvrent le dernier fermé
 (https://github.com/dascritch/machincast/issues/428)."""
 
 
@@ -437,6 +439,8 @@ class TabManager:
 		# Fermer et enregistrer l'onglet ouvert (https://github.com/dascritch/machincast/issues/428).
 		QShortcut(QKeySequence(CLOSE_TAB), self.window).activated.connect(self.close_current)
 		QShortcut(QKeySequence(SAVE_TAB), self.window).activated.connect(self.save_current)
+		for keys in SAVE_AND_CLOSE_TAB:
+			QShortcut(QKeySequence(keys), self.window).activated.connect(self.save_and_close_current)
 		application = QApplication.instance()
 		if application is not None:
 			application.installEventFilter(TabKey(self.window))
@@ -448,11 +452,20 @@ class TabManager:
 			self.close_screen(self.tabs.indexOf(screen))
 
 	def save_current(self) -> None:
-		"""Ctrl+S : enregistre la fiche ouverte, comme son bouton « Enregistrer », s'il est actif ; sur une fiche sans
-		modification, ou un autre onglet, rien."""
+		"""Ctrl+S : enregistre la fiche ouverte, qui reste ouverte ; sur une fiche sans modification, ou un autre
+		onglet, rien."""
 		screen = self.tabs.currentWidget()
 		if (isinstance(screen, Card)) and (screen.button_save.isEnabled()):
-			screen.button_save.click()
+			screen.save()
+
+	def save_and_close_current(self) -> None:
+		"""Ctrl+Entrée : enregistre la fiche ouverte, puis la ferme ; une fiche sans modification se ferme, une fiche
+		refusée reste ouverte et dit pourquoi. Sur un autre onglet, rien."""
+		screen = self.tabs.currentWidget()
+		if not isinstance(screen, Card):
+			return
+		if (not screen.button_save.isEnabled()) or (screen.save()):
+			self.remove_card(screen)
 
 	def add_reopening(self, menu: QMenu) -> None:
 		"""Dans le menu « Affichage » : « Rouvrir l'onglet fermé », Ctrl+Maj+T, et le sous-menu des onglets fermés, relu
