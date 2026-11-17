@@ -30,7 +30,7 @@ CODE_INTROUVABLE=127
 aide_minimale() {
 	local liste
 	liste="$(printf '%s, ' "${BINAIRES[@]}")"
-	tf 'Usage: Machin [--config FILE] BINARY [OPTIONS…]  or  Machin logs|dev|dev-test|dev-screenshots
+	tf 'Usage: Machin [--config FILE] BINARY [OPTIONS…]  or  Machin logs|tasks|dev|dev-test|dev-screenshots
 Binaries: %s. Full help: Machin --help
 ' "${liste%, }"
 }
@@ -41,6 +41,7 @@ aide_complete() {
 Usage:
   Machin [--config FILE] BINARY [OPTIONS…]
   Machin logs [journalctl OPTIONS…]
+  Machin [--config FILE] tasks
   Machin dev | dev-test [--coverage] [--scenarios NAME…] | dev-screenshots [DIRECTORY]
   Machin -h | --help | --binaries
 
@@ -67,6 +68,11 @@ Following the logs:
                Machin logs --since "1 hour ago" --priority=warning
                Reading this log requires belonging to the adm or systemd-journal group:
                install.sh adds the account that installs it.
+
+Regular tasks (https://github.com/dascritch/machincast/issues/455):
+  tasks        runs the tasks that are due, called every quarter of an hour by
+               the machincast-tasks.timer timer of the service: once a day from
+               the set hour (schedule.daily), purge then indexer --full-audit
 
 Development (computer installed by ./install.sh --dev):
   dev          opens a subshell in the MachinCast directory, venv activated, with
@@ -107,6 +113,7 @@ Examples:
 
 Exit codes:
   the one of the called binary, of journalctl for logs, or of the subshell for dev;
+  the one of the first failed task for tasks (an audit already in progress is not one);
   1            dev-test: at least one tool failed or is missing;
   %s            incorrect call of the wrapper (unknown binary or option);
   %s          binary, journalctl or venv not found.
@@ -351,6 +358,72 @@ achever_rapports() {
 	"${python}" -m machincast.crash "${programme}" "$@" || true
 }
 
+# Lance Machin_$1 avec les options qui suivent, sans exec, et rend son code ; 127 s'il est introuvable. Un binaire
+# mort d'un signal (code 128 + n, kill -9 compris) laisse un rapport de crash en cours, que le wrapper fait achever
+# aussitôt (https://github.com/dascritch/machincast/issues/413). Ctrl-C et SIGTERM vont au binaire, par le groupe du
+# terminal ou le cgroup du service ; le wrapper attend sa fin, puis rend son code. Les options de configuration
+# (--config FICHIER) viennent en premier, et servent aussi à achever les rapports.
+lancer_binaire() {
+	local binaire="$1" chemin code=0 configuration=()
+	shift
+	if [[ "${1:-}" == --config ]]; then
+		configuration=(--config "$2")
+	fi
+	if ! chemin="$(trouver_binaire "${binaire}")"; then
+		tf 'Machin: Machin_%s not found in %s nor in the PATH.\n' "${binaire}" "$(venv_du_projet)" >&2
+		tf '         Create the venv from the root of the project: python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"\n' >&2
+		return "${CODE_INTROUVABLE}"
+	fi
+	trap ':' INT TERM HUP
+	"${chemin}" "$@" || code=$?
+	trap - INT TERM HUP
+	if ((code > 128 && code < 160)); then
+		achever_rapports "${chemin}" "Machin_${binaire}" "${configuration[@]}"
+	fi
+	return "${code}"
+}
+
+executer_binaire() {
+	local code=0
+	lancer_binaire "$@" || code=$?
+	exit "${code}"
+}
+
+# Tâches régulières (https://github.com/dascritch/machincast/issues/455), lancées tous les quarts d'heure par le
+# minuteur du service, machincast-tasks.timer : chacune ne fait rien tant qu'elle n'est pas due. La périodicité
+# du minuteur peut changer, et d'autres tâches s'ajouter ici, sans toucher aux unités systemd. Les options sont
+# celles de la configuration (--config FICHIER). Rend le code de la première tâche en échec.
+lancer_taches() {
+	local code=0
+	tache_quotidienne "$@" || code=$?
+	exit "${code}"
+}
+
+# Tâche quotidienne, à l'heure réglée (schedule.daily) : la purge, puis l'audit complet, quand
+# python -m machincast.schedule claim la réserve (code 0) ; rien quand elle n'est pas due (code 1). Un audit déjà en
+# cours (code 3 de l'indexeur) n'est pas un échec.
+tache_quotidienne() {
+	local python code=0
+	python="$(venv_du_projet)/bin/python"
+	if [[ ! -x "${python}" ]]; then
+		tf 'Machin: %s not found: the tasks are claimed by the Python of the venv\n' "${python}" >&2
+		return "${CODE_INTROUVABLE}"
+	fi
+	"${python}" -m machincast.schedule claim "$@" || code=$?
+	if ((code == 1)); then
+		return 0
+	fi
+	if ((code != 0)); then
+		return "${code}"
+	fi
+	lancer_binaire purge "$@" || return $?
+	lancer_binaire indexer "$@" --full-audit || code=$?
+	if ((code == 3)); then
+		return 0
+	fi
+	return "${code}"
+}
+
 principal() {
 	local configuration=() binaire chemin
 
@@ -412,25 +485,14 @@ principal() {
 		lancer_dev_captures "$@"
 	fi
 
+	if [[ "${binaire}" == tasks ]]; then
+		(($# == 0)) || erreur_usage "$(tf '%s takes no argument' tasks)"
+		lancer_taches "${configuration[@]}"
+	fi
+
 	est_binaire "${binaire}" || erreur_usage "$(tf 'unknown binary: %s' "${binaire}")"
 
-	if ! chemin="$(trouver_binaire "${binaire}")"; then
-		tf 'Machin: Machin_%s not found in %s nor in the PATH.\n' "${binaire}" "$(venv_du_projet)" >&2
-		tf '         Create the venv from the root of the project: python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"\n' >&2
-		exit "${CODE_INTROUVABLE}"
-	fi
-
-	# Pas d'exec : un binaire mort d'un signal (code 128 + n, kill -9 compris) laisse un rapport de crash en cours, que
-	# le wrapper fait achever aussitôt (https://github.com/dascritch/machincast/issues/413). Ctrl-C et SIGTERM vont au
-	# binaire, par le groupe du terminal ou le cgroup du service ; le wrapper attend sa fin, puis rend son code.
-	trap ':' INT TERM HUP
-	local code=0
-	"${chemin}" "${configuration[@]}" "$@" || code=$?
-	trap - INT TERM HUP
-	if ((code > 128 && code < 160)); then
-		achever_rapports "${chemin}" "Machin_${binaire}" "${configuration[@]}"
-	fi
-	exit "${code}"
+	executer_binaire "${binaire}" "${configuration[@]}" "$@"
 }
 
 principal "$@"

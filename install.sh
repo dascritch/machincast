@@ -50,14 +50,14 @@ FICHIER_SYSTEME="/etc/systemd/system.conf.d/50-machincast.conf"
 # Purge quotidienne de la base, installée avec le service (https://github.com/dascritch/machincast/issues/268) : les
 # mêmes noms dans machincast.installation.
 # Les tâches du service (https://github.com/dascritch/machincast/issues/455) : l'indexation rapide toutes les heures, et
-# la tâche quotidienne, la purge puis l'audit complet, à l'heure de schedule.daily ; les mêmes noms dans
-# machincast.service.
-UNITE_QUOTIDIENNE="machincast-daily.service"
-MINUTEUR_QUOTIDIEN="machincast-daily.timer"
+# tous les quarts d'heure, Machin tasks, qui lance la tâche quotidienne, la purge puis l'audit complet, à l'heure de
+# schedule.daily ; les mêmes noms dans machincast.service.
+UNITE_TACHES="machincast-tasks.service"
+MINUTEUR_TACHES="machincast-tasks.timer"
 UNITE_INDEXATION="machincast-indexing.service"
 MINUTEUR_INDEXATION="machincast-indexing.timer"
-FICHIER_UNITE_QUOTIDIENNE="/etc/systemd/system/${UNITE_QUOTIDIENNE}"
-FICHIER_MINUTEUR_QUOTIDIEN="/etc/systemd/system/machincast-daily.timer"
+FICHIER_UNITE_TACHES="/etc/systemd/system/${UNITE_TACHES}"
+FICHIER_MINUTEUR_TACHES="/etc/systemd/system/machincast-tasks.timer"
 FICHIER_UNITE_INDEXATION="/etc/systemd/system/${UNITE_INDEXATION}"
 FICHIER_MINUTEUR_INDEXATION="/etc/systemd/system/${MINUTEUR_INDEXATION}"
 # L'ancien minuteur de la purge, à midi (https://github.com/dascritch/machincast/issues/268) : la tâche quotidienne le
@@ -180,9 +180,10 @@ service. The sound files go in /home/machincast: those of the database in a pers
 are moved there, removed from the database, or left, not played, as chosen. A polkit rule lets it start, stop and
 restart with the password of an administrator, and asks for that password to power off, reboot or suspend the
 computer; its power, reboot and suspend keys, its lid and Ctrl+Alt+Del on the console are ignored. Two
-systemd timers run under %s: %s, the quick indexing every hour, and %s, the daily task,
-once a day from the hour set by schedule.daily (10:00 by default, also in the interface): Machin purge,
-which erases from the database what exceeds the expiry duration, then a full audit. Without --service,
+systemd timers run under %s: %s, the quick indexing every hour, and %s, Machin tasks every
+quarter of an hour, which runs the daily task once a day from the hour set by schedule.daily (10:00 by
+default, also in the interface): Machin purge, which erases from the database what exceeds the expiry
+duration, then a full audit. Without --service,
 none of this is installed: the broadcast, the indexing and the purge are launched by hand. A service
 installed before is checked: if it is not up to date for this version, the question is asked whether
 to update it.
@@ -208,7 +209,7 @@ Options:
   --leave-programs
                 lets them run during the installation, without asking
   -h, --help    this help
-' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${COMPTE_SERVICE}" "${UTILISATEUR}" "${COMPTE_SERVICE}" "${DOSSIER_DES_LOGS}" "${UTILISATEUR}" "${MINUTEUR_INDEXATION}" "${MINUTEUR_QUOTIDIEN}"
+' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${COMPTE_SERVICE}" "${UTILISATEUR}" "${COMPTE_SERVICE}" "${DOSSIER_DES_LOGS}" "${UTILISATEUR}" "${MINUTEUR_INDEXATION}" "${MINUTEUR_TACHES}"
 }
 
 # Les messages s'écrivent en anglais, en format de printf entre apostrophes, suivi de leurs valeurs : etape, info et
@@ -723,8 +724,8 @@ fichiers_du_service_perimes() {
 	done
 	# Les minuteurs ne se vérifient que s'ils sont installés : le choix de --no-timers tient
 	# (https://github.com/dascritch/machincast/issues/455).
-	if [[ -e "${FICHIER_MINUTEUR_QUOTIDIEN}" ]]; then
-		for paire in "daily-unit:${FICHIER_UNITE_QUOTIDIENNE}" "daily-timer:${FICHIER_MINUTEUR_QUOTIDIEN}" \
+	if [[ -e "${FICHIER_MINUTEUR_TACHES}" ]]; then
+		for paire in "tasks-unit:${FICHIER_UNITE_TACHES}" "tasks-timer:${FICHIER_MINUTEUR_TACHES}" \
 			"indexing-unit:${FICHIER_UNITE_INDEXATION}" "indexing-timer:${FICHIER_MINUTEUR_INDEXATION}"; do
 			fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
 		done
@@ -1047,7 +1048,7 @@ installer_service() {
 	fi
 	# Les tâches du service (https://github.com/dascritch/machincast/issues/455) : sans --service, une mise à jour garde
 	# les minuteurs s'ils sont installés, l'ancien de la purge compris, et n'en ajoute pas sinon.
-	if ! "${SERVICE}" && [[ ! -e "${FICHIER_MINUTEUR_QUOTIDIEN}" ]] && [[ ! -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]]; then
+	if ! "${SERVICE}" && [[ ! -e "${FICHIER_MINUTEUR_TACHES}" ]] && [[ ! -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]]; then
 		MINUTEURS=false
 	fi
 	retirer_ancienne_purge
@@ -1060,14 +1061,14 @@ installer_service() {
 }
 
 # Les minuteurs des tâches (https://github.com/dascritch/machincast/issues/455), sous le compte de MachinCast :
-# l'indexation rapide toutes les heures ; tous les quarts d'heure, la tâche quotidienne, qui ne passe que due, la purge
-# puis l'audit complet, à l'heure de schedule.daily.
+# l'indexation rapide toutes les heures ; tous les quarts d'heure, Machin tasks, qui lance ce qui est dû : la tâche
+# quotidienne, la purge puis l'audit complet, à l'heure de schedule.daily.
 installer_minuteurs() {
 	local changes=false
-	if installer_fichier daily-unit "${FICHIER_UNITE_QUOTIDIENNE}"; then
+	if installer_fichier tasks-unit "${FICHIER_UNITE_TACHES}"; then
 		changes=true
 	fi
-	if installer_fichier daily-timer "${FICHIER_MINUTEUR_QUOTIDIEN}"; then
+	if installer_fichier tasks-timer "${FICHIER_MINUTEUR_TACHES}"; then
 		changes=true
 	fi
 	if installer_fichier indexing-unit "${FICHIER_UNITE_INDEXATION}"; then
@@ -1079,20 +1080,20 @@ installer_minuteurs() {
 	if "${changes}"; then
 		executer sudo systemctl daemon-reload
 	fi
-	executer sudo systemctl enable --now "${MINUTEUR_QUOTIDIEN}" "${MINUTEUR_INDEXATION}"
+	executer sudo systemctl enable --now "${MINUTEUR_TACHES}" "${MINUTEUR_INDEXATION}"
 	info 'the tasks: journalctl --unit=%s --unit=%s; the hour of the daily task: schedule.daily' \
-		"${UNITE_INDEXATION}" "${UNITE_QUOTIDIENNE}"
+		"${UNITE_INDEXATION}" "${UNITE_TACHES}"
 }
 
 # Retire les minuteurs des tâches, s'ils sont installés : --no-timers, ou le retrait du service.
 retirer_minuteurs() {
 	local minuteur fichier retire=false
-	for minuteur in "${MINUTEUR_QUOTIDIEN}" "${MINUTEUR_INDEXATION}"; do
+	for minuteur in "${MINUTEUR_TACHES}" "${MINUTEUR_INDEXATION}"; do
 		if [[ -e "/etc/systemd/system/${minuteur}" ]]; then
 			executer sudo systemctl disable --now "${minuteur}"
 		fi
 	done
-	for fichier in "${FICHIER_MINUTEUR_QUOTIDIEN}" "${FICHIER_UNITE_QUOTIDIENNE}" "${FICHIER_MINUTEUR_INDEXATION}" \
+	for fichier in "${FICHIER_MINUTEUR_TACHES}" "${FICHIER_UNITE_TACHES}" "${FICHIER_MINUTEUR_INDEXATION}" \
 		"${FICHIER_UNITE_INDEXATION}"; do
 		if [[ -e "${fichier}" ]]; then
 			retirer_fichier "${fichier}" || true

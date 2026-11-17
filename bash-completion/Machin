@@ -45,7 +45,7 @@ _Machin() {
 		if [[ "${courant}" == -* ]]; then
 			mapfile -t COMPREPLY < <(compgen -W "-h --help --config --binaries" -- "${courant}")
 		else
-			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaries 2>/dev/null) logs dev dev-test dev-screenshots" \
+			mapfile -t COMPREPLY < <(compgen -W "$("${commande}" --binaries 2>/dev/null) logs tasks dev dev-test dev-screenshots" \
 				-- "${courant}")
 		fi
 		return 0

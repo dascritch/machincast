@@ -9,7 +9,7 @@
 	python -m machincast.installation tmpfiles, logrotate                      répertoires du service, rotation des logs
 	python -m machincast.installation rule        --config machincast.toml   règle polkit qui le pilote, et protège le poste
 	python -m machincast.installation logind, system-conf                      touches d'alimentation, Ctrl+Alt+Suppr
-	python -m machincast.installation daily-unit, daily-timer                 tâche quotidienne : purge, audit complet
+	python -m machincast.installation tasks-unit, tasks-timer                 tâches régulières : Machin tasks
 	python -m machincast.installation indexing-unit, indexing-timer           indexation rapide, toutes les heures
 	python -m machincast.installation shortcut    --config machincast.toml   raccourci de l'interface (.desktop)
 	python -m machincast.installation devices     --config machincast.toml   périphériques de sortie du poste
@@ -56,16 +56,17 @@ from machincast.configuration import PROJECT_DIRECTORY, Audio, AudioOutput, Conf
 from machincast.database import apply_migrations, url_yoyo  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.indexer.indexer import ONGOING_CODE  # noqa: E402
-from machincast.service import DAILY_UNIT, INDEXING_UNIT, UNIT  # noqa: E402
+from machincast.service import INDEXING_UNIT, TASKS_UNIT, UNIT  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
 DESCRIPTION = _("MachinCast installation steps, called by install.sh.")
 FAILURE_CODE = 1
-DAILY_STATE = "machincast-tasks"
-"""Le répertoire d'état de la tâche quotidienne, /var/lib/machincast-tasks, que systemd crée au compte de MachinCast :
-machincast.schedule y note son dernier passage."""
-DAILY_CHECK = "*:0/15"
-"""Tous les quarts d'heure, la tâche quotidienne est proposée ; elle ne passe que due (machincast.schedule)."""
+TASKS_STATE = "machincast-tasks"
+"""Le répertoire d'état des tâches régulières, /var/lib/machincast-tasks, que systemd crée au compte de MachinCast :
+machincast.schedule y note le dernier passage de la tâche quotidienne."""
+TASKS_CHECK = "*:0/15"
+"""Tous les quarts d'heure, Machin tasks lance ce qui est dû : la tâche quotidienne ne passe que due
+(machincast.schedule). Changer cette périodicité ne change pas les tâches."""
 
 # Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
 log = logging.getLogger("machincast.installation")
@@ -541,17 +542,19 @@ def wireplumber_desktop(audio: Audio) -> str:
 	)
 
 
-def daily_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
-	"""L'unité de la tâche quotidienne (https://github.com/dascritch/machincast/issues/455), sous le compte de
-	MachinCast, propriétaire de la base : machincast.schedule la réserve, si elle est due (ExecCondition : sinon,
-	l'unité est sautée sans échec) ; puis Machin purge et l'audit complet, l'un après l'autre. Le code 3 de l'indexeur,
-	un audit déjà en cours, n'est pas un échec. Son minuteur la lance ; elle n'a pas de section Install."""
-	return f"""# MachinCast daily tasks (https://github.com/dascritch/machincast/issues/455).
-# Installed by install.sh --service; do not edit here, run install.sh --service again. The hour is set by
-# schedule.daily in machincast.toml, or in the interface: this unit does not change.
+def tasks_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
+	"""L'unité des tâches régulières (https://github.com/dascritch/machincast/issues/455), sous le compte de MachinCast,
+	propriétaire de la base : elle lance Machin tasks, qui fait ce qui est dû, aujourd'hui la tâche quotidienne (purge
+	puis audit complet). Ce que fait chaque passage est dans le wrapper : ses tâches peuvent changer sans toucher à
+	l'unité. Son répertoire d'état garde le dernier passage de chaque tâche. Son minuteur la lance ; elle n'a pas de
+	section Install."""
+	return f"""# MachinCast regular tasks (https://github.com/dascritch/machincast/issues/455).
+# Installed by install.sh --service; do not edit here, run install.sh --service again. The tasks are those of
+# Machin tasks; the hour of the daily tasks is set by schedule.daily in machincast.toml, or in the interface: this
+# unit does not change.
 
 [Unit]
-Description=MachinCast: daily tasks (Machin purge, then a full audit)
+Description=MachinCast: regular tasks (Machin tasks)
 After=postgresql.service
 
 [Service]
@@ -559,26 +562,23 @@ Type=oneshot
 User={account.name}
 Group={account.group}
 WorkingDirectory={directory}
-StateDirectory={DAILY_STATE}
-ExecCondition={directory}/.venv/bin/python -m machincast.schedule claim
-ExecStart={directory}/bin/Machin purge
-ExecStart={directory}/bin/Machin indexer --full-audit
-SuccessExitStatus={ONGOING_CODE}
-SyslogIdentifier=machincast-daily
+StateDirectory={TASKS_STATE}
+ExecStart={directory}/bin/Machin tasks
+SyslogIdentifier=machincast-tasks
 """
 
 
-def daily_timer() -> str:
-	"""Le minuteur de la tâche quotidienne : tous les quarts d'heure ; l'unité ne passe qu'une fois par jour, due."""
-	return f"""# MachinCast daily tasks, checked every quarter of an hour (https://github.com/dascritch/machincast/issues/455).
+def tasks_timer() -> str:
+	"""Le minuteur des tâches régulières : tous les quarts d'heure ; chaque tâche ne passe que quand elle est due."""
+	return f"""# MachinCast regular tasks, every quarter of an hour (https://github.com/dascritch/machincast/issues/455).
 # Installed by install.sh --service; do not edit here, run install.sh --service again.
 
 [Unit]
-Description=MachinCast: daily tasks, checked every quarter of an hour
+Description=MachinCast: regular tasks, every quarter of an hour
 
 [Timer]
-OnCalendar={DAILY_CHECK}
-Unit={DAILY_UNIT}
+OnCalendar={TASKS_CHECK}
+Unit={TASKS_UNIT}
 
 [Install]
 WantedBy=timers.target
@@ -767,13 +767,13 @@ def _wireplumber_desktop(configuration: Configuration) -> int:
 	return 0
 
 
-def _daily_unit(_configuration: Configuration) -> int:
-	sys.stdout.write(daily_unit(Account.current()))
+def _tasks_unit(_configuration: Configuration) -> int:
+	sys.stdout.write(tasks_unit(Account.current()))
 	return 0
 
 
-def _daily_timer(_configuration: Configuration) -> int:
-	sys.stdout.write(daily_timer())
+def _tasks_timer(_configuration: Configuration) -> int:
+	sys.stdout.write(tasks_timer())
 	return 0
 
 
@@ -901,8 +901,8 @@ def _forget_personal_sounds(configuration: Configuration) -> int:
 
 ACTIONS = {
 	"check": _check,
-	"daily-timer": _daily_timer,
-	"daily-unit": _daily_unit,
+	"tasks-timer": _tasks_timer,
+	"tasks-unit": _tasks_unit,
 	"databases": _databases,
 	"devices": _devices,
 	"indexing-timer": _indexing_timer,

@@ -8,6 +8,9 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 - Script bash [`bin/Machin`](../../../bin/Machin) : `Machin <binaire> [options]` appelle `Machin_<binaire>`, options et code de sortie transmis intacts.
 	Pas par `exec` ([#413](https://github.com/dascritch/machincast/issues/413)) : le wrapper attend la fin du binaire, `INT`, `TERM` et `HUP` neutralisés pour lui seul (le binaire les reçoit par le groupe du terminal ou le cgroup du service), et, si le binaire meurt d'un signal (code 129 à 159), fait achever ses rapports de crash en cours par `python -m machincast.crash` (`achever_rapports`), avec le Python du venv du binaire, sinon celui de sa ligne `#!`.
 - Options génériques : aide minimale (`-h`), aide complète (`--help`), choix du fichier de configuration (`--config`), suivi en direct des logs du binaire lecture (`Machin logs`), liste des binaires (`--binaries`).
+- Tâches régulières ([#455](https://github.com/dascritch/machincast/issues/455)) : `Machin tasks` (`lancer_taches`) lance chaque tâche due, l'une après l'autre ; c'est la seule commande du minuteur `machincast-tasks.timer`, tous les quarts d'heure.
+	Une nouvelle tâche est une fonction appelée par `lancer_taches`, qui ne fait rien tant qu'elle n'est pas due : ni l'unité ni le minuteur ne changent.
+	Les binaires s'y lancent par `lancer_binaire`, qui rend leur code au lieu de sortir.
 - Développement ([#77](https://github.com/dascritch/machincast/issues/77)) : `Machin dev` (sous-shell, venv activé) et `Machin dev-test` (toutes les vérifications, avec un bilan).
 	`Machin dev-test --coverage`, avant `--scenarios` s'il y en a ([#438](https://github.com/dascritch/machincast/issues/438)), lance `pytest` par `coverage run -m pytest` puis ajoute au bilan `coverage combine` et `coverage report`.
 	La liste des outils de `dev-test` est celle de la section « Qualité » et des tests de `CLAUDE.md` : la changer d'un côté, c'est la changer de l'autre.

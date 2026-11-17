@@ -2,8 +2,9 @@
 
 	python -m machincast.schedule claim --config machincast.toml
 
-install.sh --service installe un minuteur systemd fixe, qui se déclenche tous les quarts d'heure ; son unité ne lance
-la tâche quotidienne (Machin purge, puis Machin indexer --full-audit) que si `claim` la réserve, par ExecCondition :
+install.sh --service installe un minuteur systemd fixe, machincast-tasks.timer, qui lance Machin tasks tous les
+quarts d'heure ; le wrapper ne lance la tâche quotidienne (Machin purge, puis Machin indexer --full-audit) que si
+`claim` la réserve :
 
 - elle est due quand l'heure réglée (schedule.daily, 10:00 par défaut) de sa dernière occurrence passée n'a pas encore
   été servie : une fois par jour, à partir de cette heure ; une tâche manquée, poste éteint, passe au quart d'heure qui
@@ -12,7 +13,7 @@ la tâche quotidienne (Machin purge, puis Machin indexer --full-audit) que si `c
   l'unité) avant la tâche : une tâche en échec n'est pas relancée tous les quarts d'heure, son échec est dans le
   journal et dans le log de la base (machincast.runs).
 
-L'heure se règle dans machincast.toml, depuis l'interface (Fichier → Paramètres du service…, page Base) ou par un outil
+L'heure se règle dans machincast.toml, depuis l'interface (Fichier → Paramètres du service…, page Tâches) ou par un outil
 de déploiement, sans droit d'administrateur : le minuteur ne change pas. Codes de sortie : 0, tâche due et réservée ;
 1, pas encore due ; 2, configuration invalide ou répertoire d'état absent.
 """
