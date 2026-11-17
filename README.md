@@ -17,9 +17,48 @@ MachinCast speaks English and French, following the language of the session: its
 
 ![Screenshot of the MachinCast control interface](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)
 
+## Features
+
+- Management of an hourly schedule
+- Management of special editions and prioritization of shows
+- Management of the number of rotations and of the broadcast periods of sounds
+- Relay of an external stream, with incident and back-to-live scenarios
+- Detection of the start and end of a sound
+- Crossfade, set globally and per sound
+- Sound banks played sequentially or in fair random order, with an option against back-to-back plays
+- Preview of the live feed, of programmes and of sounds
+- Graphical interface independent of the on-air playout service
+- Audit of the sounds
+- Dead air management, with fallback to a backup programme
+- Immutable audio files, real-time processing
+
+### Coming next
+
+- Sending sound and show names to external services
+- Playing out a stream pilot
+- Automated mixing of a pre-recorded show made of segments
+- Audio sources input through a sound card
+- Metadata mixing
+- Remote recording in MP3, Ogg, M4A, DASH and HLS
+
+## Use cases
+
+- On-air continuity in the master control room
+- Feeding the audio input of a transmitter from a stream, with a backup
+- Producing an event streaming radio
+- Inserting local programmes and advertising slots into a syndicated network
+- Sound system of a venue open to the public
+
 ## Recommended setup
 
 A graphical Linux system, with the PipeWire sound server, ideally Debian or Ubuntu LTS, and two separate sound outputs, one of them a <q>good quality</q> one, for the feed to the station's final control room or its master control.
+
+Technical requirements:
+
+- a dedicated machine, with the playout service installed in production mode ([INSTALL.md](INSTALL.md#playout-service));
+- a processor of 1 GHz at least;
+- 2 GB of RAM;
+- 50 GB of disk space for the sounds.
 
 ## Background
 
