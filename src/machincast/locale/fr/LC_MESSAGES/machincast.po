@@ -336,6 +336,15 @@ msgstr ""
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid ""
+"key {section}.{key}: web address expected, starting with http:// or "
+"https://, “{address}” found"
+msgstr ""
+"clé {section}.{key} : adresse web attendue, qui commence par http:// ou "
+"https://, « {address} » trouvé"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid "key interface.icon: SVG, PNG or JPEG image expected, “{name}” found"
 msgstr ""
 "clé interface.icon : image SVG, PNG ou JPEG attendue, « {name} » trouvé"
@@ -2920,6 +2929,14 @@ msgid "Application icon"
 msgstr "Icône de l'application"
 
 #: machincast/interface/dialogs.py
+msgid "Your installation document"
+msgstr "Document de votre installation"
+
+#: machincast/interface/dialogs.py
+msgid "Markdown documents (*.md);;All files (*)"
+msgstr "Documents Markdown (*.md);;Tous les fichiers (*)"
+
+#: machincast/interface/dialogs.py
 msgid "Code"
 msgstr "Code"
 
@@ -3800,6 +3817,34 @@ msgstr ""
 msgid "Status unreadable: {error}"
 msgstr "Statut illisible : {error}"
 
+#: machincast/interface/installation_notes.py
+msgid "Your installation…"
+msgstr "Votre installation…"
+
+#: machincast/interface/installation_notes.py
+msgid "Team link…"
+msgstr "Lien de l'équipe…"
+
+#: machincast/interface/installation_notes.py
+msgid "Address to give in File → Interface preferences…, Interface page."
+msgstr ""
+"Adresse à donner dans Fichier → Préférences de l'interface…, page Interface."
+
+#: machincast/interface/installation_notes.py
+#, python-brace-format
+msgid "Your installation: {path}."
+msgstr "Votre installation : {path}."
+
+#: machincast/interface/installation_notes.py
+#, python-brace-format
+msgid "Your installation: {path}, created from the template."
+msgstr "Votre installation : {path}, créé depuis le modèle."
+
+#: machincast/interface/installation_notes.py
+#, python-brace-format
+msgid "Your installation: {path} not created: {error}."
+msgstr "Votre installation : {path} non créé : {error}."
+
 #: machincast/interface/interruption.py
 msgid "Nothing on air"
 msgstr "Rien à l'antenne"
@@ -4474,6 +4519,10 @@ msgstr "Où copier machincast.toml"
 #: machincast/interface/preferences.py
 msgid "Crossfades and silences"
 msgstr "Crossfades et silences"
+
+#: machincast/interface/preferences.py
+msgid "A web address, starting with http:// or https://"
+msgstr "Une adresse web, qui commence par http:// ou https://"
 
 #: machincast/interface/preferences.py
 #, python-brace-format
@@ -5882,6 +5931,37 @@ msgstr "rôles {list} endossables par le compte"
 msgid "backup impossible: {error}; maintenance stopped, nothing was changed"
 msgstr ""
 "sauvegarde impossible : {error} ; maintenance arrêtée, rien n'a été modifié"
+
+#: machincast/notes.py
+msgid ""
+"Creates the “Your installation” document from its template, if it does not "
+"exist."
+msgstr ""
+"Crée le document « Votre installation » depuis son modèle, s'il n'existe "
+"pas."
+
+#: machincast/notes.py
+msgid "Your MachinCast installation.md"
+msgstr "Votre installation MachinCast.md"
+
+#: machincast/notes.py
+msgid "create the document if it does not exist"
+msgstr "créer le document s'il n'existe pas"
+
+#: machincast/notes.py
+#, python-brace-format
+msgid "installation document already there: {path}"
+msgstr "document de l'installation déjà là : {path}"
+
+#: machincast/notes.py
+#, python-brace-format
+msgid "installation document created from its template: {path}"
+msgstr "document de l'installation créé depuis son modèle : {path}"
+
+#: machincast/notes.py
+#, python-brace-format
+msgid "installation document not created: {path}: {error}"
+msgstr "document de l'installation non créé : {path} : {error}"
 
 #: machincast/personal.py
 #, python-brace-format
@@ -7548,6 +7628,32 @@ msgid "Go back to the MachinCast icon"
 msgstr "Revenir à l'icône de MachinCast"
 
 #: machincast/interface/ui/preferences.ui
+msgid "Your installation"
+msgstr "Votre installation"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Document"
+msgstr "&Document"
+
+#: machincast/interface/ui/preferences.ui
+msgid "Choose the document…"
+msgstr "Choisir le document…"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Team link"
+msgstr "&Lien de l'équipe"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"Help → Your installation… opens this editable document, created from a "
+"template if it is missing; empty, the one on the desktop. Help → Team link… "
+"opens this address in the web browser: a local cloud, a Gitlab, a Jira…"
+msgstr ""
+"Aide → Votre installation… ouvre ce document éditable, créé depuis un "
+"modèle s'il manque ; vide, celui du Bureau. Aide → Lien de l'équipe… ouvre "
+"cette adresse dans le navigateur web : un cloud local, un Gitlab, un Jira…"
+
+#: machincast/interface/ui/preferences.ui
 msgid "Audio"
 msgstr "Audio"
 
@@ -8473,7 +8579,10 @@ msgid ""
 "wanted,\n"
 "     on the desktop: the question is asked, except with --desktop or "
 "--no-desktop; MachinCast\n"
-"     icon in the icon theme, for the sound settings of the computer.\n"
+"     icon in the icon theme, for the sound settings of the computer; the "
+"editable document « Your\n"
+"     installation », on the desktop, from its template, never over an "
+"existing one.\n"
 "With --dev, also the tools of the development computer: %s (apt) and the\n"
 "test dependencies (pip, extra [dev]), for Machin dev and Machin dev-test.\n"
 "With --service, also the broadcast service %s, only for a computer "
@@ -8587,7 +8696,10 @@ msgstr ""
 "le veut,\n"
 "     sur son bureau : la question est posée, sauf avec --desktop ou "
 "--no-desktop ; icône de\n"
-"     MachinCast dans son thème d'icônes, pour le réglage du son du poste.\n"
+"     MachinCast dans son thème d'icônes, pour le réglage du son du poste ; "
+"le document éditable\n"
+"     « Votre installation », sur le bureau, depuis son modèle, jamais "
+"par-dessus un document existant.\n"
 "Avec --dev, aussi les outils du poste de développement : %s (apt) et les\n"
 "dépendances de test (pip, extra [dev]), pour Machin dev et Machin "
 "dev-test.\n"
@@ -8979,6 +9091,14 @@ msgstr "Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] "
 #: install.sh
 msgid "Shortcut of the interface"
 msgstr "Raccourci de l'interface"
+
+#: install.sh
+msgid ""
+"installation document not created: Help → Your installation… in the "
+"interface creates it"
+msgstr ""
+"document de l'installation non créé : Aide → Votre installation… dans "
+"l'interface le crée"
 
 #: install.sh
 msgid "no desktop folder for %s: shortcut in the applications menu only"

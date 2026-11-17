@@ -174,7 +174,8 @@ which a first installation stops, and an update goes on without updating the pac
   7. check of the GStreamer version and plugins, and of the audio output;
   8. shortcut of the interface in the applications menu of %s, and, if wanted,
      on the desktop: the question is asked, except with --desktop or --no-desktop; MachinCast
-     icon in the icon theme, for the sound settings of the computer.
+     icon in the icon theme, for the sound settings of the computer; the editable document « Your
+     installation », on the desktop, from its template, never over an existing one.
 With --dev, also the tools of the development computer: %s (apt) and the
 test dependencies (pip, extra [dev]), for Machin dev and Machin dev-test.
 With --service, also the broadcast service %s, only for a computer dedicated to the
@@ -698,6 +699,10 @@ installer_raccourci() {
 	etape 'Shortcut of the interface'
 	installer_raccourci_en "${DOSSIER_APPLICATIONS}/${RACCOURCI}" 644 || true
 	installer_icone "${ICONE_DU_THEME}"
+	# Le document de l'équipe, « Votre installation », sur le Bureau ou à l'emplacement de interface.notes, depuis son
+	# modèle ; jamais par-dessus un document qui existe (https://github.com/dascritch/machincast/issues/451).
+	executer "${VENV}/bin/python" -m machincast.notes create --config "${CONFIGURATION}" ||
+		avertissement 'installation document not created: Help → Your installation… in the interface creates it'
 	local bureau
 	bureau="$(dossier_du_bureau)"
 	if [[ -z "${bureau}" ]]; then

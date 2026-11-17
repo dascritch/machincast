@@ -488,3 +488,21 @@ def backup_directory(context: Context, directory: str) -> None:
 	assert context.configuration is not None, context.error
 	expected = Path(directory.replace("<configuration>", str(context.configuration.path.parent))).expanduser()
 	assert context.configuration.backup.directory == expected
+
+
+@then(parsers.re(r"l'interface a (?:le document « (?P<notes>[^»]+) »|le lien de l'équipe « (?P<link>[^»]+) »)"))
+def interface_notes(context: Context, notes: str | None, link: str | None) -> None:
+	"""https://github.com/dascritch/machincast/issues/451"""
+	assert context.configuration is not None, context.error
+	interface = context.configuration.interface
+	if notes is not None:
+		expected = Path(notes.replace("<configuration>", str(context.configuration.path.parent)))
+		assert interface.notes == expected
+	if link is not None:
+		assert interface.team_link == link
+
+
+@then("l'interface n'a ni document réglé ni lien de l'équipe")
+def without_notes(context: Context) -> None:
+	assert context.configuration is not None, context.error
+	assert (context.configuration.interface.notes, context.configuration.interface.team_link) == (None, None)

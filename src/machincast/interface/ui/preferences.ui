@@ -381,6 +381,66 @@
          </layout>
         </widget>
        </item>
+       <item>
+        <widget class="QGroupBox" name="installation_group">
+         <property name="title">
+          <string>Your installation</string>
+         </property>
+         <layout class="QFormLayout" name="installation_form">
+          <item row="0" column="0">
+           <widget class="QLabel" name="notes_caption">
+            <property name="text">
+             <string>&amp;Document</string>
+            </property>
+            <property name="buddy">
+             <cstring>notes</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <layout class="QHBoxLayout" name="notes_layout">
+            <item>
+             <widget class="QLineEdit" name="notes"/>
+            </item>
+            <item>
+             <widget class="QPushButton" name="choose_notes">
+              <property name="text">
+               <string>Choose the document…</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="team_link_caption">
+            <property name="text">
+             <string>&amp;Team link</string>
+            </property>
+            <property name="buddy">
+             <cstring>team_link</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="team_link">
+            <property name="placeholderText">
+             <string notr="true">https://…</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QLabel" name="installation_explanation">
+            <property name="text">
+             <string>Help → Your installation… opens this editable document, created from a template if it is missing; empty, the one on the desktop. Help → Team link… opens this address in the web browser: a local cloud, a Gitlab, a Jira…</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="page_audio">

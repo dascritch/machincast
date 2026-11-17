@@ -80,6 +80,7 @@ from machincast.interface import (
 	icons,
 	indexer,
 	indexing_status,
+	installation_notes,
 	interruption,
 	preferences,
 	service_access,
@@ -483,12 +484,29 @@ class MainWindow(QMainWindow):
 		self.broadcast.reread_grant_read()
 		help_ = self.menuBar().addMenu(_("&Help"))
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
+		# Le document de l'équipe et son lien (https://github.com/dascritch/machincast/issues/451).
+		help_.addAction(installation_notes.NOTES).triggered.connect(self._open_notes)
+		self.team_link = help_.addAction(installation_notes.TEAM_LINK)
+		self.team_link.triggered.connect(lambda: installation_notes.open_team_link(self.configuration))
+		self._show_team_link()
 		help_.addAction(_("Report a problem…")).triggered.connect(lambda: dialogs.open_page(TICKETS))
 		help_.addAction(_("Version")).triggered.connect(
 			lambda: dialogs.show_version(self, version.text(), version.of_the_version())
 		)
 		for menu in (file, display_menu, self.tabs_menu, self.broadcast_menu, maintenance, help_):
 			menu.setToolTipsVisible(True)
+
+	def _open_notes(self) -> None:
+		self.statusBar().showMessage(installation_notes.open_notes(self.configuration))
+
+	def _show_team_link(self) -> None:
+		"""« Lien de l'équipe… » est inactive sans adresse, et son infobulle dit où la donner."""
+		active = installation_notes.settings(self.configuration).team_link is not None
+		self.team_link.setEnabled(active)
+		tooltip = ""
+		if not active:
+			tooltip = installation_notes.WITHOUT_TEAM_LINK
+		self.team_link.setToolTip(tooltip)
 
 	def _show_news(self) -> None:
 		"""Une seule fois par version, et par compte : la version vue est retenue dans les réglages des vues."""
@@ -1078,6 +1096,8 @@ class MainWindow(QMainWindow):
 			table_rows=preferences.table_rows(),
 			daily=self.daily,
 			backup_directory=control.maintenance_backups(self.configuration),
+			notes=installation_notes.settings(self.configuration).notes,
+			team_link=installation_notes.settings(self.configuration).team_link,
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
@@ -1116,6 +1136,7 @@ class MainWindow(QMainWindow):
 		audio = self.audio
 		preferences.define(settings.crossfades)
 		preferences.define_retention(settings.retention)
+		self._show_team_link()
 		preferences.define_table_rows(settings.table_rows)
 		self.daily = settings.daily
 		new_threshold = settings.silence_threshold != self.silence_threshold

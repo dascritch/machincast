@@ -257,6 +257,50 @@ class Ui_PreferencesWindow(object):
 
         self.interface_layout.addWidget(self.icon_group)
 
+        self.installation_group = QGroupBox(self.page_interface)
+        self.installation_group.setObjectName(u"installation_group")
+        self.installation_form = QFormLayout(self.installation_group)
+        self.installation_form.setObjectName(u"installation_form")
+        self.notes_caption = QLabel(self.installation_group)
+        self.notes_caption.setObjectName(u"notes_caption")
+
+        self.installation_form.setWidget(0, QFormLayout.ItemRole.LabelRole, self.notes_caption)
+
+        self.notes_layout = QHBoxLayout()
+        self.notes_layout.setObjectName(u"notes_layout")
+        self.notes = QLineEdit(self.installation_group)
+        self.notes.setObjectName(u"notes")
+
+        self.notes_layout.addWidget(self.notes)
+
+        self.choose_notes = QPushButton(self.installation_group)
+        self.choose_notes.setObjectName(u"choose_notes")
+
+        self.notes_layout.addWidget(self.choose_notes)
+
+
+        self.installation_form.setLayout(0, QFormLayout.ItemRole.FieldRole, self.notes_layout)
+
+        self.team_link_caption = QLabel(self.installation_group)
+        self.team_link_caption.setObjectName(u"team_link_caption")
+
+        self.installation_form.setWidget(1, QFormLayout.ItemRole.LabelRole, self.team_link_caption)
+
+        self.team_link = QLineEdit(self.installation_group)
+        self.team_link.setObjectName(u"team_link")
+        self.team_link.setPlaceholderText(u"https://\u2026")
+
+        self.installation_form.setWidget(1, QFormLayout.ItemRole.FieldRole, self.team_link)
+
+        self.installation_explanation = QLabel(self.installation_group)
+        self.installation_explanation.setObjectName(u"installation_explanation")
+        self.installation_explanation.setWordWrap(True)
+
+        self.installation_form.setWidget(2, QFormLayout.ItemRole.SpanningRole, self.installation_explanation)
+
+
+        self.interface_layout.addWidget(self.installation_group)
+
         self.pages.addTab(self.page_interface, "")
         self.page_audio = QWidget()
         self.page_audio.setObjectName(u"page_audio")
@@ -482,6 +526,8 @@ class Ui_PreferencesWindow(object):
         self.output_position_caption.setBuddy(self.output_position)
         self.silence_threshold_caption.setBuddy(self.silence_threshold)
         self.table_rows_caption.setBuddy(self.table_rows)
+        self.notes_caption.setBuddy(self.notes)
+        self.team_link_caption.setBuddy(self.team_link)
         self.dead_air_duration_caption.setBuddy(self.dead_air_duration)
         self.dead_air_threshold_caption.setBuddy(self.dead_air_threshold)
         self.retention_caption.setBuddy(self.retention)
@@ -555,6 +601,11 @@ class Ui_PreferencesWindow(object):
 #if QT_CONFIG(tooltip)
         self.default_icon.setToolTip(QCoreApplication.translate("PreferencesWindow", u"Go back to the MachinCast icon", None))
 #endif // QT_CONFIG(tooltip)
+        self.installation_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Your installation", None))
+        self.notes_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Document", None))
+        self.choose_notes.setText(QCoreApplication.translate("PreferencesWindow", u"Choose the document\u2026", None))
+        self.team_link_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Team link", None))
+        self.installation_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Help \u2192 Your installation\u2026 opens this editable document, created from a template if it is missing; empty, the one on the desktop. Help \u2192 Team link\u2026 opens this address in the web browser: a local cloud, a Gitlab, a Jira\u2026", None))
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("PreferencesWindow", u"Interface", None))
         self.device_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Sound cards", None))
         self.audio_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Machin player takes the output type and the on-air card at its next start; without an on-air card, it refuses to broadcast. The pre-listen can never use the on-air card: each one is greyed out in the other choice. \u201cTest\u201d plays 2 seconds of test sound on the card of its line.", None))

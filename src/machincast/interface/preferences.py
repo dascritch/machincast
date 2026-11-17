@@ -41,6 +41,7 @@ from PySide6.QtCore import QLocale, QTime
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
+from machincast import notes as notes_module
 from machincast import service as service_module
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import (
@@ -142,6 +143,11 @@ class Settings:
 	"""schedule.daily : l'heure de la tâche quotidienne, purge puis audit complet
 	(https://github.com/dascritch/machincast/issues/455)."""
 	backup_directory: Path = dataclasses.field(default_factory=Path.home)
+	notes: Path | None = None
+	"""interface.notes : le document « Votre installation » ; None : celui du Bureau
+	(https://github.com/dascritch/machincast/issues/451)."""
+	team_link: str | None = None
+	"""interface.team_link : l'adresse web de l'équipe ; None : aucune."""
 	"""backup.directory : où l'export et la maintenance écrivent leur sauvegarde
 	(https://github.com/dascritch/machincast/issues/347)."""
 
@@ -275,6 +281,30 @@ def copy_configuration(configuration: Path, directory: Path) -> Path:
 	return copy
 
 
+def _write_interface(document: tomlkit.TOMLDocument, settings: Settings) -> None:
+	"""La section [interface] : voyant, suggestions, lignes des tableaux, icône, document et lien de l'équipe."""
+	if "interface" not in document:
+		document.add("interface", tomlkit.table())
+	section_interface = document["interface"]
+	assert isinstance(section_interface, tomlkit.items.Table)
+	section_interface["clipping"] = settings.clipping
+	section_interface["suggestions"] = settings.suggestions
+	# Le nombre par défaut ne s'écrit pas dans une section qui ne le donne pas.
+	if ("table_rows" in section_interface) or (settings.table_rows != TABLE_ROWS):
+		section_interface["table_rows"] = settings.table_rows
+	if settings.icon is not None:
+		section_interface["icon"] = str(settings.icon)
+	else:
+		if "icon" in section_interface:
+			del section_interface["icon"]
+	# Le document et le lien de l'équipe (https://github.com/dascritch/machincast/issues/451) : retirés sans valeur.
+	for key, value in (("notes", settings.notes), ("team_link", settings.team_link)):
+		if value is not None:
+			section_interface[key] = str(value)
+		if (value is None) and (key in section_interface):
+			del section_interface[key]
+
+
 def write(path: Path, settings: Settings) -> None:
 	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [dead_air], [interface] et [database] du
 	fichier de configuration, sous leurs noms anglais (https://github.com/dascritch/machincast/issues/357) ; le reste du
@@ -319,20 +349,7 @@ def write(path: Path, settings: Settings) -> None:
 	dead_air["duration"] = _seconds(settings.dead_air.duration)
 	dead_air["threshold"] = _count(settings.dead_air.threshold)
 	dead_air["fallback"] = settings.dead_air.fallback
-	if "interface" not in document:
-		document.add("interface", tomlkit.table())
-	section_interface = document["interface"]
-	assert isinstance(section_interface, tomlkit.items.Table)
-	section_interface["clipping"] = settings.clipping
-	section_interface["suggestions"] = settings.suggestions
-	# Le nombre par défaut ne s'écrit pas dans une section qui ne le donne pas.
-	if ("table_rows" in section_interface) or (settings.table_rows != TABLE_ROWS):
-		section_interface["table_rows"] = settings.table_rows
-	if settings.icon is not None:
-		section_interface["icon"] = str(settings.icon)
-	else:
-		if "icon" in section_interface:
-			del section_interface["icon"]
+	_write_interface(document, settings)
 	path.write_text(tomlkit.dumps(document), encoding="utf-8")
 
 
@@ -402,6 +419,7 @@ class PreferencesWindow(QDialog):
 		ui.copy_configuration.clicked.connect(self._copy_configuration)
 		ui.copy_configuration.setEnabled(configuration is not None)
 		ui.copy_result.setVisible(False)
+		self._show_notes(all_)
 		ui.clipping.setChecked(all_.clipping)
 		ui.suggestions.setChecked(all_.suggestions)
 		ui.table_rows.setMinimum(MINIMUM_TABLE_ROWS)
@@ -442,6 +460,33 @@ class PreferencesWindow(QDialog):
 		ui.daily.setEnabled(timers)
 		ui.timers_missing.setText(TIMERS_MISSING)
 		ui.timers_missing.setHidden(timers)
+
+	def _show_notes(self, all_: Settings) -> None:
+		"""Le document de l'installation, vide pour celui du Bureau, que montre l'indication du champ ; le lien de
+		l'équipe, qui doit être une adresse web pour que « OK » serve (https://github.com/dascritch/machincast/issues/451)."""
+		ui = self.ui
+		text = ""
+		if all_.notes is not None:
+			text = str(all_.notes)
+		ui.notes.setText(text)
+		ui.notes.setPlaceholderText(str(notes_module.document(None)))
+		ui.team_link.setText((all_.team_link) or (""))
+		ui.choose_notes.clicked.connect(self._choose_notes)
+		ui.team_link.textChanged.connect(self._exclude)
+
+	def _choose_notes(self) -> None:
+		from machincast.interface import dialogs
+
+		field = self.ui.notes
+		chosen = dialogs.choose_document(self, (field.text()) or (field.placeholderText()))
+		if chosen is not None:
+			field.setText(str(chosen))
+
+	def _team_link(self) -> str | None:
+		text = self.ui.team_link.text().strip()
+		if text == "":
+			return None
+		return text
 
 	def _choose_backup_directory(self) -> None:
 		"""Le répertoire des sauvegardes, choisi dans le sélecteur, ouvert sur celui saisi ; abandonné, rien ne change."""
@@ -578,7 +623,13 @@ class PreferencesWindow(QDialog):
 	def _exclude(self) -> None:
 		"""« OK » ne donne jamais la même carte à l'antenne et à la pré-écoute (SoundCards grise chacune dans l'autre
 		choix)."""
-		self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.cards.valid())
+		link = self.ui.team_link.text().strip()
+		link_valid = (link == "") or (link.startswith(("http://", "https://")))
+		ok = self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok)
+		ok.setEnabled((self.cards.valid()) and (link_valid))
+		self.ui.team_link.setToolTip("")
+		if not link_valid:
+			self.ui.team_link.setToolTip(_("A web address, starting with http:// or https://"))
 
 	def settings(self) -> Settings:
 		"""Les réglages tels que la fenêtre les montre : crossfades, cartes son, seuil de silence et positions des fondus."""
@@ -611,4 +662,12 @@ class PreferencesWindow(QDialog):
 			ui.table_rows.value(),
 			time(ui.daily.time().hour(), ui.daily.time().minute()),
 			Path(ui.backup_directory.text().strip()).expanduser(),
+			self._notes(),
+			self._team_link(),
 		)
+
+	def _notes(self) -> Path | None:
+		text = self.ui.notes.text().strip()
+		if text == "":
+			return None
+		return Path(text).expanduser()
