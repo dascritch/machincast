@@ -25,16 +25,18 @@ Fonctionnalité: Onglets ouverts à la demande
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Et aucun onglet n'a de bouton de fermeture
 		Et le menu « Affichage » a les entrées :
-			| entrée                          | état   | raccourci | infobulle |
-			| Rechercher…                     | active | Ctrl+F    |           |
-			| Ouvrir l'onglet Sonores         | active |           |           |
-			| Ouvrir l'onglet Feeds           | active |           |           |
-			| Ouvrir l'onglet Grille horaire  | active |           |           |
-			| Ouvrir l'onglet Simulation      | active |           |           |
-			| Ouvrir l'onglet Airplay         | active |           |           |
-			| Pré-écoute…                     | active |           |           |
-			| —                               |        |           |           |
-			| Rafraîchir les onglets          | active | F5        |           |
+			| entrée                         | état     | raccourci    | infobulle |
+			| Rechercher…                    | active   | Ctrl+F       |           |
+			| Ouvrir l'onglet Sonores        | active   |              |           |
+			| Ouvrir l'onglet Feeds          | active   |              |           |
+			| Ouvrir l'onglet Grille horaire | active   |              |           |
+			| Ouvrir l'onglet Simulation     | active   |              |           |
+			| Ouvrir l'onglet Airplay        | active   |              |           |
+			| Pré-écoute…                    | active   |              |           |
+			| —                              |          |              |           |
+			| Rouvrir l'onglet fermé         | inactive | Ctrl+Shift+T |           |
+			| Onglets fermés récemment       | inactive |              |           |
+			| Rafraîchir les onglets         | active   | F5           |           |
 
 	Scénario: Les onglets demandés s'ouvrent à droite de l'onglet ouvert, et se ferment
 		https://github.com/dascritch/machincast/issues/405
