@@ -78,16 +78,6 @@ def enter_filter(interface: Context, qtbot: QtBot, text: str, title: str) -> Non
 # ─── Fermer, enregistrer et rouvrir un onglet (https://github.com/dascritch/machincast/issues/428) ───
 
 
-@then(parsers.parse("l'entrée « {entry} » du menu « {menu} » est {state}"))
-def menu_entry_state(interface: Context, entry: str, menu: str, state: str) -> None:
-	found_list = []
-	for action in actions(interface, menu):
-		if action.text() == entry:
-			found_list.append(action)
-	(found,) = found_list
-	assert found.isEnabled() == (state == "active"), state
-
-
 def submenu(interface: Context, title: str, menu: str) -> QMenu:
 	"""Le sous-menu, ouvert comme sous la souris : son menu le relit, puis lui-même (aboutToShow)."""
 	named_menu(interface, menu).aboutToShow.emit()

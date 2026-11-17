@@ -160,6 +160,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Maintenance | Indexation rapide, Audit complet | Vérifient les sonores ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)). Les deux peuvent tourner ensemble ; chacune est inactive tant qu'elle tourne. |
 | Maintenance | Statut des indexations… | Où en sont les indexations : répertoires scannés et à scanner, sonores détectés, indexés sommairement ou complètement, en nombres et en camemberts ([Statut des indexations](sonores.md#statut-des-indexations)). |
 | Maintenance | Maintenance de la base de données… | Après confirmation, sauvegarde, vérifie et optimise la base, dans une fenêtre de terminal, qui reste ouverte à la fin : la fermer une fois le compte rendu lu. La question donne le répertoire où la sauvegarde sera enregistrée, et « Choisir l'emplacement… » en propose un autre ; Entrée ou Échap l'annulent. Inactive pendant une indexation. Voir le [guide d'administration](../administration/commandes.md#maintenance-de-la-base--machin-maintenance-db). |
+| Maintenance | Exporter la base… | Enregistre une sauvegarde de la base, sans rien demander ni rien changer, dans le répertoire des sauvegardes (page **Sauvegarde** des paramètres du service) ; la barre d'état dit où, ou pourquoi elle n'a pas pu. Inactive le temps de l'export. Sur un ordinateur neuf, l'installation propose de reprendre cette sauvegarde ([#347](https://github.com/dascritch/machincast/issues/347), [guide d'administration](../administration/commandes.md#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)). |
 | Maintenance | Faire lire les fichiers sonores au service de diffusion… | Donne au service la lecture des sonores de toutes les banques, sans rien changer d'autre sur les fichiers ([Ajouter un sonore](sonores.md#ajouter-un-sonore), [#381](https://github.com/dascritch/machincast/issues/381)). Inactive tant que le service de diffusion n'est pas installé. |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Aide | Documentation | Ouvre ce guide dans le navigateur web. |
@@ -192,7 +193,7 @@ Dès 2 caractères, sans tenir compte des majuscules ni des accents, le texte ta
 Le menu **Fichier** ouvre deux fenêtres ([#389](https://github.com/dascritch/machincast/issues/389)) :
 
 - **Préférences de l'interface…** : ce qui vaut aussitôt, sans toucher la diffusion. La granularité des crossfades et le seuil de silence (page **Crossfades et silences**), la carte de pré-écoute (page **Audio**), la durée de péremption (page **Base**) et la page **Interface**.
-- **Paramètres du service…** : ce que Machin player ne prend qu'à son redémarrage. Les durées des crossfades et la position des fondus (page **Crossfades**), le type de sortie, la carte de l'antenne et le blanc dans un sonore (page **Audio**). **OK** les enregistre, puis redémarre la diffusion : avec le service de diffusion en marche, le poste demande le mot de passe d'un administrateur. S'il est refusé, ou si le redémarrage échoue, les paramètres précédents reviennent, dans le fichier comme dans l'interface, et la barre d'état le dit. Service arrêté, ou sans service, ils valent au prochain démarrage de Machin player.
+- **Paramètres du service…** : ce que Machin player ne prend qu'à son redémarrage. Les durées des crossfades et la position des fondus (page **Crossfades**), le type de sortie, la carte de l'antenne et le blanc dans un sonore (page **Audio**), et, sans redémarrage, l'heure de la tâche quotidienne (page **Tâches**) et les sauvegardes (page **Sauvegarde**). **OK** les enregistre, puis, si les crossfades, la sortie, la carte de l'antenne ou le blanc ont changé, redémarre la diffusion : avec le service de diffusion en marche, le poste demande le mot de passe d'un administrateur. S'il est refusé, ou si le redémarrage échoue, les paramètres précédents reviennent, dans le fichier comme dans l'interface, et la barre d'état le dit. Service arrêté, ou sans service, ils valent au prochain démarrage de Machin player.
 
 ![Les préférences, page « Crossfades » : les durées, la position des fondus et leur frise de démonstration](../captures/preferences.png)
 
@@ -235,7 +236,7 @@ Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :
 
 | Réglage | Rôle |
 | --- | --- |
-| Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour à midi sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé, et le [calendrier](grille.md#calendrier) ne remonte pas plus loin. |
+| Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour, à l'heure de la tâche quotidienne (page **Tâches**), sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé, et le [calendrier](grille.md#calendrier) ne remonte pas plus loin. |
 
 Page **Tâches**, dans les **Paramètres du service** seulement ([#455](https://github.com/dascritch/machincast/issues/455)) :
 
@@ -244,6 +245,13 @@ Page **Tâches**, dans les **Paramètres du service** seulement ([#455](https://
 | Réglage | Rôle |
 | --- | --- |
 | Tâche quotidienne à | 10:00 par défaut : chaque jour à partir de cette heure, la base est purgée de ce qui dépasse la durée de péremption, puis tous les sonores sont vérifiés en entier, comme **Maintenance → Audit complet**. À 10 heures, il y a souvent quelqu'un au studio pour voir un souci. Une tâche manquée, ordinateur éteint, passe dès qu'il redémarre. L'indexation rapide, elle, passe toutes les heures. La nouvelle heure vaut aussitôt, sans redémarrer la diffusion ni mot de passe. Grisé quand l'ordinateur n'a pas ses minuteurs : la page dit comment les installer. |
+
+Page **Sauvegarde**, dans les **Paramètres du service** seulement ([#347](https://github.com/dascritch/machincast/issues/347)) :
+
+| Réglage | Rôle |
+| --- | --- |
+| Répertoire des sauvegardes | Où **Maintenance → Exporter la base…** et la maintenance de la base enregistrent leur sauvegarde, un fichier nommé d'après sa date et son heure : le dossier personnel, par défaut. **Choisir…** en désigne un autre, comme une clé USB ou un disque de sauvegarde. |
+| Copier machincast.toml… | Copie le réglage complet de MachinCast dans le dossier choisi, sous un nom daté comme les sauvegardes ; la page dit où, ou pourquoi elle n'a pas pu. Avec une sauvegarde de la base, c'est tout ce qu'il faut pour repartir sur un ordinateur neuf, où l'installation propose de reprendre la base sauvegardée. Grisé quand l'interface n'a pas de fichier de réglages. |
 
 **OK** les enregistre ; la barre d'état le dit. **Annuler** ne change rien.
 

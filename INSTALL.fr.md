@@ -21,6 +21,7 @@ Le script `install.sh` fait tout le travail. La section [Installer à la main](#
 - [Service de diffusion](#service-de-diffusion)
 - [Ajouter un autre compte](#ajouter-un-autre-compte)
 - [Mettre à jour](#mettre-à-jour)
+- [Réimporter une sauvegarde](#réimporter-une-sauvegarde)
 - [Installer à la main](#installer-à-la-main)
 - [Désinstaller](#désinstaller)
 - [En cas de problème](#en-cas-de-problème)
@@ -102,6 +103,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 ./install.sh --no-desktop  # installe, sans raccourci sur le bureau ni question
 ./install.sh --stop-programs  # arrête sans le demander les programmes de MachinCast en cours
 ./install.sh --leave-programs  # les laisse tourner, sans le demander
+./install.sh --no-restore   # ne propose pas de réimporter une sauvegarde ; --restore FICHIER la réimporte sans le demander
 ./install.sh --help         # aide
 ```
 
@@ -109,7 +111,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 **Relançable** : chaque étape déjà faite est laissée telle quelle. En cas d'échec, corriger ce que le message indique, puis relancer le script. À la relance, PostgreSQL signale par des lignes `NOTICE:  role … has already been granted membership …` que le compte était déjà autorisé : ce n'est pas une erreur.
 
-**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour le compte du service, ses répertoires, ses unités systemd et la règle polkit. Trois questions au plus, sans `--service` ; celles du service sont décrites avec lui ([Service de diffusion](#service-de-diffusion)). Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--stop-programs` et `--leave-programs` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--desktop` et `--no-desktop` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau. Sans `--service`, si le service de diffusion est installé mais n'est plus à jour pour cette version de MachinCast : « Mettre à jour le service de diffusion ? Il redémarre s'il tourne. [O/n] » ; Entrée répond oui ([#376](https://github.com/dascritch/machincast/issues/376)). `--service` le met à jour sans question ; sans terminal, elle n'est pas posée, et le service reste tel quel.
+**Ce qu'il demande** : le mot de passe `sudo`, pour apt, pour les commandes passées en tant qu'utilisateur `postgres`, pour l'ajout au groupe `systemd-journal`, pour les liens dans `/opt`, `/usr/local/bin` et `/usr/share`, et, avec `--service`, pour le compte du service, ses répertoires, ses unités systemd et la règle polkit. Trois questions au plus, sans `--service` ; celles du service sont décrites avec lui ([Service de diffusion](#service-de-diffusion)). Si des programmes de MachinCast tournent : « Les arrêter pendant l'installation, puis les relancer ? [o/N] » ; Entrée répond non. `--stop-programs` et `--leave-programs` y répondent d'avance ; sans terminal, elle n'est pas posée, et ils continuent. À la première installation : « Déposer aussi le raccourci de MachinCast sur le bureau ? [O/n] » ; Entrée répond oui. `--desktop` et `--no-desktop` y répondent d'avance ; sans terminal, par exemple dans un script, elle n'est pas posée, et le raccourci ne va pas sur le bureau. Sans `--service`, si le service de diffusion est installé mais n'est plus à jour pour cette version de MachinCast : « Mettre à jour le service de diffusion ? Il redémarre s'il tourne. [O/n] » ; Entrée répond oui ([#376](https://github.com/dascritch/machincast/issues/376)). `--service` le met à jour sans question ; sans terminal, elle n'est pas posée, et le service reste tel quel. Quand il vient de créer la base de production : « Vous semblez faire une installation neuve de MachinCast. L'aviez-vous déjà fait tourner sur ce poste ou sur un autre ? Faut-il récupérer sa base de données ? » ([Réimporter une sauvegarde](#réimporter-une-sauvegarde)).
 
 **Ce qu'il fait**, dans l'ordre :
 
@@ -121,7 +123,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Paquets système | Installe les paquets du [tableau des prérequis](#prérequis). | Paquets apt. |
 | Environnement virtuel Python | Crée `.venv` dans le répertoire de MachinCast, sans accès aux paquets Python du système, et y installe MachinCast et ses dépendances. | `.venv` dans le répertoire de MachinCast. |
 | Configuration | Copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas. Un `machincast.toml` existant n'est jamais modifié. | `machincast.toml`. |
-| PostgreSQL | En tant qu'utilisateur `postgres` : crée le rôle PostgreSQL du compte, **sans aucun droit particulier** sur le serveur ; crée les bases de production et de test nommées dans `machincast.toml`, dont le compte devient propriétaire ; crée les trois rôles de groupe de MachinCast. Puis, avec le compte : applique le schéma aux deux bases. | Serveur PostgreSQL. |
+| PostgreSQL | En tant qu'utilisateur `postgres` : crée le rôle PostgreSQL du compte, **sans aucun droit particulier** sur le serveur ; crée les bases de production et de test nommées dans `machincast.toml`, dont le compte devient propriétaire ; crée les trois rôles de groupe de MachinCast. Une base de production qu'il vient de créer peut reprendre une sauvegarde d'une installation précédente ([Réimporter une sauvegarde](#réimporter-une-sauvegarde)). Puis, avec le compte : applique le schéma aux deux bases. | Serveur PostgreSQL. |
 | Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les trois rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
 | Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
@@ -363,6 +365,20 @@ sudo -u postgres dropdb machincast_test
 ```
 
 `install.sh` crée les nouveaux rôles. Les anciens, `machincast_lecture` et `machincast_indexation`, ne servent plus : une fois les deux bases recréées, ils se suppriment par `sudo -u postgres psql -c "DROP ROLE machincast_lecture, machincast_indexation"`. Une requête écrite à la main sur les anciens noms est à réécrire.
+
+## Réimporter une sauvegarde
+
+Pour repartir vite après une panne, ou en changeant de poste ([#347](https://github.com/dascritch/machincast/issues/347)), une installation neuve reprend la base d'une installation précédente : celle d'une sauvegarde faite par `Machin backup-db`, l'entrée **Maintenance → Exporter la base…** de l'interface, ou `Machin maintenance-db` ([Export et réimportation de la base](doc/fr/administration/commandes.md#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)). Les sauvegardes vont dans le répertoire personnel du compte, ou dans celui réglé dans **Fichier → Paramètres du service…**, page **Sauvegarde**, qui copie aussi `machincast.toml` ailleurs, comme sur une clé USB.
+
+Sur le poste neuf, recopier les fichiers sonores aux mêmes chemins, et le `machincast.toml` copié, renommé en `machincast.toml`, dans le répertoire de MachinCast ; puis lancer `./install.sh`. **Quand il vient de créer la base de production**, et seulement alors, il demande s'il faut récupérer une base de données :
+
+- **sur un bureau graphique**, par une fenêtre de kdialog : **Oui, importer une sauvegarde** ouvre le sélecteur de fichiers, depuis le répertoire personnel, sur les sauvegardes `.dump` ; **Non, on repart de zéro** passe à la suite ;
+- **sans affichage graphique**, comme par ssh, dans le terminal : `[o/N]`, puis le chemin du fichier, `~` compris ;
+- **sans terminal ni affichage**, rien n'est demandé, et rien n'est réimporté : `./install.sh --restore FICHIER` en réimporte une sans rien demander, et `--no-restore` ne la propose pas.
+
+Il la réimporte par `Machin restore-db`, qui la vérifie : une sauvegarde de MachinCast, d'une version qui n'est pas plus récente que celle installée. Une sauvegarde refusée repose la question : en choisir une autre, ou repartir de zéro. Puis il applique à la base les migrations qui lui manquent, et continue. Avec `--restore`, une sauvegarde refusée arrête `./install.sh`, avant le schéma : la base reste vide ; corriger, puis réimporter à la main par `Machin restore-db FICHIER` avant de relancer `./install.sh`.
+
+Une base de production qui existe déjà n'est jamais écrasée : la question n'est pas posée, et `Machin restore-db` refuse une base qui n'est pas vide.
 
 ## Installer à la main
 

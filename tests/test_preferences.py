@@ -17,7 +17,7 @@ import pytest
 import tomlkit
 from PySide6.QtCore import QTime
 from PySide6.QtGui import QColor, QIcon, QImage, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QComboBox, QDialogButtonBox, QDoubleSpinBox, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QDialogButtonBox, QDoubleSpinBox, QPushButton, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -269,8 +269,17 @@ def enter_default(opened: Opened, side: str, seconds: str) -> None:
 @when(parsers.parse("j'y clique sur « {button} »"))
 def click(opened: Opened, button: str) -> None:
 	preferences_window = the_window(opened)
-	role = {"OK": QDialogButtonBox.StandardButton.Ok, "Annuler": QDialogButtonBox.StandardButton.Cancel}[button]
-	preferences_window.ui.buttons.button(role).click()
+	roles = {"OK": QDialogButtonBox.StandardButton.Ok, "Annuler": QDialogButtonBox.StandardButton.Cancel}
+	if button not in roles:
+		# Un bouton d'une page, comme « Choisir… » (https://github.com/dascritch/machincast/issues/347).
+		titled = []
+		for candidate in preferences_window.findChildren(QPushButton):
+			if candidate.text() == button:
+				titled.append(candidate)
+		(found,) = titled
+		found.click()
+		return
+	preferences_window.ui.buttons.button(roles[button]).click()
 	opened.provided_list = None
 	if preferences_window.result() == PreferencesWindow.DialogCode.Accepted:
 		opened.provided_list = preferences_window.settings()
@@ -505,7 +514,13 @@ def window_preferences(
 	launching: Launching, monkeypatch: pytest.MonkeyPatch, on_air: str, preview: str, output: str
 ) -> None:
 	def set_(
-		_parent: QWidget, shown_list: Settings, shown_output: str, _service: object = None, _kind: object = None
+		_parent: QWidget,
+		shown_list: Settings,
+		shown_output: str,
+		_service: object = None,
+		_kind: object = None,
+		*,
+		configuration: object = None,
 	) -> None:
 		launching.shown_list = (shown_list, shown_output)
 
@@ -1099,6 +1114,82 @@ def adjusted_daily(interface: Context, hour: str) -> None:
 @then(parsers.parse("les préférences ont montré la tâche quotidienne à « {hour} »"))
 def shown_daily(interface: Context, hour: str) -> None:
 	assert interface.shown_dailies == [time.fromisoformat(hour)]
+
+
+# ─── Sauvegarde (https://github.com/dascritch/machincast/issues/347) ───
+
+
+@given(parsers.parse("le sélecteur de répertoires qui donnera « {directory} »"))
+def chooser_gives(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, directory: str) -> None:
+	chosen = directory.replace("…/", f"{tmp_path}/")
+	if directory == "…/cle":
+		Path(chosen).mkdir()
+	monkeypatch.setattr(dialogs, "choose_directory", lambda _parent, _title="", _departure="": chosen)
+
+
+@when(parsers.parse("la fenêtre des paramètres du service s'ouvre sur le répertoire des sauvegardes « {directory} »"))
+def open_on_backups(opened: Opened, parent: QWidget, directory: str) -> None:
+	all_ = Settings(Crossfades(), None, TEST_PREVIEW, backup_directory=Path(directory))
+	opened.window = PreferencesWindow(all_, "dummy", parent, timers=True)
+
+
+@when("la fenêtre des paramètres du service s'ouvre sur un fichier de configuration")
+def open_on_configuration(opened: Opened, parent: QWidget, tmp_path: Path) -> None:
+	configuration = tmp_path / "machincast.toml"
+	configuration.write_text("# configuration du scénario\n", encoding="utf-8")
+	all_ = Settings(Crossfades(), None, TEST_PREVIEW)
+	opened.window = PreferencesWindow(all_, "dummy", parent, timers=True, configuration=configuration)
+
+
+@then(parsers.parse("elle montre le répertoire des sauvegardes « {directory} »"))
+def displayed_backups(opened: Opened, directory: str) -> None:
+	assert the_window(opened).ui.backup_directory.text() == directory
+
+
+@then(parsers.parse("elle a donné le répertoire des sauvegardes « {directory} »"))
+def given_backups(opened: Opened, directory: str) -> None:
+	assert opened.provided_list is not None
+	assert opened.provided_list.backup_directory == Path(directory)
+
+
+@then(
+	parsers.parse(
+		"le répertoire « {directory} » contient une copie datée du fichier de configuration, que la page nomme"
+	)
+)
+def dated_copy(opened: Opened, tmp_path: Path, directory: str) -> None:
+	(copy,) = (tmp_path / directory.removeprefix("…/")).iterdir()
+	assert re.fullmatch(r"machincast-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.toml", copy.name), copy.name
+	assert copy.read_text(encoding="utf-8") == "# configuration du scénario\n"
+	result = the_window(opened).ui.copy_result
+	assert (result.text(), result.isHidden()) == (f"Copié dans {copy}.", False)
+
+
+@then(parsers.parse("la page dit « {start} » et la raison"))
+def copy_refused(opened: Opened, start: str) -> None:
+	result = the_window(opened).ui.copy_result
+	assert result.text().startswith(f"{start} "), result.text()
+	assert not result.isHidden()
+
+
+@then(parsers.parse("le bouton « {text} » est grisé"))
+def greyed_button(opened: Opened, text: str) -> None:
+	titled = []
+	for candidate in the_window(opened).findChildren(QPushButton):
+		if candidate.text() == text:
+			titled.append(candidate)
+	(found,) = titled
+	assert not found.isEnabled()
+
+
+@given(parsers.parse("les préférences seront réglées avec le répertoire des sauvegardes « {directory} »"))
+def adjusted_backups(interface: Context, directory: str) -> None:
+	interface.adjusted_backups = Path(directory)
+
+
+@then("les préférences ont reçu le fichier de configuration de l'interface, à copier")
+def received_configuration(interface: Context) -> None:
+	assert interface.preferences_configurations == [configuration_file(interface)]
 
 
 # ─── Deux fenêtres (https://github.com/dascritch/machincast/issues/389) ───

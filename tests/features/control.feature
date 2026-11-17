@@ -274,8 +274,8 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et le terminal « konsole » du poste
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
-		Alors l'interface a demandé confirmation, avec l'emplacement des sauvegardes : le répertoire « sauvegardes » de sa configuration
-		Et le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, avec les sauvegardes dans « sauvegardes » à côté d'elle, le terminal restant ouvert
+		Alors l'interface a demandé confirmation, avec l'emplacement des sauvegardes : le répertoire des sauvegardes de sa configuration
+		Et le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, avec les sauvegardes dans le répertoire des sauvegardes de sa configuration, le terminal restant ouvert
 		Et la barre d'état annonce « Maintenance de la base de données lancée dans un terminal : sauvegarde, vérification du schéma, optimisation. »
 
 	Scénario: Les sauvegardes vont à l'emplacement choisi dans la confirmation
@@ -285,6 +285,25 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Maintenance de la base de données… » dans le menu « Maintenance »
 		Alors le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, avec les sauvegardes dans « /media/cle/sauvegardes », le terminal restant ouvert
+
+	# ─── Export de la base (https://github.com/dascritch/machincast/issues/347) ───
+
+	Scénario: « Exporter la base… » sauvegarde la base de l'interface dans son répertoire des sauvegardes, sans terminal
+		Étant donné le service de diffusion non installé
+		Et l'export de la base qui réussit
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Exporter la base… » dans le menu « Maintenance »
+		Alors l'entrée « Exporter la base… » du menu « Maintenance » est inactive
+		Et la barre d'état annonce bientôt la base exportée dans le répertoire des sauvegardes de sa configuration
+		Et l'export a lancé Machin backup-db sur la configuration de l'interface, dans le répertoire des sauvegardes de sa configuration
+		Et l'entrée « Exporter la base… » du menu « Maintenance » est active
+
+	Scénario: Un export impossible dit pourquoi, sans l'horodatage de la ligne
+		Étant donné le service de diffusion non installé
+		Et l'export de la base qui échoue avec « sauvegarde impossible : pg_dump introuvable, installer postgresql-client »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Exporter la base… » dans le menu « Maintenance »
+		Alors la barre d'état annonce bientôt « Export de la base impossible : sauvegarde impossible : pg_dump introuvable, installer postgresql-client »
 
 	Scénario: Une maintenance de la base non confirmée n'est pas lancée
 		Étant donné le service de diffusion non installé

@@ -322,13 +322,20 @@ def _choose(choice: Choice) -> list[int]:
 
 
 def set_preferences(
-	parent: QWidget, settings: Settings, output: AudioOutput, service: ServiceState = ABSENT, kind: Kind = SERVICE
+	parent: QWidget,
+	settings: Settings,
+	output: AudioOutput,
+	service: ServiceState = ABSENT,
+	kind: Kind = SERVICE,
+	*,
+	configuration: Path | None = None,
 ) -> Settings | None:
 	"""Les préférences réglées dans leur fenêtre ; None si elle est abandonnée
 	(https://github.com/dascritch/machincast/issues/145). Le service de diffusion en marche verrouille la carte de
 	l'antenne (https://github.com/dascritch/machincast/issues/339). kind : les préférences de l'interface, ou les
-	paramètres du service (https://github.com/dascritch/machincast/issues/389)."""
-	window = PreferencesWindow(settings, output, parent, service, kind)
+	paramètres du service (https://github.com/dascritch/machincast/issues/389). configuration : le fichier que la
+	page « Sauvegarde » copie (https://github.com/dascritch/machincast/issues/347)."""
+	window = PreferencesWindow(settings, output, parent, service, kind, configuration=configuration)
 	if window.exec() != QDialog.DialogCode.Accepted:
 		return None
 	return window.settings()

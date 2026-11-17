@@ -244,6 +244,15 @@ class Schedule:
 	"""L'heure de la tâche quotidienne : Machin purge, puis Machin indexer --full-audit (machincast.schedule)."""
 
 
+@dataclass(frozen=True)
+class Backup:
+	"""Les sauvegardes de la base, section [backup] (https://github.com/dascritch/machincast/issues/347)."""
+
+	directory: Path = field(default_factory=Path.home)
+	"""Le répertoire où Machin backup-db et Machin maintenance-db écrivent leur sauvegarde : le répertoire personnel du
+	compte, par défaut."""
+
+
 ICON_EXTENSIONS = frozenset({".svg", ".png", ".jpg", ".jpeg"})
 """Les images acceptées pour icône, quelle que soit la casse de l'extension."""
 
@@ -261,6 +270,7 @@ class Configuration:
 	dead_air: DeadAirSettings = field(default_factory=DeadAirSettings)
 	interface: Interface = field(default_factory=Interface)
 	schedule: Schedule = field(default_factory=Schedule)
+	backup: Backup = field(default_factory=Backup)
 
 
 # Clés connues, par section, en anglais (https://github.com/dascritch/machincast/issues/357). Toute autre clé est
@@ -276,6 +286,7 @@ KEYS: dict[str, frozenset[str]] = {
 	"dead_air": frozenset({"duration", "threshold", "fallback"}),
 	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows"}),
 	"schedule": frozenset({"daily"}),
+	"backup": frozenset({"directory"}),
 }
 
 
@@ -649,4 +660,5 @@ def load(path: Path | None = None) -> Configuration:
 			table_rows=reader.rows("interface", "table_rows", TABLE_ROWS),
 		),
 		schedule=Schedule(daily=reader.hour("schedule", "daily", DAILY)),
+		backup=Backup(directory=(reader.optional_path("backup", "directory")) or (Path.home())),
 	)

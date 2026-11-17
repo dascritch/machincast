@@ -930,3 +930,203 @@ def _protection() -> str:
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
 	assert "\n\tproteger_le_poste\n" in _function(install, "installer_service")
 	return _function(install, "proteger_le_poste")
+
+
+# ─── Réimportation d'une sauvegarde à la création de la base (https://github.com/dascritch/machincast/issues/347) ───
+
+REIMPORT_FUNCTIONS = (
+	"info",
+	"avertissement",
+	"echec",
+	"executer",
+	"graphique",
+	"en_terminal",
+	"demander_reimportation",
+	"choisir_sauvegarde",
+	"restaurer",
+	"reimporter_une_sauvegarde",
+)
+"""Les fonctions d'install.sh qu'enchaîne la réimportation, lancées seules, en français."""
+
+
+@pytest.fixture
+def reimport(tmp_path: Path) -> SimpleNamespace:
+	"""Le poste du scénario : kdialog et Machin restore-db remplacés par des scripts qui notent leurs arguments."""
+	bin_ = tmp_path / "bin"
+	venv = tmp_path / "venv"
+	home = tmp_path / "personnel"
+	for directory in (bin_, venv / "bin", home):
+		directory.mkdir(parents=True)
+	journal = tmp_path / "appels"
+	kdialog = bin_ / "kdialog"
+	kdialog.write_text(
+		"#!/bin/bash\n"
+		f'echo "kdialog	$*" >>"{journal}"\n'
+		'if [[ " $* " == *" --yesno "* ]]; then exit "${KDIALOG_REPONSE:-1}"; fi\n'
+		'echo "${KDIALOG_FICHIER:-}"\n',
+		encoding="utf-8",
+	)
+	restore = venv / "bin" / "Machin_restore-db"
+	restore.write_text(
+		f'#!/bin/bash\necho "restore	$*" >>"{journal}"\nexit "${{RESTORE_CODE:-0}}"\n', encoding="utf-8"
+	)
+	for program in (kdialog, restore):
+		program.chmod(0o755)
+	return SimpleNamespace(
+		tmp=tmp_path,
+		bin=bin_,
+		venv=venv,
+		home=home,
+		journal=journal,
+		environment={"LANGUAGE": "fr", "HOME": str(home), "PATH": f"{bin_}:/usr/bin:/bin"},
+		terminal="false",
+		variables={"REIMPORTER": "demander", "SAUVEGARDE": ""},
+		answers="",
+		result=None,
+	)
+
+
+@given("un poste graphique avec kdialog")
+def graphical(reimport: SimpleNamespace) -> None:
+	reimport.environment["DISPLAY"] = ":0"
+
+
+@given(parsers.re(r"un poste sans affichage graphique, (?P<terminal>dans un terminal|ni terminal)"))
+@given(parsers.re(r"un poste sans affichage graphique (?P<terminal>ni terminal)"))
+def without_graphics(reimport: SimpleNamespace, terminal: str) -> None:
+	(reimport.bin / "kdialog").unlink()
+	reimport.terminal = str(terminal == "dans un terminal").lower()
+
+
+@given(parsers.parse("kdialog répond « {answer} », puis choisit « {file} »"))
+def kdialog_answers(reimport: SimpleNamespace, answer: str, file: str) -> None:
+	reimport.environment["KDIALOG_REPONSE"] = str(int(answer != "Oui, importer une sauvegarde"))
+	reimport.environment["KDIALOG_FICHIER"] = file
+
+
+@given("Machin restore-db qui refuse la sauvegarde")
+def refused_restore(reimport: SimpleNamespace) -> None:
+	reimport.environment["RESTORE_CODE"] = "1"
+
+
+@given(parsers.parse("install.sh lancé avec « {options} »"))
+def launched_with(reimport: SimpleNamespace, options: str) -> None:
+	"""Les variables que donne l'analyse des options de principal(), vérifiée par le scénario du texte d'install.sh."""
+	words = options.split()
+	if words[0] == "--restore":
+		reimport.variables = {"REIMPORTER": "oui", "SAUVEGARDE": words[1]}
+	if words[0] == "--no-restore":
+		reimport.variables = {"REIMPORTER": "non", "SAUVEGARDE": ""}
+
+
+def _propose(reimport: SimpleNamespace) -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	lines = [
+		"set -euo pipefail",
+		f'. "{PROJECT_DIRECTORY / "bin" / "i18n.bash"}"',
+		f'charger_messages "{PROJECT_DIRECTORY}"',
+		"SIMULATION=false",
+		f'VENV="{reimport.venv}"',
+		f'CONFIGURATION="{reimport.tmp / "machincast.toml"}"',
+	]
+	for name, value in reimport.variables.items():
+		lines.append(f'{name}="{value}"')
+	for function in REIMPORT_FUNCTIONS:
+		lines.append(_function(install, function) + "\n}")
+	lines.append(f"en_terminal() {{ {reimport.terminal}; }}")
+	lines.append("reimporter_une_sauvegarde")
+	reimport.result = subprocess.run(
+		["bash", "-c", "\n".join(lines)],
+		input=reimport.answers,
+		capture_output=True,
+		text=True,
+		timeout=10,
+		env=reimport.environment,
+		check=False,
+	)
+
+
+@when("install.sh propose de réimporter une sauvegarde")
+def propose(reimport: SimpleNamespace) -> None:
+	_propose(reimport)
+
+
+@when(parsers.re(r"install.sh propose de réimporter une sauvegarde, et que je réponds (?P<answers>«.+»)$"))
+def propose_answering(reimport: SimpleNamespace, answers: str) -> None:
+	lines = []
+	for answer in re.findall(r"« ([^»]*) »", answers):
+		lines.append(answer + "\n")
+	reimport.answers = "".join(lines)
+	_propose(reimport)
+
+
+def _calls(reimport: SimpleNamespace, program: str) -> list[str]:
+	if not reimport.journal.exists():
+		return []
+	calls = []
+	for line in reimport.journal.read_text(encoding="utf-8").splitlines():
+		name, _tab, arguments = line.partition("\t")
+		if name == program:
+			calls.append(arguments)
+	return calls
+
+
+def _restored(reimport: SimpleNamespace, file: str) -> str:
+	return f"--config {reimport.tmp / 'machincast.toml'} {file.replace('<personnel>', str(reimport.home))}"
+
+
+@then(parsers.parse("install.sh a réimporté « {file} » par Machin restore-db"))
+def restored(reimport: SimpleNamespace, file: str) -> None:
+	assert reimport.result.returncode == 0, reimport.result.stderr
+	assert _calls(reimport, "restore") == [_restored(reimport, file)]
+
+
+@then(parsers.re(r"install.sh n'a rien réimporté(?:, et dit « (?P<text>[^»]+) »)?$"))
+def nothing_restored(reimport: SimpleNamespace, text: str | None) -> None:
+	assert reimport.result.returncode == 0, reimport.result.stderr
+	assert _calls(reimport, "restore") == []
+	if text is not None:
+		assert text in reimport.result.stdout, reimport.result.stdout
+
+
+@then(parsers.parse("install.sh a tenté de réimporter « {file} », a reposé la question, et dit « {text} »"))
+def restore_attempted(reimport: SimpleNamespace, file: str, text: str) -> None:
+	assert reimport.result.returncode == 0, reimport.result.stderr
+	assert _calls(reimport, "restore") == [_restored(reimport, file)]
+	assert "sauvegarde non réimportée : en choisir une autre, ou repartir de zéro" in reimport.result.stdout
+	assert text in reimport.result.stdout, reimport.result.stdout
+
+
+@then(parsers.parse("kdialog a demandé « {question} »"))
+def kdialog_asked(reimport: SimpleNamespace, question: str) -> None:
+	(asked, *_others) = _calls(reimport, "kdialog")
+	assert question in asked, asked
+	assert "--yes-label Oui, importer une sauvegarde --no-label Non, on repart de zéro" in asked, asked
+
+
+@then("kdialog n'a rien demandé")
+def kdialog_silent(reimport: SimpleNamespace) -> None:
+	assert _calls(reimport, "kdialog") == []
+
+
+@then(parsers.parse("install.sh s'arrête avec le message « {text} »"))
+def stops_with(reimport: SimpleNamespace, text: str) -> None:
+	assert reimport.result.returncode == 1
+	assert text in reimport.result.stderr, reimport.result.stderr
+
+
+@then(
+	"install.sh propose de réimporter une sauvegarde après avoir créé la base de production, avant d'appliquer le schéma"
+)
+def sh_reimport_place() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	preparation = _function(install, "preparer_postgresql")
+	creation = preparation.index('createdb --host="${socket}"')
+	marked = preparation.index("nouvelle_production=true")
+	reimport = preparation.index("reimporter_une_sauvegarde")
+	schema = preparation.index("machincast.installation migrate")
+	assert creation < marked < reimport < schema
+	assert 'if [[ "${base}" == "${production}" ]]; then\n\t\t\t\tnouvelle_production=true' in preparation
+	analysis = _function(install, "principal")
+	assert "--restore)" in analysis
+	assert "--no-restore) REIMPORTER=non ;;" in analysis
