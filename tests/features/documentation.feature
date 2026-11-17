@@ -76,10 +76,20 @@ Fonctionnalité: Documentation d'installation et definition of done
 		Et l'archive contient « README.md », « INSTALL.md », « RELEASE.md », « TROUBLESHOOTING.md », « LICENSE », « doc/fr/utilisateur/README.md », « doc/fr/administration/README.md »
 		Et l'archive contient « README.fr.md », « INSTALL.fr.md », « RELEASE.fr.md », « TROUBLESHOOTING.fr.md », « CONTRIBUTING.md », « CONTRIBUTING.fr.md »
 
-	Scénario: La spécification s'écrit une phrase par ligne, pour des diffs lisibles
-		https://github.com/dascritch/machincast/issues/445 : une ligne de prose de doc/fr/spec.md ne porte qu'une phrase,
-		pour qu'un diff ne montre que la phrase changée ; un saut de ligne simple ne change pas le rendu. Un titre, une
-		ligne de tableau ou un bloc de code restent d'un seul tenant.
-		Alors chaque ligne de prose de « doc/fr/spec.md » ne porte qu'une phrase
-		Et aucune ligne de « doc/fr/spec.md » ne dépasse 2000 caractères
+	Plan du scénario: <document> s'écrit une phrase par ligne, pour des diffs lisibles
+		https://github.com/dascritch/machincast/issues/445 : une ligne de prose de la spécification ou d'une règle de
+		développement ne porte qu'une phrase, pour qu'un diff ne montre que la phrase changée ; un saut de ligne simple ne
+		change pas le rendu. Un titre, une ligne de tableau ou un bloc de code restent d'un seul tenant.
+		Alors chaque ligne de prose de « <document> » ne porte qu'une phrase
+		Et aucune ligne de « <document> » ne dépasse 2000 caractères
 
+		Exemples:
+			| document                          |
+			| doc/fr/spec.md                    |
+			| doc/fr/regles/base-de-donnees.md  |
+			| doc/fr/regles/binaire-lecture.md  |
+			| doc/fr/regles/developpement.md    |
+			| doc/fr/regles/indexation.md       |
+			| doc/fr/regles/interface.md        |
+			| doc/fr/regles/tests.md            |
+			| doc/fr/regles/wrapper.md          |
