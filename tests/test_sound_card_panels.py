@@ -20,9 +20,11 @@ from pytestqt.qtbot import QtBot
 from machincast.configuration import Crossfades
 from machincast.fingerprint import file_state
 from machincast.indexer.decoding import Check
+from machincast.indexer.indexer import LOCKS
 from machincast.interface import check, preferences
 from machincast.interface.expandable import is_collapsed
 from machincast.interface.sound_card import SoundCard
+from tests.database_fixtures import sample_connection
 from tests.interface_steps import NAME, Context, window
 from tests.waiting import settle
 
@@ -364,3 +366,125 @@ def played_silences(interface: Context) -> None:
 @then("la fiche n'a pas de frise")
 def without_timeline(interface: Context) -> None:
 	assert not card(interface).ui.timeline_place.isVisibleTo(card(interface))
+
+
+# ─── Proposer l'analyse complète (https://github.com/dascritch/machincast/issues/388) ───
+
+AUTOMATIC_FIELDS = ("artist", "title", "duration", "detected_start", "detected_end")
+"""Les champs de la fiche que la vérification complète remplit."""
+
+
+@given(parsers.parse("le titre et le début détecté du sonore « {title} » saisis à la main"))
+def entered_by_hand(empty_database: Connection, title: str) -> None:
+	empty_database.execute(
+		"UPDATE sounds SET detected_start = interval '1 second',"
+		" edited_fields = ARRAY['title', 'detected_start'] WHERE title = %s",
+		(title,),
+	)
+
+
+@given("le refus des actions demandées")
+def refused_actions(interface: Context) -> None:
+	interface.action = False
+
+
+@given("une indexation rapide et un audit complet en cours, qui tiennent leur verrou sur la base")
+def indexings_in_progress(request: pytest.FixtureRequest) -> None:
+	"""Les verrous de Machin indexer, tenus par une autre connexion le temps du scénario."""
+	connection = sample_connection()
+	request.addfinalizer(connection.close)
+	for lock in LOCKS.values():
+		line = connection.execute("SELECT pg_try_advisory_lock(%s)", (lock,)).fetchone()
+		assert line == (True,), line
+	connection.commit()
+
+
+@when(parsers.parse("je saisis l'artiste « {text} »"))
+def enter_artist(interface: Context, text: str) -> None:
+	field = card(interface).ui.artist
+	field.setText(text)
+	field.textEdited.emit(text)
+
+
+@then(parsers.parse("la fiche propose « {text} »"))
+def offers(interface: Context, text: str) -> None:
+	offer = card(interface).ui.analysis_offer
+	assert (offer.text(), offer.isHidden()) == (text, False)
+
+
+@then("la fiche ne propose rien")
+def offers_nothing(interface: Context) -> None:
+	assert card(interface).ui.analysis_offer.isHidden()
+
+
+@then(parsers.re(r"le bouton « (?P<text>[^»]+) » de la fiche est caché"))
+def hidden_button(interface: Context, text: str) -> None:
+	button_list = []
+	for candidate in card(interface).findChildren(QPushButton):
+		if candidate.text() == text:
+			button_list.append(candidate)
+	(found,) = button_list
+	assert found.isHidden()
+
+
+@then(parsers.parse("le bouton « {text} » de la fiche est inactif, avec l'infobulle « {tooltip} »"))
+def inactive_with_tooltip(interface: Context, text: str, tooltip: str) -> None:
+	button_list = []
+	for candidate in card(interface).findChildren(QPushButton):
+		if candidate.text() == text:
+			button_list.append(candidate)
+	(found,) = button_list
+	assert (found.isEnabled(), found.isHidden(), found.toolTip()) == (False, False, tooltip)
+
+
+def _automatic_tooltips(interface: Context) -> list[str]:
+	ui = card(interface).ui
+	tooltips = []
+	for name in AUTOMATIC_FIELDS:
+		tooltips.append(getattr(ui, name).toolTip())
+	return tooltips
+
+
+@then(parsers.parse("l'artiste, le titre, la durée et le début et la fin détectés de la fiche disent « {text} »"))
+def automatic_fields_say(interface: Context, text: str) -> None:
+	assert _automatic_tooltips(interface) == [text] * len(AUTOMATIC_FIELDS)
+
+
+@then("l'artiste, le titre, la durée et le début et la fin détectés de la fiche ne disent plus rien de la vérification")
+def automatic_fields_quiet(interface: Context, qtbot: QtBot) -> None:
+	def quiet() -> bool:
+		for tooltip in _automatic_tooltips(interface):
+			if "Vérification complète en cours" in tooltip:
+				return False
+		return True
+
+	qtbot.waitUntil(quiet, timeout=DELAY)
+
+
+@then(parsers.parse("la question d'action a dit « {title} » : « {text} »"))
+def action_question(interface: Context, title: str, text: str) -> None:
+	assert interface.questions == [f"action : {title}\n{text}"]
+
+
+@then(parsers.parse("le sonore « {name} » n'a plus de champ saisi à la main, et son fichier a été relu"))
+def back_to_file(interface: Context, empty_database: Connection, qtbot: QtBot, name: str) -> None:
+	"""Le fichier de test n'a pas de tags : relu, il efface le titre « Neige »."""
+
+	def read() -> tuple[object, ...] | None:
+		return empty_database.execute(
+			"SELECT edited_fields, title, detected_start IS DISTINCT FROM interval '1 second' FROM sounds WHERE location LIKE %s",
+			(f"%/{name}",),
+		).fetchone()
+
+	qtbot.waitUntil(lambda: read() == ([], None, True), timeout=DELAY)
+
+
+@then(parsers.parse("le sonore « {title} » a toujours le titre et le début détecté saisis à la main"))
+def still_by_hand(empty_database: Connection, title: str) -> None:
+	line = empty_database.execute("SELECT edited_fields FROM sounds WHERE title = %s", (title,)).fetchone()
+	assert line == (["title", "detected_start"],), line
+
+
+@then(parsers.parse("la question suivante, après la vérification, a dit « {text} »"))
+def next_question(interface: Context, text: str) -> None:
+	assert interface.questions[1:] == [f"après vérification : {text}"], interface.questions

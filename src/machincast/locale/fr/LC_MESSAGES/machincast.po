@@ -4815,6 +4815,44 @@ msgstr ""
 "même pas encore enregistrés"
 
 #: machincast/interface/sound_card.py
+msgid ""
+"Never fully checked: its silences are not measured. « Full check » does it "
+"now."
+msgstr ""
+"Jamais vérifié en entier : ses silences ne sont pas mesurés. « Vérification "
+"complète » le fait maintenant."
+
+#: machincast/interface/sound_card.py
+#, python-brace-format
+msgid ""
+"Entered by hand: {list}. « Back to the file values… » gives them back to "
+"the analysis of the file."
+msgstr ""
+"Saisis à la main : {list}. « Revenir aux valeurs du fichier… » les rend à "
+"l'analyse du fichier."
+
+#: machincast/interface/sound_card.py
+msgid "Back to the file values"
+msgstr "Revenir aux valeurs du fichier"
+
+#: machincast/interface/sound_card.py
+#, python-brace-format
+msgid ""
+"These values, entered by hand, will be replaced by what the full check "
+"finds in the file: {list}."
+msgstr ""
+"Ces valeurs, saisies à la main, seront remplacées par ce que la "
+"vérification complète trouvera dans le fichier : {list}."
+
+#: machincast/interface/sound_card.py
+msgid "Save or cancel the changes of the card first."
+msgstr "Enregistrer ou annuler d'abord les modifications de la fiche."
+
+#: machincast/interface/sound_card.py
+msgid "Full check running: this value will be updated."
+msgstr "Vérification complète en cours : cette valeur sera mise à jour."
+
+#: machincast/interface/sound_card.py
 #: machincast/interface/ui/sound_card.ui
 msgid "Listen to the sound on the pre-listen output, never on air"
 msgstr "Écouter le sonore sur la sortie de pré-écoute, jamais sur l'antenne"
@@ -4908,6 +4946,10 @@ msgstr "Vérification…"
 #: machincast/interface/sound_card.py
 msgid "Full check running…"
 msgstr "Vérification complète en cours…"
+
+#: machincast/interface/sound_card.py
+msgid "in progress…"
+msgstr "en cours…"
 
 #: machincast/interface/sound_card.py
 msgid "None: the background programming"
@@ -7908,6 +7950,18 @@ msgstr "Dernière vérification complète"
 #: machincast/interface/ui/sound_card.ui
 msgid "Last plays"
 msgstr "Derniers passages"
+
+#: machincast/interface/ui/sound_card.ui
+msgid ""
+"The values entered by hand are given back to the indexer, then the full "
+"check reads the file again"
+msgstr ""
+"Les valeurs saisies à la main sont rendues à l'indexeur, puis la "
+"vérification complète relit le fichier"
+
+#: machincast/interface/ui/sound_card.ui
+msgid "Back to the file values…"
+msgstr "Revenir aux valeurs du fichier…"
 
 #: machincast/interface/ui/sound_card.ui
 msgid ""
