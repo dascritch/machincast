@@ -246,4 +246,4 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `flux tombé` | incident | Le flux d'un stream ne répond plus. |
 | `reprise du flux` | incident | Le flux, tombé ou en blanc, est revenu ; le message donne la durée de la panne. |
 
-L'historique et le journal ne sont jamais modifiés ni effacés : la diffusion ne peut qu'y ajouter des lignes.
+L'historique et le journal ne sont jamais modifiés : la diffusion ne peut qu'y ajouter des lignes. Seule la purge quotidienne en efface ce qui dépasse la durée de péremption, 60 jours par défaut ([Préférences](prise-en-main.md#préférences), page **Base**).
