@@ -297,6 +297,14 @@ def announced_output(command: subprocess.CompletedProcess[str], text: str) -> No
 	assert text in command.stdout, command.stdout + command.stderr
 
 
+@then(parsers.re(r"sa sortie règle à « (?P<value>[^»]+) » (?P<keys>«.+»)$"))
+def output_settings(command: subprocess.CompletedProcess[str], value: str, keys: str) -> None:
+	"""Chaque clé, sur sa ligne, à cette valeur (https://github.com/dascritch/machincast/issues/448)."""
+	lines = command.stdout.splitlines()
+	for key in re.findall(r"« ([^»]+) »", keys):
+		assert f"{key}={value}" in lines, (key, command.stdout)
+
+
 @then(parsers.parse("sa sortie d'erreur mentionne « {text} »"))
 def mentioned_error(command: subprocess.CompletedProcess[str], text: str) -> None:
 	assert text in command.stderr, command.stderr
@@ -414,23 +422,28 @@ answer;
 @then(
 	parsers.re(
 		r"la règle polkit répond (?:« (?P<response>[^»]+) »|rien) à l'action « (?P<action>[^»]+) »"
-		r" sur « (?P<unit>[^»]+) », verbe « (?P<verb>[^»]+) », pour (?P<who>le compte|un autre compte)"
+		r"(?: sur « (?P<unit>[^»]+) », verbe « (?P<verb>[^»]+) »)?, pour (?P<who>le compte|un autre compte)"
 	)
 )
 def polkit_response(
 	command: subprocess.CompletedProcess[str],
 	response: str | None,
 	action: str,
-	unit: str,
-	verb: str,
+	unit: str | None,
+	verb: str | None,
 	who: str,
 ) -> None:
+	"""Une action sur une unité (systemd1), ou sans unité (login1, https://github.com/dascritch/machincast/issues/448)."""
 	assert command.returncode == 0, command.stderr
 	user = _account()[0]
 	if who == "un autre compte":
 		user = f"autre-que-{user}"
 	answer = dukpy.evaljs(
-		[POLKIT_SIMULATOR, command.stdout, POLKIT_ANSWER], action=action, unit=unit, verb=verb, user=user
+		[POLKIT_SIMULATOR, command.stdout, POLKIT_ANSWER],
+		action=action,
+		unit=(unit) or (""),
+		verb=(verb) or (""),
+		user=user,
 	)
 	assert answer == ((response) or ("rien")), answer
 
@@ -544,7 +557,8 @@ def sh_service_names() -> None:
 @then("install.sh installe, vérifie et retire chacun de ces fichiers :")
 def sh_service_files(datatable: list[list[str]]) -> None:
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
-	installing = _function(install, "installer_service")
+	# La protection du poste (https://github.com/dascritch/machincast/issues/448) est une étape de l'installation.
+	installing = _function(install, "installer_service") + _function(install, "proteger_le_poste")
 	checking = _function(install, "fichiers_du_service_perimes")
 	removing = _function(install, "retirer_service")
 	_headers, *rows = datatable
@@ -821,3 +835,50 @@ def same_extensions() -> None:
 	for extension in SOUND_EXTENSIONS:
 		expected.add(extension.removeprefix("."))
 	assert set(line.group("list").split()) == expected
+
+
+@then(
+	parsers.re(
+		r"install.sh, en installant le service, recharge « (?P<unit>[^»]+) » quand « (?P<logind>[^»]+) » change, et"
+		r" réexécute systemd quand « (?P<manager>[^»]+) » change"
+	)
+)
+def sh_reloads(unit: str, logind: str, manager: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/448 : un fragment ne vaut qu'une fois relu."""
+	installing = _protection()
+	assert re.search(
+		rf'if installer_fichier logind "\$\{{{logind}\}}"; then\s+executer sudo systemctl reload {unit}\n', installing
+	), installing
+	assert re.search(
+		rf'if installer_fichier system-conf "\$\{{{manager}\}}"; then\s+executer sudo systemctl daemon-reexec\n',
+		installing,
+	), installing
+
+
+@then(parsers.parse("install.sh, en installant le service, masque « {unit} » s'il ne l'est pas"))
+def sh_masks(unit: str) -> None:
+	installing = _protection()
+	assert f"executer sudo systemctl mask {unit}" in installing, installing
+	assert f'"$(systemctl is-enabled {unit} 2>/dev/null || true)" != "masked"' in installing, installing
+
+
+@then(
+	parsers.parse(
+		"install.sh, en retirant le service, démasque « {unit} » s'il est masqué, recharge « {logind} » et réexécute"
+		" systemd"
+	)
+)
+def sh_unmasks(unit: str, logind: str) -> None:
+	removing = _function((PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8"), "retirer_service")
+	assert f'"$(systemctl is-enabled {unit} 2>/dev/null || true)" == "masked"' in removing, removing
+	assert f"executer sudo systemctl unmask {unit}" in removing, removing
+	assert f"executer sudo systemctl reload {logind}" in removing, removing
+	assert "executer sudo systemctl daemon-reexec" in removing, removing
+
+
+def _protection() -> str:
+	"""La protection du poste d'install.sh, appelée à l'installation du service
+	(https://github.com/dascritch/machincast/issues/448)."""
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	assert "\n\tproteger_le_poste\n" in _function(install, "installer_service")
+	return _function(install, "proteger_le_poste")

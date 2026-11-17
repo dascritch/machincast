@@ -7,7 +7,8 @@
 	python -m machincast.installation pipewire-unit, wireplumber-unit         le PipeWire du service et son WirePlumber
 	python -m machincast.installation wireplumber-service, wireplumber-desktop   leur configuration, et celle du bureau
 	python -m machincast.installation tmpfiles, logrotate                      répertoires du service, rotation des logs
-	python -m machincast.installation rule        --config machincast.toml   règle polkit qui le pilote
+	python -m machincast.installation rule        --config machincast.toml   règle polkit qui le pilote, et protège le poste
+	python -m machincast.installation logind, system-conf                      touches d'alimentation, Ctrl+Alt+Suppr
 	python -m machincast.installation purge-unit  --config machincast.toml   unité systemd de la purge
 	python -m machincast.installation purge-timer --config machincast.toml   son minuteur, chaque jour à midi
 	python -m machincast.installation shortcut    --config machincast.toml   raccourci de l'interface (.desktop)
@@ -577,9 +578,37 @@ WantedBy=timers.target
 """
 
 
+POWER_ACTIONS = (
+	"org.freedesktop.login1.power-off",
+	"org.freedesktop.login1.power-off-multiple-sessions",
+	"org.freedesktop.login1.power-off-ignore-inhibit",
+	"org.freedesktop.login1.reboot",
+	"org.freedesktop.login1.reboot-multiple-sessions",
+	"org.freedesktop.login1.reboot-ignore-inhibit",
+	"org.freedesktop.login1.halt",
+	"org.freedesktop.login1.halt-multiple-sessions",
+	"org.freedesktop.login1.halt-ignore-inhibit",
+	"org.freedesktop.login1.suspend",
+	"org.freedesktop.login1.suspend-multiple-sessions",
+	"org.freedesktop.login1.suspend-ignore-inhibit",
+	"org.freedesktop.login1.hibernate",
+	"org.freedesktop.login1.hibernate-multiple-sessions",
+	"org.freedesktop.login1.hibernate-ignore-inhibit",
+)
+"""Les actions de logind qui éteignent, redémarrent, arrêtent ou mettent en veille le poste : une session active les a
+sans mot de passe sur Ubuntu, écran de connexion compris (allow_active de org.freedesktop.login1.policy) ; sur un poste
+d'antenne, elles demandent l'authentification d'un administrateur (https://github.com/dascritch/machincast/issues/448)."""
+
+
 def polkit_rule(account: Account) -> str:
 	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec
-	l'authentification d'un administrateur ; rien d'autre, ni sur une autre unité."""
+	l'authentification d'un administrateur ; rien d'autre, ni sur une autre unité. Elle protège aussi le poste :
+	l'éteindre, le redémarrer ou le mettre en veille demande l'authentification d'un administrateur, à tout compte
+	(https://github.com/dascritch/machincast/issues/448). Elle est en ES5, comme Duktape, le moteur de polkitd."""
+	quoted = []
+	for action in POWER_ACTIONS:
+		quoted.append(f'"{action}"')
+	actions = ",\n\t\t".join(quoted)
 	return f"""// Control of the MachinCast broadcast service (https://github.com/dascritch/machincast/issues/22).
 // Installed by install.sh --service; do not edit here, run install.sh --service again.
 polkit.addRule(function (action, subject) {{
@@ -589,6 +618,60 @@ polkit.addRule(function (action, subject) {{
 	}}
 	return polkit.Result.NOT_HANDLED;
 }});
+
+// The on-air computer: powering off, rebooting, halting or suspending it asks for an administrator's password, from
+// any account and from the login screen (https://github.com/dascritch/machincast/issues/448).
+polkit.addRule(function (action, subject) {{
+	if ([
+		{actions}
+	].indexOf(action.id) >= 0) {{
+		return polkit.Result.AUTH_ADMIN;
+	}}
+	return polkit.Result.NOT_HANDLED;
+}});
+"""
+
+
+LOGIND_KEYS = (
+	"HandlePowerKey",
+	"HandlePowerKeyLongPress",
+	"HandleRebootKey",
+	"HandleRebootKeyLongPress",
+	"HandleSuspendKey",
+	"HandleSuspendKeyLongPress",
+	"HandleHibernateKey",
+	"HandleHibernateKeyLongPress",
+	"HandleLidSwitch",
+	"HandleLidSwitchExternalPower",
+	"HandleLidSwitchDocked",
+)
+"""Ce que logind fait seul, sans polkit, à l'appui d'une touche ou à la fermeture du capot : ignoré sur un poste
+d'antenne (https://github.com/dascritch/machincast/issues/448)."""
+
+
+def logind() -> str:
+	"""Le fragment de logind du service : les touches d'alimentation, de redémarrage et de veille, et le capot, ne
+	coupent plus l'antenne. Dans une session, le bureau garde la main sur la touche, et passe par logind, donc par la
+	règle polkit ; un appui long, que le matériel traite seul, éteint toujours."""
+	settings = ""
+	for key in LOGIND_KEYS:
+		settings += f"{key}=ignore\n"
+	return f"""# The MachinCast on-air computer: keys and lid never power off, reboot or suspend it
+# (https://github.com/dascritch/machincast/issues/448).
+# Installed by install.sh --service; do not edit here, run install.sh --service again.
+[Login]
+{settings}"""
+
+
+def system_conf() -> str:
+	"""Le fragment de systemd du service : sept Ctrl+Alt+Suppr en deux secondes, en console, ne forcent plus le
+	redémarrage ; install.sh --service masque aussi ctrl-alt-del.target, qu'un seul appui lance
+	(https://github.com/dascritch/machincast/issues/448)."""
+	return """# The MachinCast on-air computer: a burst of Ctrl+Alt+Del on the console never forces a reboot
+# (https://github.com/dascritch/machincast/issues/448).
+# Installed by install.sh --service; do not edit here, run install.sh --service again.
+[Manager]
+CtrlAltDelBurstAction=none
 """
 
 
@@ -649,6 +732,16 @@ def _purge_timer(_configuration: Configuration) -> int:
 
 def _rule(_configuration: Configuration) -> int:
 	sys.stdout.write(polkit_rule(Account.current()))
+	return 0
+
+
+def _logind(_configuration: Configuration) -> int:
+	sys.stdout.write(logind())
+	return 0
+
+
+def _system_conf(_configuration: Configuration) -> int:
+	sys.stdout.write(system_conf())
 	return 0
 
 
@@ -753,6 +846,7 @@ ACTIONS = {
 	"check": _check,
 	"databases": _databases,
 	"devices": _devices,
+	"logind": _logind,
 	"logrotate": _logrotate,
 	"migrate": _migrate,
 	"move-personal-sounds": _move_personal_sounds,
@@ -764,6 +858,7 @@ ACTIONS = {
 	"purge-unit": _purge_unit,
 	"rule": _rule,
 	"shortcut": _shortcut,
+	"system-conf": _system_conf,
 	"tmpfiles": _tmpfiles,
 	"unit": _unit,
 	"wireplumber-desktop": _wireplumber_desktop,
