@@ -265,6 +265,12 @@ msgstr ""
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid "key {section}.{key}: “{value}” is not an hour and minutes, HH:MM"
+msgstr ""
+"clé {section}.{key} : « {value} » n'est pas une heure et minutes, HH:MM"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid ""
 "key {section}.{key}: “{value}” is not a whole number of rows, at least "
 "{minimum}"
@@ -6594,6 +6600,34 @@ msgstr "{program} : démarrage non noté dans la base : {error}"
 #, python-brace-format
 msgid "{program}: end not logged in the database: {error}"
 msgstr "{program} : fin non notée dans la base : {error}"
+
+#: machincast/schedule.py
+msgid "Claims the daily tasks, once a day from the set hour."
+msgstr ""
+"Réserve les tâches quotidiennes, une fois par jour à partir de l'heure "
+"réglée."
+
+#: machincast/schedule.py
+msgid ""
+"STATE_DIRECTORY is not set: the daily tasks are claimed by their systemd "
+"unit"
+msgstr ""
+"STATE_DIRECTORY n'est pas défini : les tâches quotidiennes sont réservées "
+"par leur unité systemd"
+
+#: machincast/schedule.py
+msgid "claim the daily tasks if they are due"
+msgstr "réserver les tâches quotidiennes si elles sont dues"
+
+#: machincast/schedule.py
+#, python-brace-format
+msgid "daily tasks claimed, set at {hour}"
+msgstr "tâches quotidiennes réservées, réglées à {hour}"
+
+#: machincast/schedule.py
+#, python-brace-format
+msgid "daily tasks already done since {hour}"
+msgstr "tâches quotidiennes déjà faites depuis {hour}"
 
 #: machincast/service_mixer.py
 msgid "the PipeWire of the broadcast service is not running"

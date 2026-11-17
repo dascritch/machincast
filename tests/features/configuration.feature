@@ -253,6 +253,38 @@ Fonctionnalité: Fichier de configuration
 			| "60"   |
 			| true   |
 
+	Scénario: Sans clé schedule.daily, les tâches quotidiennes passent à 10:00
+		https://github.com/dascritch/machincast/issues/455 : à 10 heures, il y a statistiquement quelqu'un au studio pour voir
+		un souci.
+		Étant donné une configuration valide où la clé "schedule.daily" est absente
+		Quand je charge la configuration
+		Alors les tâches quotidiennes passent à « 10:00 »
+
+	Plan du scénario: La clé schedule.daily donne l'heure des tâches quotidiennes, en heures et minutes
+		Étant donné une configuration valide où la clé "schedule.daily" vaut <valeur>
+		Quand je charge la configuration
+		Alors les tâches quotidiennes passent à « <heure> »
+
+		Exemples:
+			| valeur  | heure |
+			| "06:30" | 06:30 |
+			| "23:59" | 23:59 |
+			| "00:00" | 00:00 |
+
+	Plan du scénario: Une heure des tâches quotidiennes invalide est refusée
+		Étant donné une configuration valide où la clé "schedule.daily" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "schedule.daily"
+		Et le message mentionne "heure et minutes, HH:MM"
+
+		Exemples:
+			| valeur   |
+			| "24:00"  |
+			| "10h"    |
+			| "9:30"   |
+			| "10:00:00" |
+			| 10       |
+
 	Scénario: Sans section [silences], le seuil de silence est de -40 dB
 		Étant donné une configuration valide sans section "silences"
 		Quand je charge la configuration
