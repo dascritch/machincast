@@ -101,6 +101,7 @@ SCREENSHOTS = (
 	"incidents",
 	"preferences",
 	"preferences-audio",
+	"preferences-taches",
 	"preecoute",
 	"preecoute-fichier",
 )
@@ -773,12 +774,17 @@ def produce(directory: Path) -> dict[str, Path]:
 		# Des crossfades par défaut, pour que la frise de démonstration montre ses fondus
 		# (https://github.com/dascritch/machincast/issues/234).
 		crossfades = Crossfades(start=timedelta(seconds=2), end=timedelta(seconds=4))
-		preferences = PreferencesWindow(Settings(crossfades, audio.device, audio.preview), "pipewire", window)
+		preferences = PreferencesWindow(
+			Settings(crossfades, audio.device, audio.preview), "pipewire", window, timers=True
+		)
 		preferences.show()
 		take("preferences", preferences)
 		# La page « Audio », et son bloc des cartes son (https://github.com/dascritch/machincast/issues/339).
 		preferences.ui.pages.setCurrentWidget(preferences.ui.page_audio)
 		take("preferences-audio", preferences)
+		# La page « Tâches », l'heure de la tâche quotidienne (https://github.com/dascritch/machincast/issues/455).
+		preferences.ui.pages.setCurrentWidget(preferences.ui.tasks_page)
+		take("preferences-taches", preferences)
 		preferences.close()
 		preview = PreviewWindow(connection, audio, configuration)
 		preview.listen_on_air("Café Noir – Nuit blanche")

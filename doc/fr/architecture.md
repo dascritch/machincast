@@ -183,7 +183,7 @@ Chaque binaire lit `machincast.toml` à son lancement et joint la base par socke
 | `Machin_interface` | Superviser l'antenne, éditer banques, séquences et événements, simuler, pré-écouter, piloter le service. | Base (rôle `machincast_interface`), socket d'état, systemd par polkit, PipeWire. |
 | `Machin` | Point d'entrée unique en ligne de commande ; suivi des logs ; outils de développement. | Shell, journal de systemd. |
 | `install.sh` | Installer, mettre à jour, installer ou retirer le service ; relançable. | `sudo` pour les seules étapes qui l'exigent. |
-| Outils | `Machin_maintenance-db` : sauvegarde, schéma et rôles, optimisation. `Machin_purge` : péremption de l'airplay et du log, chaque jour à midi. `Machin_grant-read` : lecture des sonores par le service. | Base, ACL des répertoires de sonores. |
+| Outils | `Machin_maintenance-db` : sauvegarde, schéma et rôles, optimisation. `Machin_purge` : péremption de l'airplay et du log, chaque jour à l'heure de `schedule.daily` avec le service. `Machin_grant-read` : lecture des sonores par le service. | Base, ACL des répertoires de sonores. |
 | PostgreSQL | Tout l'état durable : sonores, banques, séquences, événements, airplay, log. | Socket Unix, authentification peer. |
 | `machincast.toml` | Configuration du poste : audio, sorties, masquage, seuils. Jamais versionné. | Lu par chaque binaire à son lancement ; écrit par les préférences de l'interface. |
 
@@ -353,7 +353,7 @@ Deux façons d'utiliser le poste :
 | Sockets | `/run/machincast` : PipeWire, socket d'état | Groupe `machincast`, que rejoint le compte qui installe |
 | Logs et rapports de crash | `/var/log/machincast`, rotation hebdomadaire | Groupe `machincast` |
 | Sonores | `/home/machincast` par défaut, ou tout répertoire que le service lit déjà | Lecture pour le groupe `machincast` ; `Machin grant-read` pour l'ouvrir |
-| Purge | `machincast-purge.timer`, chaque jour à midi | Compte qui installe, propriétaire de la base |
+| Tâches | `machincast-indexing.timer`, l'indexation rapide toutes les heures ; `machincast-daily.timer`, la purge puis l'audit complet, chaque jour à l'heure de `schedule.daily` ; sauf avec `--no-timers` | Compte qui installe, propriétaire de la base |
 | Pilotage | règle polkit : démarrer, arrêter, redémarrer `machincast.service` | Le seul compte de MachinCast, avec l'authentification d'un administrateur ; jamais de `sudo` |
 | Base de données | PostgreSQL local, socket Unix, authentification peer | Rôle `machincast` du service, qui n'endosse que `machincast_player` |
 

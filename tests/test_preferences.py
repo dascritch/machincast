@@ -10,11 +10,12 @@ import re
 import stat
 import tomllib
 from collections.abc import Iterator
-from datetime import timedelta
+from datetime import time, timedelta
 from pathlib import Path
 
 import pytest
 import tomlkit
+from PySide6.QtCore import QTime
 from PySide6.QtGui import QColor, QIcon, QImage, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QComboBox, QDialogButtonBox, QDoubleSpinBox, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -1048,6 +1049,56 @@ def enter_retention(opened: Opened, days: int) -> None:
 def data_retention(opened: Opened, days: int) -> None:
 	assert opened.provided_list is not None
 	assert opened.provided_list.retention == days
+
+
+# ─── Tâches du service (https://github.com/dascritch/machincast/issues/455) ───
+
+
+@when(
+	parsers.re(
+		r"la fenêtre des paramètres du service s'ouvre sur la tâche quotidienne à « (?P<hour>[^»]+) »,"
+		r" (?P<timers>minuteurs installés|sans minuteurs)"
+	)
+)
+def open_on_daily(opened: Opened, parent: QWidget, hour: str, timers: str) -> None:
+	all_ = Settings(Crossfades(), None, TEST_PREVIEW, daily=time.fromisoformat(hour))
+	opened.window = PreferencesWindow(all_, "dummy", parent, timers=timers == "minuteurs installés")
+
+
+@then(parsers.parse("elle montre la tâche quotidienne à « {hour} », réglable"))
+def displayed_daily(opened: Opened, hour: str) -> None:
+	ui = the_window(opened).ui
+	ui.pages.setCurrentWidget(ui.tasks_page)
+	assert (ui.daily.time().toString("HH:mm"), ui.daily.isEnabled()) == (hour, True)
+	assert ui.timers_missing.isHidden()
+
+
+@when(parsers.parse("j'y saisis la tâche quotidienne à « {hour} »"))
+def enter_daily(opened: Opened, hour: str) -> None:
+	the_window(opened).ui.daily.setTime(QTime.fromString(hour, "HH:mm"))
+
+
+@then(parsers.parse("elle a donné la tâche quotidienne à « {hour} »"))
+def given_daily(opened: Opened, hour: str) -> None:
+	assert opened.provided_list is not None
+	assert opened.provided_list.daily == time.fromisoformat(hour)
+
+
+@then(parsers.parse("l'heure de la tâche quotidienne est grisée, et la page dit « {text} »"))
+def daily_disabled(opened: Opened, text: str) -> None:
+	ui = the_window(opened).ui
+	assert not ui.daily.isEnabled()
+	assert (ui.timers_missing.text(), ui.timers_missing.isHidden()) == (text, False)
+
+
+@given(parsers.parse("les préférences seront réglées avec la tâche quotidienne à « {hour} »"))
+def adjusted_daily(interface: Context, hour: str) -> None:
+	interface.adjusted_daily = time.fromisoformat(hour)
+
+
+@then(parsers.parse("les préférences ont montré la tâche quotidienne à « {hour} »"))
+def shown_daily(interface: Context, hour: str) -> None:
+	assert interface.shown_dailies == [time.fromisoformat(hour)]
 
 
 # ─── Deux fenêtres (https://github.com/dascritch/machincast/issues/389) ───

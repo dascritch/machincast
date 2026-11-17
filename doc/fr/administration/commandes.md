@@ -114,7 +114,7 @@ Elle dit, et écrit dans le log de la base, ligne `purge`, ce qu'elle a effacé,
 
 Code 0 quand la purge est faite ; 1 si la base est injoignable, ou sur une erreur de la base : rien n'est alors effacé. Comme la maintenance, elle se lance avec le compte de MachinCast, propriétaire de la base, qui efface sans endosser de rôle.
 
-**La durée** se règle dans `machincast.toml` ([Configuration](configuration.md#durée-de-péremption)), ou dans l'interface, **Fichier → Préférences de l'interface…**, page **Base**. **Avec le service de diffusion** (`./install.sh --service`), un minuteur systemd la lance chaque jour à midi ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)) ; ses messages se lisent par `journalctl --unit=machincast-purge.service`. Sans service, elle se lance à la main.
+**La durée** se règle dans `machincast.toml` ([Configuration](configuration.md#durée-de-péremption)), ou dans l'interface, **Fichier → Préférences de l'interface…**, page **Base**. **Avec le service de diffusion** (`./install.sh --service`), un minuteur systemd la lance chaque jour à l'heure de `schedule.daily`, 10:00 par défaut, réglable dans **Fichier → Paramètres du service…**, page **Tâches**, puis l'audit complet ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion), [#455](https://github.com/dascritch/machincast/issues/455)) ; ses messages se lisent par `journalctl --unit=machincast-daily.service`. Sans service, ou avec `--no-timers`, elle se lance à la main.
 
 ## Lecture par le service de diffusion : Machin grant-read
 
@@ -165,8 +165,9 @@ Chaque message commence par son heure, en ISO 8601, à la seconde, avec le déca
 | Code | Signification |
 | --- | --- |
 | 0 | Le programme est allé au bout. Pour l'indexation, même si des sonores ont changé d'état : ce sont des anomalies, pas des erreurs. |
-| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, autre indexation du même mode en cours sur la base, `Machin indexer --window` sans affichage graphique, sortie audio indisponible, autre `Machin player` déjà en diffusion, maintenance de la base inachevée ou avec un rôle manquant, purge de la base impossible, ou fonction pas encore écrite. |
+| 1 | Base de données injoignable ou perdue (pour `Machin interface`, au lancement), décodeur GStreamer manquant, `Machin indexer --window` sans affichage graphique, sortie audio indisponible, autre `Machin player` déjà en diffusion, maintenance de la base inachevée ou avec un rôle manquant, purge de la base impossible, ou fonction pas encore écrite. |
 | 2 | Configuration invalide, ou appel incorrect (option inconnue, `--config` sans fichier, option refusée avec une autre). |
+| 3 | `Machin indexer` : une autre indexation du même mode est déjà en cours sur la base ; celle-ci s'arrête aussitôt, sans rien toucher. Pas un échec pour les minuteurs des tâches ([#455](https://github.com/dascritch/machincast/issues/455)). |
 | 127 | Programme ou `journalctl` introuvable, signalé par `Machin`. |
 
 Les messages d'erreur courants et leur solution sont dans le tableau [En cas de problème](../../../INSTALL.fr.md#en-cas-de-problème) d'`INSTALL.md`.

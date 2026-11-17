@@ -96,6 +96,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 			interface=configuration.interface,
 			retention=configuration.database.retention,
 			dead_air=configuration.dead_air,
+			daily=configuration.schedule.daily,
 		)
 		window.show()
 		window.offer_to_launching()
