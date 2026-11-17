@@ -185,3 +185,11 @@ Fonctionnalité: Socle de test
 	Scénario: Un fichier d'étapes partagées reste lisible
 		Alors aucun fichier d'étapes partagées de tests/ ne dépasse 1500 lignes
 
+	Scénario: Un état de session de l'interface ne passe jamais d'un scénario à l'autre
+		https://github.com/dascritch/machincast/issues/346 : la fenêtre règle, pour la session, des valeurs gardées au
+		niveau d'un module (pré-écoute désactivée, préférences). Un scénario qui ouvre une fenêtre les laissait aux
+		suivants : ceux de l'onglet Antenne, qui n'en ouvrent pas, trouvaient la pré-écoute grisée après ceux de la
+		pré-écoute sur la sortie factice. tests/conftest.py remet chacune après chaque scénario.
+
+		Alors chaque variable globale d'un module de l'interface est remise après chaque scénario par tests/conftest.py
+
