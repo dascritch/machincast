@@ -471,6 +471,11 @@ class MainWindow(QMainWindow):
 		# (https://github.com/dascritch/machincast/issues/127).
 		self.database_maintenance = maintenance.addAction(control.MAINTENANCE)
 		self.database_maintenance.triggered.connect(self._maintain_database)
+		# L'export de la base, pour un plan de reprise d'activité (https://github.com/dascritch/machincast/issues/347).
+		self.export = maintenance.addAction(control.EXPORT)
+		self.export.triggered.connect(self._export_database)
+		self.exporting = control.Export(self)
+		self.exporting.finished.connect(self._exported_database)
 		# La lecture des sonores par le service de diffusion (https://github.com/dascritch/machincast/issues/381).
 		self.grant_read = maintenance.addAction(control.GRANT_READ)
 		self.grant_read.triggered.connect(self.broadcast.grant_read_files)
@@ -963,6 +968,17 @@ class MainWindow(QMainWindow):
 			return
 		self.statusBar().showMessage(control.launch_maintenance(self.configuration, backups))
 
+	def _export_database(self) -> None:
+		"""Machin backup-db dans le répertoire des sauvegardes de la configuration, sans terminal ; l'entrée est inactive
+		jusqu'à sa fin, que la barre d'état annonce (https://github.com/dascritch/machincast/issues/347)."""
+		self.export.setEnabled(False)
+		directory = control.maintenance_backups(self.configuration)
+		self.statusBar().showMessage(self.exporting.start(self.configuration, directory))
+
+	def _exported_database(self, text: str) -> None:
+		self.export.setEnabled(True)
+		self.statusBar().showMessage(text)
+
 	def _show_indexing_status(self) -> None:
 		"""Une seule fenêtre de statut : la rouvrir la ramène au premier plan."""
 		if self.status_window is None:
@@ -1060,11 +1076,14 @@ class MainWindow(QMainWindow):
 			output=audio.output,
 			table_rows=preferences.table_rows(),
 			daily=self.daily,
+			backup_directory=control.maintenance_backups(self.configuration),
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
 		self.broadcast.reread_service()
-		settings = dialogs.set_preferences(self, shown_list, audio.output, self.broadcast.service, kind)
+		settings = dialogs.set_preferences(
+			self, shown_list, audio.output, self.broadcast.service, kind, configuration=self.configuration
+		)
 		if settings is None:
 			return
 		try:

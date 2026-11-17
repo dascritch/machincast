@@ -479,3 +479,12 @@ def daily_hour(context: Context, hour: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/455"""
 	assert context.configuration is not None, context.error
 	assert context.configuration.schedule.daily.isoformat(timespec="minutes") == hour
+
+
+@then(parsers.parse("les sauvegardes vont dans « {directory} »"))
+def backup_directory(context: Context, directory: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/347 : « ~ », le répertoire personnel du compte ;
+	« <configuration> », le répertoire du fichier de configuration."""
+	assert context.configuration is not None, context.error
+	expected = Path(directory.replace("<configuration>", str(context.configuration.path.parent))).expanduser()
+	assert context.configuration.backup.directory == expected

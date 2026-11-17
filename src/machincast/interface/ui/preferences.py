@@ -17,9 +17,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboBox,
     QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
-    QGroupBox, QHBoxLayout, QLabel, QPushButton,
-    QSizePolicy, QSpacerItem, QSpinBox, QTabWidget,
-    QTimeEdit, QVBoxLayout, QWidget)
+    QGroupBox, QHBoxLayout, QLabel, QLineEdit,
+    QPushButton, QSizePolicy, QSpacerItem, QSpinBox,
+    QTabWidget, QTimeEdit, QVBoxLayout, QWidget)
 
 class Ui_PreferencesWindow(object):
     def setupUi(self, PreferencesWindow):
@@ -400,6 +400,72 @@ class Ui_PreferencesWindow(object):
         self.tasks_layout.addItem(self.tasks_space)
 
         self.pages.addTab(self.tasks_page, "")
+        self.backup_page = QWidget()
+        self.backup_page.setObjectName(u"backup_page")
+        self.backup_layout = QVBoxLayout(self.backup_page)
+        self.backup_layout.setObjectName(u"backup_layout")
+        self.backup_form = QFormLayout()
+        self.backup_form.setObjectName(u"backup_form")
+        self.backup_directory_caption = QLabel(self.backup_page)
+        self.backup_directory_caption.setObjectName(u"backup_directory_caption")
+
+        self.backup_form.setWidget(0, QFormLayout.ItemRole.LabelRole, self.backup_directory_caption)
+
+        self.backup_directory_layout = QHBoxLayout()
+        self.backup_directory_layout.setObjectName(u"backup_directory_layout")
+        self.backup_directory = QLineEdit(self.backup_page)
+        self.backup_directory.setObjectName(u"backup_directory")
+
+        self.backup_directory_layout.addWidget(self.backup_directory)
+
+        self.choose_backup_directory = QPushButton(self.backup_page)
+        self.choose_backup_directory.setObjectName(u"choose_backup_directory")
+
+        self.backup_directory_layout.addWidget(self.choose_backup_directory)
+
+
+        self.backup_form.setLayout(0, QFormLayout.ItemRole.FieldRole, self.backup_directory_layout)
+
+
+        self.backup_layout.addLayout(self.backup_form)
+
+        self.backup_explanation = QLabel(self.backup_page)
+        self.backup_explanation.setObjectName(u"backup_explanation")
+        self.backup_explanation.setWordWrap(True)
+
+        self.backup_layout.addWidget(self.backup_explanation)
+
+        self.copy_configuration_layout = QHBoxLayout()
+        self.copy_configuration_layout.setObjectName(u"copy_configuration_layout")
+        self.copy_configuration = QPushButton(self.backup_page)
+        self.copy_configuration.setObjectName(u"copy_configuration")
+
+        self.copy_configuration_layout.addWidget(self.copy_configuration)
+
+        self.copy_configuration_space = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.copy_configuration_layout.addItem(self.copy_configuration_space)
+
+
+        self.backup_layout.addLayout(self.copy_configuration_layout)
+
+        self.copy_result = QLabel(self.backup_page)
+        self.copy_result.setObjectName(u"copy_result")
+        self.copy_result.setWordWrap(True)
+
+        self.backup_layout.addWidget(self.copy_result)
+
+        self.copy_explanation = QLabel(self.backup_page)
+        self.copy_explanation.setObjectName(u"copy_explanation")
+        self.copy_explanation.setWordWrap(True)
+
+        self.backup_layout.addWidget(self.copy_explanation)
+
+        self.backup_space = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.backup_layout.addItem(self.backup_space)
+
+        self.pages.addTab(self.backup_page, "")
 
         self.arrangement.addWidget(self.pages)
 
@@ -420,6 +486,7 @@ class Ui_PreferencesWindow(object):
         self.dead_air_threshold_caption.setBuddy(self.dead_air_threshold)
         self.retention_caption.setBuddy(self.retention)
         self.daily_caption.setBuddy(self.daily)
+        self.backup_directory_caption.setBuddy(self.backup_directory)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(PreferencesWindow)
@@ -513,5 +580,11 @@ class Ui_PreferencesWindow(object):
         self.daily_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Daily task at", None))
         self.daily_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Every day from this hour, Machin purge erases from the database what exceeds the expiry duration, then the full audit checks the sounds; a task missed, computer off, runs as soon as it starts again. The quick indexing runs every hour. Nothing to restart, and no password: the timers read this hour each time.", None))
         self.pages.setTabText(self.pages.indexOf(self.tasks_page), QCoreApplication.translate("PreferencesWindow", u"Tasks", None))
+        self.backup_directory_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Backup directory", None))
+        self.choose_backup_directory.setText(QCoreApplication.translate("PreferencesWindow", u"Choose\u2026", None))
+        self.backup_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Maintenance \u2192 Export the database\u2026 and the database maintenance write their backup here, in a file named after its date and time. On a new computer, or after a reinstallation, ./install.sh offers to restore one into the new database.", None))
+        self.copy_configuration.setText(QCoreApplication.translate("PreferencesWindow", u"Copy machincast.toml\u2026", None))
+        self.copy_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"The configuration file, copied elsewhere, for instance on a USB key, under a name dated like the backups: with a backup of the database, it is all that a new computer needs to start again.", None))
+        self.pages.setTabText(self.pages.indexOf(self.backup_page), QCoreApplication.translate("PreferencesWindow", u"Backup", None))
     # retranslateUi
 

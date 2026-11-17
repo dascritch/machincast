@@ -121,6 +121,16 @@ def offered_menu(interface: Context, menu: str, titles: str) -> None:
 	assert action_list == NAME.findall(titles)
 
 
+@then(parsers.parse("l'entrée « {entry} » du menu « {menu} » est {state}"))
+def menu_entry_state(interface: Context, entry: str, menu: str, state: str) -> None:
+	found_list = []
+	for action in actions(interface, menu):
+		if action.text() == entry:
+			found_list.append(action)
+	(found,) = found_list
+	assert found.isEnabled() == (state == "active"), state
+
+
 @then(parsers.parse("le menu « {menu} » ne propose plus rien"))
 def inactive_menu(interface: Context, menu: str) -> None:
 	active_list = []
