@@ -88,7 +88,7 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 
 - TDD avec scénarios BDD : pas de fonctionnalité sans test.
 - Un commit par fonctionnalité, lié à un ticket GitHub Issues. Sans ticket, proposer une user story et attendre.
-- Un ticket part de `preprod` et y revient par une PR, sans la suite complète ; une release candidate passe de `preprod` à `qualif` avec la suite complète, la documentation à jour, traduite et ses captures refaites, tourne une semaine, puis passe de `qualif` à `main` ([#480](https://github.com/dascritch/machincast/issues/480), [Branches](doc/fr/regles/developpement.md#branches)).
+- Un ticket part de `preprod` et y revient par une PR, sans la suite complète ; une release candidate passe de `preprod` à `qualif` avec la suite complète, la documentation à jour, traduite et ses captures refaites, tourne une semaine, puis passe de `qualif` à `main` ; une correction de la qualification part de `qualif` et y revient, puis revient sur `preprod` ([#480](https://github.com/dascritch/machincast/issues/480), [Branches](doc/fr/regles/developpement.md#branches)).
 - Une correction d'une PR ouverte est un nouveau commit, jamais un amend ([#131](https://github.com/dascritch/machincast/issues/131)). Une branche se remet à jour avec sa branche de base (`preprod` pour un ticket) par `git rebase`, jamais par un commit de fusion, puis `git push --force-with-lease` ; voir [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md#corrections-dune-pr-ouverte).
 - Indentation par **tabulations**.
 - Ne jamais toucher à la base de production pendant les tests.
