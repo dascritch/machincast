@@ -1,5 +1,7 @@
 # Guide de l'antenne
 
+*[English version](../../en/utilisateur/README.md)*
+
 Ce guide s'adresse à l'équipe de l'antenne : programmateurs, animateurs, responsables d'antenne. Il explique ce que MachinCast fait passer à l'antenne, et comment s'en servir depuis son interface graphique, **Machin interface**. Il ne demande ni terminal ni connaissance technique.
 
 L'installation du poste, les commandes et la configuration sont dans le [guide d'administration](../administration/README.md).
@@ -37,7 +39,7 @@ Supprimer ou déplacer un fichier reste une décision humaine, prise hors de Mac
 
 ## Ce qui n'existe pas encore
 
-Ce guide est celui de MachinCast 0.9.0, sa première version publiée, avant la 1.0 ; **Aide → Version** en donne les nouveautés. Ce qui manque encore pour l'antenne :
+Ce guide est celui de MachinCast 0.9.1, avant la 1.0 ; **Aide → Version** en donne les nouveautés. Ce qui manque encore pour l'antenne :
 
 | Manque | Ticket |
 | --- | --- |

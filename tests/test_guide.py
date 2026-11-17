@@ -82,7 +82,7 @@ def link(file: str, target: str) -> None:
 @then(parsers.parse("chaque page de doc/{folder} est liée depuis doc/{summary}/README.md"))
 def summary(folder: str, summary: str) -> None:
 	assert folder == summary
-	directory = DOC / folder
+	directory = ROOT / "doc" / folder
 	linked = set(LINK.findall((directory / "README.md").read_text(encoding="utf-8")))
 	missing_list = []
 	for page in pages(directory):

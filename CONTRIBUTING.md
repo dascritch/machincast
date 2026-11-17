@@ -2,7 +2,7 @@
 
 *[Version française](CONTRIBUTING.fr.md)*
 
-Before any change, read [CLAUDE.md](CLAUDE.md) and the [development rules](doc/fr/regles/developpement.md) (French): a ticket, BDD scenarios first, one commit per feature, tab indentation, [definition of done](doc/fr/regles/developpement.md#definition-of-done). The development machine is installed with `./install.sh --dev` ([INSTALL.md](INSTALL.md)).
+Before any change, read [CLAUDE.md](CLAUDE.md) and the [development rules](doc/fr/regles/developpement.md) (French): a ticket, BDD scenarios first, one commit per feature, tab indentation, [definition of done](doc/fr/regles/developpement.md#definition-of-done). The development machine is installed with `./install.sh --dev` ([INSTALL.md](INSTALL.md)), which installs the exact versions of `constraints.txt`: a new dependency is declared in `pyproject.toml` **and** added, with its version, to `constraints.txt` ([#438](https://github.com/dascritch/machincast/issues/438)). `bin/Machin dev-test --coverage` measures the test coverage, subprocesses included ([development machine](doc/fr/developpement/poste.md), French).
 
 ## Interface screens
 
@@ -15,7 +15,7 @@ bin/Machin dev           # sub-shell in the repository, venv activated
 pyside6-designer src/machincast/interface/ui/bank_card.ui
 ```
 
-- One screen = one `.ui` file in `src/machincast/interface/ui/`, named in French and in `snake_case`, like the module it will produce: `bank_card.ui`, `event_card.ui`.
+- One screen = one `.ui` file in `src/machincast/interface/ui/`, named in English and in `snake_case` ([#368](https://github.com/dascritch/machincast/issues/368)), like the module it will produce: `bank_card.ui`, `event_card.ui`.
 - Widget `objectName`s are in French and in `snake_case` (`internal_name`, `public_name`, `sound_list`), since they become Python attributes: `self.ui.internal_name`.
 - The texts of the screen are in English; they are translated by the MachinCast catalogue ([translating MachinCast](#translating-machincast)). A text that is not translated (a symbol, a format) is ticked “not translatable” (`notr`); a same English word with different translations gets a comment (`comment`), which becomes its context.
 - On-screen vocabulary: that of the specification ([§ 1](doc/fr/spec.md#1-vocabulaire)) and of the [interface rules](doc/fr/regles/interface.md), « banque » (bank) and never « playlist ».
