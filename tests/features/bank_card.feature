@@ -709,9 +709,26 @@ Fonctionnalité: Fiche d'une banque
 		Et les répertoires et les sonores de la fiche acceptent les dépôts
 
 		Exemples:
-			| mode depart  | verdict depart | mode         | verdict        |
-			| séquentielle | peuvent        | aléatoire    | ne peuvent pas |
-			| aléatoire    | ne peuvent pas | séquentielle | peuvent        |
+			| mode depart  | verdict depart | mode                  | verdict        |
+			| séquentielle | peuvent        | aléatoire             | ne peuvent pas |
+			| aléatoire    | ne peuvent pas | séquentielle          | peuvent        |
+			| séquentielle | peuvent        | A→Z du nom de fichier | ne peuvent pas |
+			| séquentielle | peuvent        | Z→A du nom de fichier | ne peuvent pas |
+
+	Plan du scénario: Le mode d'une banque peut suivre l'ordre du nom de fichier de ses sonores
+		https://github.com/dascritch/machincast/issues/454 : la rotation se prépare en nommant les fichiers.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors le choix du mode propose « Séquentielle », « Aléatoire », « A→Z du nom de fichier », « Z→A du nom de fichier »
+		Quand je choisis le mode « <mode> »
+		Et j'enregistre la fiche, puis je la rouvre
+		Alors la banque « Jingles » est en base : nom public « Radio Thune », <mode>, masquage « hérité du sonore », avec « ne pas répéter »
+
+		Exemples:
+			| mode                  |
+			| A→Z du nom de fichier |
+			| Z→A du nom de fichier |
 
 	Scénario: Des sonores déjà en base s'ajoutent, y compris hors des répertoires de la banque
 		Quand la fenêtre de l'interface s'ouvre

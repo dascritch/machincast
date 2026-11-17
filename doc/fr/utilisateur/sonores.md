@@ -158,7 +158,7 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 | --- | --- |
 | Nom interne | Obligatoire, et propre à la banque. |
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement et la séquence n'en ont pas. |
-| Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `Aléatoire` : au hasard ([Quel sonore une banque fournit](antenne.md#quel-sonore-une-banque-fournit)). |
+| Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `A→Z du nom de fichier` et `Z→A du nom de fichier` : dans l'ordre du nom des fichiers, ou dans l'ordre inverse ([#454](https://github.com/dascritch/machincast/issues/454)). `Aléatoire` : au hasard ([Quel sonore une banque fournit](antenne.md#quel-sonore-une-banque-fournit)). |
 | Artiste et titre | `Masqué par le nom public de la banque` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide ; `Hérité du sonore` laisse décider le sonore. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite. |
 | Détection de silence | Cochée, les sonores joués par la banque le sont sans leurs silences ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |

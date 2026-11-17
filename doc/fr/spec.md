@@ -169,7 +169,7 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 | --- | --- |
 | `id`, `internal_name` | Identification. |
 | `public_name` | Affiché à la place de l'artiste et du titre masqués, après ceux de l'événement et de la séquence ([§ 4.8](#48-métadonnées-publiques-et-masquage), [#99](https://github.com/dascritch/machincast/issues/99)). Vide = aucun. |
-| `mode` | `sequential` ou `random`. |
+| `mode` | `sequential`, `random`, `filename_ascending` ou `filename_descending` ([#454](https://github.com/dascritch/machincast/issues/454), migration `0003.bank-filename-modes`). |
 | `hide_metadata` | Masquage au niveau de la banque. Vide = hérite. |
 | `no_repeat` | La banque ne peut pas passer deux fois de suite, même d'un événement à l'autre (voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). Faux par défaut. |
 | `crossfade_start_rule`, `crossfade_start`, `crossfade_end_rule`, `crossfade_end` | Crossfades des sonores joués via la banque, chaque côté avec sa règle (type `crossfade_rule`) : `sonore` garde celui du sonore (par défaut), `default` donne celui de la banque au sonore qui n'en a pas (0 seconde), `forced` le donne à tout sonore ([#143](https://github.com/dascritch/machincast/issues/143)). |
@@ -414,6 +414,9 @@ Quand l'interface supprime un élément, les références dans `airplay` et `log
 ### 4.4 Choix d'un sonore dans une banque
 
 - **Séquentiel** : le sonore qui suit, dans l'ordre de `position`, le dernier joué via cette banque.
+- **A→Z** et **Z→A du nom de fichier** ([#454](https://github.com/dascritch/machincast/issues/454), `filename_ascending`, `filename_descending`) : comme le séquentiel, dans l'ordre croissant ou décroissant du nom de fichier des sonores, sans son répertoire (le stream, par son adresse), au lieu de l'ordre de `position` ; à nom égal, l'ordre de `position`.
+	Les noms se comparent tels quels, caractère par caractère, sans tenir compte des accents ni d'un nombre : un préfixe numérique de même longueur (« 01- », « 02- »…) donne l'ordre de rotation.
+	L'ordre se recalcule à chaque choix (`banks.by_file_name`) : un fichier ajouté ou renommé prend aussitôt sa place.
 - **Aléatoire contrôlé** : un sonore joué via cette banque n'est plus rejouable tant que tous les autres sonores de la banque n'ont pas été joués.
 	Chaque banque a son propre cycle.
 	Au début d'un nouveau cycle, le dernier sonore joué est écarté, pour ne pas passer deux fois de suite (sauf s'il est seul jouable).
@@ -1309,7 +1312,7 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 
 - Édition du nom interne et du nom public ([#99](https://github.com/dascritch/machincast/issues/99)).
 - Masquage de l'artiste et du titre.
-- Mode séquentiel ou aléatoire.
+- Mode séquentiel, aléatoire, ou dans l'ordre du nom de fichier, A→Z ou Z→A ([#454](https://github.com/dascritch/machincast/issues/454)) ; seul le séquentiel se réordonne à la main, les autres se trient par colonne.
 - Case « ne pas répéter » : la banque ne passe jamais deux fois de suite ([#63](https://github.com/dascritch/machincast/issues/63)).
 - Case « détection de silence », décochée pour une nouvelle banque : ses sonores sont joués sans leurs silences détectés ([#146](https://github.com/dascritch/machincast/issues/146)).
 - Durées minimale et maximale des sonores ([#147](https://github.com/dascritch/machincast/issues/147)), facultatives : un sonore qui en sort est marqué dans la liste de la fiche, d'après ses durées, avant même l'enregistrement, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »).

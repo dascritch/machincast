@@ -39,6 +39,40 @@ Fonctionnalité: Choix d'un sonore dans une banque
 		Quand je joue 3 sonores de la banque « Jingles »
 		Alors les sonores joués sont « a », « c », « a »
 
+	# ─── Ordre du nom de fichier (https://github.com/dascritch/machincast/issues/454) ───
+	# A→Z ou Z→A du nom de fichier : comme une banque séquentielle, dans l'ordre du nom de fichier des sonores, sans
+	# son répertoire, recalculé à chaque choix. Les noms se comparent tels quels, caractère par caractère : un préfixe
+	# numérique de même longueur donne l'ordre (« 01- », « 02- »…, jamais « 1- » et « 10- »).
+
+	Scénario: Une banque A→Z du nom de fichier donne ses sonores dans l'ordre de leur nom de fichier, puis reprend au début
+		Étant donné une banque A→Z du nom de fichier « Chroniques » contenant « 03-ete », « 01-hiver », « 02-printemps »
+		Quand je joue 4 sonores de la banque « Chroniques »
+		Alors les sonores joués sont « 01-hiver », « 02-printemps », « 03-ete », « 01-hiver »
+
+	Scénario: Une banque Z→A du nom de fichier les donne dans l'ordre inverse
+		Étant donné une banque Z→A du nom de fichier « Chroniques » contenant « 03-ete », « 01-hiver », « 02-printemps »
+		Quand je joue 4 sonores de la banque « Chroniques »
+		Alors les sonores joués sont « 03-ete », « 02-printemps », « 01-hiver », « 03-ete »
+
+	Scénario: Seul le nom du fichier compte, pas son répertoire
+		Étant donné une banque A→Z du nom de fichier « Chroniques » contenant les fichiers « /a/02-printemps.flac », « /b/01-hiver.flac »
+		Quand je joue 2 sonores de la banque « Chroniques »
+		Alors les sonores joués sont « /b/01-hiver.flac », « /a/02-printemps.flac »
+
+	Scénario: Un fichier ajouté prend sa place dans l'ordre dès le choix suivant
+		L'ordre se recalcule à chaque choix, d'après le dernier sonore joué via la banque : rien n'est à préparer.
+		Étant donné une banque A→Z du nom de fichier « Chroniques » contenant « 01-hiver », « 03-ete »
+		Et « 01-hiver » a été joué via la banque « Chroniques »
+		Et le sonore « 02-printemps » ajouté à la banque « Chroniques »
+		Quand je joue 2 sonores de la banque « Chroniques »
+		Alors les sonores joués sont « 02-printemps », « 03-ete »
+
+	Scénario: Une banque dans l'ordre du nom de fichier saute les sonores qui ne sont pas jouables
+		Étant donné une banque A→Z du nom de fichier « Chroniques » contenant « 03-ete », « 01-hiver », « 02-printemps »
+		Et le sonore « 02-printemps » est à l'état « disabled »
+		Quand je joue 3 sonores de la banque « Chroniques »
+		Alors les sonores joués sont « 01-hiver », « 03-ete », « 01-hiver »
+
 	# ─── Aléatoire contrôlé ────────────────────────────────────
 
 	Scénario: Une banque aléatoire ne répète aucun sonore avant de les avoir tous joués
