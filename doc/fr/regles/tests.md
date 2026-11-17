@@ -31,8 +31,9 @@ Ce qui tourne dépend du moment ([#408](https://github.com/dascritch/machincast/
 - `wrapper` en plus, pour lancer `bats tests/wrapper`, si le wrapper, `bin/i18n.bash`, l'autocomplétion, `install.sh` ou la configuration change ; sans lui, bats n'est pas lancé et le bilan le dit.
 
 La PR dit quelles fonctionnalités ont tourné, et pourquoi celles-là.
+La PR d'un ticket, vers `preprod`, ne lance jamais la suite complète ; celle d'une release candidate, de `preprod` vers `qualif`, la lance toujours ([Branches](developpement.md#branches), [#480](https://github.com/dascritch/machincast/issues/480)).
 
-**Tous les 10 tickets fermés, et à chaque demande de release**, un ticket « Tests, revue de code et performances » : `bin/Machin dev-test` complet sous Ubuntu 26.04, les scénarios `@release` (`pytest -m release`), une revue de la qualité du code (doublons, code mort, respect de ces règles) et une mesure des performances (durée de la suite, lancement, charge de `Machin player`).
+**Tous les 10 tickets fermés, et à chaque release candidate**, un ticket « Tests, revue de code et performances » : `bin/Machin dev-test` complet sous Ubuntu 26.04, les scénarios `@release` (`pytest -m release`), une revue de la qualité du code (doublons, code mort, respect de ces règles) et une mesure des performances (durée de la suite, lancement, charge de `Machin player`).
 Les tickets se comptent depuis le précédent ticket de ce type ; ce ticket se crée à la fermeture du dixième, et avant de commencer la [préparation d'une version](../developpement/release.md).
 Les échecs qu'il trouve deviennent des tickets, ou des corrections dans le sien quand elles sont petites.
 
