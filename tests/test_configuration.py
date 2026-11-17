@@ -472,3 +472,10 @@ def on_air_output(context: Context, output: str, device: str | None) -> None:
 def active_preview(context: Context, state: str) -> None:
 	assert context.configuration is not None, context.error
 	assert context.configuration.audio.disabled_preview() == (state == "désactivée")
+
+
+@then(parsers.parse("les tâches quotidiennes passent à « {hour} »"))
+def daily_hour(context: Context, hour: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/455"""
+	assert context.configuration is not None, context.error
+	assert context.configuration.schedule.daily.isoformat(timespec="minutes") == hour

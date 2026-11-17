@@ -1692,6 +1692,7 @@ Mise en œuvre (`Card.copy`, `machincast.interface.card.copy_name`, `MainWindow.
 | `interface.icon` | chemin | non | Image SVG, PNG ou JPEG, icône des fenêtres, des raccourcis et de la barre des tâches ; l'icône de MachinCast sans elle, ou si l'image manque ; une autre extension est refusée. Réglable dans les préférences, page « Interface » ([#111](https://github.com/dascritch/machincast/issues/111)). |
 | `interface.clipping` | booléen | non | Le voyant « Saturation » de la colonne Antenne de l'onglet du même nom est affiché ; `true` par défaut, réglable dans les préférences, page « Interface » ([#191](https://github.com/dascritch/machincast/issues/191)). |
 | `player.state_socket` | chemin | non | Socket d'état du binaire lecture, lue par l'interface ([§ 5.4](#54-socket-détat)). Par défaut `/run/machincast/lecture.sock` avec le service de diffusion, sinon `$XDG_RUNTIME_DIR/machincast/lecture.sock`. |
+| `schedule.daily` | heure, `"HH:MM"` | non | Heure de la tâche quotidienne, que lance le minuteur d'`install.sh --service` : `Machin purge`, puis l'audit complet ; `"10:00"` par défaut, quand quelqu'un est probablement au studio ([#455](https://github.com/dascritch/machincast/issues/455), [§ 10](#10-installation-et-déploiement)). Réglable dans les préférences de l'interface, page « Base », sans droit d'administrateur. |
 
 ## 10. Installation et déploiement
 

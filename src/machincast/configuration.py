@@ -5,9 +5,10 @@ Le modèle documenté clé par clé est `machincast.exemple.toml`, à la racine 
 
 import logging
 import os
+import re
 import tomllib
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import time, timedelta
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -229,6 +230,20 @@ class Interface:
 	"""Les lignes qu'un tableau de fiche charge d'un coup (https://github.com/dascritch/machincast/issues/383)."""
 
 
+DAILY = time(10, 0)
+"""L'heure des tâches quotidiennes par défaut : à 10 heures, il y a statistiquement quelqu'un au studio pour voir un
+souci (https://github.com/dascritch/machincast/issues/455)."""
+
+
+@dataclass(frozen=True)
+class Schedule:
+	"""Les tâches qu'installe install.sh --service, section [schedule]
+	(https://github.com/dascritch/machincast/issues/455)."""
+
+	daily: time = DAILY
+	"""L'heure de la tâche quotidienne : Machin purge, puis Machin indexer --full-audit (machincast.schedule)."""
+
+
 ICON_EXTENSIONS = frozenset({".svg", ".png", ".jpg", ".jpeg"})
 """Les images acceptées pour icône, quelle que soit la casse de l'extension."""
 
@@ -245,6 +260,7 @@ class Configuration:
 	silences: Silences = field(default_factory=Silences)
 	dead_air: DeadAirSettings = field(default_factory=DeadAirSettings)
 	interface: Interface = field(default_factory=Interface)
+	schedule: Schedule = field(default_factory=Schedule)
 
 
 # Clés connues, par section, en anglais (https://github.com/dascritch/machincast/issues/357). Toute autre clé est
@@ -259,6 +275,7 @@ KEYS: dict[str, frozenset[str]] = {
 	"silences": frozenset({"threshold"}),
 	"dead_air": frozenset({"duration", "threshold", "fallback"}),
 	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows"}),
+	"schedule": frozenset({"daily"}),
 }
 
 
@@ -393,6 +410,22 @@ class _Player:
 				)
 			)
 		return value
+
+	def hour(self, section: str, key: str, default: time) -> time:
+		"""Une heure et ses minutes, « HH:MM » ; defaut sans la clé (https://github.com/dascritch/machincast/issues/455)."""
+		value = self.document.get(section, {}).get(key)
+		if value is None:
+			return default
+		parsed = None
+		if (isinstance(value, str)) and (re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", value) is not None):
+			parsed = time.fromisoformat(value)
+		if parsed is None:
+			raise self.error(
+				_("key {section}.{key}: “{value}” is not an hour and minutes, HH:MM").format(
+					section=section, key=key, value=value
+				)
+			)
+		return parsed
 
 	def rows(self, section: str, key: str, default: int) -> int:
 		"""Un nombre entier de lignes, MINIMUM_TABLE_ROWS au moins ; defaut sans la clé."""
@@ -615,4 +648,5 @@ def load(path: Path | None = None) -> Configuration:
 			icon=reader.icon(),
 			table_rows=reader.rows("interface", "table_rows", TABLE_ROWS),
 		),
+		schedule=Schedule(daily=reader.hour("schedule", "daily", DAILY)),
 	)
