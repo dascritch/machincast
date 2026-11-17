@@ -42,6 +42,7 @@ from machincast.clock import FixedClock  # noqa: E402
 from machincast.configuration import Crossfades, Metadata  # noqa: E402
 from machincast.database import Role, open_connection  # noqa: E402
 from machincast.interface import columns, expandable  # noqa: E402
+from machincast.interface.application import translate  # noqa: E402
 from machincast.interface.calendar import Calendar  # noqa: E402
 from machincast.interface.event_card import EventCard  # noqa: E402
 from machincast.interface.preferences import PreferencesWindow, Settings  # noqa: E402
@@ -667,6 +668,9 @@ def produce(directory: Path) -> dict[str, Path]:
 	application = QApplication.instance()
 	if application is None:
 		application = QApplication(sys.argv[:1])
+		# Lancé seul, par Machin dev-screenshots, l'outil traduit lui-même ses écrans, comme tests/conftest.py pour les
+		# scénarios : sans quoi leurs titres restent en anglais (https://github.com/dascritch/machincast/issues/455).
+		translate(application)
 	assert isinstance(application, QApplication)
 	application.setStyle("Fusion")
 	with sample_connection() as owner:
