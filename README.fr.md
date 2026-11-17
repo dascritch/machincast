@@ -42,15 +42,6 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 - Gestion du blanc d'antenne, avec repli sur un programme de secours
 - Fichiers audio immuables, traitements en temps réel
 
-### À venir
-
-- Envoi des noms de sonore et d'émission vers des services externes
-- Diffusion d'un pilote de stream
-- Mixage automatisé d'une émission préenregistrée à rubriques
-- Entrée de sources audio par carte son
-- Mixage de métadonnées
-- Enregistrement distant en MP3, Ogg, M4A, DASH et HLS
-
 ## Configuration recommandée
 
 Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une <q>de qualité</q> pour la sortie vers la régie finale de la station ou son nodal.
@@ -61,6 +52,8 @@ Caractéristiques techniques demandées :
 - un processeur à 1 GHz au minimum ;
 - 2 Go de mémoire vive ;
 - 50 Go d'espace disque pour les sonores.
+
+![Une comparaison côte-à-côte. À gauche, en mode service, en anglais et thème clair. À droite, en mode test, en français et thème sombre](doc/side_by_side.jpg)
 
 ## Contexte
 
