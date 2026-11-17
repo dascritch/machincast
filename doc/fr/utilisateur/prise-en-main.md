@@ -129,7 +129,8 @@ Sur l'onglet ouvert ([#428](https://github.com/dascritch/machincast/issues/428))
 | Raccourci | Effet |
 | --- | --- |
 | <kbd>Ctrl</kbd>+<kbd>W</kbd> | Le ferme, comme sa croix, s'il se ferme : une fiche, les listes Sonores et Feeds, la recherche, la simulation, l'airplay. Une fiche modifiée demande d'abord quoi faire de ses modifications. Sur un onglet fixe, rien. |
-| <kbd>Ctrl</kbd>+<kbd>S</kbd> | Enregistre la fiche, comme son bouton **Enregistrer** : la fiche se ferme une fois enregistrée. Sur une fiche sans modification, ou un autre onglet, rien. |
+| <kbd>Ctrl</kbd>+<kbd>S</kbd> | Enregistre la fiche, qui reste ouverte. Sur une fiche sans modification, ou un autre onglet, rien. |
+| <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> | Enregistre la fiche, puis la ferme, comme son bouton **Enregistrer** ; une fiche sans modification se ferme simplement. Une fiche que MachinCast refuse d'enregistrer reste ouverte, et dit pourquoi. Les deux touches Entrée, celle du clavier et celle du pavé numérique, conviennent. Sur un autre onglet, rien. |
 | <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> | Rouvre le dernier onglet fermé, puis celui d'avant, à droite de l'onglet ouvert. |
 
 ## Menus
