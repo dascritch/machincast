@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboB
     QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
     QGroupBox, QHBoxLayout, QLabel, QPushButton,
     QSizePolicy, QSpacerItem, QSpinBox, QTabWidget,
-    QVBoxLayout, QWidget)
+    QTimeEdit, QVBoxLayout, QWidget)
 
 class Ui_PreferencesWindow(object):
     def setupUi(self, PreferencesWindow):
@@ -363,6 +363,43 @@ class Ui_PreferencesWindow(object):
         self.database_layout.addItem(self.database_space)
 
         self.pages.addTab(self.database_page, "")
+        self.tasks_page = QWidget()
+        self.tasks_page.setObjectName(u"tasks_page")
+        self.tasks_layout = QVBoxLayout(self.tasks_page)
+        self.tasks_layout.setObjectName(u"tasks_layout")
+        self.tasks_form = QFormLayout()
+        self.tasks_form.setObjectName(u"tasks_form")
+        self.daily_caption = QLabel(self.tasks_page)
+        self.daily_caption.setObjectName(u"daily_caption")
+
+        self.tasks_form.setWidget(0, QFormLayout.ItemRole.LabelRole, self.daily_caption)
+
+        self.daily = QTimeEdit(self.tasks_page)
+        self.daily.setObjectName(u"daily")
+        self.daily.setDisplayFormat(u"HH:mm")
+
+        self.tasks_form.setWidget(0, QFormLayout.ItemRole.FieldRole, self.daily)
+
+
+        self.tasks_layout.addLayout(self.tasks_form)
+
+        self.daily_explanation = QLabel(self.tasks_page)
+        self.daily_explanation.setObjectName(u"daily_explanation")
+        self.daily_explanation.setWordWrap(True)
+
+        self.tasks_layout.addWidget(self.daily_explanation)
+
+        self.timers_missing = QLabel(self.tasks_page)
+        self.timers_missing.setObjectName(u"timers_missing")
+        self.timers_missing.setWordWrap(True)
+
+        self.tasks_layout.addWidget(self.timers_missing)
+
+        self.tasks_space = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.tasks_layout.addItem(self.tasks_space)
+
+        self.pages.addTab(self.tasks_page, "")
 
         self.arrangement.addWidget(self.pages)
 
@@ -382,6 +419,7 @@ class Ui_PreferencesWindow(object):
         self.dead_air_duration_caption.setBuddy(self.dead_air_duration)
         self.dead_air_threshold_caption.setBuddy(self.dead_air_threshold)
         self.retention_caption.setBuddy(self.retention)
+        self.daily_caption.setBuddy(self.daily)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(PreferencesWindow)
@@ -472,5 +510,8 @@ class Ui_PreferencesWindow(object):
         self.retention.setSuffix(QCoreApplication.translate("PreferencesWindow", u" days", None))
         self.retention_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Machin purge erases from the database the plays of the airplay and the lines of the log older than this duration, and the sounds, banks, sequences and events deleted for longer. It never touches the sound files.", None))
         self.pages.setTabText(self.pages.indexOf(self.database_page), QCoreApplication.translate("PreferencesWindow", u"Database", None))
+        self.daily_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Daily task at", None))
+        self.daily_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Every day from this hour, Machin purge erases from the database what exceeds the expiry duration, then the full audit checks the sounds; a task missed, computer off, runs as soon as it starts again. The quick indexing runs every hour. Nothing to restart, and no password: the timers read this hour each time.", None))
+        self.pages.setTabText(self.pages.indexOf(self.tasks_page), QCoreApplication.translate("PreferencesWindow", u"Tasks", None))
     # retranslateUi
 

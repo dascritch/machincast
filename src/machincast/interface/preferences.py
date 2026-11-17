@@ -31,16 +31,18 @@ MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux r
 """
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import time, timedelta
 from pathlib import Path
 from typing import Literal
 
 import tomlkit
-from PySide6.QtCore import QLocale
+from PySide6.QtCore import QLocale, QTime
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
+from machincast import service as service_module
 from machincast.configuration import (
+	DAILY,
 	MINIMUM_TABLE_ROWS,
 	RETENTION,
 	SILENCE_THRESHOLD,
@@ -96,6 +98,13 @@ DEFAULT_ICON = _("MachinCast icon")
 PREVIEW_SIZE = 48
 
 
+TIMERS_MISSING = _(
+	"The timers of the tasks are not installed: ./install.sh --service installs them, except with --no-timers. "
+	"Without them, this hour is not used."
+)
+"""Ce que dit la page « Tâches » sans les minuteurs d'install.sh --service (https://github.com/dascritch/machincast/issues/455)."""
+
+
 @dataclass(frozen=True)
 class Settings:
 	"""Ce que règle la fenêtre des préférences."""
@@ -126,6 +135,9 @@ class Settings:
 	"""audio.output, le type de sortie choisi (https://github.com/dascritch/machincast/issues/339) ; None : inchangé."""
 	table_rows: int = TABLE_ROWS
 	"""interface.table_rows : les lignes qu'un tableau de fiche charge d'un coup (https://github.com/dascritch/machincast/issues/383)."""
+	daily: time = DAILY
+	"""schedule.daily : l'heure de la tâche quotidienne, purge puis audit complet
+	(https://github.com/dascritch/machincast/issues/455)."""
 
 
 def service_changed(before: Settings, after: Settings) -> bool:
@@ -216,6 +228,19 @@ def _count(value: float) -> int | float:
 	return value
 
 
+def _write_daily(document: tomlkit.TOMLDocument, daily: time) -> None:
+	"""schedule.daily, « HH:MM » : l'heure par défaut ne s'écrit pas dans un fichier qui ne la donne pas
+	(https://github.com/dascritch/machincast/issues/455)."""
+	section = document.get("schedule")
+	if (section is None) and (daily == DAILY):
+		return
+	if section is None:
+		document.add("schedule", tomlkit.table())
+		section = document["schedule"]
+	assert isinstance(section, tomlkit.items.Table)
+	section["daily"] = daily.isoformat(timespec="minutes")
+
+
 def write(path: Path, settings: Settings) -> None:
 	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [dead_air], [interface] et [database] du
 	fichier de configuration, sous leurs noms anglais (https://github.com/dascritch/machincast/issues/357) ; le reste du
@@ -226,6 +251,7 @@ def write(path: Path, settings: Settings) -> None:
 	# La durée par défaut ne s'écrit pas dans une section qui ne la donne pas : [database] reste telle quelle.
 	if ("retention" in database) or (settings.retention != RETENTION):
 		database["retention"] = settings.retention
+	_write_daily(document, settings.daily)
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
 	section = document["crossfades"]
@@ -301,6 +327,8 @@ class PreferencesWindow(QDialog):
 		parent: QWidget | None = None,
 		service: ServiceState = ABSENT,
 		kind: Kind = SERVICE,
+		*,
+		timers: bool | None = None,
 	) -> None:
 		super().__init__(parent)
 		self.ui = Ui_PreferencesWindow()
@@ -331,6 +359,7 @@ class PreferencesWindow(QDialog):
 		ui.dead_air_threshold.setLocale(FRENCH)
 		ui.dead_air_threshold.setValue(all_.dead_air.threshold)
 		ui.retention.setValue(all_.retention)
+		self._show_daily(all_.daily, timers=timers)
 		ui.clipping.setChecked(all_.clipping)
 		ui.suggestions.setChecked(all_.suggestions)
 		ui.table_rows.setMinimum(MINIMUM_TABLE_ROWS)
@@ -361,6 +390,17 @@ class PreferencesWindow(QDialog):
 		ui.buttons.rejected.connect(self.reject)
 		self._keep_only(kind)
 
+	def _show_daily(self, daily: time, *, timers: bool | None) -> None:
+		"""L'heure de la tâche quotidienne, réglable si install.sh --service a installé les minuteurs des tâches ; sinon
+		grisée, et la page dit comment les installer (https://github.com/dascritch/machincast/issues/455)."""
+		ui = self.ui
+		if timers is None:
+			timers = service_module.timers_installed()
+		ui.daily.setTime(QTime(daily.hour, daily.minute))
+		ui.daily.setEnabled(timers)
+		ui.timers_missing.setText(TIMERS_MISSING)
+		ui.timers_missing.setHidden(timers)
+
 	def _keep_only(self, kind: Kind) -> None:
 		"""Les réglages de cette fenêtre seulement : les autres restent ceux du fichier, et settings() les rend tels
 		quels (https://github.com/dascritch/machincast/issues/389)."""
@@ -375,6 +415,7 @@ class PreferencesWindow(QDialog):
 			ui.explanation.setText(SERVICE_EXPLANATION)
 			self.cards.keep_rows(on_air=True, preview=False)
 			return
+		ui.pages.removeTab(ui.pages.indexOf(ui.tasks_page))
 		for row in (1, 2, 3):
 			ui.crossfades_form.setRowVisible(row, False)
 		ui.position_group.setVisible(False)
@@ -500,4 +541,5 @@ class PreferencesWindow(QDialog):
 			),
 			self.cards.chosen_output(),
 			ui.table_rows.value(),
+			time(ui.daily.time().hour(), ui.daily.time().minute()),
 		)

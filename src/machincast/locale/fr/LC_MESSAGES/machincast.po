@@ -4314,6 +4314,14 @@ msgid "MachinCast icon"
 msgstr "Icône de MachinCast"
 
 #: machincast/interface/preferences.py
+msgid ""
+"The timers of the tasks are not installed: ./install.sh --service installs "
+"them, except with --no-timers. Without them, this hour is not used."
+msgstr ""
+"Les minuteurs des tâches ne sont pas installés : ./install.sh --service les "
+"installe, sauf avec --no-timers. Sans eux, cette heure ne sert pas."
+
+#: machincast/interface/preferences.py
 msgid "Interface preferences"
 msgstr "Préférences de l'interface"
 
@@ -7459,6 +7467,28 @@ msgstr ""
 "log plus vieux que cette durée, et les sonores, banques, séquences et "
 "événements supprimés depuis plus longtemps. Il ne touche jamais aux "
 "fichiers sonores."
+
+#: machincast/interface/ui/preferences.ui
+msgid "Tasks"
+msgstr "Tâches"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Daily task at"
+msgstr "Tâche &quotidienne à"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"Every day from this hour, Machin purge erases from the database what "
+"exceeds the expiry duration, then the full audit checks the sounds; a task "
+"missed, computer off, runs as soon as it starts again. The quick indexing "
+"runs every hour. Nothing to restart, and no password: the timers read this "
+"hour each time."
+msgstr ""
+"Chaque jour à partir de cette heure, Machin purge efface de la base ce qui "
+"dépasse la durée de péremption, puis l'audit complet vérifie les sonores ; "
+"une tâche manquée, poste éteint, passe dès qu'il redémarre. L'indexation "
+"rapide passe toutes les heures. Rien à redémarrer, et aucun mot de passe : "
+"les minuteurs lisent cette heure à chaque fois."
 
 #: machincast/interface/ui/preview.ui
 msgctxt "preview"

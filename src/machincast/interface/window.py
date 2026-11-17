@@ -47,7 +47,7 @@ barre d'état annonce l'un et l'autre.
 import contextlib
 import dataclasses
 import logging
-from datetime import datetime
+from datetime import datetime, time
 from pathlib import Path
 
 import psycopg
@@ -59,6 +59,7 @@ from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget
 from machincast import crash, shortcut
 from machincast.clock import Clock
 from machincast.configuration import (
+	DAILY,
 	RETENTION,
 	Audio,
 	Crossfades,
@@ -198,6 +199,7 @@ class MainWindow(QMainWindow):
 		interface: Interface | None = None,
 		retention: int = RETENTION,
 		dead_air: DeadAirSettings | None = None,
+		daily: time = DAILY,
 	) -> None:
 		"""indexing_command : Machin indexer, avec la configuration de l'interface
 		(indexer.indexing_command). configuration : le fichier où « Préférences… » enregistre les réglages,
@@ -219,6 +221,9 @@ class MainWindow(QMainWindow):
 		crash.provide(SHOWN_TAB, self._shown_tab)
 		preferences.define((crossfades) or (Crossfades()))
 		preferences.define_retention(retention)
+		self.daily = daily
+		"""L'heure de la tâche quotidienne, que règlent les paramètres du service
+		(https://github.com/dascritch/machincast/issues/455)."""
 		preferences.define_table_rows(((interface) or (Interface())).table_rows)
 		self.silence_threshold = ((silences) or (Silences())).threshold
 		self.dead_air = (dead_air) or (DeadAirSettings())
@@ -1052,6 +1057,7 @@ class MainWindow(QMainWindow):
 			self.dead_air,
 			output=audio.output,
 			table_rows=preferences.table_rows(),
+			daily=self.daily,
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
@@ -1089,6 +1095,7 @@ class MainWindow(QMainWindow):
 		preferences.define(settings.crossfades)
 		preferences.define_retention(settings.retention)
 		preferences.define_table_rows(settings.table_rows)
+		self.daily = settings.daily
 		new_threshold = settings.silence_threshold != self.silence_threshold
 		self.silence_threshold = settings.silence_threshold
 		self.dead_air = settings.dead_air

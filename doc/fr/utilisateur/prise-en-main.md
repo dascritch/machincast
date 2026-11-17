@@ -226,6 +226,14 @@ Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :
 | --- | --- |
 | Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour à midi sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé, et le [calendrier](grille.md#calendrier) ne remonte pas plus loin. |
 
+Page **Tâches**, dans les **Paramètres du service** seulement ([#455](https://github.com/dascritch/machincast/issues/455)) :
+
+![Les paramètres du service, page « Tâches » : l'heure de la tâche quotidienne](../captures/preferences-taches.png)
+
+| Réglage | Rôle |
+| --- | --- |
+| Tâche quotidienne à | 10:00 par défaut : chaque jour à partir de cette heure, la base est purgée de ce qui dépasse la durée de péremption, puis tous les sonores sont vérifiés en entier, comme **Maintenance → Audit complet**. À 10 heures, il y a souvent quelqu'un au studio pour voir un souci. Une tâche manquée, ordinateur éteint, passe dès qu'il redémarre. L'indexation rapide, elle, passe toutes les heures. La nouvelle heure vaut aussitôt, sans redémarrer la diffusion ni mot de passe. Grisé quand l'ordinateur n'a pas ses minuteurs : la page dit comment les installer. |
+
 **OK** les enregistre ; la barre d'état le dit. **Annuler** ne change rien.
 
 ## Textes saisis

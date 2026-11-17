@@ -293,7 +293,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
 
 		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
 		Quand j'y choisis la granularité « À la seconde »
@@ -414,7 +414,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches »
 		Et le choix de l'antenne propose :
 			| sortie         | état     |
 			| Carte 1        | active   |
@@ -558,6 +558,27 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'y renonce au choix d'une image
 		Alors elle montre l'icône « …/logo.png »
 
+	# ─── Tâches du service (https://github.com/dascritch/machincast/issues/455) ───
+
+	Scénario: La page « Tâches » des paramètres du service montre l'heure de la tâche quotidienne, et donne celle qui est saisie
+		Quand la fenêtre des paramètres du service s'ouvre sur la tâche quotidienne à « 10:00 », minuteurs installés
+		Alors elle montre la tâche quotidienne à « 10:00 », réglable
+		Quand j'y saisis la tâche quotidienne à « 06:30 »
+		Et j'y clique sur « OK »
+		Alors elle a donné la tâche quotidienne à « 06:30 »
+
+	Scénario: Sans les minuteurs des tâches, l'heure de la tâche quotidienne est grisée, et la page dit comment les installer
+		Quand la fenêtre des paramètres du service s'ouvre sur la tâche quotidienne à « 10:00 », sans minuteurs
+		Alors l'heure de la tâche quotidienne est grisée, et la page dit « Les minuteurs des tâches ne sont pas installés : ./install.sh --service les installe, sauf avec --no-timers. Sans eux, cette heure ne sert pas. »
+
+	Scénario: L'heure réglée dans les paramètres du service va dans la section [schedule]
+		Le minuteur, fixe, lit l'heure à chacun de ses passages : rien à redémarrer, et aucun mot de passe.
+		Étant donné les préférences seront réglées avec la tâche quotidienne à « 06:30 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors les préférences ont montré la tâche quotidienne à « 10:00 »
+		Et le fichier de configuration contient la ligne « daily = "06:30" »
+
 	# ─── Deux fenêtres (https://github.com/dascritch/machincast/issues/389) ───
 
 	Plan du scénario: Chaque fenêtre ne montre que ses réglages
@@ -570,7 +591,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Exemples:
 			| fenêtre                    | titre                       | pages                                       | montrés                                                        | cachés                                                                 |
 			| préférences de l'interface | Préférences de l'interface  | Crossfades et silences, Interface, Audio, Base | la granularité, le seuil de silence, la pré-écoute              | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie |
-			| paramètres du service      | Paramètres du service       | Crossfades, Audio                           | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
+			| paramètres du service      | Paramètres du service       | Crossfades, Audio, Tâches                   | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
 
 	Scénario: Les paramètres du service rendent tels quels les réglages de l'interface qu'ils ne montrent pas
 		Quand j'ouvre la fenêtre des paramètres du service, sur une granularité « second », un seuil de silence de -55 dB et la pré-écoute « casque-usb »

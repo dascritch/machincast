@@ -15,7 +15,7 @@ import shutil
 import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 import psycopg
@@ -170,6 +170,9 @@ class Context:
 	shown_dead_airs: list[DeadAirSettings] = field(default_factory=list)
 	"""Les blancs dans un sonore que la fenêtre des préférences a montrés, à chaque ouverture."""
 	adjusted_retention: int | None = None
+	adjusted_daily: time | None = None
+	"""L'heure de la tâche quotidienne que règlent les préférences (https://github.com/dascritch/machincast/issues/455)."""
+	shown_dailies: list[time] = field(default_factory=list)
 	"""La durée de péremption, en jours, que donnera la fenêtre des préférences
 	(https://github.com/dascritch/machincast/issues/268) ; None : celle qu'elle a montrée."""
 	shown_retentions: list[int] = field(default_factory=list)
@@ -376,6 +379,7 @@ def _replace_choices(interface: Context) -> None:
 		interface.shown_thresholds.append(shown_list.silence_threshold)
 		interface.shown_dead_airs.append(shown_list.dead_air)
 		interface.shown_retentions.append(shown_list.retention)
+		interface.shown_dailies.append(shown_list.daily)
 		interface.shown_table_rows.append(shown_list.table_rows)
 		interface.shown_clippings.append(shown_list.clipping)
 		interface.shown_icons.append(shown_list.icon)
@@ -385,6 +389,7 @@ def _replace_choices(interface: Context) -> None:
 			and (interface.rule_threshold is None)
 			and (interface.rule_dead_air is None)
 			and (interface.adjusted_retention is None)
+			and (interface.adjusted_daily is None)
 			and (interface.adjusted_table_rows is None)
 			and (interface.adjusted_clipping is None)
 			and (interface.adjusted_icon is None)
@@ -415,6 +420,7 @@ def _replace_choices(interface: Context) -> None:
 			(interface.rule_dead_air) or (shown_list.dead_air),
 			output,
 			(interface.adjusted_table_rows) or (shown_list.table_rows),
+			(interface.adjusted_daily) or (shown_list.daily),
 		)
 
 	monkeypatch.setattr(dialogs, "set_preferences", preferences)
