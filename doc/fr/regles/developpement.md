@@ -37,6 +37,8 @@ Trois branches protégées, sans commit direct ([#480](https://github.com/dascri
 	La release candidate étant déjà traduite, sa documentation se met à jour en français **et** en anglais, `doc/en` et les documents de premier niveau compris, et le ticket s'ajoute à la section de la version dans `RELEASE.fr.md` et `RELEASE.md`.
 	La correction revient ensuite sur `preprod` par une PR de `qualif` vers `preprod`, et la semaine reprend.
 	Puis une PR de `qualif` vers `main` la livre, et elle est taguée sur `main`.
+- **Entre branches protégées**, les PR de `preprod` vers `qualif`, de `qualif` vers `main` et de `qualif` vers `preprod` se mergent par un commit de fusion, « Create a merge commit » sur GitHub, jamais par « Rebase and merge » : les commits gardent leurs identifiants d'une branche à l'autre, et une correction de la qualification revient sur `preprod` sans ramener en double ceux de la release ([#491](https://github.com/dascritch/machincast/issues/491)).
+	Les PR d'un ticket, vers `preprod` ou vers `qualif`, peuvent se merger comme avant.
 
 ## Definition of done
 
