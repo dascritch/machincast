@@ -4,6 +4,63 @@
 
 Les versions publiées, la plus récente d'abord. Procédure : [doc/fr/developpement/release.md](doc/fr/developpement/release.md).
 
+## 0.9.1 — 2026-11-17
+
+Une version de consolidation : MachinCast parle français et anglais, le service de diffusion tourne sous son propre compte, l'interface gagne en confort, et la base se sauvegarde et se reprend sur un poste neuf.
+
+### À savoir avant de mettre à jour
+
+- **Noms anglais** : les commandes (`Machin player`, `Machin indexer`…), leurs options, les clés de `machincast.toml` et le schéma de la base sont en anglais ([#352](https://github.com/dascritch/machincast/issues/352), [#356](https://github.com/dascritch/machincast/issues/356), [#357](https://github.com/dascritch/machincast/issues/357), [#358](https://github.com/dascritch/machincast/issues/358), [#359](https://github.com/dascritch/machincast/issues/359), [#367](https://github.com/dascritch/machincast/issues/367), [#368](https://github.com/dascritch/machincast/issues/368)). Un ancien `machincast.toml` est refusé, et une base à l'ancien schéma ne se met pas à jour : la configuration se refait depuis le modèle, et les bases se recréent ([Mettre à jour](INSTALL.fr.md#mettre-à-jour)).
+- **Service de diffusion** : il tourne désormais sous son propre compte, avec son propre PipeWire, et ne lit plus les répertoires personnels ; `./install.sh --service` le met à jour, et propose de déplacer MachinCast et les sonores hors d'un répertoire personnel ([#381](https://github.com/dascritch/machincast/issues/381), [#376](https://github.com/dascritch/machincast/issues/376)).
+
+### Langues
+
+- L'interface, les messages, l'aide, `Machin` et `install.sh` parlent la langue de la session, français ou anglais ([#360](https://github.com/dascritch/machincast/issues/360)) ; les nouveautés de la version aussi ([#369](https://github.com/dascritch/machincast/issues/369)).
+- Les documents de premier niveau sont en anglais, avec leur source française, et la documentation se range par langue ([#355](https://github.com/dascritch/machincast/issues/355)) ; le guide de l'antenne et le guide d'administration sont traduits en anglais, dans `doc/en`.
+
+### Diffusion à l'antenne
+
+- La priorité « imprévu » (breaking), au-dessus des spéciaux ([#402](https://github.com/dascritch/machincast/issues/402)), et ce que fait un événement à la fin de sa liste ([#350](https://github.com/dascritch/machincast/issues/350)).
+- Revenir au début du sonore, ou recommencer l'événement, depuis le menu Diffusion ([#366](https://github.com/dascritch/machincast/issues/366)) ; couper l'antenne depuis le prochain sonore, par le secours ou par un feed ([#323](https://github.com/dascritch/machincast/issues/323)).
+- Un secours qui fait appel à un flux externe est signalé ([#403](https://github.com/dascritch/machincast/issues/403)) ; la mémoire tampon d'un feed se règle, et l'onglet Antenne montre son remplissage ([#351](https://github.com/dascritch/machincast/issues/351)).
+- L'antenne reprend après la disparition de sa sortie audio ([#237](https://github.com/dascritch/machincast/issues/237)) ; une sortie factice se joue sur une carte virtuelle, que le VU-mètre écoute ([#400](https://github.com/dascritch/machincast/issues/400)).
+- Les banques dans l'ordre du nom de fichier de leurs sonores, de A à Z ou de Z à A ([#454](https://github.com/dascritch/machincast/issues/454)).
+- Une émission peut prêter son nom au fil musical jusqu'à son heure de fin, liste vide comprise, quand l'équipe ne peut pas prendre l'antenne à l'heure ([#399](https://github.com/dascritch/machincast/issues/399)).
+
+### Interface
+
+- L'onglet Antenne, avec le témoin du service et de la diffusion, et les emoji de ses actions ([#322](https://github.com/dascritch/machincast/issues/322), [#344](https://github.com/dascritch/machincast/issues/344)).
+- Les onglets retenus d'un lancement à l'autre ([#321](https://github.com/dascritch/machincast/issues/321)), déplaçables ([#405](https://github.com/dascritch/machincast/issues/405)), au titre limité à 40 caractères ([#398](https://github.com/dascritch/machincast/issues/398)), et de nouveaux raccourcis : Ctrl+W, Ctrl+S, Ctrl+Entrée, Ctrl+Maj+T ([#428](https://github.com/dascritch/machincast/issues/428)).
+- La pré-écoute dans une fenêtre indépendante ([#325](https://github.com/dascritch/machincast/issues/325)), et le calendrier en liste du jour ou de la semaine, avec le zoom des heures ([#326](https://github.com/dascritch/machincast/issues/326)).
+- Les listes et tableaux : colonne d'anomalie à gauche ([#327](https://github.com/dascritch/machincast/issues/327)), export en CSV ([#329](https://github.com/dascritch/machincast/issues/329)), filtre plein texte ([#393](https://github.com/dascritch/machincast/issues/393)), lignes alternées ([#412](https://github.com/dascritch/machincast/issues/412)), et lecture par pages des longues listes ([#383](https://github.com/dascritch/machincast/issues/383)).
+- Les fiches : liste vide en avertissement, masquage plus explicite ([#328](https://github.com/dascritch/machincast/issues/328)), grisées pendant l'enregistrement et fermées quand il réussit ([#382](https://github.com/dascritch/machincast/issues/382)).
+- La fiche d'un sonore : début et fin réglables sur la frise ([#330](https://github.com/dascritch/machincast/issues/330)), relations à retirer ([#331](https://github.com/dascritch/machincast/issues/331)), et l'analyse complète proposée, avec le retour aux valeurs du fichier ([#388](https://github.com/dascritch/machincast/issues/388)).
+- Les préférences de l'interface et les paramètres du service, séparés selon ce qui redémarre la diffusion ([#389](https://github.com/dascritch/machincast/issues/389)) ; le seuil de silence à la page Crossfades ([#324](https://github.com/dascritch/machincast/issues/324)) ; le choix des cartes son au lancement ([#339](https://github.com/dascritch/machincast/issues/339)).
+- Le statut des indexations de sonores ([#392](https://github.com/dascritch/machincast/issues/392)), et la fenêtre de version, avec ses liens ([#332](https://github.com/dascritch/machincast/issues/332)).
+- Aide → « Votre installation », le document éditable de l'équipe, ouvert dans un éditeur de texte, et le lien de l'équipe ([#451](https://github.com/dascritch/machincast/issues/451), [#491](https://github.com/dascritch/machincast/issues/491)).
+- Plus réactive : le VU-mètre se met en pause pendant la veille de la session, et les attentes ne figent plus la fenêtre ([#346](https://github.com/dascritch/machincast/issues/346), [#387](https://github.com/dascritch/machincast/issues/387), [#345](https://github.com/dascritch/machincast/issues/345), [#343](https://github.com/dascritch/machincast/issues/343)) ; plus stable ([#413](https://github.com/dascritch/machincast/issues/413), [#320](https://github.com/dascritch/machincast/issues/320)).
+
+### Sauvegarde et reprise
+
+- `Machin backup-db` exporte la base, aussi depuis Maintenance → Exporter la base… ; sur un poste neuf, `install.sh` propose de la réimporter ; la page Sauvegarde des paramètres du service copie aussi `machincast.toml` ([#347](https://github.com/dascritch/machincast/issues/347)).
+
+### Installation et administration
+
+- Les minuteurs du service : l'indexation rapide toutes les heures, et chaque jour, à l'heure réglée, la purge puis l'audit complet ([#455](https://github.com/dascritch/machincast/issues/455)).
+- Le poste d'antenne ne s'éteint, ne redémarre ni ne se met en veille sans le mot de passe d'un administrateur ([#448](https://github.com/dascritch/machincast/issues/448)).
+- `Machin grant-read` fait lire les sonores au service ; la désinstallation ne retire jamais un répertoire qui contient des sonores ([#381](https://github.com/dascritch/machincast/issues/381), [#430](https://github.com/dascritch/machincast/issues/430)).
+- `Machin logs` suit le journal du service ([#459](https://github.com/dascritch/machincast/issues/459)) ; les démarrages et arrêts des programmes sont notés ([#341](https://github.com/dascritch/machincast/issues/341)) ; un plantage laisse un rapport ([#342](https://github.com/dascritch/machincast/issues/342)).
+- Le verrou de l'indexation par mode : rapide et complète peuvent tourner ensemble ([#401](https://github.com/dascritch/machincast/issues/401)).
+
+### Documentation et qualité
+
+- La documentation relue d'un bout à l'autre ([#461](https://github.com/dascritch/machincast/issues/461)), précisée ([#338](https://github.com/dascritch/machincast/issues/338)), le document d'architecture arc42 ([#446](https://github.com/dascritch/machincast/issues/446)), et le guide de contribution renommé `CONTRIBUTING.md` ([#456](https://github.com/dascritch/machincast/issues/456)).
+- La qualité du code : dépendances verrouillées, fonctions et classes découpées, requêtes regroupées, tests plus robustes ([#340](https://github.com/dascritch/machincast/issues/340), [#390](https://github.com/dascritch/machincast/issues/390), [#437](https://github.com/dascritch/machincast/issues/437), [#438](https://github.com/dascritch/machincast/issues/438), [#439](https://github.com/dascritch/machincast/issues/439), [#440](https://github.com/dascritch/machincast/issues/440), [#441](https://github.com/dascritch/machincast/issues/441), [#442](https://github.com/dascritch/machincast/issues/442), [#443](https://github.com/dascritch/machincast/issues/443), [#444](https://github.com/dascritch/machincast/issues/444), [#445](https://github.com/dascritch/machincast/issues/445), [#384](https://github.com/dascritch/machincast/issues/384), [#470](https://github.com/dascritch/machincast/issues/470)) ; des tests ciblés par ticket ([#408](https://github.com/dascritch/machincast/issues/408)) et le flux des branches `preprod`, `qualif`, `main` ([#480](https://github.com/dascritch/machincast/issues/480)).
+
+### Merci
+
+À Xavier Mouton-Dubosc ([dascritch](https://github.com/dascritch)), *broadcasting manager* de [Radio &lt;FMR&gt; 89.1 Toulouse](https://radio-fmr.net), qui a demandé chacune de ces améliorations, signalé chaque problème et relu chaque changement.
+
 ## 0.9.0 — 2026-10-28
 
 Première version publiée, avant la 1.0 : tout ce que fait MachinCast, fonctionnalité par fonctionnalité.

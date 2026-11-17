@@ -4,7 +4,7 @@
 
 ## Cycle de travail
 
-1. Chaque fonctionnalité part d'un ticket GitHub Issues.
+1. Chaque fonctionnalité part d'un ticket GitHub Issues, sur une branche tirée de `preprod` ([Branches](#branches)).
 2. Si aucun ticket n'existe, **ne pas le créer seul** : proposer un titre et une description au format user story, puis attendre que le ticket soit créé ensemble.
 
 	```
@@ -18,13 +18,35 @@
 5. Mettre à jour la documentation Markdown dans `/doc` dans le même commit.
 6. Vérifier la [definition of done](#definition-of-done) avant de demander la relecture.
 
+## Branches
+
+Trois branches protégées, sans commit direct ([#480](https://github.com/dascritch/machincast/issues/480)) :
+
+| Branche | Ce qu'elle porte | Ce qui y entre |
+| --- | --- | --- |
+| `preprod` | Les tickets terminés, en attente de la prochaine release. | Les PR des branches de ticket. |
+| `qualif` | La release candidate, qui tourne une semaine à l'antenne. | Une PR de `preprod` vers `qualif`, par release ; les PR des corrections de la qualification. |
+| `main` | La dernière version publiée, taguée. | Une PR de `qualif` vers `main`, après la semaine de qualification. |
+
+- **Un ticket** part de `preprod`, sur une branche `dev/<numéro>-<sujet>`, et y revient par une PR.
+	Sa PR ne lance que les scénarios du ticket, jamais la suite complète ([Quels tests lancer](tests.md#quels-tests-lancer)).
+- **Une release candidate** passe de `preprod` à `qualif` par une PR, qui s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites ([Publier une version](../developpement/release.md)).
+- **La qualification** dure une semaine : la release candidate tourne à l'antenne depuis `qualif`.
+	Un défaut trouvé pendant cette semaine se corrige par un ticket dont la branche part de `qualif` et y revient : la release candidate n'embarque aucune nouvelle fonctionnalité de `preprod`.
+	Sa branche s'appelle `fix/<numéro>-<sujet>`, et sa PR, vers `qualif`, ne lance que les scénarios du ticket, comme celle d'un ticket vers `preprod` ([#491](https://github.com/dascritch/machincast/issues/491)).
+	La release candidate étant déjà traduite, sa documentation se met à jour en français **et** en anglais, `doc/en` et les documents de premier niveau compris, et le ticket s'ajoute à la section de la version dans `RELEASE.fr.md` et `RELEASE.md`.
+	La correction revient ensuite sur `preprod` par une PR de `qualif` vers `preprod`, et la semaine reprend.
+	Puis une PR de `qualif` vers `main` la livre, et elle est taguée sur `main`.
+- **Entre branches protégées**, les PR de `preprod` vers `qualif`, de `qualif` vers `main` et de `qualif` vers `preprod` se mergent par un commit de fusion, « Create a merge commit » sur GitHub, jamais par « Rebase and merge » : les commits gardent leurs identifiants d'une branche à l'autre, et une correction de la qualification revient sur `preprod` sans ramener en double ceux de la release ([#491](https://github.com/dascritch/machincast/issues/491)).
+	Les PR d'un ticket, vers `preprod` ou vers `qualif`, peuvent se merger comme avant.
+
 ## Definition of done
 
 Un ticket n'est terminé que si :
 
 - ses scénarios BDD ont été écrits d'abord, vus en échec, puis réussis ;
 - `bin/Machin dev-test --scenarios` passe, avec les fonctionnalités du ticket et celles qui utilisent ses modules, plus `wrapper` si le wrapper, `install.sh` ou la configuration change ; la PR dit lesquelles ont tourné ([Quels tests lancer](tests.md#quels-tests-lancer), [#408](https://github.com/dascritch/machincast/issues/408)).
-	La suite complète revient au ticket « Tests, revue de code et performances », tous les 10 tickets fermés et à chaque demande de release ;
+	La suite complète revient au ticket « Tests, revue de code et performances », tous les 10 tickets fermés, et à la PR de chaque release candidate, de `preprod` vers `qualif` ([Branches](#branches)) ;
 - ses fonctions et ses actions externes sont documentées pour les humains ([#71](https://github.com/dascritch/machincast/issues/71)) : tout ce qu'un utilisateur ou un administrateur voit ou déclenche, c'est-à-dire les commandes, options et codes de retour, les clés de configuration, les fichiers produits, les messages affichés et les effets sur le système (base, journal, sortie audio, fichiers sonores) ;
 - la spécification et les règles de développement sont à jour.
 
@@ -38,6 +60,8 @@ La documentation pour les humains va dans le guide de son public ([#128](https:/
 **Langues** ([#352](https://github.com/dascritch/machincast/issues/352), [#355](https://github.com/dascritch/machincast/issues/355)) : la documentation française est la source, celle qu'un ticket met à jour.
 Les documents de premier niveau (`README.md`, `INSTALL.md`, `TROUBLESHOOTING.md`, `CONTRIBUTING.md`, `RELEASE.md`) sont en anglais, chacun avec sa source française, `*.fr.md` ; chacun mène à l'autre par un lien en tête.
 `doc/` a un répertoire par langue : `doc/fr/`, la source, et `doc/en/`, sa traduction.
+`doc/en/` ne traduit que les guides humains, le [guide de l'antenne](../utilisateur/README.md) (`utilisateur`) et le [guide d'administration](../administration/README.md) (`administration`), sous les mêmes noms de pages ; leurs captures et leurs images restent celles de `doc/fr/`.
+La spécification, l'architecture, ces règles et le guide du développement restent en français : un document anglais qui les cite mène à `doc/fr/`, avec la mention « (French) ».
 Un ticket ne met à jour que les sources françaises ; la traduction anglaise, des documents de premier niveau comme de `doc/en/`, ne se refait qu'à la préparation d'une release ([Publier une version](../developpement/release.md)).
 Un scénario de [`documentation.feature`](../../../tests/features/documentation.feature) vérifie les deux versions de chaque document de premier niveau, et les liens de `doc/fr`.
 `doc/` n'a que des répertoires de langue ; un fichier commun à toutes les langues, comme la bannière du README (`doc/banner.jpg`), reste à sa racine ([#461](https://github.com/dascritch/machincast/issues/461)).
@@ -89,7 +113,7 @@ Une correction d'une PR ouverte, demandée en relecture ou trouvée ensuite, est
 Le relecteur voit ainsi ce qui a changé depuis sa dernière relecture.
 
 - Jamais de `git commit --amend` : un commit déjà poussé n'est jamais modifié.
-- Pour remettre la branche d'une PR à jour avec `main` (par exemple après la fusion d'une autre PR qui touche les mêmes fichiers), `git rebase` sur `main`, jamais un commit de fusion : chaque commit est rejoué tel quel, et un conflit se résout dans le commit qui le provoque.
+- Pour remettre la branche d'une PR à jour avec sa branche de base, `preprod` pour un ticket, `qualif` pour une correction de la qualification (par exemple après la fusion d'une autre PR qui touche les mêmes fichiers), `git rebase` sur elle, jamais un commit de fusion : chaque commit est rejoué tel quel, et un conflit se résout dans le commit qui le provoque.
 	La branche se pousse alors avec `git push --force-with-lease`, jamais `--force`, qui écraserait un commit poussé entre-temps.
 - Le message suit le format ci-dessus, lié au même ticket, avec le type qui convient : `fix` pour un défaut, `refactor`, `test` ou `docs` pour le reste.
 	Par exemple :

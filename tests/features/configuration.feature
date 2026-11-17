@@ -285,6 +285,54 @@ Fonctionnalité: Fichier de configuration
 			| "10:00:00" |
 			| 10       |
 
+	Plan du scénario: Les clés interface.notes et interface.team_link donnent le document et le lien de l'équipe
+		https://github.com/dascritch/machincast/issues/451 : sans elles, le document du Bureau, et aucun lien.
+		Étant donné une configuration valide où la clé "interface.<clé>" vaut <valeur>
+		Quand je charge la configuration
+		Alors l'interface a <attendu>
+
+		Exemples:
+			| clé       | valeur                            | attendu                                                   |
+			| notes     | "notes/radio.md"                  | le document « <configuration>/notes/radio.md »            |
+			| notes     | "/srv/radio/notes.md"             | le document « /srv/radio/notes.md »                       |
+			| team_link | "https://cloud.radio.example/a"   | le lien de l'équipe « https://cloud.radio.example/a »     |
+			| team_link | "http://192.168.1.10:8080/wiki"   | le lien de l'équipe « http://192.168.1.10:8080/wiki »     |
+
+	Scénario: Sans interface.notes ni interface.team_link, ni document réglé ni lien
+		Étant donné une configuration valide où la clé "interface.notes" est absente
+		Quand je charge la configuration
+		Alors l'interface n'a ni document réglé ni lien de l'équipe
+
+	Plan du scénario: Un lien de l'équipe qui n'est pas une adresse web est refusé
+		Étant donné une configuration valide où la clé "interface.team_link" vaut <valeur>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "interface.team_link"
+		Et le message mentionne "http://"
+
+		Exemples:
+			| valeur                   |
+			| "cloud.radio.example"    |
+			| "ftp://radio.example/a"  |
+			| "file:///srv/notes.md"   |
+
+	Scénario: Sans clé backup.directory, les sauvegardes vont dans le répertoire personnel du compte
+		https://github.com/dascritch/machincast/issues/347 : l'export de la base et la maintenance y écrivent leur
+		sauvegarde.
+		Étant donné une configuration valide où la clé "backup.directory" est absente
+		Quand je charge la configuration
+		Alors les sauvegardes vont dans « ~ »
+
+	Plan du scénario: La clé backup.directory donne le répertoire des sauvegardes, relatif au fichier de configuration
+		Étant donné une configuration valide où la clé "backup.directory" vaut <valeur>
+		Quand je charge la configuration
+		Alors les sauvegardes vont dans « <répertoire> »
+
+		Exemples:
+			| valeur             | répertoire                     |
+			| "~/sauvegardes"    | ~/sauvegardes                  |
+			| "/media/cle/radio" | /media/cle/radio               |
+			| "sauvegardes"      | <configuration>/sauvegardes    |
+
 	Scénario: Sans section [silences], le seuil de silence est de -40 dB
 		Étant donné une configuration valide sans section "silences"
 		Quand je charge la configuration

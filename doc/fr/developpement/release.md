@@ -10,9 +10,19 @@ Chaque version publiée de MachinCast a son tag git, `v<version>`, sa release Gi
 
 Tout vient du tag `v<version>` et des fichiers des nouveautés, un par langue ([#369](https://github.com/dascritch/machincast/issues/369)) : `src/machincast/interface/news.fr.md` en français, `src/machincast/interface/news.md` en anglais (`machincast.interface.version`). L'interface montre celui de la langue de la session, `news.<langue>.md`, et `news.md` pour une langue qui n'a pas le sien.
 
+## Le chemin d'une version
+
+Une version passe par trois branches protégées ([Branches](../regles/developpement.md#branches), [#480](https://github.com/dascritch/machincast/issues/480)) :
+
+1. **`preprod`** reçoit les tickets, puis le commit « Version <version> » ([Préparer la version](#préparer-la-version)).
+2. **`qualif`** reçoit la release candidate, par une PR de `preprod` vers `qualif`. Cette PR s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites : les étapes 6 à 9 ci-dessous. La release candidate tourne ensuite une semaine à l'antenne. Un défaut trouvé pendant cette semaine se corrige par un ticket dont la branche, `fix/<numéro>-<sujet>`, part de `qualif` et y revient par une PR : la release candidate n'embarque ainsi aucune nouvelle fonctionnalité de `preprod`. La correction met à jour la documentation dans les deux langues, puisque la traduction est déjà faite, et ajoute son ticket aux notes de la version ([Branches](../regles/developpement.md#branches)). La correction revient ensuite sur `preprod` par une PR de `qualif` vers `preprod`, et la semaine reprend.
+3. **`main`** reçoit la version qualifiée, par une PR de `qualif` vers `main`, puis elle est taguée et publiée ([Publier](#publier)).
+
+Les PR entre ces branches se mergent par un commit de fusion, « Create a merge commit », jamais par « Rebase and merge », pour que les commits gardent leurs identifiants d'une branche à l'autre ([Branches](../regles/developpement.md#branches)).
+
 ## Préparer la version
 
-Sur une branche `release/<version>`, en un seul commit, « Version <version> », lié aux tickets de la release :
+Sur une branche `release/<version>`, tirée de `preprod`, en un seul commit, « Version <version> », lié aux tickets de la release, puis une PR vers `preprod` :
 
 1. **Le numéro**, dans `pyproject.toml`. Avant 1.0 : `0.<mineure>.<correctif>`. Et **`constraints.txt`**, les versions exactes des dépendances ([#438](https://github.com/dascritch/machincast/issues/438)) : dans un venv neuf, `pip install --editable ".[dev]"` sans contrainte, la suite complète, puis `pip freeze --exclude-editable | sort -f` en gardant l'en-tête du fichier. Le scénario « Chaque dépendance déclarée a sa version exacte dans constraints.txt » refuse une dépendance de `pyproject.toml` qui n'y serait pas.
 2. **Les tickets résolus** depuis la release précédente (ou depuis le début du dépôt, pour la première) :
@@ -28,14 +38,14 @@ Sur une branche `release/<version>`, en un seul commit, « Version <version> »,
 5. **`README.fr.md`** : la ligne `**Version <version>**, publiée le <AAAA-MM-JJ>`, avec le lien vers `RELEASE.fr.md` ; et `README.md`, la ligne `**Version <version>**, released on <AAAA-MM-JJ>`, avec le lien vers `RELEASE.md`.
 6. **Le guide de l'antenne**, `doc/fr/utilisateur`, relu d'un bout à l'autre ([#128](https://github.com/dascritch/machincast/issues/128)) : chaque fonctionnalité de la version y est, sans rien de technique.
 7. **Ses captures d'écran**, refaites par `Machin dev-screenshots` ([Captures d'écran du guide de l'antenne](poste.md#captures-décran-du-guide-de-lantenne)), puis relues. Elles ne se refont qu'à la préparation d'une release, sauf si le responsable du projet le demande expressément.
-8. **La traduction anglaise** ([#352](https://github.com/dascritch/machincast/issues/352)) : les documents de premier niveau (`README.md`, `INSTALL.md`, `TROUBLESHOOTING.md`, `CONTRIBUTING.md`, `RELEASE.md`) reprennent ce qui a changé dans leur source française, `*.fr.md`, depuis la release précédente, et `doc/en/` est retraduit de `doc/fr/`. C'est le seul moment où la documentation se retraduit.
+8. **La traduction anglaise** ([#352](https://github.com/dascritch/machincast/issues/352)) : les documents de premier niveau (`README.md`, `INSTALL.md`, `TROUBLESHOOTING.md`, `CONTRIBUTING.md`, `RELEASE.md`) reprennent ce qui a changé dans leur source française, `*.fr.md`, depuis la release précédente, et `doc/en/` est retraduit de `doc/fr/` : le guide de l'antenne et le guide d'administration seulement ([Langues](../regles/developpement.md#definition-of-done)), page pour page, ce que vérifie un scénario de `documentation.feature`. C'est le seul moment où la documentation se retraduit.
 9. **Les vérifications**, dans le ticket « Tests, revue de code et performances » ouvert pour cette demande de release ([Quels tests lancer](../regles/tests.md#quels-tests-lancer)) : `Machin dev-test` complet, puis les scénarios `@release`, qui ne tournent pas avec `pytest` : `.venv/bin/pytest -m release` ([Scénarios à lancer avant une version](../../../TROUBLESHOOTING.fr.md#scénarios-à-lancer-avant-une-version)). Les relancer aussi après toute mise à jour de GStreamer ou de libsoup.
 
 Le scénario « Les informations des versions publiées concordent », dans `tests/features/documentation.feature`, vérifie que les nouveautés, en anglais et en français, `RELEASE.md`, `README.md` et `pyproject.toml` donnent la même version, à la même date.
 
 ## Publier
 
-Une fois le commit « Version <version> » mergé dans `main` :
+Une fois la semaine de qualification passée, et la PR de `qualif` vers `main` mergée :
 
 ```bash
 git checkout main && git pull

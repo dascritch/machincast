@@ -12,6 +12,7 @@ lui envoie SIGTERM, comme Ctrl-C dans ce terminal ; son processus est celui qui 
 """
 
 import os
+import re
 import shutil
 import signal
 from pathlib import Path
@@ -20,10 +21,9 @@ from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
 from machincast import service
 from machincast.clock import Clock, SystemClock
-from machincast.configuration import PROJECT_DIRECTORY, default_file
+from machincast.configuration import PROJECT_DIRECTORY, InvalidConfiguration, default_file, load
 from machincast.i18n import _
 from machincast.interface.intents import HALT, START, label
-from machincast.maintenance import default_backups
 from machincast.service import UNIT
 
 VERBS = {
@@ -52,6 +52,15 @@ ABANDONED_MAINTENANCE = _("Database maintenance abandoned: nothing was launched.
 WITHOUT_TERMINAL_FOR_MAINTENANCE = _(
 	"No terminal found (konsole, x-terminal-emulator): run Machin maintenance-db by hand."
 )
+EXPORT = _("Export the database…")
+"""L'entrée du menu « Maintenance » (https://github.com/dascritch/machincast/issues/347)."""
+EXPORTING = _("Database export in progress, into {directory}…")
+EXPORTED = _("Database exported into {directory}.")
+EXPORT_FAILED = _("Database export impossible: {error}")
+MACHIN = PROJECT_DIRECTORY / "bin" / "Machin"
+"""Le wrapper que l'export lance ; les scénarios en donnent un imité."""
+TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\S+ ")
+"""L'horodatage qui ouvre chaque ligne du journal d'un binaire (machincast.log)."""
 GRANT_READ = _("Let the broadcast service read the sound files…")
 """L'entrée du menu « Maintenance » (https://github.com/dascritch/machincast/issues/381)."""
 LAUNCHED_GRANT_READ = _("Machin grant-read launched in a terminal: the bank directories and the added files.")
@@ -174,12 +183,17 @@ def launch_in_terminal(configuration: Path | None, launched: str = LAUNCHED) -> 
 
 
 def maintenance_backups(configuration: Path | None) -> Path:
-	"""Où la maintenance lancée par l'interface écrira sa sauvegarde, en chemin absolu : le répertoire « sauvegardes »
-	à côté de la configuration de l'interface, ou du machincast.toml du répertoire de MachinCast."""
+	"""Où la maintenance et l'export lancés par l'interface écriront leur sauvegarde, en chemin absolu : le répertoire
+	des sauvegardes de la configuration de l'interface, ou du machincast.toml du répertoire de MachinCast
+	(backup.directory, https://github.com/dascritch/machincast/issues/347) ; le répertoire personnel du compte, si elle
+	ne se lit pas."""
 	file = default_file()
 	if configuration is not None:
 		file = configuration
-	return default_backups(file.resolve())
+	try:
+		return load(file.resolve()).backup.directory.absolute()
+	except InvalidConfiguration:
+		return Path.home()
 
 
 def launch_maintenance(configuration: Path | None, backups: Path) -> str:
@@ -191,6 +205,50 @@ def launch_maintenance(configuration: Path | None, backups: Path) -> str:
 	if open_terminal([*command, "maintenance-db", "--backups", str(backups), "--keep-open"]):
 		return LAUNCHED_MAINTENANCE
 	return WITHOUT_TERMINAL_FOR_MAINTENANCE
+
+
+class Export(QObject):
+	"""Machin backup-db dans son propre processus, sans terminal : rapide, il ne demande rien
+	(https://github.com/dascritch/machincast/issues/347). Sa fin émet finished, avec ce qu'en dit la barre d'état."""
+
+	finished = Signal(str)
+
+	def __init__(self, parent: QObject | None = None) -> None:
+		super().__init__(parent)
+		self.process: QProcess | None = None
+		self.directory = Path()
+
+	def running(self) -> bool:
+		return self.process is not None
+
+	def start(self, configuration: Path | None, directory: Path) -> str:
+		"""Lance l'export de la base de l'interface dans directory ; ce qu'en dit la barre d'état."""
+		arguments = []
+		if configuration is not None:
+			arguments += ["--config", str(configuration)]
+		arguments += ["backup-db", "--backups", str(directory)]
+		self.directory = directory
+		process = QProcess(self)
+		process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+		process.finished.connect(self._finished)
+		self.process = process
+		process.start(str(MACHIN), arguments)
+		return EXPORTING.format(directory=directory)
+
+	def _finished(self, code: int, status: QProcess.ExitStatus) -> None:
+		process = self.process
+		assert process is not None
+		self.process = None
+		output = bytes(process.readAll().data()).decode(errors="replace")
+		process.deleteLater()
+		if (code == 0) and (status == QProcess.ExitStatus.NormalExit):
+			self.finished.emit(EXPORTED.format(directory=self.directory))
+			return
+		error = _("exit code {code}").format(code=code)
+		for line in output.splitlines():
+			if line.strip():
+				error = TIMESTAMP.sub("", line.strip())
+		self.finished.emit(EXPORT_FAILED.format(error=error))
 
 
 def launch_grant_read(configuration: Path | None) -> str:

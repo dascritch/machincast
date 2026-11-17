@@ -56,7 +56,6 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **À vérifier** :
 
-- Que l'écran du poste d'antenne ne se met pas en veille : voir [Préparer le poste d'antenne](INSTALL.fr.md#préparer-le-poste-dantenne) ([#250](https://github.com/dascritch/machincast/issues/250)).
 - Relancer la pré-écoute une fois le son revenu. Si le VU-mètre reste indisponible plus de 10 secondes, vérifier que le serveur audio tourne (`systemctl --user status pipewire` pour celui de la session ; `systemctl status machincast-pipewire.service machincast-wireplumber.service` pour celui du service de diffusion, qui porte l'antenne), puis ouvrir un ticket avec la sortie console de `Machin interface`.
 
 ## L'antenne passe sur la pré-écoute quand la session se verrouille

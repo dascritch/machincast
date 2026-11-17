@@ -5,8 +5,9 @@ fermeture, rouverts au lancement (https://github.com/dascritch/machincast/issues
 peut changer (https://github.com/dascritch/machincast/issues/405) ; leur titre, coupé au besoin, et l'infobulle de
 leur raccourci (https://github.com/dascritch/machincast/issues/398) ; les raccourcis Maj+F1 à Maj+F12, Ctrl+PageUp,
 Ctrl+PageDown, Ctrl+Home et Ctrl+End (https://github.com/dascritch/machincast/issues/192,
-https://github.com/dascritch/machincast/issues/318) ; le menu « Onglets ». Ce que la fenêtre sait seule, ouvrir un
-écran d'après sa clé, fermer ou retirer une fiche, lui est donné à la construction.
+https://github.com/dascritch/machincast/issues/318) ; le menu « Onglets » ; Ctrl+W, Ctrl+S, Ctrl+Entrée, et les onglets
+fermés, que Ctrl+Maj+T et le menu « Affichage » rouvrent (https://github.com/dascritch/machincast/issues/428). Ce que
+la fenêtre sait seule, ouvrir un écran d'après sa clé, fermer ou retirer une fiche, lui est donné à la construction.
 """
 
 import logging
@@ -14,7 +15,7 @@ from collections.abc import Callable
 
 import psycopg
 from PySide6.QtCore import QEvent, QObject
-from PySide6.QtGui import QKeyEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QMainWindow, QMenu, QTabBar, QTabWidget, QWidget
 
 from machincast.i18n import _
@@ -122,6 +123,22 @@ def _shortcut_texts(shortcuts: tuple[str, ...]) -> frozenset[str]:
 TAB_KEYS = _shortcut_texts((LEFT_TAB, RIGHT_TAB, FIRST_TAB, LAST_TAB))
 
 
+CLOSE_TAB, SAVE_TAB, REOPEN_TAB = "Ctrl+W", "Ctrl+S", "Ctrl+Shift+T"
+SAVE_AND_CLOSE_TAB = ("Ctrl+Return", "Ctrl+Enter")
+"""Les raccourcis qui ferment l'onglet ouvert, l'enregistrent, l'enregistrent puis le ferment (les deux touches
+Entrée, du clavier principal et du pavé numérique), et rouvrent le dernier fermé
+(https://github.com/dascritch/machincast/issues/428)."""
+
+
+RECENTLY_CLOSED = 5
+"""Les onglets fermés que le sous-menu « Onglets fermés récemment » propose de rouvrir, le plus récent en tête."""
+
+
+REOPEN = _("Reopen the closed tab")
+CLOSED_TABS = _("Recently closed tabs")
+"""L'entrée de Ctrl+Maj+T et le sous-menu des onglets fermés, dans le menu « Affichage »."""
+
+
 class TabKey(QObject):
 	"""Les raccourcis des onglets l'emportent sur le widget de la fenêtre qui a le focus : un champ d'une ligne réclame
 	Ctrl+Home et Ctrl+End sans rien en faire, un tableau irait à sa première ou à sa dernière ligne, et la barre
@@ -174,6 +191,11 @@ class TabManager:
 		"""Le titre de l'onglet de chaque liste, ouverte ou non."""
 		self.keys: dict[QWidget, str] = {}
 		"""La clé de l'onglet de chaque liste, dans les réglages : son genre."""
+		self.closed: list[tuple[str, str, str]] = []
+		"""Les onglets fermés, à rouvrir, le plus récent en tête : leur clé, leur titre entier et leur genre ; au plus
+		RECENTLY_CLOSED, et jamais un onglet ouvert."""
+		self.reopen_action: QAction | None = None
+		self.closed_menu: QMenu | None = None
 
 	def tab_key(self, screen: QWidget | None) -> str | None:
 		"""Ce qui désigne un onglet d'un lancement à l'autre : « antenne », « liste:Feeds », « fiche:banque:12 »… ;
@@ -287,6 +309,7 @@ class TabManager:
 			index = tabs.insertTab(self._place_from(origin), screen, icon, title)
 			self._note_opening(origin, screen)
 		self.title_tab(index, title)
+		self._forget(self.tab_key(screen))
 		return index
 
 	def _place_from(self, origin: QWidget | None) -> int:
@@ -378,9 +401,16 @@ class TabManager:
 			else:
 				self.close_screen(tabs.indexOf(screen))
 
-	def remove_tab(self, index: int) -> None:
-		"""Un onglet fermé n'est plus ni l'origine ni le dernier ouvert d'aucun autre."""
+	def remove_tab(self, index: int, *, remembered: bool = True) -> None:
+		"""Un onglet fermé n'est plus ni l'origine ni le dernier ouvert d'aucun autre. S'il se rouvre, il est retenu parmi
+		les onglets fermés, sauf remembered faux : la fiche d'un élément supprimé."""
 		screen = self.tabs.widget(index)
+		key = self.tab_key(screen)
+		if (remembered) and (key is not None) and (screen in self._closable()):
+			self._forget(key)
+			self.closed.insert(0, (key, self.full_title(index), screen_category(screen)))
+			del self.closed[RECENTLY_CLOSED:]
+			self._show_closed()
 		last_dict = {}
 		for origin, last in self.last_opened.items():
 			if screen not in (origin, last):
@@ -406,9 +436,84 @@ class TabManager:
 			(LAST_TAB, lambda: self._go_to_tab(self.tabs.count() - 1)),
 		):
 			QShortcut(QKeySequence(keys), self.window).activated.connect(relocation)
+		# Fermer et enregistrer l'onglet ouvert (https://github.com/dascritch/machincast/issues/428).
+		QShortcut(QKeySequence(CLOSE_TAB), self.window).activated.connect(self.close_current)
+		QShortcut(QKeySequence(SAVE_TAB), self.window).activated.connect(self.save_current)
+		for keys in SAVE_AND_CLOSE_TAB:
+			QShortcut(QKeySequence(keys), self.window).activated.connect(self.save_and_close_current)
 		application = QApplication.instance()
 		if application is not None:
 			application.installEventFilter(TabKey(self.window))
+
+	def close_current(self) -> None:
+		"""Ctrl+W : ferme l'onglet ouvert, comme son bouton de fermeture ; un onglet fixe reste ouvert."""
+		screen = self.tabs.currentWidget()
+		if (screen is not None) and (screen in self._closable()):
+			self.close_screen(self.tabs.indexOf(screen))
+
+	def save_current(self) -> None:
+		"""Ctrl+S : enregistre la fiche ouverte, qui reste ouverte ; sur une fiche sans modification, ou un autre
+		onglet, rien."""
+		screen = self.tabs.currentWidget()
+		if (isinstance(screen, Card)) and (screen.button_save.isEnabled()):
+			screen.save()
+
+	def save_and_close_current(self) -> None:
+		"""Ctrl+Entrée : enregistre la fiche ouverte, puis la ferme ; une fiche sans modification se ferme, une fiche
+		refusée reste ouverte et dit pourquoi. Sur un autre onglet, rien."""
+		screen = self.tabs.currentWidget()
+		if not isinstance(screen, Card):
+			return
+		if (not screen.button_save.isEnabled()) or (screen.save()):
+			self.remove_card(screen)
+
+	def add_reopening(self, menu: QMenu) -> None:
+		"""Dans le menu « Affichage » : « Rouvrir l'onglet fermé », Ctrl+Maj+T, et le sous-menu des onglets fermés, relu
+		à chaque ouverture ; inactifs tant qu'aucun onglet n'est à rouvrir."""
+		self.reopen_action = menu.addAction(REOPEN)
+		self.reopen_action.setShortcut(QKeySequence(REOPEN_TAB))
+		self.reopen_action.triggered.connect(self.reopen_last)
+		self.closed_menu = menu.addMenu(CLOSED_TABS)
+		self.closed_menu.aboutToShow.connect(self._list_closed)
+		self._show_closed()
+
+	def reopen_last(self) -> None:
+		"""Ctrl+Maj+T : rouvre le dernier onglet fermé ; sans onglet fermé, rien."""
+		if self.closed:
+			self._reopen_closed(self.closed[0][0])
+
+	def _reopen_closed(self, key: str) -> None:
+		"""Rouvre un onglet fermé, qui quitte la liste ; la fiche d'un élément supprimé depuis ne se rouvre pas."""
+		self._forget(key)
+		try:
+			self.reopen_screen(key)
+		except psycopg.Error as error:
+			log.error(_("tab “{key}” not reopened: {error}").format(key=key, error=error))
+
+	def _forget(self, key: str | None) -> None:
+		"""Un onglet ouvert, ou rouvert, n'est plus à rouvrir."""
+		kept_list = []
+		for closed in self.closed:
+			if closed[0] != key:
+				kept_list.append(closed)
+		if len(kept_list) != len(self.closed):
+			self.closed = kept_list
+			self._show_closed()
+
+	def _show_closed(self) -> None:
+		if (self.reopen_action is None) or (self.closed_menu is None):
+			return
+		self.reopen_action.setEnabled(self.closed != [])
+		self.closed_menu.menuAction().setEnabled(self.closed != [])
+
+	def _list_closed(self) -> None:
+		"""Le sous-menu des onglets fermés : leur titre entier et leur icône, le plus récent en tête."""
+		menu = self.closed_menu
+		assert menu is not None
+		menu.clear()
+		for key, title, category in self.closed:
+			action = menu.addAction(icons.icon_of(category), title.replace("&", "&&"))
+			action.triggered.connect(lambda _ticked=False, key=key: self._reopen_closed(key))
 
 	def _left_tab(self) -> None:
 		"""Sur le premier onglet, rien : il n'y a pas d'onglet -1."""

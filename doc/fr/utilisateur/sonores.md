@@ -105,7 +105,12 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 **Saisi à la main** : chaque champ modifié est noté comme saisi à la main, et la fiche en donne la liste : les tags ne l'écraseront plus.
 
-**Boutons** : **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). **Vérification complète** vérifie le fichier en entier et mesure ses silences, sans attendre la prochaine indexation, puis propose de **Rafraîchir** la fiche pour voir le résultat. Un fichier déjà vérifié ainsi, qui n'a pas changé depuis, n'est pas relu : la barre d'état dit `Déjà audité au seuil de -40 dB, fichier inchangé`.
+**Boutons** : **Pré-écoute…** fait écouter le sonore ([Pré-écoute](#pré-écoute)). **Vérification complète** vérifie le fichier en entier et mesure ses silences, sans attendre la prochaine indexation, puis propose de **Rafraîchir** la fiche pour voir le résultat. Un fichier déjà vérifié ainsi, qui n'a pas changé depuis, n'est pas relu : la barre d'état dit `Déjà audité au seuil de -40 dB, fichier inchangé`. Elle peut se lancer même pendant une indexation. Le temps qu'elle tourne, le bouton devient **Vérification…**, la dernière vérification complète dit `en cours…`, et l'artiste, le titre, la durée, le début et la fin détectés, qu'elle va mettre à jour, le disent dans leur infobulle ([#388](https://github.com/dascritch/machincast/issues/388)).
+
+**Ce que la fiche propose**, au-dessus de ses boutons :
+
+- un fichier **jamais vérifié en entier** le dit : ses silences ne sont pas mesurés, et **Vérification complète** le fait tout de suite ;
+- des valeurs lues dans le fichier, **saisies à la main** (artiste, titre, métadonnées, durée, début et fin détectés), sont nommées, avec le bouton **Revenir aux valeurs du fichier…** : après confirmation, elles ne sont plus marquées saisies à la main, et la vérification complète relit le fichier pour les remplacer, même s'il avait déjà été vérifié. Le bouton attend que la fiche soit enregistrée ou annulée.
 
 ## Pré-écoute
 
@@ -122,7 +127,7 @@ Si la carte son de la pré-écoute est **Sortie factice**, dans les [préférenc
 
 Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met à la place du précédent. La fermer arrête la pré-écoute. C'est une fenêtre à part ([#325](https://github.com/dascritch/machincast/issues/325)) : elle a sa propre entrée dans la barre des tâches du bureau, et ne reste pas au-dessus de l'interface quand on revient à celle-ci. Elle se ferme avec l'interface.
 
-**Casque qui ne répond plus.** Au retour d'un écran verrouillé ou mis en veille, le son du poste peut s'interrompre un moment : la pré-écoute s'arrête alors, et dit pourquoi (« Lecture impossible : … »). L'interface reste utilisable ; relancer la lecture une fois le son revenu ([#259](https://github.com/dascritch/machincast/issues/259)). Pour l'éviter, l'écran du poste d'antenne ne se met pas en veille ([#250](https://github.com/dascritch/machincast/issues/250), [Préparer le poste d'antenne](../../../INSTALL.fr.md#préparer-le-poste-dantenne)).
+**Casque qui ne répond plus.** Au retour d'un écran verrouillé ou mis en veille, le son du poste peut s'interrompre un moment : la pré-écoute s'arrête alors, et dit pourquoi (« Lecture impossible : … »). L'interface reste utilisable ; relancer la lecture une fois le son revenu ([#259](https://github.com/dascritch/machincast/issues/259)). L'économiseur d'écran et le verrouillage de la session peuvent pourtant rester actifs : seule une pré-écoute en cours est à relancer, et la diffusion n'est pas touchée ([#346](https://github.com/dascritch/machincast/issues/346), [Préparer le poste d'antenne](../../../INSTALL.fr.md#préparer-le-poste-dantenne)).
 
 ### Frise d'un fichier
 
@@ -153,7 +158,7 @@ La fiche d'une banque s'ouvre dans un onglet nommé « Banque : » suivi de son 
 | --- | --- |
 | Nom interne | Obligatoire, et propre à la banque. |
 | Nom public | Facultatif. Affiché sur la page publique à la place de l'artiste et du titre masqués, si l'événement et la séquence n'en ont pas. |
-| Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `Aléatoire` : au hasard ([Quel sonore une banque fournit](antenne.md#quel-sonore-une-banque-fournit)). |
+| Mode | `Séquentielle` : les sonores passent dans l'ordre de la liste. `A→Z du nom de fichier` et `Z→A du nom de fichier` : dans l'ordre du nom des fichiers, ou dans l'ordre inverse ([#454](https://github.com/dascritch/machincast/issues/454)). `Aléatoire` : au hasard ([Quel sonore une banque fournit](antenne.md#quel-sonore-une-banque-fournit)). |
 | Artiste et titre | `Masqué par le nom public de la banque` ou `Affichés` sur la page publique, sauf si l'événement ou la séquence en décide ; `Hérité du sonore` laisse décider le sonore. |
 | Ne pas répéter | La banque ne passe jamais deux fois de suite. |
 | Détection de silence | Cochée, les sonores joués par la banque le sont sans leurs silences ([Silences au début et à la fin](antenne.md#silences-au-début-et-à-la-fin)). |

@@ -751,6 +751,27 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="analysis" stretch="1,0">
+     <item>
+      <widget class="QLabel" name="analysis_offer">
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="back_to_file">
+       <property name="toolTip">
+        <string>The values entered by hand are given back to the indexer, then the full check reads the file again</string>
+       </property>
+       <property name="text">
+        <string>Back to the file values…</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="foot" stretch="0,0,0,1,0,0">
      <item>
       <widget class="QPushButton" name="delete">

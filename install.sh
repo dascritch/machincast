@@ -18,6 +18,8 @@
 #   ./install.sh --stop-programs   arrête les programmes de MachinCast en cours, sans le demander
 #   ./install.sh --leave-programs   les laisse tourner, sans le demander
 #                              (https://github.com/dascritch/machincast/issues/254)
+#   ./install.sh --restore FICHIER   réimporte cette sauvegarde dans la base de production qu'il crée, sans le demander
+#   ./install.sh --no-restore  ne propose pas d'en réimporter une (https://github.com/dascritch/machincast/issues/347)
 #   ./install.sh --help        aide
 #
 # À lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git), avec son propre compte :
@@ -120,6 +122,10 @@ RETIRER_SERVICE=false
 MINUTEURS=true
 # Raccourci sur le bureau : demander, oui ou non.
 BUREAU=demander
+# Réimportation d'une sauvegarde dans la base de production qu'install.sh vient de créer
+# (https://github.com/dascritch/machincast/issues/347) : demander, oui (celle de --restore) ou non.
+REIMPORTER=demander
+SAUVEGARDE=""
 # Service déjà installé mais pas à jour, sans --service (https://github.com/dascritch/machincast/issues/376) : le mettre à
 # jour, demandé à la question.
 METTRE_A_JOUR_LE_SERVICE=false
@@ -145,7 +151,7 @@ UTILISATEUR="$(id -un)"
 
 aide() {
 	tf 'Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] [--no-timers] | --remove-service] [--desktop | --no-desktop]
-                    [--stop-programs | --leave-programs]
+                    [--stop-programs | --leave-programs] [--restore FILE | --no-restore]
 
 Installs MachinCast in place, from this directory (%s), after checking the network access, without
 which a first installation stops, and an update goes on without updating the packages and dependencies:
@@ -160,13 +166,16 @@ which a first installation stops, and an update goes on without updating the pac
   2. isolated Python virtual environment and dependencies (pip);
   3. machincast.toml, copied from the model if it does not exist;
   4. PostgreSQL role of the account %s (without any particular right), production and test databases
-     that it owns, MachinCast roles, schema;
+     that it owns, MachinCast roles, schema; a new production database can first take back a backup of a
+     previous installation, on this computer or another one (Machin backup-db): the question is asked,
+     with kdialog on a graphical desktop, in the terminal otherwise, except with --restore or --no-restore;
   5. authorisation of %s to the roles %s, systemd-journal group;
   6. links %s, %s and the bash autocompletion;
   7. check of the GStreamer version and plugins, and of the audio output;
   8. shortcut of the interface in the applications menu of %s, and, if wanted,
      on the desktop: the question is asked, except with --desktop or --no-desktop; MachinCast
-     icon in the icon theme, for the sound settings of the computer.
+     icon in the icon theme, for the sound settings of the computer; the editable document « Your
+     installation », on the desktop, from its template, never over an existing one.
 With --dev, also the tools of the development computer: %s (apt) and the
 test dependencies (pip, extra [dev]), for Machin dev and Machin dev-test.
 With --service, also the broadcast service %s, only for a computer dedicated to the
@@ -208,6 +217,9 @@ Options:
                 stops the running MachinCast programs, without asking
   --leave-programs
                 lets them run during the installation, without asking
+  --restore FILE
+                restores this backup into the production database that install.sh creates, without asking
+  --no-restore  does not offer to restore a backup
   -h, --help    this help
 ' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${COMPTE_SERVICE}" "${UTILISATEUR}" "${COMPTE_SERVICE}" "${DOSSIER_DES_LOGS}" "${UTILISATEUR}" "${MINUTEUR_INDEXATION}" "${MINUTEUR_TACHES}"
 }
@@ -501,12 +513,15 @@ preparer_postgresql() {
 	else
 		executer sudo -u postgres createuser "${UTILISATEUR}"
 	fi
-	local base
+	local base nouvelle_production=false
 	for base in "${production}" "${test}"; do
 		if existe_en_base "SELECT 1 FROM pg_database WHERE datname = :'nom'" "${base}"; then
 			info 'database %s exists' "${base}"
 		else
 			executer sudo -u postgres createdb --host="${socket}" --owner="${UTILISATEUR}" "${base}"
+			if [[ "${base}" == "${production}" ]]; then
+				nouvelle_production=true
+			fi
 		fi
 	done
 	# Les rôles de groupe appartiennent au serveur. La migration ne les crée que s'ils manquent, ce qui demanderait
@@ -528,6 +543,11 @@ preparer_postgresql() {
 			$$;
 		SQL
 		info 'roles machincast_player, machincast_indexer and machincast_interface present'
+	fi
+	# Une base de production neuve peut reprendre celle d'une installation précédente, avant le schéma, qui lui applique
+	# ensuite les migrations qui lui manquent (https://github.com/dascritch/machincast/issues/347).
+	if "${nouvelle_production}"; then
+		reimporter_une_sauvegarde
 	fi
 	executer "${VENV}/bin/python" -m machincast.installation migrate --config "${CONFIGURATION}"
 	etape 'Roles'
@@ -679,6 +699,10 @@ installer_raccourci() {
 	etape 'Shortcut of the interface'
 	installer_raccourci_en "${DOSSIER_APPLICATIONS}/${RACCOURCI}" 644 || true
 	installer_icone "${ICONE_DU_THEME}"
+	# Le document de l'équipe, « Votre installation », sur le Bureau ou à l'emplacement de interface.notes, depuis son
+	# modèle ; jamais par-dessus un document qui existe (https://github.com/dascritch/machincast/issues/451).
+	executer "${VENV}/bin/python" -m machincast.notes create --config "${CONFIGURATION}" ||
+		avertissement 'installation document not created: Help → Your installation… in the interface creates it'
 	local bureau
 	bureau="$(dossier_du_bureau)"
 	if [[ -z "${bureau}" ]]; then
@@ -842,6 +866,77 @@ demander_oui() {
 	fi
 	read -r -p "    $(t "${question}") " reponse
 	[[ "${reponse}" =~ ^[oOyY] ]]
+}
+
+# Un poste graphique, où kdialog pose les questions de la réimportation ; sinon, sans doute par ssh, elles se posent dans
+# le terminal (https://github.com/dascritch/machincast/issues/347).
+graphique() {
+	[[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v kdialog >/dev/null
+}
+
+en_terminal() {
+	[[ -t 0 ]]
+}
+
+# Faut-il réimporter une sauvegarde ? Vrai pour oui.
+demander_reimportation() {
+	local question reponse
+	question="$(t 'You seem to be making a new installation of MachinCast. Had you already run it on this computer or on another one? Should its database be recovered?')"
+	if graphique; then
+		kdialog --title MachinCast --yesno "${question}" \
+			--yes-label "$(t 'Yes, restore a backup')" --no-label "$(t 'No, start from scratch')"
+		return
+	fi
+	read -r -p "    ${question} $(t '[y/N]') " reponse
+	[[ "${reponse}" =~ ^[oOyY] ]]
+}
+
+# Le fichier de la sauvegarde, cherché à partir du répertoire personnel ; rien s'il n'est pas choisi.
+choisir_sauvegarde() {
+	local fichier=""
+	if graphique; then
+		kdialog --title MachinCast --getopenfilename "${HOME}" "*.dump|$(t 'MachinCast backups (*.dump)')" || true
+		return
+	fi
+	read -r -e -p "    $(t 'File of the backup (Machin backup-db): ')" fichier || true
+	printf '%s\n' "${fichier/#\~/${HOME}}"
+}
+
+# Machin restore-db, qui vérifie la sauvegarde et ne la réimporte que dans une base vide.
+restaurer() {
+	executer "${VENV}/bin/Machin_restore-db" --config "${CONFIGURATION}" "$1"
+}
+
+# La base de production vient d'être créée : réimporter la base d'une installation précédente, sur ce poste ou sur un
+# autre, sauvegardée par Machin backup-db ou Machin maintenance-db (https://github.com/dascritch/machincast/issues/347).
+# Une réimportation refusée repose la question ; avec --restore, elle arrête install.sh, avant le schéma.
+reimporter_une_sauvegarde() {
+	local fichier
+	if [[ "${REIMPORTER}" == non ]]; then
+		return 0
+	fi
+	if [[ "${REIMPORTER}" == oui ]]; then
+		restaurer "${SAUVEGARDE}" ||
+			echec 'backup %s not restored: correct, then Machin restore-db FILE before running ./install.sh again' "${SAUVEGARDE}"
+		return 0
+	fi
+	if "${SIMULATION}"; then
+		info '[simulation] question: restore a backup of a previous installation into the new database?'
+		return 0
+	fi
+	if ! graphique && ! en_terminal; then
+		info 'new database, no backup restored: ./install.sh --restore FILE restores one'
+		return 0
+	fi
+	while demander_reimportation; do
+		fichier="$(choisir_sauvegarde)"
+		if [[ -n "${fichier}" ]] && restaurer "${fichier}"; then
+			info 'backup %s restored' "${fichier}"
+			return 0
+		fi
+		avertissement 'backup not restored: choose another one, or start from scratch'
+	done
+	info 'new database: starting from scratch'
 }
 
 # Le poste devient celui de l'antenne : l'administrateur le sait, et l'accepte, avant que rien ne change.
@@ -1222,6 +1317,13 @@ principal() {
 			--dedicated) DEDIE=true ;;
 			--desktop) BUREAU=oui ;;
 			--no-desktop) BUREAU=non ;;
+			--restore)
+				(($# > 1)) || echec '--restore needs the file of the backup'
+				REIMPORTER=oui
+				SAUVEGARDE="$2"
+				shift
+				;;
+			--no-restore) REIMPORTER=non ;;
 			--stop-programs)
 				ARRETER=oui
 				ARRETER_DEMANDE=$((ARRETER_DEMANDE + 1))

@@ -62,6 +62,7 @@ Les séquences se créent dans leur [fiche](grille.md#fiche-dune-séquence).
 Une banque appelée par une liste fait jouer **un seul** de ses sonores, selon son mode :
 
 - **Séquentielle** : le sonore qui suit, dans l'ordre de la banque, le dernier qu'elle a fait jouer ; après le dernier, elle reprend au début.
+- **A→Z du nom de fichier**, **Z→A du nom de fichier** ([#454](https://github.com/dascritch/machincast/issues/454)) : comme une banque séquentielle, mais dans l'ordre alphabétique du nom des fichiers, ou dans l'ordre inverse, quel que soit leur dossier. La rotation se prépare en nommant les fichiers : un numéro de même longueur en tête, comme `01-hiver.mp3`, `02-printemps.mp3`, `03-été.mp3`, et pas `1-…` et `10-…`, qui passerait avant `2-…`. Un fichier ajouté ou renommé prend sa place dès le sonore suivant.
 - **Aléatoire** : un sonore tiré au hasard parmi ceux qu'elle n'a pas encore joués dans son cycle. Tant que tous ne sont pas passés, aucun ne revient, et un nouveau cycle ne commence jamais par le dernier joué. Un sonore ajouté entre dans le cycle en cours.
 - **Banque par banque** : seuls comptent les passages fournis par la banque elle-même. Un sonore présent dans deux banques suit le cycle de chacune séparément.
 - **Sonores jouables** : seul un sonore à l'état `actif` est choisi, dans sa période de diffusion quand elle est renseignée, et sous son maximum de lectures ([États d'un sonore](sonores.md#états-dun-sonore)).
@@ -245,4 +246,4 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `flux tombé` | incident | Le flux d'un stream ne répond plus. |
 | `reprise du flux` | incident | Le flux, tombé ou en blanc, est revenu ; le message donne la durée de la panne. |
 
-L'historique et le journal ne sont jamais modifiés ni effacés : la diffusion ne peut qu'y ajouter des lignes.
+L'historique et le journal ne sont jamais modifiés : la diffusion ne peut qu'y ajouter des lignes. Seule la purge quotidienne en efface ce qui dépasse la durée de péremption, 60 jours par défaut ([Préférences](prise-en-main.md#préférences), page **Base**).

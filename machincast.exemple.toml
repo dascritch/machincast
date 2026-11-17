@@ -117,13 +117,28 @@ fallback = false
 # at a time (https://github.com/dascritch/machincast/issues/383): the rest is loaded as you scroll down. 1000 by default, at least 100. Also set in the preferences, « Interface » page; a
 # higher number can strongly slow down the interface for a bank with a very large number of sounds.
 # table_rows = 1000
+# The « Your installation » document (https://github.com/dascritch/machincast/issues/451): an editable Markdown file,
+# created from its template if it is missing, that Help → Your installation… opens; a relative path starts from this
+# file. On the desktop of the account by default. Also set in the preferences, « Interface » page.
+# notes = "/home/radio/Bureau/Votre installation MachinCast.md"
+# The web address of the team (local cloud, Gitlab, Jira, Drive…), starting with http:// or https://, that
+# Help → Team link… opens; none by default. Also set in the preferences, « Interface » page.
+# team_link = "https://cloud.radio.example/antenne"
 
 [schedule]
 # The tasks that install.sh --service installs (https://github.com/dascritch/machincast/issues/455). Optional section,
 # like its key. A systemd timer launches the quick indexing every hour; another one checks every quarter of an hour
 # whether the daily task is due: Machin purge, then the full audit (Machin indexer --full-audit), once a day from this
 # hour, "HH:MM", 10:00 by default, when someone is likely to be at the studio to notice a problem. A task missed,
-# computer off, runs a quarter of an hour after start-up. Also set in the preferences, « Base » page; no
-# administrator right is needed, the timers do not change.
+# computer off, runs a quarter of an hour after start-up. Also set in Machin interface, Fichier → Paramètres du
+# service…, « Tâches » page; no administrator right is needed, the timers do not change.
 # daily = "10:00"
+
+[backup]
+# Backups of the database (https://github.com/dascritch/machincast/issues/347). Optional section, like its key.
+# Directory where Machin backup-db, Maintenance → Exporter la base… in the interface, and Machin maintenance-db write
+# their dated backup; a relative path starts from this file. The personal directory of the account by default. On a
+# new computer, ./install.sh offers to restore such a backup into the database it creates. Also set in Machin
+# interface, Fichier → Paramètres du service…, « Sauvegarde » page.
+# directory = "~/sauvegardes"
 

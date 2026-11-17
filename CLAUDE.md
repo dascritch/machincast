@@ -39,7 +39,7 @@ sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincas
 
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
 # Pour un ticket : bin/Machin dev-test --scenarios <fonctionnalités…> [wrapper] ; la suite complète, tous les 10
-# tickets et à chaque release (doc/fr/regles/tests.md#quels-tests-lancer)
+# tickets et à chaque release candidate, de preprod vers qualif (doc/fr/regles/tests.md#quels-tests-lancer)
 # Avec la couverture, sous-processus compris : bin/Machin dev-test --coverage [--scenarios <fonctionnalités…>]
 # Sous-shell dans le dépôt, venv activé : bin/Machin dev
 # Captures d'écran du guide de l'antenne, sur la base de test : bin/Machin dev-screenshots (doc/fr/developpement/poste.md)
@@ -88,7 +88,8 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 
 - TDD avec scénarios BDD : pas de fonctionnalité sans test.
 - Un commit par fonctionnalité, lié à un ticket GitHub Issues. Sans ticket, proposer une user story et attendre.
-- Une correction d'une PR ouverte est un nouveau commit, jamais un amend ([#131](https://github.com/dascritch/machincast/issues/131)). Une branche se remet à jour avec `main` par `git rebase`, jamais par un commit de fusion, puis `git push --force-with-lease` ; voir [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md#corrections-dune-pr-ouverte).
+- Un ticket part de `preprod` et y revient par une PR, sans la suite complète ; une release candidate passe de `preprod` à `qualif` avec la suite complète, la documentation à jour, traduite et ses captures refaites, tourne une semaine, puis passe de `qualif` à `main` ; une correction de la qualification part de `qualif` (branche `fix/<n>-<sujet>`) et y revient, puis revient sur `preprod` ; les PR entre branches protégées se mergent par un commit de fusion, jamais par rebase ([#480](https://github.com/dascritch/machincast/issues/480), [Branches](doc/fr/regles/developpement.md#branches)).
+- Une correction d'une PR ouverte est un nouveau commit, jamais un amend ([#131](https://github.com/dascritch/machincast/issues/131)). Une branche se remet à jour avec sa branche de base (`preprod` pour un ticket) par `git rebase`, jamais par un commit de fusion, puis `git push --force-with-lease` ; voir [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md#corrections-dune-pr-ouverte).
 - Indentation par **tabulations**.
 - Ne jamais toucher à la base de production pendant les tests.
 - **Un fichier sonore n'est jamais supprimé, renommé, déplacé, remplacé ni écrit par MachinCast**, quels que soient les changements de son entrée dans `sonores` ([#96](https://github.com/dascritch/machincast/issues/96)). Un répertoire de banque non plus : supprimer un sonore ou une banque ne supprime que son entrée en base ([#33](https://github.com/dascritch/machincast/issues/33)). Seule exception : le déplacement hors d'un répertoire personnel, accepté explicitement à `install.sh --service` ([#381](https://github.com/dascritch/machincast/issues/381)). Voir [doc/fr/regles/developpement.md](doc/fr/regles/developpement.md#fichiers-sonores).

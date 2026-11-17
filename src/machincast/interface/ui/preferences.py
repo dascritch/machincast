@@ -17,9 +17,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QComboBox,
     QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout,
-    QGroupBox, QHBoxLayout, QLabel, QPushButton,
-    QSizePolicy, QSpacerItem, QSpinBox, QTabWidget,
-    QTimeEdit, QVBoxLayout, QWidget)
+    QGroupBox, QHBoxLayout, QLabel, QLineEdit,
+    QPushButton, QSizePolicy, QSpacerItem, QSpinBox,
+    QTabWidget, QTimeEdit, QVBoxLayout, QWidget)
 
 class Ui_PreferencesWindow(object):
     def setupUi(self, PreferencesWindow):
@@ -257,6 +257,50 @@ class Ui_PreferencesWindow(object):
 
         self.interface_layout.addWidget(self.icon_group)
 
+        self.installation_group = QGroupBox(self.page_interface)
+        self.installation_group.setObjectName(u"installation_group")
+        self.installation_form = QFormLayout(self.installation_group)
+        self.installation_form.setObjectName(u"installation_form")
+        self.notes_caption = QLabel(self.installation_group)
+        self.notes_caption.setObjectName(u"notes_caption")
+
+        self.installation_form.setWidget(0, QFormLayout.ItemRole.LabelRole, self.notes_caption)
+
+        self.notes_layout = QHBoxLayout()
+        self.notes_layout.setObjectName(u"notes_layout")
+        self.notes = QLineEdit(self.installation_group)
+        self.notes.setObjectName(u"notes")
+
+        self.notes_layout.addWidget(self.notes)
+
+        self.choose_notes = QPushButton(self.installation_group)
+        self.choose_notes.setObjectName(u"choose_notes")
+
+        self.notes_layout.addWidget(self.choose_notes)
+
+
+        self.installation_form.setLayout(0, QFormLayout.ItemRole.FieldRole, self.notes_layout)
+
+        self.team_link_caption = QLabel(self.installation_group)
+        self.team_link_caption.setObjectName(u"team_link_caption")
+
+        self.installation_form.setWidget(1, QFormLayout.ItemRole.LabelRole, self.team_link_caption)
+
+        self.team_link = QLineEdit(self.installation_group)
+        self.team_link.setObjectName(u"team_link")
+        self.team_link.setPlaceholderText(u"https://\u2026")
+
+        self.installation_form.setWidget(1, QFormLayout.ItemRole.FieldRole, self.team_link)
+
+        self.installation_explanation = QLabel(self.installation_group)
+        self.installation_explanation.setObjectName(u"installation_explanation")
+        self.installation_explanation.setWordWrap(True)
+
+        self.installation_form.setWidget(2, QFormLayout.ItemRole.SpanningRole, self.installation_explanation)
+
+
+        self.interface_layout.addWidget(self.installation_group)
+
         self.pages.addTab(self.page_interface, "")
         self.page_audio = QWidget()
         self.page_audio.setObjectName(u"page_audio")
@@ -400,6 +444,72 @@ class Ui_PreferencesWindow(object):
         self.tasks_layout.addItem(self.tasks_space)
 
         self.pages.addTab(self.tasks_page, "")
+        self.backup_page = QWidget()
+        self.backup_page.setObjectName(u"backup_page")
+        self.backup_layout = QVBoxLayout(self.backup_page)
+        self.backup_layout.setObjectName(u"backup_layout")
+        self.backup_form = QFormLayout()
+        self.backup_form.setObjectName(u"backup_form")
+        self.backup_directory_caption = QLabel(self.backup_page)
+        self.backup_directory_caption.setObjectName(u"backup_directory_caption")
+
+        self.backup_form.setWidget(0, QFormLayout.ItemRole.LabelRole, self.backup_directory_caption)
+
+        self.backup_directory_layout = QHBoxLayout()
+        self.backup_directory_layout.setObjectName(u"backup_directory_layout")
+        self.backup_directory = QLineEdit(self.backup_page)
+        self.backup_directory.setObjectName(u"backup_directory")
+
+        self.backup_directory_layout.addWidget(self.backup_directory)
+
+        self.choose_backup_directory = QPushButton(self.backup_page)
+        self.choose_backup_directory.setObjectName(u"choose_backup_directory")
+
+        self.backup_directory_layout.addWidget(self.choose_backup_directory)
+
+
+        self.backup_form.setLayout(0, QFormLayout.ItemRole.FieldRole, self.backup_directory_layout)
+
+
+        self.backup_layout.addLayout(self.backup_form)
+
+        self.backup_explanation = QLabel(self.backup_page)
+        self.backup_explanation.setObjectName(u"backup_explanation")
+        self.backup_explanation.setWordWrap(True)
+
+        self.backup_layout.addWidget(self.backup_explanation)
+
+        self.copy_configuration_layout = QHBoxLayout()
+        self.copy_configuration_layout.setObjectName(u"copy_configuration_layout")
+        self.copy_configuration = QPushButton(self.backup_page)
+        self.copy_configuration.setObjectName(u"copy_configuration")
+
+        self.copy_configuration_layout.addWidget(self.copy_configuration)
+
+        self.copy_configuration_space = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.copy_configuration_layout.addItem(self.copy_configuration_space)
+
+
+        self.backup_layout.addLayout(self.copy_configuration_layout)
+
+        self.copy_result = QLabel(self.backup_page)
+        self.copy_result.setObjectName(u"copy_result")
+        self.copy_result.setWordWrap(True)
+
+        self.backup_layout.addWidget(self.copy_result)
+
+        self.copy_explanation = QLabel(self.backup_page)
+        self.copy_explanation.setObjectName(u"copy_explanation")
+        self.copy_explanation.setWordWrap(True)
+
+        self.backup_layout.addWidget(self.copy_explanation)
+
+        self.backup_space = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.backup_layout.addItem(self.backup_space)
+
+        self.pages.addTab(self.backup_page, "")
 
         self.arrangement.addWidget(self.pages)
 
@@ -416,10 +526,13 @@ class Ui_PreferencesWindow(object):
         self.output_position_caption.setBuddy(self.output_position)
         self.silence_threshold_caption.setBuddy(self.silence_threshold)
         self.table_rows_caption.setBuddy(self.table_rows)
+        self.notes_caption.setBuddy(self.notes)
+        self.team_link_caption.setBuddy(self.team_link)
         self.dead_air_duration_caption.setBuddy(self.dead_air_duration)
         self.dead_air_threshold_caption.setBuddy(self.dead_air_threshold)
         self.retention_caption.setBuddy(self.retention)
         self.daily_caption.setBuddy(self.daily)
+        self.backup_directory_caption.setBuddy(self.backup_directory)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(PreferencesWindow)
@@ -488,6 +601,11 @@ class Ui_PreferencesWindow(object):
 #if QT_CONFIG(tooltip)
         self.default_icon.setToolTip(QCoreApplication.translate("PreferencesWindow", u"Go back to the MachinCast icon", None))
 #endif // QT_CONFIG(tooltip)
+        self.installation_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Your installation", None))
+        self.notes_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Document", None))
+        self.choose_notes.setText(QCoreApplication.translate("PreferencesWindow", u"Choose the document\u2026", None))
+        self.team_link_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Team link", None))
+        self.installation_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Help \u2192 Your installation\u2026 opens this editable document, created from a template if it is missing; empty, the one on the desktop. Help \u2192 Team link\u2026 opens this address in the web browser: a local cloud, a Gitlab, a Jira\u2026", None))
         self.pages.setTabText(self.pages.indexOf(self.page_interface), QCoreApplication.translate("PreferencesWindow", u"Interface", None))
         self.device_group.setTitle(QCoreApplication.translate("PreferencesWindow", u"Sound cards", None))
         self.audio_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Machin player takes the output type and the on-air card at its next start; without an on-air card, it refuses to broadcast. The pre-listen can never use the on-air card: each one is greyed out in the other choice. \u201cTest\u201d plays 2 seconds of test sound on the card of its line.", None))
@@ -513,5 +631,11 @@ class Ui_PreferencesWindow(object):
         self.daily_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Daily task at", None))
         self.daily_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Every day from this hour, Machin purge erases from the database what exceeds the expiry duration, then the full audit checks the sounds; a task missed, computer off, runs as soon as it starts again. The quick indexing runs every hour. Nothing to restart, and no password: the timers read this hour each time.", None))
         self.pages.setTabText(self.pages.indexOf(self.tasks_page), QCoreApplication.translate("PreferencesWindow", u"Tasks", None))
+        self.backup_directory_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Backup directory", None))
+        self.choose_backup_directory.setText(QCoreApplication.translate("PreferencesWindow", u"Choose\u2026", None))
+        self.backup_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Maintenance \u2192 Export the database\u2026 and the database maintenance write their backup here, in a file named after its date and time. On a new computer, or after a reinstallation, ./install.sh offers to restore one into the new database.", None))
+        self.copy_configuration.setText(QCoreApplication.translate("PreferencesWindow", u"Copy machincast.toml\u2026", None))
+        self.copy_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"The configuration file, copied elsewhere, for instance on a USB key, under a name dated like the backups: with a backup of the database, it is all that a new computer needs to start again.", None))
+        self.pages.setTabText(self.pages.indexOf(self.backup_page), QCoreApplication.translate("PreferencesWindow", u"Backup", None))
     # retranslateUi
 

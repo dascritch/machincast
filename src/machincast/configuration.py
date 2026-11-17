@@ -228,6 +228,11 @@ class Interface:
 	(https://github.com/dascritch/machincast/issues/111)."""
 	table_rows: int = TABLE_ROWS
 	"""Les lignes qu'un tableau de fiche charge d'un coup (https://github.com/dascritch/machincast/issues/383)."""
+	notes: Path | None = None
+	"""Le document « Votre installation » ; None : celui du Bureau du compte (machincast.notes,
+	https://github.com/dascritch/machincast/issues/451)."""
+	team_link: str | None = None
+	"""L'adresse web de l'équipe, qu'ouvre Aide → « Lien de l'équipe… » ; None : aucune."""
 
 
 DAILY = time(10, 0)
@@ -242,6 +247,15 @@ class Schedule:
 
 	daily: time = DAILY
 	"""L'heure de la tâche quotidienne : Machin purge, puis Machin indexer --full-audit (machincast.schedule)."""
+
+
+@dataclass(frozen=True)
+class Backup:
+	"""Les sauvegardes de la base, section [backup] (https://github.com/dascritch/machincast/issues/347)."""
+
+	directory: Path = field(default_factory=Path.home)
+	"""Le répertoire où Machin backup-db et Machin maintenance-db écrivent leur sauvegarde : le répertoire personnel du
+	compte, par défaut."""
 
 
 ICON_EXTENSIONS = frozenset({".svg", ".png", ".jpg", ".jpeg"})
@@ -261,6 +275,7 @@ class Configuration:
 	dead_air: DeadAirSettings = field(default_factory=DeadAirSettings)
 	interface: Interface = field(default_factory=Interface)
 	schedule: Schedule = field(default_factory=Schedule)
+	backup: Backup = field(default_factory=Backup)
 
 
 # Clés connues, par section, en anglais (https://github.com/dascritch/machincast/issues/357). Toute autre clé est
@@ -274,8 +289,9 @@ KEYS: dict[str, frozenset[str]] = {
 	"crossfades": frozenset({"granularity", "maximum", "start", "end", "fade_in_position", "fade_out_position"}),
 	"silences": frozenset({"threshold"}),
 	"dead_air": frozenset({"duration", "threshold", "fallback"}),
-	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows"}),
+	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows", "notes", "team_link"}),
 	"schedule": frozenset({"daily"}),
+	"backup": frozenset({"directory"}),
 }
 
 
@@ -367,6 +383,17 @@ class _Player:
 		if self.optional_text(section, key) is None:
 			return None
 		return self.file_path(section, key)
+
+	def web_address(self, section: str, key: str) -> str | None:
+		"""Une adresse web, http:// ou https://, facultative (https://github.com/dascritch/machincast/issues/451)."""
+		address = self.optional_text(section, key)
+		if (address is not None) and (not address.startswith(("http://", "https://"))):
+			raise self.error(
+				_(
+					"key {section}.{key}: web address expected, starting with http:// or https://, “{address}” found"
+				).format(section=section, key=key, address=address)
+			)
+		return address
 
 	def icon(self) -> Path | None:
 		"""interface.icon : une image SVG, PNG ou JPEG ; elle peut manquer sur le poste, l'interface prend alors
@@ -647,6 +674,9 @@ def load(path: Path | None = None) -> Configuration:
 			suggestions=reader.optional_boolean("interface", "suggestions", default=True),
 			icon=reader.icon(),
 			table_rows=reader.rows("interface", "table_rows", TABLE_ROWS),
+			notes=reader.optional_path("interface", "notes"),
+			team_link=reader.web_address("interface", "team_link"),
 		),
 		schedule=Schedule(daily=reader.hour("schedule", "daily", DAILY)),
+		backup=Backup(directory=(reader.optional_path("backup", "directory")) or (Path.home())),
 	)

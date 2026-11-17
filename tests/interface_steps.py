@@ -173,6 +173,13 @@ class Context:
 	adjusted_daily: time | None = None
 	"""L'heure de la tâche quotidienne que règlent les préférences (https://github.com/dascritch/machincast/issues/455)."""
 	shown_dailies: list[time] = field(default_factory=list)
+	adjusted_backups: Path | None = None
+	adjusted_notes: tuple[Path | None, str | None] | None = None
+	"""Le document et le lien de l'équipe que règlent les préférences (https://github.com/dascritch/machincast/issues/451)."""
+	"""Le répertoire des sauvegardes que règlent les préférences (https://github.com/dascritch/machincast/issues/347)."""
+	shown_backups: list[Path] = field(default_factory=list)
+	preferences_configurations: list[Path | None] = field(default_factory=list)
+	"""Le fichier de configuration donné à chaque fenêtre des préférences, que copie sa page « Sauvegarde »."""
 	"""La durée de péremption, en jours, que donnera la fenêtre des préférences
 	(https://github.com/dascritch/machincast/issues/268) ; None : celle qu'elle a montrée."""
 	shown_retentions: list[int] = field(default_factory=list)
@@ -371,6 +378,8 @@ def _replace_choices(interface: Context) -> None:
 		_output: AudioOutput,
 		_service: ServiceState = ABSENT,
 		kind: str = "service",
+		*,
+		configuration: Path | None = None,
 	) -> Settings | None:
 		"""Les crossfades et les périphériques du scénario ; ceux qu'il ne règle pas restent ceux montrés."""
 		interface.shown_kinds.append(kind)
@@ -380,6 +389,8 @@ def _replace_choices(interface: Context) -> None:
 		interface.shown_dead_airs.append(shown_list.dead_air)
 		interface.shown_retentions.append(shown_list.retention)
 		interface.shown_dailies.append(shown_list.daily)
+		interface.shown_backups.append(shown_list.backup_directory)
+		interface.preferences_configurations.append(configuration)
 		interface.shown_table_rows.append(shown_list.table_rows)
 		interface.shown_clippings.append(shown_list.clipping)
 		interface.shown_icons.append(shown_list.icon)
@@ -390,6 +401,8 @@ def _replace_choices(interface: Context) -> None:
 			and (interface.rule_dead_air is None)
 			and (interface.adjusted_retention is None)
 			and (interface.adjusted_daily is None)
+			and (interface.adjusted_backups is None)
+			and (interface.adjusted_notes is None)
 			and (interface.adjusted_table_rows is None)
 			and (interface.adjusted_clipping is None)
 			and (interface.adjusted_icon is None)
@@ -421,6 +434,8 @@ def _replace_choices(interface: Context) -> None:
 			output,
 			(interface.adjusted_table_rows) or (shown_list.table_rows),
 			(interface.adjusted_daily) or (shown_list.daily),
+			(interface.adjusted_backups) or (shown_list.backup_directory),
+			*((interface.adjusted_notes) or ((shown_list.notes, shown_list.team_link))),
 		)
 
 	monkeypatch.setattr(dialogs, "set_preferences", preferences)

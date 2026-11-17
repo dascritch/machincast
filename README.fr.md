@@ -2,7 +2,7 @@
 
 *[English version](README.md)*
 
-**Version 0.9.0**, publiée le 2026-10-28, première version publiée, avant la 1.0 : [ce qu'elle apporte](RELEASE.fr.md), et [son archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
+**Version 0.9.1**, publiée le 2026-11-17, avant la 1.0 : [ce qu'elle apporte](RELEASE.fr.md), et [son archive](https://github.com/dascritch/machincast/releases/tag/v0.9.1).
 
 Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores, de *feeds* externes et d'événements horaires. Le service a des tolérances de sources, des scénarios de secours et sépare les services métiers. Les fichiers sonores sont immuables, les traitements sont faits sans les modifier.
 
@@ -12,14 +12,55 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 
 - **Équipe de l'antenne** : le [guide de l'antenne](doc/fr/utilisateur/README.md), pour programmer et suivre l'antenne depuis l'interface graphique
 - **Administrateur du poste** : [INSTALL.md](INSTALL.fr.md) pour l'installation, puis le [guide d'administration](doc/fr/administration/README.md)
-- **Développeur** : le [guide du développement](doc/fr/developpement/README.md), avec la [spécification fonctionnelle](doc/fr/spec.md), [l'architecture](doc/fr/architecture.md), et les [règles du projet](doc/fr/regles/developpement.md)
+- **Développeur** : le [guide du développement](doc/fr/developpement/README.md), avec la [spécification fonctionnelle](doc/fr/spec.md), [l'architecture](doc/fr/architecture.md), et les [règles du projet](doc/fr/regles/developpement.md) ; [CONTRIBUTING.md](CONTRIBUTING.fr.md) pour les écrans et les traductions
 - **En cas de panne** : [TROUBLESHOOTING.md](TROUBLESHOOTING.fr.md), les pannes connues, leurs causes et ce qu'il faut vérifier
 
 ![Capture de l'interface de pilotage de MachinCast](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)
 
+## Cas d'usage
+
+- Continuité d'antenne en régie finale
+- Alimentation de l'entrée audio d'un émetteur à partir d'un flux, avec secours
+- Production d'une radio streamée événementielle
+- Insertion de programmes locaux et d'espaces publicitaires sur un réseau syndiqué
+- Sonorisation d'un espace recevant du public
+
+[Ce que ne fait pas MachinCast : Voir ce chapitre sur sa conception](doc/fr/architecture.md#91-ce-que-nest-pas-machincast)
+
+## Fonctionnalités
+
+- Gestion d'une grille horaire
+- Gestion d'éditions spéciales et priorisation des émissions
+- Gestion du nombre de rotations et des périodes de diffusion des sonores
+- Reprise d'un flux externe, avec scénarios d'incident et de reprise du direct
+- Détection du début et de la fin d'un sonore
+- Crossfade paramétrable globalement et par sonore
+- Banques de sonores à lecture séquentielle ou aléatoire équitable, avec option de non-accolement
+- Pré-écoute du direct, des programmes et des sonores
+- Interface graphique indépendante du service de diffusion de l'antenne
+- Audit des sonores
+- Gestion du blanc d'antenne, avec repli sur un programme de secours
+- Fichiers audio immuables, traitements en temps réel
+
+### À venir
+
+- Envoi des noms de sonore et d'émission vers des services externes
+- Diffusion d'un pilote de stream
+- Mixage automatisé d'une émission préenregistrée à rubriques
+- Entrée de sources audio par carte son
+- Mixage de métadonnées
+- Enregistrement distant en MP3, Ogg, M4A, DASH et HLS
+
 ## Configuration recommandée
 
 Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une <q>de qualité</q> pour la sortie vers la régie finale de la station ou son nodal.
+
+Caractéristiques techniques demandées :
+
+- un poste dédié, avec le service de diffusion installé en mode production ([INSTALL.md](INSTALL.fr.md#service-de-diffusion)) ;
+- un processeur à 1 GHz au minimum ;
+- 2 Go de mémoire vive ;
+- 50 Go d'espace disque pour les sonores.
 
 ## Contexte
 

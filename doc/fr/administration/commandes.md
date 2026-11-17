@@ -5,7 +5,9 @@
 - [Lancer les programmes : Machin](#lancer-les-programmes--machin)
 - [Interface graphique : Machin interface](#interface-graphique--machin-interface)
 - [Maintenance de la base : Machin maintenance-db](#maintenance-de-la-base--machin-maintenance-db)
+- [Export et réimportation de la base : Machin backup-db, Machin restore-db](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)
 - [Purge de la base : Machin purge](#purge-de-la-base--machin-purge)
+- [Tâches régulières : Machin tasks](#tâches-régulières--machin-tasks)
 - [Lecture par le service de diffusion : Machin grant-read](#lecture-par-le-service-de-diffusion--machin-grant-read)
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
 - [Messages et codes de sortie](#messages-et-codes-de-sortie)
@@ -28,6 +30,8 @@ Machin --help                         # aide complète
 | `Machin indexer` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
 | `Machin interface` | [Interface graphique](#interface-graphique--machin-interface) de supervision et de programmation : l'antenne, la grille, les [listes](../utilisateur/listes.md#listes) et les fiches, la simulation, l'airplay et les incidents ([guide de l'antenne](../utilisateur/README.md)). |
 | `Machin maintenance-db` | [Maintenance de la base de production](#maintenance-de-la-base--machin-maintenance-db) : sauvegarde, vérification du schéma et des rôles, optimisation. |
+| `Machin backup-db` | [Export de la base de production](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db) : une sauvegarde datée, sans rien modifier. |
+| `Machin restore-db FICHIER` | [Réimportation d'une sauvegarde](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db) dans une base neuve, vide. |
 | `Machin purge` | [Purge de la base de production](#purge-de-la-base--machin-purge) : efface ce qui dépasse la durée de péremption, jamais un fichier. |
 | `Machin grant-read` | [Lecture des sonores par le service de diffusion](#lecture-par-le-service-de-diffusion--machin-grant-read), qui tourne sous son propre compte. |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
@@ -47,7 +51,7 @@ Machin --help                         # aide complète
 | Option | Effet |
 | --- | --- |
 | `-h`, `--help` | Aide du programme, par exemple `Machin indexer --help`. |
-| `--version` | Version de MachinCast, par exemple `Machin_indexer (MachinCast) 0.9.0`. |
+| `--version` | Version de MachinCast, par exemple `Machin_indexer (MachinCast) 0.9.1`. |
 | `--config FICHIER` | Fichier de configuration à lire. |
 
 **Autocomplétion.** Dans un terminal bash, la touche Tab complète les noms des programmes et `logs`, les options de `Machin`, les fichiers après `--config`, les options de chaque programme (lues dans son aide) et les options courantes de `journalctl` après `logs`. Elle demande le paquet `bash-completion`, qu'installe `install.sh`. Sans installation, `source bash-completion/Machin` la charge dans le terminal courant.
@@ -58,7 +62,8 @@ Machin --help                         # aide complète
 
 - **Base** : elle se connecte à la base de production (`database.production`), avec le rôle `machincast_interface` ([Droits de chaque programme dans la base](configuration.md#droits-de-chaque-programme-dans-la-base)). Sans base, elle ouvre une fenêtre d'erreur, « MachinCast : base de données injoignable », qui renvoie à [En cas de problème](../../../INSTALL.fr.md#en-cas-de-problème) et donne l'erreur de PostgreSQL dans ses détails ; à sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, dans une session SSH par exemple, seul ce message s'affiche.
 - **Même compte et même configuration que la diffusion** : l'onglet Antenne suit la diffusion par sa socket d'état, que n'ouvrent, avec le service de diffusion, que les comptes du groupe `machincast`, et, sans lui, que le compte qui diffuse ([État de la diffusion pour l'interface](diffusion.md#état-de-la-diffusion-pour-linterface)). Le menu **Diffusion** pilote le service de diffusion, avec l'authentification de la règle polkit du service ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)), ou, sans service, une diffusion d'essai lancée dans un terminal.
-- **Réglages** : **Fichier → Préférences de l'interface…** et **Fichier → Paramètres du service…** écrivent dans les sections `[crossfades]`, `[audio]`, `[silences]`, `[dead_air]`, `[interface]` et `[database]` (la seule clé `retention`) du `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la fenêtre « Pour bien démarrer » écrit `audio.output`, `audio.device`, `audio.preview` et `interface.suggestions`. Un fichier qui ne peut pas être écrit laisse les réglages tels quels, et la barre d'état dit pourquoi. Une nouvelle icône de l'application (`interface.icon`, [#111](https://github.com/dascritch/machincast/issues/111)) réécrit aussi les raccourcis `machincast.desktop` déjà installés, dans `~/.local/share/applications` et sur le bureau, sans en créer ; l'image elle-même n'est ni copiée ni modifiée.
+- **Réglages** : **Fichier → Préférences de l'interface…** et **Fichier → Paramètres du service…** écrivent dans les sections `[crossfades]`, `[audio]`, `[silences]`, `[dead_air]`, `[interface]`, `[schedule]`, `[backup]` et `[database]` (la seule clé `retention`) du `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la fenêtre « Pour bien démarrer » écrit `audio.output`, `audio.device`, `audio.preview` et `interface.suggestions`. Un fichier qui ne peut pas être écrit laisse les réglages tels quels, et la barre d'état dit pourquoi. Une nouvelle icône de l'application (`interface.icon`, [#111](https://github.com/dascritch/machincast/issues/111)) réécrit aussi les raccourcis `machincast.desktop` déjà installés, dans `~/.local/share/applications` et sur le bureau, sans en créer ; l'image elle-même n'est ni copiée ni modifiée.
+- **Votre installation** : **Aide → Votre installation…** ouvre le document de l'équipe ([#451](https://github.com/dascritch/machincast/issues/451)) dans le premier éditeur de texte présent de `kate`, `kwrite`, `gnome-text-editor`, `gedit`, `mousepad`, `xed`, `pluma` et `featherpad` ; sinon dans l'application que le bureau associe aux fichiers texte (`xdg-mime query default text/plain`), lancée par `gio launch` (paquet `libglib2.0-bin`), jamais dans celle des `.md`, souvent une visionneuse ([#491](https://github.com/dascritch/machincast/issues/491)). Pour en imposer un autre, l'associer aux fichiers texte : `xdg-mime default org.kde.kate.desktop text/plain`.
 - **Indexation** : le menu **Maintenance** lance `Machin indexer --window`, avec la configuration de l'interface, dans son propre programme ([Indexation : Machin indexer](indexation.md)).
 - **Simulation** : l'onglet Simulation lance `Machin player --simulation`, avec la configuration de l'interface, ses fichiers dans un répertoire temporaire (`--directory`) effacé à la fermeture de l'onglet ([Simuler la diffusion](diffusion.md#simuler-la-diffusion)).
 
@@ -66,11 +71,11 @@ Machin --help                         # aide complète
 
 `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) entretient la base de production (`database.production`), en trois étapes, dans l'ordre :
 
-1. **Sauvegarde** : `pg_dump` copie la base dans un nouveau fichier daté, `<base>-<AAAA-MM-JJTHH-MM-SS>.dump`, au format personnalisé de PostgreSQL. Il s'écrit dans le répertoire `sauvegardes`, à côté du fichier de configuration, ou dans celui de `--backups`, créé au besoin. Aucune sauvegarde n'est effacée : les anciennes se suppriment à la main. **Une sauvegarde qui échoue arrête la maintenance**, sans rien modifier.
+1. **Sauvegarde** : `pg_dump` copie la base dans un nouveau fichier daté, `<base>-<AAAA-MM-JJTHH-MM-SS>.dump`, au format personnalisé de PostgreSQL. Il s'écrit dans le répertoire des sauvegardes, `backup.directory`, le répertoire personnel du compte par défaut ([#347](https://github.com/dascritch/machincast/issues/347)), ou dans celui de `--backups`, créé au besoin. Aucune sauvegarde n'est effacée : les anciennes se suppriment à la main. **Une sauvegarde qui échoue arrête la maintenance**, sans rien modifier.
 2. **Schéma** : les migrations manquantes sont appliquées, comme le fait `install.sh`. Une base qui avait reçu les quinze anciennes migrations, fondues depuis dans le schéma unique, garde ses données, et la maintenance l'annonce ; une base restée à une ancienne migration intermédiaire est laissée telle quelle, avec `schéma impossible à mettre à jour : …`, après sa sauvegarde ([#314](https://github.com/dascritch/machincast/issues/314), [Mettre à jour](../../../INSTALL.fr.md#mettre-à-jour)). Puis chacun des trois rôles de MachinCast doit pouvoir être endossé par le compte. Un rôle absent ou non autorisé est signalé, avec les deux commandes qu'un administrateur lance pour l'autoriser.
 3. **Optimisation** : `VACUUM (ANALYZE)` récupère la place des lignes effacées et met à jour les statistiques qui guident PostgreSQL. La diffusion peut continuer pendant ce temps.
 
-Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (`sauvegardes`, à côté de sa configuration), que le bouton « Choisir l'emplacement… » permet de changer. Elle l'ouvre ensuite dans une fenêtre de terminal, avec la configuration de l'interface et ce répertoire (`--backups`) ; la fenêtre reste ouverte à la fin, jusqu'à ce qu'on la ferme.
+Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (le répertoire des sauvegardes de sa configuration), que le bouton « Choisir l'emplacement… » permet de changer. Elle l'ouvre ensuite dans une fenêtre de terminal, avec la configuration de l'interface et ce répertoire (`--backups`) ; la fenêtre reste ouverte à la fin, jusqu'à ce qu'on la ferme.
 
 ```bash
 Machin maintenance-db
@@ -79,17 +84,38 @@ Machin maintenance-db --backups /srv/sauvegardes/machincast
 
 | Option | Effet |
 | --- | --- |
-| `--backups REPERTOIRE` | Répertoire des sauvegardes, au lieu de `sauvegardes` à côté du fichier de configuration. |
+| `--backups REPERTOIRE` | Répertoire des sauvegardes, au lieu de `backup.directory`. |
 | `--keep-open` | Une fois la maintenance finie, garde le terminal ouvert jusqu'à sa fermeture (ou `Ctrl-D`, `Ctrl-C`) ; Entrée n'y fait rien. L'interface s'en sert, pour que le compte rendu reste lisible. |
 
 Elle se termine par `maintenance terminée` (code 0), ou par `maintenance terminée, avec des anomalies` (code 1) quand un rôle manque. Une base injoignable, une sauvegarde impossible ou un schéma impossible à mettre à jour donnent aussi le code 1.
 
-**Restaurer une sauvegarde.** Elle est faite par le `pg_dump` de la version du serveur, `/usr/lib/postgresql/<version>/bin/pg_dump` ([#384](https://github.com/dascritch/machincast/issues/384)), sinon par celui du `PATH` : le `pg_dump` du `PATH` est le plus récent installé, et sa sauvegarde ne se relirait pas avec un `pg_restore` plus ancien (`unsupported version (1.16) in file header`). Elle se relit avec le `pg_restore` du serveur, de préférence dans une base neuve, pour comparer avant de remplacer quoi que ce soit :
+**Restaurer une sauvegarde.** Elle est faite par le `pg_dump` de la version du serveur, `/usr/lib/postgresql/<version>/bin/pg_dump` ([#384](https://github.com/dascritch/machincast/issues/384)), sinon par celui du `PATH` : le `pg_dump` du `PATH` est le plus récent installé, et sa sauvegarde ne se relirait pas avec un `pg_restore` plus ancien (`unsupported version (1.16) in file header`). Sur un poste neuf, `./install.sh` propose de la réimporter dans la base qu'il crée ; à la main, `Machin restore-db` ([Export et réimportation](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)). Pour seulement la consulter, elle se relit avec le `pg_restore` du serveur, dans une base neuve, pour comparer avant de remplacer quoi que ce soit :
 
 ```bash
 sudo -u postgres createdb --owner="$(id -un)" machincast_restauree
-pg_restore --dbname=machincast_restauree --no-owner sauvegardes/machincast-2026-10-22T08-30-00.dump
+pg_restore --dbname=machincast_restauree --no-owner ~/machincast-2026-10-22T08-30-00.dump
 ```
+
+## Export et réimportation de la base : Machin backup-db, Machin restore-db
+
+Pour repartir vite après une panne, sur ce poste ou sur un autre ([#347](https://github.com/dascritch/machincast/issues/347)) :
+
+1. **Exporter** : `Machin backup-db` sauvegarde la base de production, comme la première étape de la maintenance, sans rien modifier d'autre : `pg_dump` de la version du serveur, au format personnalisé de PostgreSQL, dans un nouveau fichier daté, `<base>-<AAAA-MM-JJTHH-MM-SS>.dump`, du répertoire des sauvegardes (`backup.directory`, le répertoire personnel du compte par défaut ; `--backups REPERTOIRE` pour un autre). L'interface le lance aussi, sans terminal, menu **Maintenance → Exporter la base…** ; la barre d'état dit où la sauvegarde est enregistrée, ou pourquoi elle n'a pas pu l'être. Le répertoire se règle dans **Fichier → Paramètres du service…**, page **Sauvegarde**, qui copie aussi `machincast.toml`, sous un nom daté, là où on le choisit, comme une clé USB.
+2. **Réimporter** : sur le poste neuf, `./install.sh` crée la base de production, puis propose de réimporter une sauvegarde ([Réimporter une sauvegarde](../../../INSTALL.fr.md#réimporter-une-sauvegarde)). À la main, sur une base vide :
+
+```bash
+Machin backup-db
+Machin backup-db --backups /media/cle/radio
+Machin restore-db /media/cle/radio/machincast-2026-11-17T10-00-00.dump
+```
+
+`Machin restore-db FICHIER` vérifie d'abord la sauvegarde, et refuse :
+
+- un fichier introuvable, ou qui n'est pas une sauvegarde de MachinCast : `pg_restore` ne le lit pas, ou les tables de MachinCast et le registre de ses migrations y manquent ;
+- une sauvegarde d'une version plus récente de MachinCast, dont des migrations sont inconnues de celle installée : `… vient d'une version plus récente de MachinCast (migrations inconnues : …) : mettre d'abord MachinCast à jour` ;
+- une base de production qui n'est pas vide : **une base n'est jamais écrasée**. Pour repartir d'une sauvegarde sur un poste déjà installé, la base se supprime d'abord, après une dernière sauvegarde (`sudo -u postgres dropdb machincast`, du nom de `database.production`) ; `./install.sh` la recrée, puis propose la réimportation.
+
+Puis le `pg_restore` de la version du serveur la réimporte en une seule transaction : un échec laisse la base vide. Ses tables reviennent au compte qui la réimporte, avec les droits des rôles de MachinCast, que `./install.sh` a créés sur le serveur. Une sauvegarde d'une version plus ancienne reçoit enfin les migrations qui lui manquent. Code 0 si tout est fait, 1 sinon ; `Machin backup-db` de même. Ses fichiers sonores ne sont pas dans la sauvegarde : ils se recopient à part, aux mêmes chemins.
 
 ## Purge de la base : Machin purge
 
@@ -188,13 +214,13 @@ Les messages d'erreur courants et leur solution sont dans le tableau [En cas de 
 `Machin player`, `Machin indexer`, `Machin maintenance-db` et `Machin purge` notent chacun de leurs lancements dans leur journal et dans le log de la base, que l'interface montre ([#341](https://github.com/dascritch/machincast/issues/341), [#342](https://github.com/dascritch/machincast/issues/342) pour `Machin player`, hors simulation). Une fausse manœuvre ou un plantage s'y retrouve, avec l'heure :
 
 ```text
-2026-11-04T03:00:02+01:00 démarrage : Machin_indexer 0.9.0, pid 4812 : --full-audit
+2026-11-04T03:00:02+01:00 démarrage : Machin_indexer 0.9.1, pid 4812 : --full-audit
 2026-11-04T03:12:47+01:00 fin : Machin_indexer, pid 4812 : code de sortie 0
 ```
 
 - **Le démarrage**, nature `démarrage`, au niveau information : le programme, sa version, son numéro de processus (pid) et ses options.
 - **La fin**, nature `fin` : le même pid, et le [code de sortie](#messages-et-codes-de-sortie). Elle est au niveau information pour le code 0, en **incident** pour tout autre code, comme le 2 d'une option refusée, et se lit alors dans l'onglet **Incidents** de l'interface.
-- **Un plantage probable**, nature `plantage probable`, en incident : au lancement suivant d'un programme, si son démarrage précédent n'a pas noté de fin et que son processus ne tourne plus. Le programme a été tué, arrêté par un signal, ou le poste s'est éteint en cours de route : `Machin_purge, pid 3920, démarré le 03/11/2026 à 12:00, n'a pas noté sa fin`. S'il a laissé un [rapport de crash](#rapports-de-crash), le message se termine par son chemin : `; rapport de crash /opt/machincast/crash-dump/Machin_purge-2026-11-03T12-00-00-3920.txt`. Un lancement précédent encore en cours n'en est pas un. Le service de diffusion arrêté par `systemctl stop`, ou par le bouton de l'interface, note sa fin ; tué ou privé de courant, il note le plantage probable à son redémarrage.
+- **Un plantage probable**, nature `plantage probable`, en incident : au lancement suivant d'un programme, si son démarrage précédent n'a pas noté de fin et que son processus ne tourne plus. Le programme a été tué, arrêté par un signal, ou le poste s'est éteint en cours de route : `Machin_purge, pid 3920, démarré le 03/11/2026 à 12:00, n'a pas noté sa fin`. S'il a laissé un [rapport de crash](#rapports-de-crash), le message se termine par son chemin : `; rapport de crash /var/log/machincast/crash-dump/Machin_purge-2026-11-03T12-00-00-3920.txt`. Un lancement précédent encore en cours n'en est pas un. Le service de diffusion arrêté par `systemctl stop`, ou par le bouton de l'interface, note sa fin ; tué ou privé de courant, il note le plantage probable à son redémarrage.
 
 `Machin indexer --sound N`, que `Machin player` lance avant chaque sonore qu'il va jouer, ne note ni démarrage ni fin. `Machin maintenance-db --keep-open`, lancé depuis l'interface, note sa fin avant que sa fenêtre reste ouverte : la fermer n'est pas un plantage. Une configuration invalide ne dit pas quelle base joindre : seul le journal en parle. Une base injoignable n'empêche pas le programme de tourner : le journal dit que son démarrage n'a pas été noté dans la base.
 

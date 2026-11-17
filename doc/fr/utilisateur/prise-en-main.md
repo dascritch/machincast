@@ -17,7 +17,7 @@
 
 **Pour l'ouvrir**, choisir **MachinCast** dans le menu des applications, rubrique Multimédia, ou double-cliquer sur son icône, le panneau orange au casque des équipes techniques, sur le bureau quand l'installation l'y a déposée. Aucun terminal n'est nécessaire.
 
-<img src="../../src/machincast/interface/machincast.png" width="64" height="64" alt="Icône de MachinCast : un panneau de chantier orange en losange, avec un casque audio noir et les lettres AMR">
+<img src="../../../src/machincast/interface/machincast.png" width="64" height="64" alt="Icône de MachinCast : un panneau de chantier orange en losange, avec un casque audio noir et les lettres AMR">
 
 **Machin interface** s'ouvre sur une fenêtre à onglets, un par écran. Au lancement : **Antenne**, **Calendrier** (la grille d'antenne, [#307](https://github.com/dascritch/machincast/issues/307)), **Événements**, **Séquences**, **Banques** et **Incidents**. Les listes des **Sonores** et des **Feeds** s'ouvrent à la demande, par le menu **Affichage** : « Ouvrir l'onglet Sonores » et « Ouvrir l'onglet Feeds » ; « Ouvrir l'onglet Grille horaire » ramène le calendrier au premier plan. **Un onglet s'ouvre à droite de celui où l'on est** ([#405](https://github.com/dascritch/machincast/issues/405)) : une fiche à droite de sa liste, la recherche ou une liste à la demande à droite de l'onglet ouvert. Comme dans Firefox, plusieurs fiches ouvertes depuis une même liste se suivent dans l'ordre où on les a ouvertes ; un onglet déjà ouvert revient au premier plan, sans changer de place. **Les onglets se déplacent à la souris**, en les faisant glisser dans la barre, sauf l'onglet **Antenne**, qui reste le premier ; les raccourcis <kbd>Maj</kbd>+<kbd>F1</kbd> à <kbd>Maj</kbd>+<kbd>F12</kbd> et le menu **Onglets** suivent le nouvel ordre. Les onglets ouverts à la demande, et ceux des fiches, se ferment par leur croix ; une liste fermée puis rouverte retrouve son filtre et son tri. **Les onglets ouverts sont retenus** ([#321](https://github.com/dascritch/machincast/issues/321)) : en relançant l'interface, on retrouve ceux qu'on avait laissés, dans leur ordre, fiches et onglets déplacés compris, et l'onglet qui était devant. La fiche d'un élément supprimé depuis, ou une nouvelle fiche jamais enregistrée, ne revient pas. Chaque compte du poste retrouve les siens.
 
@@ -124,6 +124,15 @@ De proche en proche ([#318](https://github.com/dascritch/machincast/issues/318))
 | <kbd>Ctrl</kbd>+<kbd>Home</kbd> | Le premier, l'onglet Antenne. |
 | <kbd>Ctrl</kbd>+<kbd>End</kbd> | Le dernier. |
 
+Sur l'onglet ouvert ([#428](https://github.com/dascritch/machincast/issues/428)) :
+
+| Raccourci | Effet |
+| --- | --- |
+| <kbd>Ctrl</kbd>+<kbd>W</kbd> | Le ferme, comme sa croix, s'il se ferme : une fiche, les listes Sonores et Feeds, la recherche, la simulation, l'airplay. Une fiche modifiée demande d'abord quoi faire de ses modifications. Sur un onglet fixe, rien. |
+| <kbd>Ctrl</kbd>+<kbd>S</kbd> | Enregistre la fiche, qui reste ouverte. Sur une fiche sans modification, ou un autre onglet, rien. |
+| <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> | Enregistre la fiche, puis la ferme, comme son bouton **Enregistrer** ; une fiche sans modification se ferme simplement. Une fiche que MachinCast refuse d'enregistrer reste ouverte, et dit pourquoi. Les deux touches Entrée, celle du clavier et celle du pavé numérique, conviennent. Sur un autre onglet, rien. |
+| <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> | Rouvre le dernier onglet fermé, puis celui d'avant, à droite de l'onglet ouvert. |
+
 ## Menus
 
 Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle donne le ticket qui l'apportera.
@@ -139,6 +148,8 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Affichage | Ouvrir l'onglet Simulation | Ouvre la simulation ([Simulation](grille.md#simulation)). |
 | Affichage | Ouvrir l'onglet Airplay | Ouvre l'historique de diffusion, réglable et exportable ([Onglet Airplay](#onglet-airplay)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute ([Pré-écoute](sonores.md#pré-écoute)). Comme chaque bouton et chaque entrée de pré-écoute, elle porte un casque. |
+| Affichage | Rouvrir l'onglet fermé | Rouvre le dernier onglet fermé, aussi par <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> ; inactive tant qu'aucun onglet n'a été fermé ([#428](https://github.com/dascritch/machincast/issues/428)). |
+| Affichage | Onglets fermés récemment | Les 5 derniers onglets fermés, le plus récent en tête : choisir l'un d'eux le rouvre. La fiche d'un élément supprimé, ou pas encore enregistrée, n'y est pas. |
 | Affichage | Rafraîchir les onglets, en bas du menu | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Onglets | Un onglet ouvert par entrée | Mène à l'onglet ; l'onglet ouvert est coché, et chaque entrée donne le titre entier et le raccourci ([#398](https://github.com/dascritch/machincast/issues/398)). |
 | Onglets | Fermer tous les onglets fermables, à la fin | Ferme les fiches, les listes Sonores et Feeds, la recherche, la simulation et l'airplay, jamais les onglets fixes ; une fiche modifiée demande quoi faire de ses modifications, et **Annuler** laisse ouverts elle et les onglets qui la suivent ([#405](https://github.com/dascritch/machincast/issues/405)). |
@@ -149,9 +160,12 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Maintenance | Indexation rapide, Audit complet | Vérifient les sonores ([Indexation depuis l'interface](sonores.md#indexation-depuis-linterface)). Les deux peuvent tourner ensemble ; chacune est inactive tant qu'elle tourne. |
 | Maintenance | Statut des indexations… | Où en sont les indexations : répertoires scannés et à scanner, sonores détectés, indexés sommairement ou complètement, en nombres et en camemberts ([Statut des indexations](sonores.md#statut-des-indexations)). |
 | Maintenance | Maintenance de la base de données… | Après confirmation, sauvegarde, vérifie et optimise la base, dans une fenêtre de terminal, qui reste ouverte à la fin : la fermer une fois le compte rendu lu. La question donne le répertoire où la sauvegarde sera enregistrée, et « Choisir l'emplacement… » en propose un autre ; Entrée ou Échap l'annulent. Inactive pendant une indexation. Voir le [guide d'administration](../administration/commandes.md#maintenance-de-la-base--machin-maintenance-db). |
+| Maintenance | Exporter la base… | Enregistre une sauvegarde de la base, sans rien demander ni rien changer, dans le répertoire des sauvegardes (page **Sauvegarde** des paramètres du service) ; la barre d'état dit où, ou pourquoi elle n'a pas pu. Inactive le temps de l'export. Sur un ordinateur neuf, l'installation propose de reprendre cette sauvegarde ([#347](https://github.com/dascritch/machincast/issues/347), [guide d'administration](../administration/commandes.md#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)). |
 | Maintenance | Faire lire les fichiers sonores au service de diffusion… | Donne au service la lecture des sonores de toutes les banques, sans rien changer d'autre sur les fichiers ([Ajouter un sonore](sonores.md#ajouter-un-sonore), [#381](https://github.com/dascritch/machincast/issues/381)). Inactive tant que le service de diffusion n'est pas installé. |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Aide | Documentation | Ouvre ce guide dans le navigateur web. |
+| Aide | Votre installation… | Ouvre le document de votre équipe, à compléter : qui appeler en cas de souci sur l'ordinateur, l'antenne ou l'émetteur, la programmation musicale, les partenariats, les publicités, les émissions enregistrées et les directs extérieurs ([#451](https://github.com/dascritch/machincast/issues/451)). Il est sur le Bureau, sauf s'il a été placé ailleurs (page **Interface** des préférences) ; s'il a disparu, il est recréé depuis le modèle, jamais par-dessus le vôtre. Il s'ouvre toujours dans un éditeur de texte : Kate, KWrite, l'Éditeur de texte de GNOME, gedit, Mousepad, Xed, Pluma ou FeatherPad, le premier présent, sinon l'éditeur que le bureau associe aux fichiers texte, jamais une visionneuse comme Okular ([#491](https://github.com/dascritch/machincast/issues/491)) ; sans aucun, la barre d'état le dit, et donne le chemin du document. |
+| Aide | Lien de l'équipe… | Ouvre dans le navigateur l'adresse de votre équipe : un cloud, un Gitlab, un Jira, un Drive… Grisée tant qu'aucune adresse n'est donnée, page **Interface** des préférences. |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast dans le navigateur web. |
 | Aide | Version | Donne la version de MachinCast, sa date de publication ou de sa dernière modification, et les nouveautés de la version ([#208](https://github.com/dascritch/machincast/issues/208)), avec trois liens : **Code**, le dépôt de MachinCast, **Auteur : DaScritch** et **Pour : &lt;FMR&gt;**, la radio ([#332](https://github.com/dascritch/machincast/issues/332)). |
 
@@ -181,7 +195,7 @@ Dès 2 caractères, sans tenir compte des majuscules ni des accents, le texte ta
 Le menu **Fichier** ouvre deux fenêtres ([#389](https://github.com/dascritch/machincast/issues/389)) :
 
 - **Préférences de l'interface…** : ce qui vaut aussitôt, sans toucher la diffusion. La granularité des crossfades et le seuil de silence (page **Crossfades et silences**), la carte de pré-écoute (page **Audio**), la durée de péremption (page **Base**) et la page **Interface**.
-- **Paramètres du service…** : ce que Machin player ne prend qu'à son redémarrage. Les durées des crossfades et la position des fondus (page **Crossfades**), le type de sortie, la carte de l'antenne et le blanc dans un sonore (page **Audio**). **OK** les enregistre, puis redémarre la diffusion : avec le service de diffusion en marche, le poste demande le mot de passe d'un administrateur. S'il est refusé, ou si le redémarrage échoue, les paramètres précédents reviennent, dans le fichier comme dans l'interface, et la barre d'état le dit. Service arrêté, ou sans service, ils valent au prochain démarrage de Machin player.
+- **Paramètres du service…** : ce que Machin player ne prend qu'à son redémarrage. Les durées des crossfades et la position des fondus (page **Crossfades**), le type de sortie, la carte de l'antenne et le blanc dans un sonore (page **Audio**), et, sans redémarrage, l'heure de la tâche quotidienne (page **Tâches**) et les sauvegardes (page **Sauvegarde**). **OK** les enregistre, puis, si les crossfades, la sortie, la carte de l'antenne ou le blanc ont changé, redémarre la diffusion : avec le service de diffusion en marche, le poste demande le mot de passe d'un administrateur. S'il est refusé, ou si le redémarrage échoue, les paramètres précédents reviennent, dans le fichier comme dans l'interface, et la barre d'état le dit. Service arrêté, ou sans service, ils valent au prochain démarrage de Machin player.
 
 ![Les préférences, page « Crossfades » : les durées, la position des fondus et leur frise de démonstration](../captures/preferences.png)
 
@@ -207,6 +221,8 @@ Page **Interface** :
 | Icône de l'application | L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches. **Choisir une image…** en prend une autre, SVG, PNG ou JPEG, de préférence carrée, le logo de la radio par exemple ; **Icône de MachinCast** revient à celle d'origine. Une image illisible n'est pas prise : `Image illisible : …`. La nouvelle icône vaut dès **OK**. |
 | Lignes chargées à la fois | 1 000 par défaut, 100 au moins : les sonores qu'une fiche de banque, les éléments qu'une fiche de séquence ou d'événement, ou les lignes que la liste des Sonores, montre d'abord, et ceux qu'elle charge de plus chaque fois qu'on arrive au bas de sa liste ([#383](https://github.com/dascritch/machincast/issues/383)). Un nombre plus grand peut fortement ralentir l'interface pour une banque qui a un très grand nombre de sonores. Vaut pour les fiches ouvertes ensuite. |
 
+**Votre installation**, sur la même page ([#451](https://github.com/dascritch/machincast/issues/451)) : le **document** que **Aide → Votre installation…** ouvre, celui du Bureau quand le champ est vide, ou un autre choisi par **Choisir le document…** ; et le **lien de l'équipe**, une adresse qui commence par `http://` ou `https://`, que **Aide → Lien de l'équipe…** ouvre. **OK** reste grisé tant que le lien n'est pas une adresse web.
+
 Page **Audio** :
 
 ![Les préférences, page « Audio » : le type de sortie, les cartes son de l'antenne et de la pré-écoute avec leur bouton « Tester », et le blanc dans un sonore](../captures/preferences-audio.png)
@@ -224,7 +240,7 @@ Page **Base** ([#268](https://github.com/dascritch/machincast/issues/268)) :
 
 | Réglage | Rôle |
 | --- | --- |
-| Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour à midi sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé, et le [calendrier](grille.md#calendrier) ne remonte pas plus loin. |
+| Durée de péremption | De 1 à 3650 jours, 60 par défaut : l'airplay et le journal plus anciens s'effacent de la base, comme les éléments [supprimés](listes.md#supprimer-un-élément) depuis plus longtemps, qui ne se restaurent plus. Les fichiers sonores ne sont jamais touchés. L'effacement se fait chaque jour, à l'heure de la tâche quotidienne (page **Tâches**), sur l'ordinateur de l'antenne ; la fiche d'un élément supprimé donne le jour où il sera effacé, et le [calendrier](grille.md#calendrier) ne remonte pas plus loin. |
 
 Page **Tâches**, dans les **Paramètres du service** seulement ([#455](https://github.com/dascritch/machincast/issues/455)) :
 
@@ -233,6 +249,13 @@ Page **Tâches**, dans les **Paramètres du service** seulement ([#455](https://
 | Réglage | Rôle |
 | --- | --- |
 | Tâche quotidienne à | 10:00 par défaut : chaque jour à partir de cette heure, la base est purgée de ce qui dépasse la durée de péremption, puis tous les sonores sont vérifiés en entier, comme **Maintenance → Audit complet**. À 10 heures, il y a souvent quelqu'un au studio pour voir un souci. Une tâche manquée, ordinateur éteint, passe dès qu'il redémarre. L'indexation rapide, elle, passe toutes les heures. La nouvelle heure vaut aussitôt, sans redémarrer la diffusion ni mot de passe. Grisé quand l'ordinateur n'a pas ses minuteurs : la page dit comment les installer. |
+
+Page **Sauvegarde**, dans les **Paramètres du service** seulement ([#347](https://github.com/dascritch/machincast/issues/347)) :
+
+| Réglage | Rôle |
+| --- | --- |
+| Répertoire des sauvegardes | Où **Maintenance → Exporter la base…** et la maintenance de la base enregistrent leur sauvegarde, un fichier nommé d'après sa date et son heure : le dossier personnel, par défaut. **Choisir…** en désigne un autre, comme une clé USB ou un disque de sauvegarde. |
+| Copier machincast.toml… | Copie le réglage complet de MachinCast dans le dossier choisi, sous un nom daté comme les sauvegardes ; la page dit où, ou pourquoi elle n'a pas pu. Avec une sauvegarde de la base, c'est tout ce qu'il faut pour repartir sur un ordinateur neuf, où l'installation propose de reprendre la base sauvegardée. Grisé quand l'interface n'a pas de fichier de réglages. |
 
 **OK** les enregistre ; la barre d'état le dit. **Annuler** ne change rien.
 

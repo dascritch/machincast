@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "machincast"
-version = "0.9.0"
+version = "0.9.1"
 description = "Système automatisé de diffusion sonore pour radio, sous Linux"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -44,6 +44,8 @@ Machin_player = "machincast.player.__main__:main"
 Machin_indexer = "machincast.indexer.__main__:main"
 Machin_interface = "machincast.interface.__main__:main"
 Machin_maintenance-db = "machincast.maintenance:main"
+Machin_backup-db = "machincast.backup:backup_main"
+Machin_restore-db = "machincast.backup:restore_main"
 Machin_purge = "machincast.purge:main"
 Machin_grant-read = "machincast.access:main"
 
@@ -51,7 +53,7 @@ Machin_grant-read = "machincast.access:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-machincast = ["py.typed", "migrations/*.sql", "locale/*/LC_MESSAGES/*.po", "interface/*.png", "interface/news.md", "interface/news.*.md", "interface/icons/*.svg"]
+machincast = ["py.typed", "templates/*.md", "migrations/*.sql", "locale/*/LC_MESSAGES/*.po", "interface/*.png", "interface/news.md", "interface/news.*.md", "interface/icons/*.svg"]
 
 # ─── Qualité ───────────────────────────────────────────────
 

@@ -80,6 +80,7 @@ from machincast.interface import (
 	icons,
 	indexer,
 	indexing_status,
+	installation_notes,
 	interruption,
 	preferences,
 	service_access,
@@ -409,8 +410,10 @@ class MainWindow(QMainWindow):
 		airplay.triggered.connect(self._open_airplay)
 		self.preview_action = display_menu.addAction(icons.icon("preview"), _("Pre-listen…"))
 		self.preview_action.triggered.connect(lambda: self._preview(None))
-		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
 		display_menu.addSeparator()
+		# Les onglets fermés, à rouvrir (https://github.com/dascritch/machincast/issues/428).
+		self.tab_manager.add_reopening(display_menu)
+		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
 		refresh = display_menu.addAction(_("Refresh the tabs"))
 		refresh.setShortcut(QKeySequence("F5"))
 		refresh.triggered.connect(self.refresh)
@@ -469,6 +472,11 @@ class MainWindow(QMainWindow):
 		# (https://github.com/dascritch/machincast/issues/127).
 		self.database_maintenance = maintenance.addAction(control.MAINTENANCE)
 		self.database_maintenance.triggered.connect(self._maintain_database)
+		# L'export de la base, pour un plan de reprise d'activité (https://github.com/dascritch/machincast/issues/347).
+		self.export = maintenance.addAction(control.EXPORT)
+		self.export.triggered.connect(self._export_database)
+		self.exporting = control.Export(self)
+		self.exporting.finished.connect(self._exported_database)
 		# La lecture des sonores par le service de diffusion (https://github.com/dascritch/machincast/issues/381).
 		self.grant_read = maintenance.addAction(control.GRANT_READ)
 		self.grant_read.triggered.connect(self.broadcast.grant_read_files)
@@ -476,12 +484,29 @@ class MainWindow(QMainWindow):
 		self.broadcast.reread_grant_read()
 		help_ = self.menuBar().addMenu(_("&Help"))
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
+		# Le document de l'équipe et son lien (https://github.com/dascritch/machincast/issues/451).
+		help_.addAction(installation_notes.NOTES).triggered.connect(self._open_notes)
+		self.team_link = help_.addAction(installation_notes.TEAM_LINK)
+		self.team_link.triggered.connect(lambda: installation_notes.open_team_link(self.configuration))
+		self._show_team_link()
 		help_.addAction(_("Report a problem…")).triggered.connect(lambda: dialogs.open_page(TICKETS))
 		help_.addAction(_("Version")).triggered.connect(
 			lambda: dialogs.show_version(self, version.text(), version.of_the_version())
 		)
 		for menu in (file, display_menu, self.tabs_menu, self.broadcast_menu, maintenance, help_):
 			menu.setToolTipsVisible(True)
+
+	def _open_notes(self) -> None:
+		self.statusBar().showMessage(installation_notes.open_notes(self.configuration))
+
+	def _show_team_link(self) -> None:
+		"""« Lien de l'équipe… » est inactive sans adresse, et son infobulle dit où la donner."""
+		active = installation_notes.settings(self.configuration).team_link is not None
+		self.team_link.setEnabled(active)
+		tooltip = ""
+		if not active:
+			tooltip = installation_notes.WITHOUT_TEAM_LINK
+		self.team_link.setToolTip(tooltip)
 
 	def _show_news(self) -> None:
 		"""Une seule fois par version, et par compte : la version vue est retenue dans les réglages des vues."""
@@ -611,13 +636,13 @@ class MainWindow(QMainWindow):
 		card = CARDS[category](self.connection, identifier, self.clock)
 		card.changed_title.connect(lambda title: self._rename(card, title))
 		card.requested_opening.connect(self._open)
-		card.deleted.connect(lambda: self._remove(card))
+		card.deleted.connect(lambda: self._remove(card, remembered=False))
 		# « Enregistrer » a réussi : l'onglet se ferme (https://github.com/dascritch/machincast/issues/382).
 		card.finished.connect(lambda: self._remove(card))
 		card.requested_duplication.connect(self._duplicate)
 		card.requested_preview.connect(self._preview)
 		if isinstance(card, SoundCard):
-			card.requested_check.connect(lambda sound, card=card: self._check_fully(card, sound))
+			card.requested_check.connect(lambda sound, force, card=card: self._check_fully(card, sound, force=force))
 		if category == "event":
 			card.deleted.connect(self._guarantee_background_programming)
 			card.saved.connect(self._guarantee_background_programming)
@@ -645,10 +670,11 @@ class MainWindow(QMainWindow):
 		assert isinstance(card, Card)
 		card.copy(identifier)
 
-	def _check_fully(self, card: SoundCard, sound: int) -> None:
-		"""L'audit complet du sonore, au seuil de silence de la configuration ; sa fiche attend."""
+	def _check_fully(self, card: SoundCard, sound: int, *, force: bool = False) -> None:
+		"""L'audit complet du sonore, au seuil de silence de la configuration ; sa fiche attend. force : même un fichier
+		déjà audité est relu (https://github.com/dascritch/machincast/issues/388)."""
 		card.wait_check()
-		self.full_check.launch(sound, self.silence_threshold)
+		self.full_check.launch(sound, self.silence_threshold, force=force)
 
 	def _full_finished_check(self, sound: int, text: str) -> None:
 		"""La barre d'état le dit ; la fiche du sonore, encore ouverte, propose de se rafraîchir."""
@@ -827,9 +853,9 @@ class MainWindow(QMainWindow):
 		if card.can_close():
 			self._remove(card)
 
-	def _remove(self, card: Card) -> None:
-		"""Ferme l'onglet de la fiche, sans rien lui demander."""
-		self.tab_manager.remove_tab(self.ui.tabs.indexOf(card))
+	def _remove(self, card: Card, *, remembered: bool = True) -> None:
+		"""Ferme l'onglet de la fiche, sans rien lui demander ; celle d'un élément supprimé n'est pas à rouvrir."""
+		self.tab_manager.remove_tab(self.ui.tabs.indexOf(card), remembered=remembered)
 		card.shut_down()
 		card.deleteLater()
 
@@ -961,6 +987,17 @@ class MainWindow(QMainWindow):
 			return
 		self.statusBar().showMessage(control.launch_maintenance(self.configuration, backups))
 
+	def _export_database(self) -> None:
+		"""Machin backup-db dans le répertoire des sauvegardes de la configuration, sans terminal ; l'entrée est inactive
+		jusqu'à sa fin, que la barre d'état annonce (https://github.com/dascritch/machincast/issues/347)."""
+		self.export.setEnabled(False)
+		directory = control.maintenance_backups(self.configuration)
+		self.statusBar().showMessage(self.exporting.start(self.configuration, directory))
+
+	def _exported_database(self, text: str) -> None:
+		self.export.setEnabled(True)
+		self.statusBar().showMessage(text)
+
 	def _show_indexing_status(self) -> None:
 		"""Une seule fenêtre de statut : la rouvrir la ramène au premier plan."""
 		if self.status_window is None:
@@ -1058,11 +1095,16 @@ class MainWindow(QMainWindow):
 			output=audio.output,
 			table_rows=preferences.table_rows(),
 			daily=self.daily,
+			backup_directory=control.maintenance_backups(self.configuration),
+			notes=installation_notes.settings(self.configuration).notes,
+			team_link=installation_notes.settings(self.configuration).team_link,
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
 		self.broadcast.reread_service()
-		settings = dialogs.set_preferences(self, shown_list, audio.output, self.broadcast.service, kind)
+		settings = dialogs.set_preferences(
+			self, shown_list, audio.output, self.broadcast.service, kind, configuration=self.configuration
+		)
 		if settings is None:
 			return
 		try:
@@ -1094,6 +1136,7 @@ class MainWindow(QMainWindow):
 		audio = self.audio
 		preferences.define(settings.crossfades)
 		preferences.define_retention(settings.retention)
+		self._show_team_link()
 		preferences.define_table_rows(settings.table_rows)
 		self.daily = settings.daily
 		new_threshold = settings.silence_threshold != self.silence_threshold

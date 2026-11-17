@@ -182,7 +182,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors Machin indexer a été lancé une fois, avec « --window », « --full-audit »
 		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. Seuil de silence changé : audit complet lancé, dans sa propre fenêtre. »
-		Et le menu « Maintenance » propose « Indexation rapide », « Statut des indexations… »
+		Et le menu « Maintenance » propose « Indexation rapide », « Statut des indexations… », « Exporter la base… »
 
 	Scénario: Garder le seuil de silence ne relance pas d'audit complet
 		Étant donné le fichier de configuration de l'interface, avec :
@@ -293,7 +293,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
 
 		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
 		Quand j'y choisis la granularité « À la seconde »
@@ -414,7 +414,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde »
 		Et le choix de l'antenne propose :
 			| sortie         | état     |
 			| Carte 1        | active   |
@@ -579,6 +579,40 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors les préférences ont montré la tâche quotidienne à « 10:00 »
 		Et le fichier de configuration contient la ligne « daily = "06:30" »
 
+	# ─── Sauvegarde (https://github.com/dascritch/machincast/issues/347) ───
+
+	Scénario: La page « Sauvegarde » des paramètres du service montre le répertoire des sauvegardes, et donne celui qui est choisi
+		Étant donné le sélecteur de répertoires qui donnera « /media/cle/radio »
+		Quand la fenêtre des paramètres du service s'ouvre sur le répertoire des sauvegardes « /home/radio »
+		Alors elle montre le répertoire des sauvegardes « /home/radio »
+		Quand j'y clique sur « Choisir… »
+		Et j'y clique sur « OK »
+		Alors elle a donné le répertoire des sauvegardes « /media/cle/radio »
+
+	Scénario: « Copier machincast.toml… » copie le fichier de configuration, sous un nom daté, dans le répertoire choisi
+		Le fichier copié ne remplace jamais un autre fichier.
+		Étant donné le sélecteur de répertoires qui donnera « …/cle »
+		Quand la fenêtre des paramètres du service s'ouvre sur un fichier de configuration
+		Et j'y clique sur « Copier machincast.toml… »
+		Alors le répertoire « …/cle » contient une copie datée du fichier de configuration, que la page nomme
+
+	Scénario: Une copie impossible est dite sur la page
+		Étant donné le sélecteur de répertoires qui donnera « …/introuvable »
+		Quand la fenêtre des paramètres du service s'ouvre sur un fichier de configuration
+		Et j'y clique sur « Copier machincast.toml… »
+		Alors la page dit « Copie impossible : » et la raison
+
+	Scénario: Sans fichier de configuration, rien à copier
+		Quand la fenêtre des paramètres du service s'ouvre sur le répertoire des sauvegardes « /home/radio »
+		Alors le bouton « Copier machincast.toml… » est grisé
+
+	Scénario: Le répertoire des sauvegardes réglé dans les paramètres du service va dans la section [backup]
+		Étant donné les préférences seront réglées avec le répertoire des sauvegardes « /media/cle/radio »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors les préférences ont reçu le fichier de configuration de l'interface, à copier
+		Et le fichier de configuration contient la ligne « directory = "/media/cle/radio" »
+
 	# ─── Deux fenêtres (https://github.com/dascritch/machincast/issues/389) ───
 
 	Plan du scénario: Chaque fenêtre ne montre que ses réglages
@@ -591,7 +625,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Exemples:
 			| fenêtre                    | titre                       | pages                                       | montrés                                                        | cachés                                                                 |
 			| préférences de l'interface | Préférences de l'interface  | Crossfades et silences, Interface, Audio, Base | la granularité, le seuil de silence, la pré-écoute              | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie |
-			| paramètres du service      | Paramètres du service       | Crossfades, Audio, Tâches                   | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
+			| paramètres du service      | Paramètres du service       | Crossfades, Audio, Tâches, Sauvegarde       | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
 
 	Scénario: Les paramètres du service rendent tels quels les réglages de l'interface qu'ils ne montrent pas
 		Quand j'ouvre la fenêtre des paramètres du service, sur une granularité « second », un seuil de silence de -55 dB et la pré-écoute « casque-usb »

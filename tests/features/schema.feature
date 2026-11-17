@@ -59,8 +59,16 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 2 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at »
+		Alors 3 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes »
+
+	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
+		https://github.com/dascritch/machincast/issues/454
+		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
+		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
+		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
+		Et j'annule la dernière migration
+		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
 	# Le ramasse-miettes est suspendu : une connexion qui n'est pas fermée explicitement reste ouverte.
@@ -156,6 +164,7 @@ Fonctionnalité: Schéma de la base de données
 		Exemples:
 			| valeurs                                                                                    |
 			| internal_name = 'Jingles', mode = 'melange'                                                |
+			| internal_name = 'Jingles', mode = 'filename'                                               |
 			| mode = 'random'                                                                            |
 			| internal_name = 'Jingles', mode = 'random', no_repeat = NULL                               |
 			| internal_name = 'Jingles', mode = 'random', crossfade_start = '-1 s'                       |

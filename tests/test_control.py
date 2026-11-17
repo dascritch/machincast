@@ -16,7 +16,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast.configuration import PROJECT_DIRECTORY
+from machincast.configuration import PROJECT_DIRECTORY, load
 from machincast.installation import systemd_unit
 from machincast.interface import control
 from machincast.interface.control import service_configuration
@@ -336,15 +336,15 @@ def chosen_location(interface: Context, directory: str) -> None:
 @then(
 	parsers.re(
 		r"le terminal a lancé bientôt Machin maintenance-db, sur la configuration de l'interface, avec les sauvegardes"
-		r" dans « (?P<backups>[^»]+) »(?P<has_side> à côté d'elle)?, le terminal restant ouvert"
+		r" dans (?:« (?P<backups>[^»]+) »|le répertoire des sauvegardes de sa configuration), le terminal restant ouvert"
 	)
 )
-def maintenance_in_terminal(
-	interface: Context, station: Station, qtbot: QtBot, backups: str, has_side: str | None
-) -> None:
-	directory = Path(backups)
-	if has_side is not None:
-		directory = configuration_file(interface).resolve().parent / backups
+def maintenance_in_terminal(interface: Context, station: Station, qtbot: QtBot, backups: str | None) -> None:
+	"""Sans emplacement choisi, le répertoire des sauvegardes de la configuration de l'interface (backup.directory,
+	https://github.com/dascritch/machincast/issues/347)."""
+	directory = load(configuration_file(interface).resolve()).backup.directory
+	if backups is not None:
+		directory = Path(backups)
 	qtbot.waitUntil(station.terminal.exists, timeout=5000)
 	arguments = station.terminal.read_text(encoding="utf-8").splitlines()
 	assert arguments == [
@@ -360,11 +360,11 @@ def maintenance_in_terminal(
 
 
 @then(
-	"l'interface a demandé confirmation, avec l'emplacement des sauvegardes : le répertoire « sauvegardes » de sa"
+	"l'interface a demandé confirmation, avec l'emplacement des sauvegardes : le répertoire des sauvegardes de sa"
 	" configuration"
 )
 def requested_confirmation(interface: Context) -> None:
-	expected = configuration_file(interface).resolve().parent / "sauvegardes"
+	expected = load(configuration_file(interface).resolve()).backup.directory
 	assert interface.questions == [f"maintenance : {expected}"], interface.questions
 
 
@@ -419,3 +419,38 @@ def configuration_back(interface: Context, noted_configuration: str) -> None:
 @then("l'interface n'a pas d'antenne réglée")
 def no_on_air(interface: Context) -> None:
 	assert window(interface).audio.device is None
+
+
+# ─── Export de la base (https://github.com/dascritch/machincast/issues/347) ───
+
+
+@given(parsers.re(r"l'export de la base qui (?:réussit|échoue avec « (?P<error>[^»]+) »)"))
+def database_export(station: Station, monkeypatch: pytest.MonkeyPatch, error: str | None) -> None:
+	"""Un Machin imité, qui note ses arguments, un par ligne, et répond comme Machin backup-db : son journal sur la
+	sortie d'erreur, chaque ligne horodatée. La base de production n'est jamais atteinte."""
+	machin = station.commands.parent / "Machin"
+	exported = station.commands.parent / "export.log"
+	lines = ["#!/bin/bash", f': >"{exported}"', f'for argument; do echo "$argument" >>"{exported}"; done', "sleep 0.3"]
+	if error is not None:
+		lines += [f"echo '2026-11-17T13:00:00+01:00 {error}' >&2", "exit 1"]
+	machin.write_text("\n".join(lines) + "\n", encoding="utf-8")
+	machin.chmod(0o755)
+	monkeypatch.setattr(control, "MACHIN", machin)
+
+
+@then("la barre d'état annonce bientôt la base exportée dans le répertoire des sauvegardes de sa configuration")
+def exported_announced(interface: Context, qtbot: QtBot) -> None:
+	directory = load(configuration_file(interface).resolve()).backup.directory.absolute()
+	text = f"Base exportée dans {directory}."
+	bar = window(interface).statusBar()
+	qtbot.waitUntil(lambda: bar.currentMessage() == text, timeout=5000)
+
+
+@then(
+	"l'export a lancé Machin backup-db sur la configuration de l'interface, dans le répertoire des sauvegardes de sa"
+	" configuration"
+)
+def export_launched(interface: Context, station: Station) -> None:
+	directory = load(configuration_file(interface).resolve()).backup.directory.absolute()
+	arguments = (station.commands.parent / "export.log").read_text(encoding="utf-8").splitlines()
+	assert arguments == ["--config", str(configuration_file(interface)), "backup-db", "--backups", str(directory)]

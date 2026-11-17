@@ -11,8 +11,10 @@ import psycopg
 import pytest
 from psycopg import sql
 from pytest_bdd import given, parsers, scenarios, then, when
+from yoyo import get_backend, read_migrations
 
 from machincast.database import (
+	MIGRATION_DIRECTORY,
 	TABLES,
 	TYPES,
 	apply_migrations,
@@ -239,6 +241,23 @@ def save(context: Context, table: str, values: str) -> None:
 @when(parsers.parse('j\'enregistre dans "{table}" :'))
 def save_empty(context: Context, table: str) -> None:
 	save(context, table, "")
+
+
+@when("j'annule la dernière migration")
+def cancel_last() -> None:
+	"""La base de test reçoit de nouveau ses migrations au scénario suivant (purge_database)."""
+	with get_backend(url_yoyo(*sample_database_parameters())) as backend, backend.lock():
+		backend.rollback_migrations(backend.to_rollback(read_migrations(str(MIGRATION_DIRECTORY)))[:1])
+
+
+@then(parsers.re(r"les banques (?P<names>«.+») sont en modes (?P<modes>«.+»)"))
+def bank_modes(context: Context, names: str, modes: str) -> None:
+	found = []
+	for name in re.findall(r"« ([^»]+) »", names):
+		line = context.connection.execute("SELECT mode::text FROM banks WHERE internal_name = %s", (name,)).fetchone()
+		assert line is not None
+		found.append(line[0])
+	assert found == re.findall(r"« ([^»]+) »", modes)
 
 
 @when("j'annule toutes les migrations")
