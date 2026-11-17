@@ -17,9 +17,48 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 
 ![Capture de l'interface de pilotage de MachinCast](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)
 
+## Fonctionnalités
+
+- Gestion d'une grille horaire
+- Gestion d'éditions spéciales et priorisation des émissions
+- Gestion du nombre de rotations et des périodes de diffusion des sonores
+- Reprise d'un flux externe, avec scénarios d'incident et de reprise du direct
+- Détection du début et de la fin d'un sonore
+- Crossfade paramétrable globalement et par sonore
+- Banques de sonores à lecture séquentielle ou aléatoire équitable, avec option de non-accolement
+- Pré-écoute du direct, des programmes et des sonores
+- Interface graphique indépendante du service de diffusion de l'antenne
+- Audit des sonores
+- Gestion du blanc d'antenne, avec repli sur un programme de secours
+- Fichiers audio immuables, traitements en temps réel
+
+### À venir
+
+- Envoi des noms de sonore et d'émission vers des services externes
+- Diffusion d'un pilote de stream
+- Mixage automatisé d'une émission préenregistrée à rubriques
+- Entrée de sources audio par carte son
+- Mixage de métadonnées
+- Enregistrement distant en MP3, Ogg, M4A, DASH et HLS
+
+## Cas d'usage
+
+- Continuité d'antenne en régie finale
+- Alimentation de l'entrée audio d'un émetteur à partir d'un flux, avec secours
+- Production d'une radio streamée événementielle
+- Insertion de programmes locaux et d'espaces publicitaires sur un réseau syndiqué
+- Sonorisation d'un espace recevant du public
+
 ## Configuration recommandée
 
 Système Linux graphique, avec le moteur audio PipeWire, idéalement Debian ou Ubuntu LTS, et deux sorties sons distinctes, dont une <q>de qualité</q> pour la sortie vers la régie finale de la station ou son nodal.
+
+Caractéristiques techniques demandées :
+
+- un poste dédié, avec le service de diffusion installé en mode production ([INSTALL.md](INSTALL.fr.md#service-de-diffusion)) ;
+- un processeur à 1 GHz au minimum ;
+- 2 Go de mémoire vive ;
+- 50 Go d'espace disque pour les sonores.
 
 ## Contexte
 

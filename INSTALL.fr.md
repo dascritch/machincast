@@ -40,6 +40,7 @@ Ensuite : adapter `machincast.toml` ([voir plus bas](#adapter-la-configuration))
 
 - **Ubuntu 26.04 LTS**. Les autres versions LTS (24.04…) sont acceptées, avec un avertissement ; les versions qui ne sont pas LTS sont refusées. MachinCast est vérifié avec la version de GStreamer d'Ubuntu 26.04, la 1.28 : avec une version plus ancienne, comme la 1.24 d'Ubuntu 24.04, l'installation avertit, et rien n'est garanti ([#284](https://github.com/dascritch/machincast/issues/284)).
 - **Le compte qui utilisera MachinCast, avec le droit `sudo`**. L'installation est mono-utilisateur : un seul compte Unix utilise MachinCast, celui qui l'installe. Le script se lance avec ce compte, jamais avec `sudo` : il demande le mot de passe pour les seules étapes qui l'exigent.
+- **Un poste dédié**, avec un processeur à 1 GHz au minimum, 2 Go de mémoire vive et 50 Go d'espace disque pour les sonores ([#338](https://github.com/dascritch/machincast/issues/338)). En production, le [service de diffusion](#service-de-diffusion) y est installé.
 - **Un accès à Internet**, pour apt et pip.
 - **PostgreSQL 16 ou plus récent**, installé par le script s'il manque. Ubuntu 26.04 fournit une version qui convient.
 
@@ -170,14 +171,14 @@ Le service de diffusion parle la langue du système (`localectl status`, `sudo l
 
 ## Préparer le poste d'antenne
 
-Le poste qui diffuse est aussi un ordinateur de bureau : tout ce qu'il joue sur le périphérique de l'antenne part à l'antenne. Trois réglages du bureau l'évitent ([#250](https://github.com/dascritch/machincast/issues/250)). Les chemins ci-dessous sont ceux de la configuration du système de KDE Plasma, le bureau d'Ubuntu 26.04 LTS utilisé à l'antenne ; leurs noms peuvent varier d'une version ou d'un bureau à l'autre.
+Le poste qui diffuse est aussi un ordinateur de bureau : tout ce qu'il joue sur le périphérique de l'antenne part à l'antenne. Deux réglages du bureau l'évitent ([#250](https://github.com/dascritch/machincast/issues/250)). Une fois le [service de diffusion](#service-de-diffusion) installé, ils ne sont plus nécessaires : la carte de l'antenne lui est réservée, cachée aux sessions du poste, et aucun programme du bureau ne peut plus y jouer ([#381](https://github.com/dascritch/machincast/issues/381)). Ils valent pour une diffusion sans service, comme une diffusion d'essai. Les chemins ci-dessous sont ceux de la configuration du système de KDE Plasma, le bureau d'Ubuntu 26.04 LTS utilisé à l'antenne ; leurs noms peuvent varier d'une version ou d'un bureau à l'autre.
 
 **1. L'antenne n'est pas la sortie par défaut du bureau.** La sortie par défaut est celle de tous les programmes qui n'en choisissent pas : le navigateur, une visioconférence, un lecteur de vidéos, les sons du système. Sur l'antenne, ils passeraient à l'air. MachinCast n'en a pas besoin : `Machin player` joue toujours sur `audio.device`, et la pré-écoute sur `audio.preview`, qu'ils soient ou non la sortie par défaut.
 
 - Dans **Configuration du système → Son**, page des périphériques de lecture, choisir comme sortie par défaut un autre périphérique que celui de l'antenne : le casque de la régie, ou les haut-parleurs du poste.
 - Pour vérifier, en ligne de commande : `wpctl status`, sous PipeWire, marque d'une `*` la sortie par défaut parmi les « Sinks » ; `pactl get-default-sink` donne son identifiant, à comparer à `audio.device`. `wpctl set-default <numéro>` en choisit une autre, d'après les numéros de `wpctl status`.
 
-**2. Les sons de notification sont coupés.** Une notification, un message reçu, une clé USB branchée, le volume réglé au clavier font un son, sur la sortie par défaut, ou sur l'antenne si elle l'est encore :
+**2. Les sons de notification sont coupés.** Une notification, un message reçu, une clé USB branchée, le volume réglé au clavier font un son, sur la sortie par défaut, ou sur l'antenne si elle l'est encore. Avec le service de diffusion, ils ne sont plus actifs sur l'antenne ; sans lui :
 
 - dans **Couleurs et thèmes → Thème global → Sons du système**, décocher, en haut à droite, **Activer les sons de notification** ;
 
@@ -187,7 +188,7 @@ Le poste qui diffuse est aussi un ordinateur de bureau : tout ce qu'il joue sur 
 
   ![Page Son de KDE Plasma : la ligne « Sons de notification » des flux de lecture, son coupé, à 0 %](doc/fr/administration/images/kde-sons-de-notification.png)
 
-**3. Pas de veille de l'écran.** Au retour d'un écran éteint, le serveur audio du poste peut interrompre un moment la pré-écoute, et le [VU-mètre](doc/fr/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) de l'antenne se rouvre ([#259](https://github.com/dascritch/machincast/issues/259), [#311](https://github.com/dascritch/machincast/issues/311)). La diffusion, elle, continue. Dans **Configuration du système → Gestion de l'énergie**, sur secteur, régler l'extinction de l'écran (**Éteindre l'écran**) sur **Jamais**. La mise en veille du poste (**Suspendre la session**) ne doit pas non plus être programmée : en veille, le poste ne diffuse plus.
+**L'économiseur d'écran et le verrouillage de la session peuvent rester actifs.** Le [VU-mètre](doc/fr/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) se met en pause pendant la veille, et reprend au retour ([#346](https://github.com/dascritch/machincast/issues/346)) ; la diffusion, elle, continue. La mise en veille du poste, qui couperait l'antenne, demande le mot de passe d'un administrateur une fois le service installé ([La protection du poste](#service-de-diffusion), [#448](https://github.com/dascritch/machincast/issues/448)) : elle ne doit pas être programmée dans **Configuration du système → Gestion de l'énergie**.
 
 ## Vérifier l'installation
 
