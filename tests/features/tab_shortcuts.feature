@@ -122,3 +122,90 @@ Fonctionnalité: Raccourcis des onglets
 		Et je saisis « jingles » dans le filtre de l'onglet « Banques », le curseur à la fin
 		Et j'appuie sur « Ctrl+End »
 		Alors l'onglet ouvert est « Incidents »
+
+	# ─── Fermer, enregistrer et rouvrir un onglet (https://github.com/dascritch/machincast/issues/428) ───
+
+	Scénario: Ctrl+W ferme l'onglet ouvert, s'il se ferme
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et j'appuie sur « Ctrl+W »
+		Alors aucune question n'a été posée
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Quand j'appuie sur « Shift+F4 »
+		Et j'appuie sur « Ctrl+W »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Et l'onglet ouvert est « Séquences »
+
+	Scénario: Ctrl+W sur une fiche modifiée demande quoi faire de ses modifications
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je saisis le nom interne « Un bis »
+		Et je réponds « Annuler » à la question de fermeture
+		Et j'appuie sur « Ctrl+W »
+		Alors la question de fermeture a nommé « Séquence : Un »
+		Et l'onglet ouvert est « Séquence : Un »
+
+	Scénario: Ctrl+W ferme aussi une liste ouverte à la demande, la recherche, la simulation ou l'airplay
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Feeds » dans le menu « Affichage »
+		Et j'appuie sur « Ctrl+W »
+		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
+		Et j'appuie sur « Ctrl+W »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+
+	Scénario: Ctrl+S enregistre la fiche ouverte, comme son bouton « Enregistrer »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je saisis le nom interne « Un bis »
+		Et j'appuie sur « Ctrl+S »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Quand j'ouvre la fiche de la séquence « Un bis »
+		Alors l'onglet ouvert est « Séquence : Un bis »
+
+	Scénario: Ctrl+S ne fait rien sur une fiche sans modification, ni sur un onglet qui ne s'enregistre pas
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et j'appuie sur « Ctrl+S »
+		Alors l'onglet ouvert est « Séquence : Un »
+		Quand j'appuie sur « Shift+F1 »
+		Et j'appuie sur « Ctrl+S »
+		Alors l'onglet ouvert est « Antenne »
+		Et aucune question n'a été posée
+
+	Scénario: Ctrl+Maj+T rouvre le dernier onglet fermé, puis celui d'avant
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et j'ouvre l'onglet « Séquences »
+		Et j'ouvre la fiche de la séquence « Deux »
+		Et je ferme l'onglet « Séquence : Un »
+		Et je ferme l'onglet « Séquence : Deux »
+		Et j'appuie sur « Ctrl+Shift+T »
+		Alors l'onglet ouvert est « Séquence : Deux »
+		Quand j'appuie sur « Ctrl+Shift+T »
+		Alors l'onglet ouvert est « Séquence : Un »
+		Quand j'appuie sur « Ctrl+Shift+T »
+		Alors l'onglet ouvert est « Séquence : Un »
+		Et l'entrée « Rouvrir l'onglet fermé » du menu « Affichage » est inactive
+
+	Scénario: Le sous-menu des onglets fermés propose les 5 derniers, le plus récent en tête
+		Une fiche supprimée, ou pas encore enregistrée, ne se rouvre pas : elle n'y est pas.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le sous-menu « Onglets fermés récemment » du menu « Affichage » est inactif
+		Quand j'ouvre la fiche de la séquence « Un »
+		Et j'ouvre la fiche de la séquence « Deux »
+		Et j'ouvre la fiche de la séquence « Trois »
+		Et j'ouvre la fiche de la séquence « Quatre »
+		Et j'ouvre la fiche de la séquence « Cinq »
+		Et j'ouvre la fiche de la séquence « Six »
+		Et je choisis « Ouvrir l'onglet Feeds » dans le menu « Affichage »
+		Et je ferme l'onglet « Séquence : Un »
+		Et je ferme l'onglet « Séquence : Deux »
+		Et je ferme l'onglet « Séquence : Trois »
+		Et je ferme l'onglet « Séquence : Quatre »
+		Et je ferme l'onglet « Feeds »
+		Et je ferme l'onglet « Séquence : Cinq »
+		Alors le sous-menu « Onglets fermés récemment » du menu « Affichage » propose « Séquence : Cinq », « Feeds », « Séquence : Quatre », « Séquence : Trois », « Séquence : Deux »
+		Quand je choisis « Feeds » dans le sous-menu « Onglets fermés récemment » du menu « Affichage »
+		Alors l'onglet ouvert est « Feeds »
+		Et le sous-menu « Onglets fermés récemment » du menu « Affichage » propose « Séquence : Cinq », « Séquence : Quatre », « Séquence : Trois », « Séquence : Deux »
