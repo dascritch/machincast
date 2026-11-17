@@ -152,6 +152,98 @@ msgstr ""
 msgid "PipeWire of the broadcast service unreachable: {error}"
 msgstr "PipeWire du service de diffusion injoignable : {error}"
 
+#: machincast/backup.py
+msgid "Backs up the MachinCast database into a dated file."
+msgstr "Sauvegarde la base de MachinCast dans un fichier daté."
+
+#: machincast/backup.py
+msgid "Restores a MachinCast backup into a new, empty database."
+msgstr "Réimporte une sauvegarde de MachinCast dans une base neuve, vide."
+
+#: machincast/backup.py
+#, python-brace-format
+msgid "{file} is not a MachinCast backup: {reason}"
+msgstr "{file} n'est pas une sauvegarde de MachinCast : {reason}"
+
+#: machincast/backup.py
+msgid "restoring done"
+msgstr "réimportation faite"
+
+#: machincast/backup.py
+#: machincast/maintenance.py
+msgid ""
+"directory of the backup; by default backup.directory of the configuration"
+msgstr ""
+"répertoire de la sauvegarde ; par défaut, backup.directory de la "
+"configuration"
+
+#: machincast/backup.py
+msgid "backup made by Machin backup-db"
+msgstr "sauvegarde faite par Machin backup-db"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid "restoring {file} into database {production}"
+msgstr "réimportation de {file} dans la base {production}"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid "{name} not found, install postgresql-client"
+msgstr "{name} introuvable, installer postgresql-client"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid ""
+"database {production} is not empty: a backup is only restored into a new "
+"database, as install.sh creates it"
+msgstr ""
+"la base {production} n'est pas vide : une sauvegarde ne se réimporte que "
+"dans une base neuve, comme install.sh la crée"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid "{file} not found"
+msgstr "{file} introuvable"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid ""
+"{file} comes from a newer version of MachinCast (unknown migrations: "
+"{migrations}): update MachinCast first"
+msgstr ""
+"{file} vient d'une version plus récente de MachinCast (migrations inconnues "
+": {migrations}) : mettre d'abord MachinCast à jour"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid "restoring failed, database {production} left empty: {error}"
+msgstr "réimportation impossible, la base {production} reste vide : {error}"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid "backup impossible: {error}"
+msgstr "sauvegarde impossible : {error}"
+
+#: machincast/backup.py
+#: machincast/maintenance.py
+#, python-brace-format
+msgid "database unreachable ({production}): {error}"
+msgstr "base de données injoignable ({production}) : {error}"
+
+#: machincast/backup.py
+#: machincast/indexer/__main__.py
+#: machincast/interface/__main__.py
+#: machincast/maintenance.py
+#: machincast/player/__main__.py
+#, python-brace-format
+msgid "database error: {error}"
+msgstr "erreur de base de données : {error}"
+
+#: machincast/backup.py
+#, python-brace-format
+msgid "table {table} missing"
+msgstr "table {table} absente"
+
 #: machincast/cli.py
 #: machincast/crash.py
 msgid "FILE"
@@ -670,14 +762,6 @@ msgstr ""
 #, python-brace-format
 msgid "database unreachable ({production} through {socket}): {error}"
 msgstr "base de données injoignable ({production} par {socket}) : {error}"
-
-#: machincast/indexer/__main__.py
-#: machincast/interface/__main__.py
-#: machincast/maintenance.py
-#: machincast/player/__main__.py
-#, python-brace-format
-msgid "database error: {error}"
-msgstr "erreur de base de données : {error}"
 
 #: machincast/indexer/__main__.py
 #, python-brace-format
@@ -2048,6 +2132,25 @@ msgstr ""
 "maintenance-db à la main."
 
 #: machincast/interface/control.py
+msgid "Export the database…"
+msgstr "Exporter la base…"
+
+#: machincast/interface/control.py
+#, python-brace-format
+msgid "Database export in progress, into {directory}…"
+msgstr "Export de la base en cours, dans {directory}…"
+
+#: machincast/interface/control.py
+#, python-brace-format
+msgid "Database exported into {directory}."
+msgstr "Base exportée dans {directory}."
+
+#: machincast/interface/control.py
+#, python-brace-format
+msgid "Database export impossible: {error}"
+msgstr "Export de la base impossible : {error}"
+
+#: machincast/interface/control.py
 msgid "Let the broadcast service read the sound files…"
 msgstr "Faire lire les fichiers sonores au service de diffusion…"
 
@@ -2179,6 +2282,11 @@ msgstr ""
 #, python-brace-format
 msgid "{failure}: {error}"
 msgstr "{failure} : {error}"
+
+#: machincast/interface/control.py
+#, python-brace-format
+msgid "exit code {code}"
+msgstr "code de sortie {code}"
 
 #: machincast/interface/control.py
 #, python-brace-format
@@ -4346,8 +4454,21 @@ msgid "To the second"
 msgstr "À la seconde"
 
 #: machincast/interface/preferences.py
+msgid "Backup directory"
+msgstr "Répertoire des sauvegardes"
+
+#: machincast/interface/preferences.py
+msgid "Where to copy machincast.toml"
+msgstr "Où copier machincast.toml"
+
+#: machincast/interface/preferences.py
 msgid "Crossfades and silences"
 msgstr "Crossfades et silences"
+
+#: machincast/interface/preferences.py
+#, python-brace-format
+msgid "Copied to {copy}."
+msgstr "Copié dans {copy}."
 
 #: machincast/interface/preferences.py
 #, python-brace-format
@@ -4355,6 +4476,11 @@ msgid ""
 "Demonstration: a sound of 30 s, with silences of 3 s and 4 s. {summary}"
 msgstr ""
 "Démonstration : un sonore de 30 s, aux silences de 3 s et 4 s. {summary}"
+
+#: machincast/interface/preferences.py
+#, python-brace-format
+msgid "Copy impossible: {error}"
+msgstr "Copie impossible : {error}"
 
 #: machincast/interface/preferences.py
 #, python-brace-format
@@ -5701,23 +5827,9 @@ msgstr "rôles {list} endossables par le compte"
 
 #: machincast/maintenance.py
 #, python-brace-format
-msgid ""
-"directory of the backups; by default “{backups}”, next to the configuration "
-"file"
-msgstr ""
-"répertoire des sauvegardes ; par défaut « {backups} », à côté du fichier de "
-"configuration"
-
-#: machincast/maintenance.py
-#, python-brace-format
 msgid "backup impossible: {error}; maintenance stopped, nothing was changed"
 msgstr ""
 "sauvegarde impossible : {error} ; maintenance arrêtée, rien n'a été modifié"
-
-#: machincast/maintenance.py
-#, python-brace-format
-msgid "database unreachable ({production}): {error}"
-msgstr "base de données injoignable ({production}) : {error}"
 
 #: machincast/personal.py
 #, python-brace-format
@@ -7498,6 +7610,44 @@ msgstr ""
 "rapide passe toutes les heures. Rien à redémarrer, et aucun mot de passe : "
 "les minuteurs lisent cette heure à chaque fois."
 
+#: machincast/interface/ui/preferences.ui
+msgid "Backup"
+msgstr "Sauvegarde"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Backup directory"
+msgstr "&Répertoire des sauvegardes"
+
+#: machincast/interface/ui/preferences.ui
+msgid "Choose…"
+msgstr "Choisir…"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"Maintenance → Export the database… and the database maintenance write their "
+"backup here, in a file named after its date and time. On a new computer, or "
+"after a reinstallation, ./install.sh offers to restore one into the new "
+"database."
+msgstr ""
+"Maintenance → Exporter la base… et la maintenance de la base y écrivent "
+"leur sauvegarde, dans un fichier nommé d'après sa date et son heure. Sur un "
+"poste neuf, ou après une réinstallation, ./install.sh propose d'en "
+"réimporter une dans la nouvelle base."
+
+#: machincast/interface/ui/preferences.ui
+msgid "Copy machincast.toml…"
+msgstr "Copier machincast.toml…"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"The configuration file, copied elsewhere, for instance on a USB key, under "
+"a name dated like the backups: with a backup of the database, it is all "
+"that a new computer needs to start again."
+msgstr ""
+"Le fichier de configuration, copié ailleurs, par exemple sur une clé USB, "
+"sous un nom daté comme les sauvegardes : avec une sauvegarde de la base, "
+"c'est tout ce qu'il faut à un poste neuf pour repartir."
+
 #: machincast/interface/ui/preview.ui
 msgctxt "preview"
 msgid "Stop"
@@ -7871,6 +8021,12 @@ msgid ""
 "  maintenance-db\n"
 "               backs up, checks and optimises the database\n"
 "               (https://github.com/dascritch/machincast/issues/127)\n"
+"  backup-db    backs up the database into a dated file of the backup "
+"directory\n"
+"               (backup.directory, the personal directory by default)\n"
+"  restore-db   restores such a backup into a new, empty database, after "
+"checking\n"
+"               it (https://github.com/dascritch/machincast/issues/347)\n"
 "  purge        erases from the database what exceeds the expiry duration: "
 "old\n"
 "               plays of the airplay, lines of the log, deleted elements; "
@@ -7986,6 +8142,13 @@ msgstr ""
 "  maintenance-db\n"
 "               sauvegarde, vérifie et optimise la base de données\n"
 "               (https://github.com/dascritch/machincast/issues/127)\n"
+"  backup-db    sauvegarde la base dans un fichier daté du répertoire des "
+"sauvegardes\n"
+"               (backup.directory, le répertoire personnel par défaut)\n"
+"  restore-db   réimporte une telle sauvegarde dans une base neuve, vide, "
+"après l'avoir\n"
+"               vérifiée "
+"(https://github.com/dascritch/machincast/issues/347)\n"
 "  purge        efface de la base ce qui dépasse la durée de péremption : "
 "vieux\n"
 "               passages de l'airplay, lignes du log, éléments supprimés ; "
@@ -8207,7 +8370,8 @@ msgstr "binaire inconnu : %s"
 msgid ""
 "Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] "
 "[--no-timers] | --remove-service] [--desktop | --no-desktop]\n"
-"                    [--stop-programs | --leave-programs]\n"
+"                    [--stop-programs | --leave-programs] [--restore FILE | "
+"--no-restore]\n"
 "\n"
 "Installs MachinCast in place, from this directory (%s), after checking the "
 "network access, without\n"
@@ -8232,7 +8396,12 @@ msgid ""
 "  3. machincast.toml, copied from the model if it does not exist;\n"
 "  4. PostgreSQL role of the account %s (without any particular right), "
 "production and test databases\n"
-"     that it owns, MachinCast roles, schema;\n"
+"     that it owns, MachinCast roles, schema; a new production database can "
+"first take back a backup of a\n"
+"     previous installation, on this computer or another one (Machin "
+"backup-db): the question is asked,\n"
+"     with kdialog on a graphical desktop, in the terminal otherwise, except "
+"with --restore or --no-restore;\n"
 "  5. authorisation of %s to the roles %s, systemd-journal group;\n"
 "  6. links %s, %s and the bash autocompletion;\n"
 "  7. check of the GStreamer version and plugins, and of the audio output;\n"
@@ -8305,11 +8474,16 @@ msgid ""
 "                stops the running MachinCast programs, without asking\n"
 "  --leave-programs\n"
 "                lets them run during the installation, without asking\n"
+"  --restore FILE\n"
+"                restores this backup into the production database that "
+"install.sh creates, without asking\n"
+"  --no-restore  does not offer to restore a backup\n"
 "  -h, --help    this help\n"
 msgstr ""
 "Usage : ./install.sh [--simulation] [--dev] [--service [--dedicated] "
 "[--no-timers] | --remove-service] [--desktop | --no-desktop]\n"
-"                    [--stop-programs | --leave-programs]\n"
+"                    [--stop-programs | --leave-programs] [--restore FICHIER "
+"| --no-restore]\n"
 "\n"
 "Installe MachinCast en place, depuis ce répertoire (%s), après avoir "
 "vérifié l'accès au réseau, sans\n"
@@ -8335,7 +8509,12 @@ msgstr ""
 "  3. machincast.toml, copié du modèle s'il n'existe pas ;\n"
 "  4. rôle PostgreSQL du compte %s (sans droit particulier), bases de "
 "production et de test\n"
-"     dont il est propriétaire, rôles de MachinCast, schéma ;\n"
+"     dont il est propriétaire, rôles de MachinCast, schéma ; une base de "
+"production neuve peut d'abord reprendre\n"
+"     la sauvegarde d'une installation précédente, sur ce poste ou sur un "
+"autre (Machin backup-db) : la question\n"
+"     est posée, par kdialog sur un bureau graphique, dans le terminal "
+"sinon, sauf avec --restore ou --no-restore ;\n"
 "  5. autorisation de %s aux rôles %s, groupe systemd-journal ;\n"
 "  6. liens %s, %s et l'autocomplétion bash ;\n"
 "  7. vérification de la version et des greffons GStreamer, et de la sortie "
@@ -8413,6 +8592,10 @@ msgstr ""
 "  --leave-programs\n"
 "                les laisse tourner pendant l'installation, sans le "
 "demander\n"
+"  --restore FICHIER\n"
+"                réimporte cette sauvegarde dans la base de production "
+"qu'install.sh crée, sans le demander\n"
+"  --no-restore  ne propose pas de réimporter une sauvegarde\n"
 "  -h, --help    cette aide\n"
 
 #: install.sh
@@ -8824,6 +9007,71 @@ msgstr ""
 
 #: install.sh
 msgid ""
+"You seem to be making a new installation of MachinCast. Had you already run "
+"it on this computer or on another one? Should its database be recovered?"
+msgstr ""
+"Vous semblez faire une installation neuve de MachinCast. L'aviez-vous déjà "
+"fait tourner sur ce poste ou sur un autre ? Faut-il récupérer sa base de "
+"données ?"
+
+#: install.sh
+msgid "Yes, restore a backup"
+msgstr "Oui, importer une sauvegarde"
+
+#: install.sh
+msgid "No, start from scratch"
+msgstr "Non, on repart de zéro"
+
+#: install.sh
+msgid "[y/N]"
+msgstr "[o/N]"
+
+#: install.sh
+msgid "MachinCast backups (*.dump)"
+msgstr "Sauvegardes de MachinCast (*.dump)"
+
+#: install.sh
+msgid "File of the backup (Machin backup-db): "
+msgstr "Fichier de la sauvegarde (Machin backup-db) : "
+
+#: install.sh
+msgid ""
+"backup %s not restored: correct, then Machin restore-db FILE before running "
+"./install.sh again"
+msgstr ""
+"sauvegarde %s non réimportée : corriger, puis Machin restore-db FICHIER "
+"avant de relancer ./install.sh"
+
+#: install.sh
+msgid ""
+"[simulation] question: restore a backup of a previous installation into the "
+"new database?"
+msgstr ""
+"[simulation] question : réimporter dans la nouvelle base une sauvegarde "
+"d'une installation précédente ?"
+
+#: install.sh
+msgid ""
+"new database, no backup restored: ./install.sh --restore FILE restores one"
+msgstr ""
+"nouvelle base, sans sauvegarde réimportée : ./install.sh --restore FICHIER "
+"en réimporte une"
+
+#: install.sh
+msgid "backup %s restored"
+msgstr "sauvegarde %s réimportée"
+
+#: install.sh
+msgid "backup not restored: choose another one, or start from scratch"
+msgstr ""
+"sauvegarde non réimportée : en choisir une autre, ou repartir de zéro"
+
+#: install.sh
+msgid "new database: starting from scratch"
+msgstr "nouvelle base : on repart de zéro"
+
+#: install.sh
+msgid ""
 "This installation changes the computer: it becomes dedicated to the on-air "
 "output of MachinCast."
 msgstr ""
@@ -9076,6 +9324,10 @@ msgid ""
 msgstr ""
 "Poste de développement : Machin dev ouvre un shell, venv activé ; Machin "
 "dev-test lance les vérifications"
+
+#: install.sh
+msgid "--restore needs the file of the backup"
+msgstr "--restore demande le fichier de la sauvegarde"
 
 #: install.sh
 msgid "--service and --remove-service do not go together"

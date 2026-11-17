@@ -30,6 +30,7 @@ MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux r
   maximale, sauf pour une valeur déjà plus longue, qui reste telle quelle.
 """
 
+import dataclasses
 from dataclasses import dataclass
 from datetime import time, timedelta
 from pathlib import Path
@@ -41,6 +42,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
 
 from machincast import service as service_module
+from machincast.clock import Clock, SystemClock
 from machincast.configuration import (
 	DAILY,
 	MINIMUM_TABLE_ROWS,
@@ -57,6 +59,7 @@ from machincast.interface.application import ICON, readable
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.timeline import Plan, Timeline, demonstration_shape
 from machincast.interface.ui.preferences import Ui_PreferencesWindow
+from machincast.protection import check_writing
 from machincast.service import ABSENT, ServiceState
 from machincast.shared.fades import LABELS, POSITIONS, Position
 
@@ -138,6 +141,9 @@ class Settings:
 	daily: time = DAILY
 	"""schedule.daily : l'heure de la tâche quotidienne, purge puis audit complet
 	(https://github.com/dascritch/machincast/issues/455)."""
+	backup_directory: Path = dataclasses.field(default_factory=Path.home)
+	"""backup.directory : où l'export et la maintenance écrivent leur sauvegarde
+	(https://github.com/dascritch/machincast/issues/347)."""
 
 
 def service_changed(before: Settings, after: Settings) -> bool:
@@ -155,6 +161,9 @@ def service_changed(before: Settings, after: Settings) -> bool:
 	output = (after.output is not None) and (after.output != before.output)
 	return (crossfades) or (output) or (after.on_air != before.on_air) or (after.dead_air != before.dead_air)
 
+
+CLOCK: Clock = SystemClock()
+"""L'heure qui date la copie de machincast.toml (https://github.com/dascritch/machincast/issues/347)."""
 
 _current_list = Crossfades()
 _retention = RETENTION
@@ -241,6 +250,31 @@ def _write_daily(document: tomlkit.TOMLDocument, daily: time) -> None:
 	section["daily"] = daily.isoformat(timespec="minutes")
 
 
+def _write_backup(document: tomlkit.TOMLDocument, directory: Path) -> None:
+	"""backup.directory : le répertoire personnel, par défaut, ne s'écrit pas dans un fichier qui ne donne pas la clé
+	(https://github.com/dascritch/machincast/issues/347)."""
+	section = document.get("backup")
+	if (section is None) and (directory == Path.home()):
+		return
+	if section is None:
+		document.add("backup", tomlkit.table())
+		section = document["backup"]
+	assert isinstance(section, tomlkit.items.Table)
+	section["directory"] = str(directory)
+
+
+def copy_configuration(configuration: Path, directory: Path) -> Path:
+	"""Copie le fichier de configuration dans directory, sous un nom daté comme les sauvegardes de la base,
+	machincast-AAAA-MM-JJTHH-MM-SS.toml : jamais par-dessus un autre fichier ; lève OSError
+	(https://github.com/dascritch/machincast/issues/347)."""
+	timestamp = f"{CLOCK.now().astimezone():%Y-%m-%dT%H-%M-%S}"
+	copy = directory / f"{configuration.stem}-{timestamp}{configuration.suffix}"
+	check_writing(copy)
+	with copy.open("xb") as written:
+		written.write(configuration.read_bytes())
+	return copy
+
+
 def write(path: Path, settings: Settings) -> None:
 	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [dead_air], [interface] et [database] du
 	fichier de configuration, sous leurs noms anglais (https://github.com/dascritch/machincast/issues/357) ; le reste du
@@ -252,6 +286,7 @@ def write(path: Path, settings: Settings) -> None:
 	if ("retention" in database) or (settings.retention != RETENTION):
 		database["retention"] = settings.retention
 	_write_daily(document, settings.daily)
+	_write_backup(document, settings.backup_directory)
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
 	section = document["crossfades"]
@@ -329,6 +364,7 @@ class PreferencesWindow(QDialog):
 		kind: Kind = SERVICE,
 		*,
 		timers: bool | None = None,
+		configuration: Path | None = None,
 	) -> None:
 		super().__init__(parent)
 		self.ui = Ui_PreferencesWindow()
@@ -360,6 +396,12 @@ class PreferencesWindow(QDialog):
 		ui.dead_air_threshold.setValue(all_.dead_air.threshold)
 		ui.retention.setValue(all_.retention)
 		self._show_daily(all_.daily, timers=timers)
+		self.configuration = configuration
+		ui.backup_directory.setText(str(all_.backup_directory))
+		ui.choose_backup_directory.clicked.connect(self._choose_backup_directory)
+		ui.copy_configuration.clicked.connect(self._copy_configuration)
+		ui.copy_configuration.setEnabled(configuration is not None)
+		ui.copy_result.setVisible(False)
 		ui.clipping.setChecked(all_.clipping)
 		ui.suggestions.setChecked(all_.suggestions)
 		ui.table_rows.setMinimum(MINIMUM_TABLE_ROWS)
@@ -401,6 +443,31 @@ class PreferencesWindow(QDialog):
 		ui.timers_missing.setText(TIMERS_MISSING)
 		ui.timers_missing.setHidden(timers)
 
+	def _choose_backup_directory(self) -> None:
+		"""Le répertoire des sauvegardes, choisi dans le sélecteur, ouvert sur celui saisi ; abandonné, rien ne change."""
+		from machincast.interface import dialogs
+
+		field = self.ui.backup_directory
+		chosen = dialogs.choose_directory(self, _("Backup directory"), field.text())
+		if chosen is not None:
+			field.setText(chosen)
+
+	def _copy_configuration(self) -> None:
+		"""Copie machincast.toml dans un répertoire choisi, comme une clé USB ; la page dit où, ou pourquoi elle n'a pas
+		pu (https://github.com/dascritch/machincast/issues/347)."""
+		from machincast.interface import dialogs
+
+		assert self.configuration is not None
+		chosen = dialogs.choose_directory(self, _("Where to copy machincast.toml"), self.ui.backup_directory.text())
+		if chosen is None:
+			return
+		try:
+			text = _("Copied to {copy}.").format(copy=copy_configuration(self.configuration, Path(chosen)))
+		except OSError as error:
+			text = _("Copy impossible: {error}").format(error=error)
+		self.ui.copy_result.setText(text)
+		self.ui.copy_result.setVisible(True)
+
 	def _keep_only(self, kind: Kind) -> None:
 		"""Les réglages de cette fenêtre seulement : les autres restent ceux du fichier, et settings() les rend tels
 		quels (https://github.com/dascritch/machincast/issues/389)."""
@@ -415,7 +482,8 @@ class PreferencesWindow(QDialog):
 			ui.explanation.setText(SERVICE_EXPLANATION)
 			self.cards.keep_rows(on_air=True, preview=False)
 			return
-		ui.pages.removeTab(ui.pages.indexOf(ui.tasks_page))
+		for page in (ui.tasks_page, ui.backup_page):
+			ui.pages.removeTab(ui.pages.indexOf(page))
 		for row in (1, 2, 3):
 			ui.crossfades_form.setRowVisible(row, False)
 		ui.position_group.setVisible(False)
@@ -542,4 +610,5 @@ class PreferencesWindow(QDialog):
 			self.cards.chosen_output(),
 			ui.table_rows.value(),
 			time(ui.daily.time().hour(), ui.daily.time().minute()),
+			Path(ui.backup_directory.text().strip()).expanduser(),
 		)

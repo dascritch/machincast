@@ -3,7 +3,8 @@
 Sur la base de production de la configuration, trois étapes, dans l'ordre :
 
 1. sauvegarde : pg_dump, au format personnalisé de PostgreSQL, dans un fichier daté du répertoire des sauvegardes
-   (--backups, par défaut « sauvegardes » à côté du fichier de configuration), lisible par pg_restore. Une
+   (--backups, par défaut backup.directory de la configuration, le répertoire personnel du compte sans elle,
+   https://github.com/dascritch/machincast/issues/347), lisible par pg_restore et par Machin restore-db. Une
    sauvegarde qui échoue arrête tout : rien n'est modifié sans sauvegarde ;
 2. schéma : les migrations manquantes sont appliquées, puis chaque rôle de MachinCast doit être endossable par le
    compte ; un rôle qui ne l'est pas est signalé avec les commandes, à lancer par un administrateur, qui l'autorisent ;
@@ -45,8 +46,6 @@ FAILURE_CODE = 1
 RECORDING = Recording(role=None)
 """Le démarrage et la fin de la maintenance, dans le log, par le compte propriétaire de la base
 (https://github.com/dascritch/machincast/issues/341)."""
-BACKUPS = "sauvegardes"
-"""Répertoire des sauvegardes, à côté du fichier de configuration, sauf --backups."""
 BACKUP_DELAY = 3600
 """Secondes laissées à pg_dump : une grosse base, sur un disque lent, prend du temps."""
 
@@ -74,11 +73,6 @@ POSTGRESQL = Path("/usr/lib/postgresql")
 
 class BackupFailure(Exception):
 	"""La sauvegarde n'a pas pu être faite : la maintenance s'arrête."""
-
-
-def default_backups(configuration_file: Path) -> Path:
-	"""Le répertoire des sauvegardes sans --backups : « sauvegardes », à côté du fichier de configuration."""
-	return configuration_file.parent / BACKUPS
 
 
 def account() -> str:
@@ -209,9 +203,7 @@ def own_options(analyser: argparse.ArgumentParser) -> None:
 		"--backups",
 		type=Path,
 		metavar="REPERTOIRE",
-		help=_("directory of the backups; by default “{backups}”, next to the configuration file").format(
-			backups=BACKUPS
-		),
+		help=_("directory of the backup; by default backup.directory of the configuration"),
 	)
 	analyser.add_argument(
 		"--keep-open",
@@ -233,7 +225,7 @@ def stay_open() -> None:
 
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
 	"""Lance la maintenance de la base, sauvegarde d'abord ; le code de sortie, nul si tout s'est bien passé."""
-	directory = (options.backups) or (default_backups(configuration.path))
+	directory = (options.backups) or (configuration.backup.directory)
 	code = FAILURE_CODE
 	try:
 		if maintain(configuration, Path(directory).expanduser()):

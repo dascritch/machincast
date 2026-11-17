@@ -23,7 +23,7 @@ from yoyo import get_backend, read_migrations
 from machincast import maintenance
 from machincast.cli import create_analyser
 from machincast.clock import FixedClock
-from machincast.configuration import PROJECT_DIRECTORY, Configuration
+from machincast.configuration import PROJECT_DIRECTORY, Backup, Configuration
 from machincast.database import MIGRATION_DIRECTORY, apply_migrations, url_yoyo
 from tests.database_fixtures import configuration_test
 
@@ -57,7 +57,12 @@ def configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, empty_databas
 	monkeypatch.setattr(maintenance, "CLOCK", FixedClock(LAUNCHING))
 	fetched = configuration_test()
 	database = dataclasses.replace(fetched.database, production=fetched.database.test)
-	return dataclasses.replace(fetched, database=database, path=tmp_path / "machincast.toml")
+	return dataclasses.replace(
+		fetched,
+		database=database,
+		path=tmp_path / "machincast.toml",
+		backup=Backup(directory=tmp_path / "sauvegardes"),
+	)
 
 
 @given("la dernière migration retirée de la base de test")

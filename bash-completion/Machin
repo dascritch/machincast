@@ -86,6 +86,16 @@ _Machin() {
 		mapfile -t COMPREPLY < <(compgen -d -- "${courant}")
 		return 0
 	fi
+	# restore-db : une sauvegarde, .dump, cherchée de répertoire en répertoire
+	# (https://github.com/dascritch/machincast/issues/347).
+	if [[ "${binaire}" == restore-db ]] && [[ "${courant}" != -* ]]; then
+		compopt -o filenames 2>/dev/null
+		mapfile -t COMPREPLY < <(
+			compgen -d -- "${courant}"
+			compgen -f -X '!*.dump' -- "${courant}"
+		)
+		return 0
+	fi
 	if [[ "${binaire}" == logs ]]; then
 		mapfile -t COMPREPLY < <(compgen -W "${_MACHIN_OPTIONS_LOGS}" -- "${courant}")
 		return 0

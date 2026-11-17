@@ -8,7 +8,9 @@ Fonctionnalité: Maintenance de la base de données
 	production de la configuration : il la sauvegarde (pg_dump) dans un fichier daté, vérifie son schéma (migrations
 	manquantes appliquées, rôles de MachinCast endossables par le compte), puis l'optimise (VACUUM ANALYZE). Une
 	sauvegarde qui échoue arrête tout : rien n'est modifié sans sauvegarde. Les scénarios travaillent sur la base de
-	test, désignée comme base de production d'une configuration du scénario ; les sauvegardes vont dans son répertoire.
+	test, désignée comme base de production d'une configuration du scénario ; ses sauvegardes vont dans son
+	répertoire des sauvegardes (backup.directory, https://github.com/dascritch/machincast/issues/347), ici « sauvegardes »,
+	dans le répertoire du scénario.
 
 	Contexte:
 		Étant donné une configuration dont la base de production est la base de test
