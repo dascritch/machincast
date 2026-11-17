@@ -2,7 +2,7 @@
 
 *[English version](README.md)*
 
-**Version 0.9.0**, publiée le 2026-10-28, première version publiée, avant la 1.0 : [ce qu'elle apporte](RELEASE.fr.md), et [son archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
+**Version 0.9.1**, publiée le 2026-11-17, avant la 1.0 : [ce qu'elle apporte](RELEASE.fr.md), et [son archive](https://github.com/dascritch/machincast/releases/tag/v0.9.1).
 
 Système automatisé de diffusion sonore pour continuité d'antenne radio, sous Linux : il fournit un fil antenne en dehors des émissions en direct, à partir de banques de sonores, de *feeds* externes et d'événements horaires. Le service a des tolérances de sources, des scénarios de secours et sépare les services métiers. Les fichiers sonores sont immuables, les traitements sont faits sans les modifier.
 
@@ -12,7 +12,7 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 
 - **Équipe de l'antenne** : le [guide de l'antenne](doc/fr/utilisateur/README.md), pour programmer et suivre l'antenne depuis l'interface graphique
 - **Administrateur du poste** : [INSTALL.md](INSTALL.fr.md) pour l'installation, puis le [guide d'administration](doc/fr/administration/README.md)
-- **Développeur** : le [guide du développement](doc/fr/developpement/README.md), avec la [spécification fonctionnelle](doc/fr/spec.md), [l'architecture](doc/fr/architecture.md), et les [règles du projet](doc/fr/regles/developpement.md)
+- **Développeur** : le [guide du développement](doc/fr/developpement/README.md), avec la [spécification fonctionnelle](doc/fr/spec.md), [l'architecture](doc/fr/architecture.md), et les [règles du projet](doc/fr/regles/developpement.md) ; [CONTRIBUTING.md](CONTRIBUTING.fr.md) pour les écrans et les traductions
 - **En cas de panne** : [TROUBLESHOOTING.md](TROUBLESHOOTING.fr.md), les pannes connues, leurs causes et ce qu'il faut vérifier
 
 ![Capture de l'interface de pilotage de MachinCast](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)

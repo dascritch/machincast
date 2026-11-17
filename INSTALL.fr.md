@@ -6,7 +6,7 @@ Ce document décrit l'installation de MachinCast sur un poste de diffusion, sa v
 
 Le script `install.sh` fait tout le travail. La section [Installer à la main](#installer-à-la-main) détaille chacune de ses étapes, pour qui veut les faire soi-même ou comprendre ce qu'il fait.
 
-> **État du projet** : MachinCast 0.9.0 est sa première version publiée, avant la 1.0 ([RELEASE.md](RELEASE.fr.md)). L'indexation vérifie les sonores, `Machin player` diffuse la grille, depuis un terminal ou comme service, et l'interface graphique (`Machin interface`) la programme et la suit. Ce qui manque encore est dans les [tickets ouverts](https://github.com/dascritch/machincast/issues).
+> **État du projet** : MachinCast 0.9.1 est sa deuxième version publiée, avant la 1.0 ([RELEASE.md](RELEASE.fr.md)). L'indexation vérifie les sonores, `Machin player` diffuse la grille, depuis un terminal ou comme service, et l'interface graphique (`Machin interface`) la programme et la suit. Ce qui manque encore est dans les [tickets ouverts](https://github.com/dascritch/machincast/issues).
 
 ## Sommaire
 
@@ -83,8 +83,8 @@ cd ~/machincast
 Chaque version publiée a aussi son archive, `machincast-<version>.tar.gz`, dans les [releases du dépôt](https://github.com/dascritch/machincast/releases) ([#41](https://github.com/dascritch/machincast/issues/41)). Elle s'utilise de la même façon : la décompresser dans le répertoire choisi, puis lancer `./install.sh` depuis ce répertoire. Ses notes sont dans [RELEASE.md](RELEASE.fr.md).
 
 ```bash
-tar -xzf machincast-0.9.0.tar.gz -C ~
-mv ~/machincast-0.9.0 ~/machincast
+tar -xzf machincast-0.9.1.tar.gz -C ~
+mv ~/machincast-0.9.1 ~/machincast
 cd ~/machincast
 ```
 
@@ -203,7 +203,7 @@ Machin indexer --help                   # aide de l'indexation
 Machin indexer                          # indexation rapide
 ```
 
-`Machin indexer` affiche un bilan, par exemple `2026-10-15T08:15:00+02:00 indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu`, et se termine avec le code 0. Sur un poste neuf, aucune banque n'existe encore, donc aucun répertoire à parcourir : les banques se créent dans l'interface, à venir ([#31](https://github.com/dascritch/machincast/issues/31)).
+`Machin indexer` affiche un bilan, par exemple `2026-10-15T08:15:00+02:00 indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 0 rétabli, 0 sorti d'aperçu`, et se termine avec le code 0. Sur un poste neuf, aucune banque n'existe encore, donc aucun répertoire à parcourir : les banques se créent dans l'interface ([#31](https://github.com/dascritch/machincast/issues/31), [guide de l'antenne](doc/fr/utilisateur/sonores.md#fiche-dune-banque)).
 
 **Première indexation.** L'indexation rapide, par défaut, ne décode que les sonores nouvellement découverts (état « aperçu ») et vérifie seulement la présence des autres fichiers. L'audit complet décode tous les sonores, ce qui peut être long sur une grande discothèque :
 
@@ -348,7 +348,7 @@ git pull
 .venv/bin/yoyo apply --batch --database "postgresql+psycopg:///machincast?host=/var/run/postgresql" src/machincast/migrations/
 ```
 
-**Entretenir la base.** `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) sauvegarde la base de production avec `pg_dump`, dans le répertoire `sauvegardes` de MachinCast, applique les migrations manquantes, vérifie les rôles, puis l'optimise (`VACUUM ANALYZE`). L'interface la lance aussi, après confirmation, menu **Maintenance → Maintenance de la base de données…**. Détails et restauration : [Maintenance de la base](doc/fr/administration/commandes.md#maintenance-de-la-base--machin-maintenance-db).
+**Entretenir la base.** `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) sauvegarde la base de production avec `pg_dump`, dans le répertoire des sauvegardes (le répertoire personnel du compte par défaut, [#347](https://github.com/dascritch/machincast/issues/347)), applique les migrations manquantes, vérifie les rôles, puis l'optimise (`VACUUM ANALYZE`). L'interface la lance aussi, après confirmation, menu **Maintenance → Maintenance de la base de données…**. Détails et restauration : [Maintenance de la base](doc/fr/administration/commandes.md#maintenance-de-la-base--machin-maintenance-db).
 
 **Purger la base.** `Machin purge` ([#268](https://github.com/dascritch/machincast/issues/268)) efface de la base de production l'airplay et le log plus vieux que la durée de péremption (`database.retention`, 60 jours par défaut), et les éléments supprimés depuis plus longtemps ; jamais un fichier. Le service de diffusion l'installe avec un minuteur, chaque jour à l'heure de `schedule.daily`, 10:00 par défaut, suivie de l'audit complet ; l'indexation rapide passe toutes les heures ([#455](https://github.com/dascritch/machincast/issues/455)) : une installation qui a déjà le service les reçoit en relançant `./install.sh`, qui propose de le mettre à jour et remplace l'ancien minuteur de midi. Détails : [Purge de la base](doc/fr/administration/commandes.md#purge-de-la-base--machin-purge).
 
@@ -490,7 +490,7 @@ Les noms de bases sont ceux du modèle : reprendre ceux de `database.production`
 | `antenne sur la sortie PulseAudio : le service de diffusion joue par son propre PipeWire ; …`, puis `install.sh : service de diffusion non installé : l'antenne ne lui convient pas` | `./install.sh --service` sur une configuration dont l'antenne est sur la sortie PulseAudio ([#381](https://github.com/dascritch/machincast/issues/381)) : le service n'a pas de serveur PulseAudio. Choisir la sortie PipeWire dans l'interface, **Fichier → Paramètres du service…**, page **Audio**, ou dans `audio.output` de `machincast.toml`, puis relancer `./install.sh --service`. |
 | `périphérique de l'antenne non renseigné : …` | `audio.device` manque : le donner dans `machincast.toml`, ou dans l'interface, **Fichier → Paramètres du service…**, page **Audio**. Puis relancer la diffusion. |
 | `sortie audio indisponible : …` | La sortie de `audio.output` ne peut pas être créée : installer le greffon nommé, ou vérifier `audio.device`. Relancer `install.sh` vérifie la sortie. |
-| `indexation refusée : une autre indexation est en cours sur cette base` | Une indexation tourne déjà sur la base, lancée d'un terminal, de l'interface ou d'un autre poste. Attendre sa fin, puis relancer. Sa fenêtre, si elle vient de l'interface, peut l'arrêter. |
+| `indexation refusée : une autre indexation rapide est en cours sur cette base`, ou `un autre audit complet` (code 3) | Une indexation du même mode tourne déjà sur la base, lancée d'un terminal, de l'interface ou d'un autre poste. Attendre sa fin, puis relancer. Sa fenêtre, si elle vient de l'interface, peut l'arrêter. |
 | `--window demande un affichage graphique …` | `--window` a été donné sans session graphique, par exemple en SSH : lancer `Machin indexer` sans `--window`, son journal s'affiche dans le terminal. |
 | `base de données injoignable` | PostgreSQL n'est pas démarré (`sudo systemctl start postgresql`), ou `database.socket` ne désigne pas sa socket. |
 | `droits insuffisants pour appliquer le schéma dans la base …` | La base existait déjà et appartient à un autre compte, ou ses tables ont été créées par un autre compte. Tant qu'elle ne contient rien d'utile, la supprimer (`sudo -u postgres dropdb …`) puis relancer `install.sh`, qui la recrée. |

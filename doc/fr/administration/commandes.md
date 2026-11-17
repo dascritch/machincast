@@ -7,6 +7,7 @@
 - [Maintenance de la base : Machin maintenance-db](#maintenance-de-la-base--machin-maintenance-db)
 - [Export et réimportation de la base : Machin backup-db, Machin restore-db](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)
 - [Purge de la base : Machin purge](#purge-de-la-base--machin-purge)
+- [Tâches régulières : Machin tasks](#tâches-régulières--machin-tasks)
 - [Lecture par le service de diffusion : Machin grant-read](#lecture-par-le-service-de-diffusion--machin-grant-read)
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
 - [Messages et codes de sortie](#messages-et-codes-de-sortie)
@@ -50,7 +51,7 @@ Machin --help                         # aide complète
 | Option | Effet |
 | --- | --- |
 | `-h`, `--help` | Aide du programme, par exemple `Machin indexer --help`. |
-| `--version` | Version de MachinCast, par exemple `Machin_indexer (MachinCast) 0.9.0`. |
+| `--version` | Version de MachinCast, par exemple `Machin_indexer (MachinCast) 0.9.1`. |
 | `--config FICHIER` | Fichier de configuration à lire. |
 
 **Autocomplétion.** Dans un terminal bash, la touche Tab complète les noms des programmes et `logs`, les options de `Machin`, les fichiers après `--config`, les options de chaque programme (lues dans son aide) et les options courantes de `journalctl` après `logs`. Elle demande le paquet `bash-completion`, qu'installe `install.sh`. Sans installation, `source bash-completion/Machin` la charge dans le terminal courant.
@@ -61,7 +62,7 @@ Machin --help                         # aide complète
 
 - **Base** : elle se connecte à la base de production (`database.production`), avec le rôle `machincast_interface` ([Droits de chaque programme dans la base](configuration.md#droits-de-chaque-programme-dans-la-base)). Sans base, elle ouvre une fenêtre d'erreur, « MachinCast : base de données injoignable », qui renvoie à [En cas de problème](../../../INSTALL.fr.md#en-cas-de-problème) et donne l'erreur de PostgreSQL dans ses détails ; à sa fermeture, `Machin interface` s'arrête avec le code 1. Le message `base de données injoignable` (ou `erreur de base de données`, pour un compte sans droit) s'affiche aussi sur la sortie d'erreur. Sans affichage graphique, dans une session SSH par exemple, seul ce message s'affiche.
 - **Même compte et même configuration que la diffusion** : l'onglet Antenne suit la diffusion par sa socket d'état, que n'ouvrent, avec le service de diffusion, que les comptes du groupe `machincast`, et, sans lui, que le compte qui diffuse ([État de la diffusion pour l'interface](diffusion.md#état-de-la-diffusion-pour-linterface)). Le menu **Diffusion** pilote le service de diffusion, avec l'authentification de la règle polkit du service ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)), ou, sans service, une diffusion d'essai lancée dans un terminal.
-- **Réglages** : **Fichier → Préférences de l'interface…** et **Fichier → Paramètres du service…** écrivent dans les sections `[crossfades]`, `[audio]`, `[silences]`, `[dead_air]`, `[interface]` et `[database]` (la seule clé `retention`) du `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la fenêtre « Pour bien démarrer » écrit `audio.output`, `audio.device`, `audio.preview` et `interface.suggestions`. Un fichier qui ne peut pas être écrit laisse les réglages tels quels, et la barre d'état dit pourquoi. Une nouvelle icône de l'application (`interface.icon`, [#111](https://github.com/dascritch/machincast/issues/111)) réécrit aussi les raccourcis `machincast.desktop` déjà installés, dans `~/.local/share/applications` et sur le bureau, sans en créer ; l'image elle-même n'est ni copiée ni modifiée.
+- **Réglages** : **Fichier → Préférences de l'interface…** et **Fichier → Paramètres du service…** écrivent dans les sections `[crossfades]`, `[audio]`, `[silences]`, `[dead_air]`, `[interface]`, `[schedule]`, `[backup]` et `[database]` (la seule clé `retention`) du `machincast.toml`, qui garde ses commentaires et ses autres réglages ; la fenêtre « Pour bien démarrer » écrit `audio.output`, `audio.device`, `audio.preview` et `interface.suggestions`. Un fichier qui ne peut pas être écrit laisse les réglages tels quels, et la barre d'état dit pourquoi. Une nouvelle icône de l'application (`interface.icon`, [#111](https://github.com/dascritch/machincast/issues/111)) réécrit aussi les raccourcis `machincast.desktop` déjà installés, dans `~/.local/share/applications` et sur le bureau, sans en créer ; l'image elle-même n'est ni copiée ni modifiée.
 - **Indexation** : le menu **Maintenance** lance `Machin indexer --window`, avec la configuration de l'interface, dans son propre programme ([Indexation : Machin indexer](indexation.md)).
 - **Simulation** : l'onglet Simulation lance `Machin player --simulation`, avec la configuration de l'interface, ses fichiers dans un répertoire temporaire (`--directory`) effacé à la fermeture de l'onglet ([Simuler la diffusion](diffusion.md#simuler-la-diffusion)).
 
@@ -91,7 +92,7 @@ Elle se termine par `maintenance terminée` (code 0), ou par `maintenance termin
 
 ```bash
 sudo -u postgres createdb --owner="$(id -un)" machincast_restauree
-pg_restore --dbname=machincast_restauree --no-owner sauvegardes/machincast-2026-10-22T08-30-00.dump
+pg_restore --dbname=machincast_restauree --no-owner ~/machincast-2026-10-22T08-30-00.dump
 ```
 
 ## Export et réimportation de la base : Machin backup-db, Machin restore-db
@@ -212,13 +213,13 @@ Les messages d'erreur courants et leur solution sont dans le tableau [En cas de 
 `Machin player`, `Machin indexer`, `Machin maintenance-db` et `Machin purge` notent chacun de leurs lancements dans leur journal et dans le log de la base, que l'interface montre ([#341](https://github.com/dascritch/machincast/issues/341), [#342](https://github.com/dascritch/machincast/issues/342) pour `Machin player`, hors simulation). Une fausse manœuvre ou un plantage s'y retrouve, avec l'heure :
 
 ```text
-2026-11-04T03:00:02+01:00 démarrage : Machin_indexer 0.9.0, pid 4812 : --full-audit
+2026-11-04T03:00:02+01:00 démarrage : Machin_indexer 0.9.1, pid 4812 : --full-audit
 2026-11-04T03:12:47+01:00 fin : Machin_indexer, pid 4812 : code de sortie 0
 ```
 
 - **Le démarrage**, nature `démarrage`, au niveau information : le programme, sa version, son numéro de processus (pid) et ses options.
 - **La fin**, nature `fin` : le même pid, et le [code de sortie](#messages-et-codes-de-sortie). Elle est au niveau information pour le code 0, en **incident** pour tout autre code, comme le 2 d'une option refusée, et se lit alors dans l'onglet **Incidents** de l'interface.
-- **Un plantage probable**, nature `plantage probable`, en incident : au lancement suivant d'un programme, si son démarrage précédent n'a pas noté de fin et que son processus ne tourne plus. Le programme a été tué, arrêté par un signal, ou le poste s'est éteint en cours de route : `Machin_purge, pid 3920, démarré le 03/11/2026 à 12:00, n'a pas noté sa fin`. S'il a laissé un [rapport de crash](#rapports-de-crash), le message se termine par son chemin : `; rapport de crash /opt/machincast/crash-dump/Machin_purge-2026-11-03T12-00-00-3920.txt`. Un lancement précédent encore en cours n'en est pas un. Le service de diffusion arrêté par `systemctl stop`, ou par le bouton de l'interface, note sa fin ; tué ou privé de courant, il note le plantage probable à son redémarrage.
+- **Un plantage probable**, nature `plantage probable`, en incident : au lancement suivant d'un programme, si son démarrage précédent n'a pas noté de fin et que son processus ne tourne plus. Le programme a été tué, arrêté par un signal, ou le poste s'est éteint en cours de route : `Machin_purge, pid 3920, démarré le 03/11/2026 à 12:00, n'a pas noté sa fin`. S'il a laissé un [rapport de crash](#rapports-de-crash), le message se termine par son chemin : `; rapport de crash /var/log/machincast/crash-dump/Machin_purge-2026-11-03T12-00-00-3920.txt`. Un lancement précédent encore en cours n'en est pas un. Le service de diffusion arrêté par `systemctl stop`, ou par le bouton de l'interface, note sa fin ; tué ou privé de courant, il note le plantage probable à son redémarrage.
 
 `Machin indexer --sound N`, que `Machin player` lance avant chaque sonore qu'il va jouer, ne note ni démarrage ni fin. `Machin maintenance-db --keep-open`, lancé depuis l'interface, note sa fin avant que sa fenêtre reste ouverte : la fermer n'est pas un plantage. Une configuration invalide ne dit pas quelle base joindre : seul le journal en parle. Une base injoignable n'empêche pas le programme de tourner : le journal dit que son démarrage n'a pas été noté dans la base.
 
