@@ -19,7 +19,7 @@ from PySide6.QtGui import QColor, QIcon, QImage
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import access, installation
+from machincast import access, installation, service
 from machincast import log as log_directory
 from machincast.audio import Plugin
 from machincast.configuration import PROJECT_DIRECTORY, AudioOutput
@@ -27,8 +27,6 @@ from machincast.installation import (
 	COMPONENTS,
 	ICON,
 	PIPEWIRE_UNIT,
-	PURGE_TIMER,
-	PURGE_UNIT,
 	SERVICE_ACCOUNT,
 	SERVICE_RUNTIME,
 	SERVICE_STATE,
@@ -41,8 +39,9 @@ from machincast.installation import (
 	check_output,
 	check_streams,
 	check_versions,
+	daily_unit,
+	indexing_unit,
 	polkit_rule,
-	purge_unit,
 	shortcut,
 	systemd_unit,
 )
@@ -472,34 +471,78 @@ def without_section(command: subprocess.CompletedProcess[str], name: str) -> Non
 
 @when(
 	parsers.re(
-		r"l'unité de la purge est rédigée pour le compte « (?P<name>[^»]+) », du groupe « (?P<group>[^»]+) »,"
+		r"les unités des tâches sont rédigées pour le compte « (?P<name>[^»]+) », du groupe « (?P<group>[^»]+) »,"
 		r" dans « (?P<directory>[^»]+) »"
 	),
-	target_fixture="written_purge",
+	target_fixture="written_tasks",
 )
-def write_purge(name: str, group: str, directory: str) -> str:
-	return purge_unit(Account(name, group, 1001), Path(directory))
+def write_tasks(name: str, group: str, directory: str) -> dict[str, str]:
+	"""https://github.com/dascritch/machincast/issues/455"""
+	account = Account(name, group, 1001)
+	return {
+		"la tâche quotidienne": daily_unit(account, Path(directory)),
+		"l'indexation rapide": indexing_unit(account, Path(directory)),
+	}
 
 
-@then(parsers.parse("l'unité de la purge a, dans la section « {name} », entre autres :"))
-def purge_section(written_purge: str, name: str, datatable: list[list[str]]) -> None:
+@then(
+	parsers.re(
+		r"l'unité de (?P<task>la tâche quotidienne|l'indexation rapide) a, dans la section « (?P<name>[^»]+) »,"
+		r" entre autres :"
+	)
+)
+def task_section(written_tasks: dict[str, str], task: str, name: str, datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable
-	_among(_section(written_purge, name), _expected(rows))
+	_among(_section(written_tasks[task], name), _expected(rows))
 
 
-@then("install.sh installe et retire l'unité et le minuteur de la purge de machincast.installation")
-def sh_install_purge() -> None:
+@then("install.sh a les noms des tâches du service de machincast.service")
+def sh_task_names() -> None:
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
-	assert f'UNITE_PURGE="{PURGE_UNIT}"' in install
-	assert f'MINUTEUR_PURGE="{PURGE_TIMER}"' in install
 	for expected in (
-		'installer_fichier purge-unit "${FICHIER_UNITE_PURGE}"',
-		'installer_fichier purge-timer "${FICHIER_MINUTEUR_PURGE}"',
-		'executer sudo systemctl enable --now "${MINUTEUR_PURGE}"',
-		'"${MINUTEUR_PURGE}"; do',
-		'executer sudo systemctl disable --now "${unite}"',
+		f'UNITE_QUOTIDIENNE="{service.DAILY_UNIT}"',
+		f'MINUTEUR_QUOTIDIEN="{service.DAILY_TIMER}"',
+		f'UNITE_INDEXATION="{service.INDEXING_UNIT}"',
+		f'MINUTEUR_INDEXATION="{service.INDEXING_TIMER}"',
+		f'FICHIER_MINUTEUR_QUOTIDIEN="{service.DAILY_TIMER_FILE}"',
 	):
 		assert expected in install, expected
+
+
+@then("install.sh, avec --no-timers, n'installe aucun minuteur et retire ceux d'avant")
+def sh_no_timers() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	assert "--no-timers) MINUTEURS=false ;;" in install
+	installing = _function(install, "installer_service")
+	assert 'if "${MINUTEURS}"; then\n\t\tinstaller_minuteurs\n\telse\n\t\tretirer_minuteurs\n\tfi' in installing, (
+		installing
+	)
+	tasks = _function(install, "installer_minuteurs")
+	for expected in (
+		'executer sudo systemctl enable --now "${MINUTEUR_QUOTIDIEN}" "${MINUTEUR_INDEXATION}"',
+		'installer_fichier daily-unit "${FICHIER_UNITE_QUOTIDIENNE}"',
+		'installer_fichier indexing-timer "${FICHIER_MINUTEUR_INDEXATION}"',
+	):
+		assert expected in tasks, expected
+	removing = _function(install, "retirer_minuteurs")
+	assert 'executer sudo systemctl disable --now "${minuteur}"' in removing, removing
+	assert "retirer_minuteurs" in _function(install, "retirer_service")
+
+
+@then("install.sh ne vérifie les minuteurs d'un service installé que s'ils le sont")
+def sh_checks_installed_timers() -> None:
+	checking = _function((PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8"), "fichiers_du_service_perimes")
+	assert 'if [[ -e "${FICHIER_MINUTEUR_QUOTIDIEN}" ]]; then' in checking, checking
+
+
+@then("install.sh retire l'ancien minuteur de la purge à midi, à l'installation comme au retrait du service")
+def sh_old_purge() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	assert 'ANCIEN_MINUTEUR_PURGE="machincast-purge.timer"' in install
+	old = _function(install, "retirer_ancienne_purge")
+	assert 'executer sudo systemctl disable --now "${ANCIEN_MINUTEUR_PURGE}"' in old, old
+	assert "retirer_ancienne_purge" in _function(install, "installer_service")
+	assert "retirer_ancienne_purge" in _function(install, "retirer_service")
 
 
 @then(parsers.parse("l'unité a, dans la section « {name} », entre autres :"))
@@ -558,9 +601,14 @@ def sh_service_names() -> None:
 def sh_service_files(datatable: list[list[str]]) -> None:
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
 	# La protection du poste (https://github.com/dascritch/machincast/issues/448) est une étape de l'installation.
-	installing = _function(install, "installer_service") + _function(install, "proteger_le_poste")
+	installing = (
+		_function(install, "installer_service")
+		+ _function(install, "proteger_le_poste")
+		+ _function(install, "installer_minuteurs")
+	)
 	checking = _function(install, "fichiers_du_service_perimes")
-	removing = _function(install, "retirer_service")
+	# Les minuteurs des tâches (https://github.com/dascritch/machincast/issues/455) se retirent à part.
+	removing = _function(install, "retirer_service") + _function(install, "retirer_minuteurs")
 	_headers, *rows = datatable
 	for action, variable in rows:
 		assert action.strip() in installation.ACTIONS, action

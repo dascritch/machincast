@@ -21,6 +21,15 @@ ACCOUNT_ENVIRONMENT = "MACHINCAST_SERVICE_ACCOUNT"
 """La variable d'environnement qui le remplace : les scénarios éprouvent la lecture avec un autre compte."""
 UNIT = "machincast.service"
 """L'unité systemd du service de lecture, celle que suit « Machin logs » : le même nom dans bin/Machin."""
+DAILY_UNIT = "machincast-daily.service"
+"""L'unité de la tâche quotidienne, Machin purge puis l'audit complet (https://github.com/dascritch/machincast/issues/455) :
+les mêmes noms dans install.sh."""
+DAILY_TIMER = "machincast-daily.timer"
+DAILY_TIMER_FILE = Path("/etc/systemd/system") / DAILY_TIMER
+"""Le minuteur de la tâche quotidienne, installé par install.sh --service, sauf avec --no-timers."""
+INDEXING_UNIT = "machincast-indexing.service"
+"""L'unité de l'indexation rapide, toutes les heures (https://github.com/dascritch/machincast/issues/455)."""
+INDEXING_TIMER = "machincast-indexing.timer"
 DELAY = 5
 """Secondes laissées à systemctl pour dire l'état du service."""
 RUNTIME = Path("/run/machincast")
@@ -197,3 +206,9 @@ def journal(since: datetime, lines: int = JOURNAL_LINES) -> list[str]:
 		if line.strip():
 			journal.append(line)
 	return journal
+
+
+def timers_installed(path: Path = DAILY_TIMER_FILE) -> bool:
+	"""Vrai si install.sh --service a installé les minuteurs des tâches : l'heure de la tâche quotidienne se règle
+	alors dans l'interface (https://github.com/dascritch/machincast/issues/455)."""
+	return path.exists()

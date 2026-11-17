@@ -22,7 +22,7 @@ from machincast.i18n import _
 from machincast.indexer import audit
 from machincast.indexer.check import report_text
 from machincast.indexer.decoding import UnavailableDecoder
-from machincast.indexer.indexer import OngoingIndexing, index, index_sound
+from machincast.indexer.indexer import ONGOING_CODE, OngoingIndexing, index, index_sound
 from machincast.interface.__main__ import available_display
 from machincast.runs import Recording
 
@@ -119,7 +119,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 		return FAILURE_CODE
 	except OngoingIndexing as error:
 		log.error(_("indexing refused: {error}").format(error=error))
-		return FAILURE_CODE
+		return ONGOING_CODE
 	log.info(report_text(report))
 	audit.produce(report.anomalies, report_text(report), start)
 	return 0

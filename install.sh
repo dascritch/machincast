@@ -7,9 +7,12 @@
 #                              (https://github.com/dascritch/machincast/issues/77)
 #   ./install.sh --service     installe aussi le service de diffusion : pour un ordinateur dédié à l'antenne
 #                              (https://github.com/dascritch/machincast/issues/22)
-#                              et le minuteur de la purge quotidienne de la base, à midi
-#                              (https://github.com/dascritch/machincast/issues/268)
-#   ./install.sh --remove-service   retire ce service et ce minuteur, la diffusion se lance de nouveau à la main
+#                              et les minuteurs de ses tâches : l'indexation rapide toutes les heures, la purge
+#                              puis l'audit complet chaque jour à l'heure réglée
+#                              (https://github.com/dascritch/machincast/issues/268,
+#                              https://github.com/dascritch/machincast/issues/455)
+#   ./install.sh --service --no-timers   sans ces minuteurs, pour un poste dont les tâches sont pilotées ailleurs
+#   ./install.sh --remove-service   retire ce service et ces minuteurs, la diffusion se lance de nouveau à la main
 #   ./install.sh --desktop      dépose aussi le raccourci de l'interface sur le bureau, sans le demander
 #   ./install.sh --no-desktop ne le dépose pas, sans le demander (https://github.com/dascritch/machincast/issues/62)
 #   ./install.sh --stop-programs   arrête les programmes de MachinCast en cours, sans le demander
@@ -46,10 +49,23 @@ FICHIER_LOGIND="/etc/systemd/logind.conf.d/50-machincast.conf"
 FICHIER_SYSTEME="/etc/systemd/system.conf.d/50-machincast.conf"
 # Purge quotidienne de la base, installée avec le service (https://github.com/dascritch/machincast/issues/268) : les
 # mêmes noms dans machincast.installation.
-UNITE_PURGE="machincast-purge.service"
-MINUTEUR_PURGE="machincast-purge.timer"
-FICHIER_UNITE_PURGE="/etc/systemd/system/${UNITE_PURGE}"
-FICHIER_MINUTEUR_PURGE="/etc/systemd/system/${MINUTEUR_PURGE}"
+# Les tâches du service (https://github.com/dascritch/machincast/issues/455) : l'indexation rapide toutes les heures, et
+# la tâche quotidienne, la purge puis l'audit complet, à l'heure de schedule.daily ; les mêmes noms dans
+# machincast.service.
+UNITE_QUOTIDIENNE="machincast-daily.service"
+MINUTEUR_QUOTIDIEN="machincast-daily.timer"
+UNITE_INDEXATION="machincast-indexing.service"
+MINUTEUR_INDEXATION="machincast-indexing.timer"
+FICHIER_UNITE_QUOTIDIENNE="/etc/systemd/system/${UNITE_QUOTIDIENNE}"
+FICHIER_MINUTEUR_QUOTIDIEN="/etc/systemd/system/machincast-daily.timer"
+FICHIER_UNITE_INDEXATION="/etc/systemd/system/${UNITE_INDEXATION}"
+FICHIER_MINUTEUR_INDEXATION="/etc/systemd/system/${MINUTEUR_INDEXATION}"
+# L'ancien minuteur de la purge, à midi (https://github.com/dascritch/machincast/issues/268) : la tâche quotidienne le
+# remplace, il est retiré à la mise à jour.
+ANCIENNE_UNITE_PURGE="machincast-purge.service"
+ANCIEN_MINUTEUR_PURGE="machincast-purge.timer"
+FICHIER_ANCIENNE_UNITE_PURGE="/etc/systemd/system/${ANCIENNE_UNITE_PURGE}"
+FICHIER_ANCIEN_MINUTEUR_PURGE="/etc/systemd/system/${ANCIEN_MINUTEUR_PURGE}"
 # Le service tourne sous son propre compte, avec son PipeWire et son WirePlumber
 # (https://github.com/dascritch/machincast/issues/381) : les mêmes noms dans machincast.installation.
 COMPTE_SERVICE="machincast"
@@ -100,6 +116,8 @@ SIMULATION=false
 DEV=false
 SERVICE=false
 RETIRER_SERVICE=false
+# Les minuteurs des tâches du service (https://github.com/dascritch/machincast/issues/455) : --no-timers les écarte.
+MINUTEURS=true
 # Raccourci sur le bureau : demander, oui ou non.
 BUREAU=demander
 # Service déjà installé mais pas à jour, sans --service (https://github.com/dascritch/machincast/issues/376) : le mettre à
@@ -126,7 +144,7 @@ RESEAU=true
 UTILISATEUR="$(id -un)"
 
 aide() {
-	tf 'Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] | --remove-service] [--desktop | --no-desktop]
+	tf 'Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] [--no-timers] | --remove-service] [--desktop | --no-desktop]
                     [--stop-programs | --leave-programs]
 
 Installs MachinCast in place, from this directory (%s), after checking the network access, without
@@ -161,11 +179,13 @@ reads its logs (%s) and pre-listens to the on-air output; the on-air card is res
 service. The sound files go in /home/machincast: those of the database in a personal directory
 are moved there, removed from the database, or left, not played, as chosen. A polkit rule lets it start, stop and
 restart with the password of an administrator, and asks for that password to power off, reboot or suspend the
-computer; its power, reboot and suspend keys, its lid and Ctrl+Alt+Del on the console are ignored. A systemd
-timer, %s, launches every day at noon
-Machin purge, which erases from the database what exceeds the expiry duration. Without --service, none
-of this is installed: the broadcast and the purge are launched by hand. A service installed before is
-checked: if it is not up to date for this version, the question is asked whether to update it.
+computer; its power, reboot and suspend keys, its lid and Ctrl+Alt+Del on the console are ignored. Two
+systemd timers run under %s: %s, the quick indexing every hour, and %s, the daily task,
+once a day from the hour set by schedule.daily (10:00 by default, also in the interface): Machin purge,
+which erases from the database what exceeds the expiry duration, then a full audit. Without --service,
+none of this is installed: the broadcast, the indexing and the purge are launched by hand. A service
+installed before is checked: if it is not up to date for this version, the question is asked whether
+to update it.
 
 Can be run again: each step already done is left as is.
 To run with your own account, not with sudo: the script asks for sudo when needed.
@@ -174,9 +194,11 @@ Options:
   --simulation  shows the commands without running anything
   --dev         also installs the tools of the development computer
   --service     also installs the broadcast service (computer dedicated to the on-air output only)
+  --no-timers   with --service, installs neither timer of the tasks, and removes those installed before:
+                the tasks are run by another tool, such as Ansible
   --remove-service
                 removes the broadcast service, its PipeWire, its account, its polkit rule, the
-                protection of the computer and the purge timer; the logs and /home/machincast stay
+                protection of the computer and the timers of the tasks; the logs and /home/machincast stay
   --dedicated   with --service, dedicates the computer and moves MachinCast to /opt/machincast,
                 without asking
   --desktop      also puts the shortcut of the interface on the desktop, without asking
@@ -186,7 +208,7 @@ Options:
   --leave-programs
                 lets them run during the installation, without asking
   -h, --help    this help
-' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${COMPTE_SERVICE}" "${UTILISATEUR}" "${COMPTE_SERVICE}" "${DOSSIER_DES_LOGS}" "${MINUTEUR_PURGE}"
+' "${RACINE}" "${UTILISATEUR}" "${UTILISATEUR}" "${UTILISATEUR}" "${ROLES[*]}" "${LIEN_INSTALLATION}" "${LIEN_WRAPPER}" "${UTILISATEUR}" "${PAQUETS_DEV[*]}" "${UNITE}" "${COMPTE_SERVICE}" "${UTILISATEUR}" "${COMPTE_SERVICE}" "${DOSSIER_DES_LOGS}" "${UTILISATEUR}" "${MINUTEUR_INDEXATION}" "${MINUTEUR_QUOTIDIEN}"
 }
 
 # Les messages s'écrivent en anglais, en format de printf entre apostrophes, suivi de leurs valeurs : etape, info et
@@ -695,10 +717,22 @@ fichiers_du_service_perimes() {
 	for paire in "unit:${FICHIER_UNITE}" "pipewire-unit:${FICHIER_UNITE_PIPEWIRE}" \
 		"wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" "wireplumber-service:${FICHIER_WIREPLUMBER_SERVICE}" \
 		"wireplumber-desktop:${FICHIER_WIREPLUMBER_BUREAU}" "tmpfiles:${FICHIER_TMPFILES}" \
-		"logrotate:${FICHIER_LOGROTATE}" "purge-unit:${FICHIER_UNITE_PURGE}" "purge-timer:${FICHIER_MINUTEUR_PURGE}" \
+		"logrotate:${FICHIER_LOGROTATE}" \
 		"rule:${FICHIER_REGLE}" "logind:${FICHIER_LOGIND}" "system-conf:${FICHIER_SYSTEME}"; do
 		fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
 	done
+	# Les minuteurs ne se vérifient que s'ils sont installés : le choix de --no-timers tient
+	# (https://github.com/dascritch/machincast/issues/455).
+	if [[ -e "${FICHIER_MINUTEUR_QUOTIDIEN}" ]]; then
+		for paire in "daily-unit:${FICHIER_UNITE_QUOTIDIENNE}" "daily-timer:${FICHIER_MINUTEUR_QUOTIDIEN}" \
+			"indexing-unit:${FICHIER_UNITE_INDEXATION}" "indexing-timer:${FICHIER_MINUTEUR_INDEXATION}"; do
+			fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
+		done
+	fi
+	# L'ancien minuteur de la purge, à midi, est périmé : la mise à jour le remplace.
+	if [[ -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]]; then
+		printf '%s\n' "${FICHIER_ANCIEN_MINUTEUR_PURGE}"
+	fi
 }
 
 vouloir_mettre_a_jour_le_service() {
@@ -986,7 +1020,7 @@ installer_service() {
 	installer_fichier tmpfiles "${FICHIER_TMPFILES}" || true
 	executer sudo systemd-tmpfiles --create "${FICHIER_TMPFILES}"
 	installer_fichier logrotate "${FICHIER_LOGROTATE}" || true
-	local unites_changees=false service_change=false purge_changee=false
+	local unites_changees=false service_change=false
 	if installer_fichier wireplumber-service "${FICHIER_WIREPLUMBER_SERVICE}"; then
 		service_change=true
 	fi
@@ -1001,13 +1035,7 @@ installer_service() {
 			unites_changees=true
 		fi
 	done
-	if installer_fichier purge-unit "${FICHIER_UNITE_PURGE}"; then
-		purge_changee=true
-	fi
-	if installer_fichier purge-timer "${FICHIER_MINUTEUR_PURGE}"; then
-		purge_changee=true
-	fi
-	if "${unites_changees}" || "${purge_changee}"; then
+	if "${unites_changees}"; then
 		executer sudo systemctl daemon-reload
 	fi
 	installer_fichier rule "${FICHIER_REGLE}" || true
@@ -1017,9 +1045,77 @@ installer_service() {
 		# Une unité ou une configuration modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
 		executer sudo systemctl try-restart "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
 	fi
-	# La purge de la base, chaque jour à midi : Machin purge, sous le compte de MachinCast, propriétaire de la base.
-	executer sudo systemctl enable --now "${MINUTEUR_PURGE}"
-	info 'follow the broadcast: Machin logs; the daily purge: journalctl --unit=%s' "${UNITE_PURGE}"
+	# Les tâches du service (https://github.com/dascritch/machincast/issues/455) : sans --service, une mise à jour garde
+	# les minuteurs s'ils sont installés, l'ancien de la purge compris, et n'en ajoute pas sinon.
+	if ! "${SERVICE}" && [[ ! -e "${FICHIER_MINUTEUR_QUOTIDIEN}" ]] && [[ ! -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]]; then
+		MINUTEURS=false
+	fi
+	retirer_ancienne_purge
+	if "${MINUTEURS}"; then
+		installer_minuteurs
+	else
+		retirer_minuteurs
+	fi
+	info 'follow the broadcast: Machin logs'
+}
+
+# Les minuteurs des tâches (https://github.com/dascritch/machincast/issues/455), sous le compte de MachinCast :
+# l'indexation rapide toutes les heures ; tous les quarts d'heure, la tâche quotidienne, qui ne passe que due, la purge
+# puis l'audit complet, à l'heure de schedule.daily.
+installer_minuteurs() {
+	local changes=false
+	if installer_fichier daily-unit "${FICHIER_UNITE_QUOTIDIENNE}"; then
+		changes=true
+	fi
+	if installer_fichier daily-timer "${FICHIER_MINUTEUR_QUOTIDIEN}"; then
+		changes=true
+	fi
+	if installer_fichier indexing-unit "${FICHIER_UNITE_INDEXATION}"; then
+		changes=true
+	fi
+	if installer_fichier indexing-timer "${FICHIER_MINUTEUR_INDEXATION}"; then
+		changes=true
+	fi
+	if "${changes}"; then
+		executer sudo systemctl daemon-reload
+	fi
+	executer sudo systemctl enable --now "${MINUTEUR_QUOTIDIEN}" "${MINUTEUR_INDEXATION}"
+	info 'the tasks: journalctl --unit=%s --unit=%s; the hour of the daily task: schedule.daily' \
+		"${UNITE_INDEXATION}" "${UNITE_QUOTIDIENNE}"
+}
+
+# Retire les minuteurs des tâches, s'ils sont installés : --no-timers, ou le retrait du service.
+retirer_minuteurs() {
+	local minuteur fichier retire=false
+	for minuteur in "${MINUTEUR_QUOTIDIEN}" "${MINUTEUR_INDEXATION}"; do
+		if [[ -e "/etc/systemd/system/${minuteur}" ]]; then
+			executer sudo systemctl disable --now "${minuteur}"
+		fi
+	done
+	for fichier in "${FICHIER_MINUTEUR_QUOTIDIEN}" "${FICHIER_UNITE_QUOTIDIENNE}" "${FICHIER_MINUTEUR_INDEXATION}" \
+		"${FICHIER_UNITE_INDEXATION}"; do
+		if [[ -e "${fichier}" ]]; then
+			retirer_fichier "${fichier}" || true
+			retire=true
+		fi
+	done
+	if "${retire}"; then
+		executer sudo systemctl daemon-reload
+	fi
+}
+
+# Retire l'ancien minuteur de la purge, à midi, et son unité, s'ils sont installés : la tâche quotidienne les remplace
+# (https://github.com/dascritch/machincast/issues/455).
+retirer_ancienne_purge() {
+	if [[ ! -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]] && [[ ! -e "${FICHIER_ANCIENNE_UNITE_PURGE}" ]]; then
+		return 0
+	fi
+	if [[ -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]]; then
+		executer sudo systemctl disable --now "${ANCIEN_MINUTEUR_PURGE}"
+	fi
+	retirer_fichier "${FICHIER_ANCIEN_MINUTEUR_PURGE}" || true
+	retirer_fichier "${FICHIER_ANCIENNE_UNITE_PURGE}" || true
+	executer sudo systemctl daemon-reload
 }
 
 # Le poste d'antenne ne s'éteint, ne redémarre ni ne se met en veille par mégarde
@@ -1052,14 +1148,16 @@ retirer_fichier() {
 retirer_service() {
 	etape 'Removal of the broadcast service'
 	local unite
-	for unite in "${UNITE}" "${UNITE_WIREPLUMBER}" "${UNITE_PIPEWIRE}" "${MINUTEUR_PURGE}"; do
+	retirer_minuteurs
+	retirer_ancienne_purge
+	for unite in "${UNITE}" "${UNITE_WIREPLUMBER}" "${UNITE_PIPEWIRE}"; do
 		if [[ -e "/etc/systemd/system/${unite}" ]]; then
 			executer sudo systemctl disable --now "${unite}"
 		fi
 	done
 	local fichier
 	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
-		"${FICHIER_MINUTEUR_PURGE}" "${FICHIER_UNITE_PURGE}" "${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
+		"${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
 		"${FICHIER_LOGROTATE}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}"; do
 		retirer_fichier "${fichier}" || true
 	done
@@ -1119,6 +1217,7 @@ principal() {
 			--dev) DEV=true ;;
 			--service) SERVICE=true ;;
 			--remove-service) RETIRER_SERVICE=true ;;
+			--no-timers) MINUTEURS=false ;;
 			--dedicated) DEDIE=true ;;
 			--desktop) BUREAU=oui ;;
 			--no-desktop) BUREAU=non ;;
