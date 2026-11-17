@@ -18,6 +18,8 @@ Une version passe par trois branches protégées ([Branches](../regles/developpe
 2. **`qualif`** reçoit la release candidate, par une PR de `preprod` vers `qualif`. Cette PR s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites : les étapes 6 à 9 ci-dessous. La release candidate tourne ensuite une semaine à l'antenne. Un défaut trouvé pendant cette semaine se corrige par un ticket dont la branche, `fix/<numéro>-<sujet>`, part de `qualif` et y revient par une PR : la release candidate n'embarque ainsi aucune nouvelle fonctionnalité de `preprod`. La correction met à jour la documentation dans les deux langues, puisque la traduction est déjà faite, et ajoute son ticket aux notes de la version ([Branches](../regles/developpement.md#branches)). La correction revient ensuite sur `preprod` par une PR de `qualif` vers `preprod`, et la semaine reprend.
 3. **`main`** reçoit la version qualifiée, par une PR de `qualif` vers `main`, puis elle est taguée et publiée ([Publier](#publier)).
 
+Les PR entre ces branches se mergent par un commit de fusion, « Create a merge commit », jamais par « Rebase and merge », pour que les commits gardent leurs identifiants d'une branche à l'autre ([Branches](../regles/developpement.md#branches)).
+
 ## Préparer la version
 
 Sur une branche `release/<version>`, tirée de `preprod`, en un seul commit, « Version <version> », lié aux tickets de la release, puis une PR vers `preprod` :
