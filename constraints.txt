@@ -9,6 +9,7 @@
 #   pip freeze --exclude-editable | sort -f
 ast_serialize==0.13.1
 coverage==7.17.3
+dukpy==0.5.1
 gherkin-official==43.0.0
 h11==0.16.0
 h2==4.4.1

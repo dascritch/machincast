@@ -285,7 +285,6 @@ Fonctionnalité: Vérifications de l'installation
 		Et sa sortie annonce « monitor.libcamera = disabled »
 
 	Plan du scénario: La règle polkit n'autorise que démarrer, arrêter et redémarrer le service, par un administrateur, au compte de MachinCast
-		Étant donné l'outil « node » du poste
 		Quand je lance « python -m machincast.installation rule » avec la configuration de test
 		Alors la règle polkit répond <reponse> à l'action « <action> » sur « <unite> », verbe « <verbe> », pour <qui>
 

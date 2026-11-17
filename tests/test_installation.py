@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
 
+import dukpy
 import gi
 import pytest
 import tomlkit
@@ -385,17 +386,29 @@ def accepted_unit(tmp_path: Path, name: str) -> None:
 
 
 POLKIT_SIMULATOR = """
-const polkit = {
+var polkit = {
 	Result: {NO: "no", YES: "yes", AUTH_SELF: "auth_self", AUTH_SELF_KEEP: "auth_self_keep",
 		AUTH_ADMIN: "auth_admin", AUTH_ADMIN_KEEP: "auth_admin_keep", NOT_HANDLED: null},
-	regles: [],
-	addRule(regle) { this.regles.push(regle); },
+	rules: [],
+	addRule: function (rule) { this.rules.push(rule); }
 };
-const [identifiant, unite, verbe, utilisateur] = process.argv.slice(2);
-const action = {id: identifiant, lookup: (cle) => ({unit: unite, verb: verbe})[cle]};
-const sujet = {user: utilisateur, local: true, active: true};
+var action = {id: dukpy.action, lookup: function (key) { return {unit: dukpy.unit, verb: dukpy.verb}[key]; }};
+var subject = {user: dukpy.user, local: true, active: true};
 """
-"""Ce que polkit donne à une règle : polkit.addRule, et une action sur une unité ; la réponse s'affiche."""
+"""Ce que polkit donne à une règle : polkit.addRule, et une action sur une unité. En ES5, comme le moteur de polkitd,
+Duktape, que dukpy embarque (https://github.com/dascritch/machincast/issues/470)."""
+
+POLKIT_ANSWER = """
+var answer = "rien";
+for (var index = 0; index < polkit.rules.length; index++) {
+	var response = polkit.rules[index](action, subject);
+	if ((response !== null) && (response !== undefined) && (answer === "rien")) {
+		answer = String(response);
+	}
+}
+answer;
+"""
+"""La réponse de la première règle qui en donne une, comme polkitd ; « rien » si aucune ne répond."""
 
 
 @then(
@@ -405,7 +418,6 @@ const sujet = {user: utilisateur, local: true, active: true};
 	)
 )
 def polkit_response(
-	tmp_path: Path,
 	command: subprocess.CompletedProcess[str],
 	response: str | None,
 	action: str,
@@ -414,22 +426,13 @@ def polkit_response(
 	who: str,
 ) -> None:
 	assert command.returncode == 0, command.stderr
-	program = tmp_path / "polkit.js"
-	program.write_text(
-		POLKIT_SIMULATOR
-		+ command.stdout
-		+ "\nconst reponses = polkit.regles.map((regle) => regle(action, sujet)).filter((r) => r != null);"
-		+ "\nprocess.stdout.write(reponses.length ? String(reponses[0]) : 'rien');\n",
-		encoding="utf-8",
-	)
 	user = _account()[0]
 	if who == "un autre compte":
 		user = f"autre-que-{user}"
-	result = subprocess.run(
-		["node", str(program), action, unit, verb, user], capture_output=True, text=True, timeout=60
+	answer = dukpy.evaljs(
+		[POLKIT_SIMULATOR, command.stdout, POLKIT_ANSWER], action=action, unit=unit, verb=verb, user=user
 	)
-	assert result.returncode == 0, result.stderr
-	assert result.stdout == ((response) or ("rien")), result.stdout
+	assert answer == ((response) or ("rien")), answer
 
 
 @then("l'unité de machincast.installation est celle de « Machin logs »")
