@@ -5073,6 +5073,14 @@ msgid "Close all closable tabs"
 msgstr "Fermer tous les onglets fermables"
 
 #: machincast/interface/tab_manager.py
+msgid "Reopen the closed tab"
+msgstr "Rouvrir l'onglet fermé"
+
+#: machincast/interface/tab_manager.py
+msgid "Recently closed tabs"
+msgstr "Onglets fermés récemment"
+
+#: machincast/interface/tab_manager.py
 #, python-brace-format
 msgid "tab “{key}” not reopened: {error}"
 msgstr "onglet « {key} » non rouvert : {error}"

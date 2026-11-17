@@ -124,6 +124,14 @@ De proche en proche ([#318](https://github.com/dascritch/machincast/issues/318))
 | <kbd>Ctrl</kbd>+<kbd>Home</kbd> | Le premier, l'onglet Antenne. |
 | <kbd>Ctrl</kbd>+<kbd>End</kbd> | Le dernier. |
 
+Sur l'onglet ouvert ([#428](https://github.com/dascritch/machincast/issues/428)) :
+
+| Raccourci | Effet |
+| --- | --- |
+| <kbd>Ctrl</kbd>+<kbd>W</kbd> | Le ferme, comme sa croix, s'il se ferme : une fiche, les listes Sonores et Feeds, la recherche, la simulation, l'airplay. Une fiche modifiée demande d'abord quoi faire de ses modifications. Sur un onglet fixe, rien. |
+| <kbd>Ctrl</kbd>+<kbd>S</kbd> | Enregistre la fiche, comme son bouton **Enregistrer** : la fiche se ferme une fois enregistrée. Sur une fiche sans modification, ou un autre onglet, rien. |
+| <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> | Rouvre le dernier onglet fermé, puis celui d'avant, à droite de l'onglet ouvert. |
+
 ## Menus
 
 Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle donne le ticket qui l'apportera.
@@ -139,6 +147,8 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Affichage | Ouvrir l'onglet Simulation | Ouvre la simulation ([Simulation](grille.md#simulation)). |
 | Affichage | Ouvrir l'onglet Airplay | Ouvre l'historique de diffusion, réglable et exportable ([Onglet Airplay](#onglet-airplay)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute ([Pré-écoute](sonores.md#pré-écoute)). Comme chaque bouton et chaque entrée de pré-écoute, elle porte un casque. |
+| Affichage | Rouvrir l'onglet fermé | Rouvre le dernier onglet fermé, aussi par <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> ; inactive tant qu'aucun onglet n'a été fermé ([#428](https://github.com/dascritch/machincast/issues/428)). |
+| Affichage | Onglets fermés récemment | Les 5 derniers onglets fermés, le plus récent en tête : choisir l'un d'eux le rouvre. La fiche d'un élément supprimé, ou pas encore enregistrée, n'y est pas. |
 | Affichage | Rafraîchir les onglets, en bas du menu | Relit ce que d'autres postes, l'indexation ou la diffusion ont changé, aussi par <kbd>F5</kbd> ([Rafraîchir les onglets](#rafraîchir-les-onglets)). |
 | Onglets | Un onglet ouvert par entrée | Mène à l'onglet ; l'onglet ouvert est coché, et chaque entrée donne le titre entier et le raccourci ([#398](https://github.com/dascritch/machincast/issues/398)). |
 | Onglets | Fermer tous les onglets fermables, à la fin | Ferme les fiches, les listes Sonores et Feeds, la recherche, la simulation et l'airplay, jamais les onglets fixes ; une fiche modifiée demande quoi faire de ses modifications, et **Annuler** laisse ouverts elle et les onglets qui la suivent ([#405](https://github.com/dascritch/machincast/issues/405)). |

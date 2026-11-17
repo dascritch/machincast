@@ -409,8 +409,10 @@ class MainWindow(QMainWindow):
 		airplay.triggered.connect(self._open_airplay)
 		self.preview_action = display_menu.addAction(icons.icon("preview"), _("Pre-listen…"))
 		self.preview_action.triggered.connect(lambda: self._preview(None))
-		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
 		display_menu.addSeparator()
+		# Les onglets fermés, à rouvrir (https://github.com/dascritch/machincast/issues/428).
+		self.tab_manager.add_reopening(display_menu)
+		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
 		refresh = display_menu.addAction(_("Refresh the tabs"))
 		refresh.setShortcut(QKeySequence("F5"))
 		refresh.triggered.connect(self.refresh)
@@ -611,7 +613,7 @@ class MainWindow(QMainWindow):
 		card = CARDS[category](self.connection, identifier, self.clock)
 		card.changed_title.connect(lambda title: self._rename(card, title))
 		card.requested_opening.connect(self._open)
-		card.deleted.connect(lambda: self._remove(card))
+		card.deleted.connect(lambda: self._remove(card, remembered=False))
 		# « Enregistrer » a réussi : l'onglet se ferme (https://github.com/dascritch/machincast/issues/382).
 		card.finished.connect(lambda: self._remove(card))
 		card.requested_duplication.connect(self._duplicate)
@@ -827,9 +829,9 @@ class MainWindow(QMainWindow):
 		if card.can_close():
 			self._remove(card)
 
-	def _remove(self, card: Card) -> None:
-		"""Ferme l'onglet de la fiche, sans rien lui demander."""
-		self.tab_manager.remove_tab(self.ui.tabs.indexOf(card))
+	def _remove(self, card: Card, *, remembered: bool = True) -> None:
+		"""Ferme l'onglet de la fiche, sans rien lui demander ; celle d'un élément supprimé n'est pas à rouvrir."""
+		self.tab_manager.remove_tab(self.ui.tabs.indexOf(card), remembered=remembered)
 		card.shut_down()
 		card.deleteLater()
 
