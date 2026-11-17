@@ -3837,6 +3837,12 @@ msgstr "Votre installation : {path}."
 
 #: machincast/interface/installation_notes.py
 #, python-brace-format
+msgid "Your installation: no text editor found; the document is {path}."
+msgstr ""
+"Votre installation : aucun éditeur de texte trouvé ; le document est {path}."
+
+#: machincast/interface/installation_notes.py
+#, python-brace-format
 msgid "Your installation: {path}, created from the template."
 msgstr "Votre installation : {path}, créé depuis le modèle."
 

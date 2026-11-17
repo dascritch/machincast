@@ -33,6 +33,8 @@ Trois branches protégées, sans commit direct ([#480](https://github.com/dascri
 - **Une release candidate** passe de `preprod` à `qualif` par une PR, qui s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites ([Publier une version](../developpement/release.md)).
 - **La qualification** dure une semaine : la release candidate tourne à l'antenne depuis `qualif`.
 	Un défaut trouvé pendant cette semaine se corrige par un ticket dont la branche part de `qualif` et y revient : la release candidate n'embarque aucune nouvelle fonctionnalité de `preprod`.
+	Sa branche s'appelle `fix/<numéro>-<sujet>`, et sa PR, vers `qualif`, ne lance que les scénarios du ticket, comme celle d'un ticket vers `preprod` ([#491](https://github.com/dascritch/machincast/issues/491)).
+	La release candidate étant déjà traduite, sa documentation se met à jour en français **et** en anglais, `doc/en` et les documents de premier niveau compris, et le ticket s'ajoute à la section de la version dans `RELEASE.fr.md` et `RELEASE.md`.
 	La correction revient ensuite sur `preprod` par une PR de `qualif` vers `preprod`, et la semaine reprend.
 	Puis une PR de `qualif` vers `main` la livre, et elle est taguée sur `main`.
 
