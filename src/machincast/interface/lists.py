@@ -82,7 +82,12 @@ WITHOUT_DAY = "~"
 """Clé de tri d'un événement sans récurrence : après les jours, que leurs chiffres classent."""
 """Le tri de la colonne « Priorité » : du plus important au moins important, jamais par ordre alphabétique
 (https://github.com/dascritch/machincast/issues/272)."""
-MODES = {"sequential": _("sequential"), "random": _("random")}
+MODES = {
+	"sequential": _("sequential"),
+	"random": _("random"),
+	"filename_ascending": _("A→Z of the file name"),
+	"filename_descending": _("Z→A of the file name"),
+}
 EMPTY_SEQUENCE = _("Empty sequence: it plays nothing, and an event that calls it moves on to its next element.")
 _RELAY = _("Empty event: it plays nothing, and the event of lower priority takes over during its slot.")
 EMPTY_EVENT = {

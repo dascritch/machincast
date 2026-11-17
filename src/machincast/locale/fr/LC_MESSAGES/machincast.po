@@ -1478,6 +1478,16 @@ msgid "Random"
 msgstr "Aléatoire"
 
 #: machincast/interface/bank_card.py
+#: machincast/interface/lists.py
+msgid "A→Z of the file name"
+msgstr "A→Z du nom de fichier"
+
+#: machincast/interface/bank_card.py
+#: machincast/interface/lists.py
+msgid "Z→A of the file name"
+msgstr "Z→A du nom de fichier"
+
+#: machincast/interface/bank_card.py
 msgid "Keep the sounds' own"
 msgstr "Garder ceux des sonores"
 
