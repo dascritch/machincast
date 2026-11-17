@@ -25,6 +25,8 @@ MachinCast parle français et anglais, selon la langue de la session : son inter
 - Insertion de programmes locaux et d'espaces publicitaires sur un réseau syndiqué
 - Sonorisation d'un espace recevant du public
 
+[Ce que ne fait pas MachinCast : Voir ce chapitre sur sa conception](doc/fr/architecture.md#91-ce-que-nest-pas-machincast)
+
 ## Fonctionnalités
 
 - Gestion d'une grille horaire
