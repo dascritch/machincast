@@ -30,6 +30,9 @@ dev = [
 	"pygobject-stubs>=2.11",
 	# Serveur HTTP/2 du scénario « release » des flux (https://github.com/dascritch/machincast/issues/278).
 	"hypercorn>=0.17",
+	# La règle polkit s'exécute avec Duktape, le moteur de polkitd (https://github.com/dascritch/machincast/issues/470) ;
+	# dukpy 0.6 est passé à QuickJS.
+	"dukpy>=0.5.1,<0.6",
 ]
 
 [project.urls]
