@@ -14,6 +14,12 @@ Fonctionnalité: Documentation d'installation et definition of done
 		Et doc ne contient que des répertoires de langue, dont la source française doc/fr
 		Et chaque lien relatif des documents de premier niveau et de doc/fr mène à un fichier du dépôt
 
+	Scénario: doc/en traduit les guides humains de doc/fr, et seulement eux
+		Alors doc/en a les mêmes pages que doc/fr pour les guides « utilisateur » et « administration », et rien d'autre
+		Et chaque lien relatif des documents de premier niveau et de doc/en mène à un fichier du dépôt
+		Et les ancres citées par les pages de doc/en mènent toutes à un titre du fichier visé
+		Et chaque document de premier niveau en anglais mène aux guides de doc/en, jamais à ceux de doc/fr
+
 	# ─── INSTALL.md ────────────────────────────────────────────
 
 	Plan du scénario: <readme> mène à <install>

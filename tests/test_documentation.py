@@ -392,6 +392,55 @@ def documentation_links(language: str) -> None:
 	assert not broken_list, broken_list
 
 
+TRANSLATED_GUIDES = ("utilisateur", "administration")
+"""Les guides humains traduits dans doc/en, leurs pages Markdown : leurs images restent celles de doc/fr. La spécification, l'architecture, les règles et le guide du développement
+restent en français (doc/fr/regles/developpement.md, Langues)."""
+
+
+def _guide_files(language: str) -> list[str]:
+	files = []
+	for path in sorted((ROOT / "doc" / language).rglob("*.md")):
+		if path.is_file():
+			files.append(str(path.relative_to(ROOT / "doc" / language)))
+	return files
+
+
+@then(
+	parsers.parse(
+		"doc/en a les mêmes pages que doc/fr pour les guides « utilisateur » et « administration », et rien d'autre"
+	)
+)
+def english_guides() -> None:
+	expected = []
+	for path in _guide_files("fr"):
+		if path.split("/")[0] in TRANSLATED_GUIDES:
+			expected.append(path)
+	assert expected
+	assert _guide_files("en") == expected
+
+
+@then("les ancres citées par les pages de doc/en mènent toutes à un titre du fichier visé")
+def english_anchors() -> None:
+	broken_list = []
+	for document in sorted((ROOT / "doc" / "en").rglob("*.md")):
+		for anchor in broken_anchors(document):
+			broken_list.append(f"{document.relative_to(ROOT)}: {anchor}")
+	assert not broken_list, broken_list
+
+
+@then("chaque document de premier niveau en anglais mène aux guides de doc/en, jamais à ceux de doc/fr")
+def english_links() -> None:
+	misdirected = []
+	for name in FIRST_LEVEL:
+		for guide in TRANSLATED_GUIDES:
+			# Les images des guides, comme les captures, restent dans doc/fr : seules leurs pages sont traduites.
+			for page in re.findall(rf"doc/fr/{guide}/[^)#\s]*\.md", text(ROOT / f"{name}.md")):
+				misdirected.append(f"{name}.md → {page}")
+	assert not misdirected, misdirected
+	assert "doc/en/utilisateur/README.md" in text(ROOT / "README.md")
+	assert "doc/en/administration/README.md" in text(ROOT / "README.md")
+
+
 @then(parsers.parse("chaque ligne de prose de « {document} » ne porte qu'une phrase"))
 def one_sentence_per_line(document: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/445 : tests.markdown.sentence_ends dit où une ligne en porte

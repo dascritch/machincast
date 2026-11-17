@@ -13,11 +13,15 @@ Fonctionnalité: Documentation par public
 
 	# ─── Organisation ──────────────────────────────────────────
 
-	Scénario: README.md mène à chaque public, et INSTALL.md au guide d'administration
-		Alors README.md contient un lien vers doc/fr/utilisateur/README.md
-		Et README.md contient un lien vers doc/fr/administration/README.md
+	Scénario: README.md mène à chaque public, et INSTALL.md au guide d'administration, chacun dans sa langue
+		Alors README.fr.md contient un lien vers doc/fr/utilisateur/README.md
+		Et README.fr.md contient un lien vers doc/fr/administration/README.md
+		Et README.fr.md contient un lien vers doc/fr/developpement/README.md
+		Et INSTALL.fr.md contient un lien vers doc/fr/administration/README.md
+		Et README.md contient un lien vers doc/en/utilisateur/README.md
+		Et README.md contient un lien vers doc/en/administration/README.md
 		Et README.md contient un lien vers doc/fr/developpement/README.md
-		Et INSTALL.md contient un lien vers doc/fr/administration/README.md
+		Et INSTALL.md contient un lien vers doc/en/administration/README.md
 
 	Scénario: L'ancien guide d'utilisation renvoie à chaque public
 		Alors doc/fr/utilisation.md contient un lien vers utilisateur/README.md
@@ -28,10 +32,12 @@ Fonctionnalité: Documentation par public
 		Alors chaque page de doc/<dossier> est liée depuis doc/<dossier>/README.md
 
 		Exemples:
-			| dossier        |
-			| utilisateur    |
-			| administration |
-			| developpement  |
+			| dossier           |
+			| fr/utilisateur    |
+			| fr/administration |
+			| fr/developpement  |
+			| en/utilisateur    |
+			| en/administration |
 
 	Scénario: Le guide utilisateur ne fait taper aucune commande
 		Alors aucune page du guide utilisateur n'a de bloc de commandes à taper

@@ -1,5 +1,7 @@
 # Guide d'administration
 
+*[English version](../../en/administration/README.md)*
+
 Ce guide s'adresse à l'administrateur du poste de diffusion : il décrit les programmes de MachinCast en ligne de commande, leur configuration, leurs messages et leurs droits. Il ne demande pas de connaître le code.
 
 - **Installer, mettre à jour, désinstaller** : [INSTALL.md](../../../INSTALL.fr.md), avec le service de diffusion et [En cas de problème](../../../INSTALL.fr.md#en-cas-de-problème).

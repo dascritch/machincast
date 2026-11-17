@@ -2,24 +2,65 @@
 
 *[Version française](README.fr.md)*
 
-**Version 0.9.0**, released on 2026-10-28, first published version, ahead of 1.0: [what it brings](RELEASE.md), and [its archive](https://github.com/dascritch/machincast/releases/tag/v0.9.0).
+**Version 0.9.1**, released on 2026-11-17, ahead of 1.0: [what it brings](RELEASE.md), and [its archive](https://github.com/dascritch/machincast/releases/tag/v0.9.1).
 
-Automated audio playout system for radio continuity, on Linux: it keeps the station on air outside live shows, from banks of sounds, external *feeds* and scheduled events. The service tolerates failing sources, has fallback scenarios, and keeps its business services apart. Sound files are immutable, any treatment is done without modifying them. 
+Automated audio playout system for radio continuity, on Linux: it keeps the station on air outside live shows, from banks of sounds, external *feeds* and scheduled events. The service tolerates failing sources, has fallback scenarios, and keeps its business services apart. Sound files are immutable, any treatment is done without modifying them.
 
 ![a discotheque](doc/banner.jpg)
 
-MachinCast speaks English and French, following the language of the session: its interface, messages and help ([INSTALL.md](INSTALL.md#choosing-the-language), [#360](https://github.com/dascritch/machincast/issues/360)). The detailed guides are in French for now.
+MachinCast speaks English and French, following the language of the session: its interface, messages and help ([INSTALL.md](INSTALL.md#choosing-the-language), [#360](https://github.com/dascritch/machincast/issues/360)).
 
-- **On-air team**: the [on-air guide](doc/fr/utilisateur/README.md) (French), to schedule and follow the station from the graphical interface
-- **Station administrator**: [INSTALL.md](INSTALL.md) for the installation, then the [administration guide](doc/fr/administration/README.md) (French)
+- **On-air team**: the [on-air guide](doc/en/utilisateur/README.md), to schedule and follow the station from the graphical interface
+- **Station administrator**: [INSTALL.md](INSTALL.md) for the installation, then the [administration guide](doc/en/administration/README.md)
 - **Developer**: the [development guide](doc/fr/developpement/README.md) (French), with the [functional specification](doc/fr/spec.md), [its architecture](doc/fr/architecture.md), and the [project rules](doc/fr/regles/developpement.md); [CONTRIBUTING.md](CONTRIBUTING.md) for the screens and the translations
 - **When something fails**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md), the known failures, their causes and what to check
 
 ![Screenshot of the MachinCast control interface](https://github.com/dascritch/machincast/raw/main/doc/fr/captures/accueil.png)
 
+## Use cases
+
+- Station continuity in the master control room
+- Feeding the audio input of a transmitter from a stream, with a fallback
+- Producing an event-based streamed radio
+- Inserting local programmes and advertising slots on a syndicated network
+- Sound for a space open to the public
+
+[What MachinCast does not do: see this chapter on its design](doc/fr/architecture.md#91-ce-que-nest-pas-machincast) (French)
+
+## Features
+
+- Management of a schedule
+- Management of special editions and prioritisation of shows
+- Management of the number of rotations and of the broadcast periods of the sounds
+- Relaying an external stream, with incident and live-resumption scenarios
+- Detection of the start and the end of a sound
+- Crossfade set globally and per sound
+- Sound banks played sequentially or in fair random order, with an option against back-to-back plays
+- Pre-listen of the live output, of the programmes and of the sounds
+- Graphical interface independent from the on-air playout service
+- Audit of the sounds
+- Handling of dead air, with a fallback programme
+- Immutable audio files, real-time treatments
+
+### To come
+
+- Sending the names of the sound and the show to external services
+- Broadcasting a stream pilot
+- Automated mixing of a pre-recorded show made of segments
+- Input of audio sources through a sound card
+- Metadata mixing
+- Remote recording in MP3, Ogg, M4A, DASH and HLS
+
 ## Recommended setup
 
 A graphical Linux system, with the PipeWire sound server, ideally Debian or Ubuntu LTS, and two separate sound outputs, one of them a <q>good quality</q> one, for the feed to the station's final control room or its master control.
+
+Technical requirements:
+
+- a dedicated machine, with the playout service installed in production mode ([INSTALL.md](INSTALL.md#playout-service));
+- a processor of 1 GHz at least;
+- 2 GB of RAM;
+- 50 GB of disk space for the sounds.
 
 ## Background
 

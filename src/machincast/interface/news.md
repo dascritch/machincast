@@ -7,6 +7,17 @@ version, most recent first, titled "## <version> — <YYYY-MM-DD>", the same as 
 precedes the first section is not shown. Procedure: doc/fr/developpement/release.md (French).
 -->
 
+## 0.9.1 — 2026-11-17
+
+- **MachinCast speaks your language**: French or English, according to the session.
+- **The On air tab** shows whether the broadcast is running, and the Broadcast menu lets you go back to the start of the sound, restart the event, or cut the air by the fallback or a feed.
+- **A « breaking » event** goes before everything else in the schedule, and each event chooses what it does at the end of its list.
+- **A bank can follow the order of the file names**, from A to Z or from Z to A: the rotation is prepared by naming the files.
+- **Tabs** come back at launch, move, and answer Ctrl+W (close), Ctrl+S (save), Ctrl+Enter (save and close) and Ctrl+Shift+T (reopen).
+- **Lists** can be filtered, exported as CSV and have alternating colours; the pre-listen has its own window.
+- **The card of a sound** sets its start and its end on the timeline, and offers its full check.
+- **Help → Your installation** opens your team's document, to fill in, and **Maintenance → Export the database…** makes a backup of it.
+
 ## 0.9.0 — 2026-10-28
 
 Welcome to the first published version of MachinCast!

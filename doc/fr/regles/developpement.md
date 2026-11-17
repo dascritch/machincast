@@ -56,6 +56,8 @@ La documentation pour les humains va dans le guide de son public ([#128](https:/
 **Langues** ([#352](https://github.com/dascritch/machincast/issues/352), [#355](https://github.com/dascritch/machincast/issues/355)) : la documentation française est la source, celle qu'un ticket met à jour.
 Les documents de premier niveau (`README.md`, `INSTALL.md`, `TROUBLESHOOTING.md`, `CONTRIBUTING.md`, `RELEASE.md`) sont en anglais, chacun avec sa source française, `*.fr.md` ; chacun mène à l'autre par un lien en tête.
 `doc/` a un répertoire par langue : `doc/fr/`, la source, et `doc/en/`, sa traduction.
+`doc/en/` ne traduit que les guides humains, le [guide de l'antenne](../utilisateur/README.md) (`utilisateur`) et le [guide d'administration](../administration/README.md) (`administration`), sous les mêmes noms de pages ; leurs captures et leurs images restent celles de `doc/fr/`.
+La spécification, l'architecture, ces règles et le guide du développement restent en français : un document anglais qui les cite mène à `doc/fr/`, avec la mention « (French) ».
 Un ticket ne met à jour que les sources françaises ; la traduction anglaise, des documents de premier niveau comme de `doc/en/`, ne se refait qu'à la préparation d'une release ([Publier une version](../developpement/release.md)).
 Un scénario de [`documentation.feature`](../../../tests/features/documentation.feature) vérifie les deux versions de chaque document de premier niveau, et les liens de `doc/fr`.
 `doc/` n'a que des répertoires de langue ; un fichier commun à toutes les langues, comme la bannière du README (`doc/banner.jpg`), reste à sa racine ([#461](https://github.com/dascritch/machincast/issues/461)).
