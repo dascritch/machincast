@@ -30,9 +30,9 @@ completer() {
 	[[ "${output}" == *"-F _Machin"* ]]
 }
 
-@test "Machin <TAB> propose les binaires, maintenance-db, purge et grant-read compris, logs, tasks, dev, dev-test et dev-screenshots" {
+@test "Machin <TAB> propose les binaires, maintenance-db, backup-db, restore-db, purge et grant-read compris, logs, tasks, dev, dev-test et dev-screenshots" {
 	run completer Machin ""
-	[ "${output}" = "$(printf '%s\n' dev dev-screenshots dev-test grant-read indexer interface logs maintenance-db player purge tasks)" ]
+	[ "${output}" = "$(printf '%s\n' backup-db dev dev-screenshots dev-test grant-read indexer interface logs maintenance-db player purge restore-db tasks)" ]
 }
 
 @test "Machin dev-test <TAB> propose --coverage et --scenarios, puis --scenarios après --coverage" {
@@ -79,6 +79,14 @@ completer() {
 	touch captures.txt
 	run completer Machin dev-screenshots cap
 	[ "${output}" = "captures-essai" ]
+}
+
+@test "Machin restore-db <TAB> propose les sauvegardes .dump et les répertoires, pas les autres fichiers" {
+	cd "${BATS_TEST_TMPDIR}"
+	mkdir sauvegardes
+	touch sauvegarde.dump sauvegarde.txt
+	run completer Machin restore-db sauve
+	[ "${output}" = "$(printf '%s\n' sauvegarde.dump sauvegardes)" ]
 }
 
 @test "Machin --config <TAB> propose des fichiers" {

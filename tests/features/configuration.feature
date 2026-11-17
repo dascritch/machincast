@@ -285,6 +285,24 @@ Fonctionnalité: Fichier de configuration
 			| "10:00:00" |
 			| 10       |
 
+	Scénario: Sans clé backup.directory, les sauvegardes vont dans le répertoire personnel du compte
+		https://github.com/dascritch/machincast/issues/347 : l'export de la base et la maintenance y écrivent leur
+		sauvegarde.
+		Étant donné une configuration valide où la clé "backup.directory" est absente
+		Quand je charge la configuration
+		Alors les sauvegardes vont dans « ~ »
+
+	Plan du scénario: La clé backup.directory donne le répertoire des sauvegardes, relatif au fichier de configuration
+		Étant donné une configuration valide où la clé "backup.directory" vaut <valeur>
+		Quand je charge la configuration
+		Alors les sauvegardes vont dans « <répertoire> »
+
+		Exemples:
+			| valeur             | répertoire                     |
+			| "~/sauvegardes"    | ~/sauvegardes                  |
+			| "/media/cle/radio" | /media/cle/radio               |
+			| "sauvegardes"      | <configuration>/sauvegardes    |
+
 	Scénario: Sans section [silences], le seuil de silence est de -40 dB
 		Étant donné une configuration valide sans section "silences"
 		Quand je charge la configuration

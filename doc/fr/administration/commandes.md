@@ -5,6 +5,7 @@
 - [Lancer les programmes : Machin](#lancer-les-programmes--machin)
 - [Interface graphique : Machin interface](#interface-graphique--machin-interface)
 - [Maintenance de la base : Machin maintenance-db](#maintenance-de-la-base--machin-maintenance-db)
+- [Export et réimportation de la base : Machin backup-db, Machin restore-db](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)
 - [Purge de la base : Machin purge](#purge-de-la-base--machin-purge)
 - [Lecture par le service de diffusion : Machin grant-read](#lecture-par-le-service-de-diffusion--machin-grant-read)
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
@@ -28,6 +29,8 @@ Machin --help                         # aide complète
 | `Machin indexer` | Enregistrement des fichiers déposés dans les répertoires des banques, vérification des fichiers sonores et mise à jour de la base. |
 | `Machin interface` | [Interface graphique](#interface-graphique--machin-interface) de supervision et de programmation : l'antenne, la grille, les [listes](../utilisateur/listes.md#listes) et les fiches, la simulation, l'airplay et les incidents ([guide de l'antenne](../utilisateur/README.md)). |
 | `Machin maintenance-db` | [Maintenance de la base de production](#maintenance-de-la-base--machin-maintenance-db) : sauvegarde, vérification du schéma et des rôles, optimisation. |
+| `Machin backup-db` | [Export de la base de production](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db) : une sauvegarde datée, sans rien modifier. |
+| `Machin restore-db FICHIER` | [Réimportation d'une sauvegarde](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db) dans une base neuve, vide. |
 | `Machin purge` | [Purge de la base de production](#purge-de-la-base--machin-purge) : efface ce qui dépasse la durée de péremption, jamais un fichier. |
 | `Machin grant-read` | [Lecture des sonores par le service de diffusion](#lecture-par-le-service-de-diffusion--machin-grant-read), qui tourne sous son propre compte. |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
@@ -66,11 +69,11 @@ Machin --help                         # aide complète
 
 `Machin maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)) entretient la base de production (`database.production`), en trois étapes, dans l'ordre :
 
-1. **Sauvegarde** : `pg_dump` copie la base dans un nouveau fichier daté, `<base>-<AAAA-MM-JJTHH-MM-SS>.dump`, au format personnalisé de PostgreSQL. Il s'écrit dans le répertoire `sauvegardes`, à côté du fichier de configuration, ou dans celui de `--backups`, créé au besoin. Aucune sauvegarde n'est effacée : les anciennes se suppriment à la main. **Une sauvegarde qui échoue arrête la maintenance**, sans rien modifier.
+1. **Sauvegarde** : `pg_dump` copie la base dans un nouveau fichier daté, `<base>-<AAAA-MM-JJTHH-MM-SS>.dump`, au format personnalisé de PostgreSQL. Il s'écrit dans le répertoire des sauvegardes, `backup.directory`, le répertoire personnel du compte par défaut ([#347](https://github.com/dascritch/machincast/issues/347)), ou dans celui de `--backups`, créé au besoin. Aucune sauvegarde n'est effacée : les anciennes se suppriment à la main. **Une sauvegarde qui échoue arrête la maintenance**, sans rien modifier.
 2. **Schéma** : les migrations manquantes sont appliquées, comme le fait `install.sh`. Une base qui avait reçu les quinze anciennes migrations, fondues depuis dans le schéma unique, garde ses données, et la maintenance l'annonce ; une base restée à une ancienne migration intermédiaire est laissée telle quelle, avec `schéma impossible à mettre à jour : …`, après sa sauvegarde ([#314](https://github.com/dascritch/machincast/issues/314), [Mettre à jour](../../../INSTALL.fr.md#mettre-à-jour)). Puis chacun des trois rôles de MachinCast doit pouvoir être endossé par le compte. Un rôle absent ou non autorisé est signalé, avec les deux commandes qu'un administrateur lance pour l'autoriser.
 3. **Optimisation** : `VACUUM (ANALYZE)` récupère la place des lignes effacées et met à jour les statistiques qui guident PostgreSQL. La diffusion peut continuer pendant ce temps.
 
-Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (`sauvegardes`, à côté de sa configuration), que le bouton « Choisir l'emplacement… » permet de changer. Elle l'ouvre ensuite dans une fenêtre de terminal, avec la configuration de l'interface et ce répertoire (`--backups`) ; la fenêtre reste ouverte à la fin, jusqu'à ce qu'on la ferme.
+Le compte qui la lance doit être celui de MachinCast, propriétaire de la base : il n'a besoin d'aucun droit particulier sur le serveur. Elle se lance aussi depuis l'interface, menu **Maintenance → Maintenance de la base de données…**. L'interface demande d'abord confirmation, en donnant le répertoire où la sauvegarde sera enregistrée (le répertoire des sauvegardes de sa configuration), que le bouton « Choisir l'emplacement… » permet de changer. Elle l'ouvre ensuite dans une fenêtre de terminal, avec la configuration de l'interface et ce répertoire (`--backups`) ; la fenêtre reste ouverte à la fin, jusqu'à ce qu'on la ferme.
 
 ```bash
 Machin maintenance-db
@@ -79,17 +82,38 @@ Machin maintenance-db --backups /srv/sauvegardes/machincast
 
 | Option | Effet |
 | --- | --- |
-| `--backups REPERTOIRE` | Répertoire des sauvegardes, au lieu de `sauvegardes` à côté du fichier de configuration. |
+| `--backups REPERTOIRE` | Répertoire des sauvegardes, au lieu de `backup.directory`. |
 | `--keep-open` | Une fois la maintenance finie, garde le terminal ouvert jusqu'à sa fermeture (ou `Ctrl-D`, `Ctrl-C`) ; Entrée n'y fait rien. L'interface s'en sert, pour que le compte rendu reste lisible. |
 
 Elle se termine par `maintenance terminée` (code 0), ou par `maintenance terminée, avec des anomalies` (code 1) quand un rôle manque. Une base injoignable, une sauvegarde impossible ou un schéma impossible à mettre à jour donnent aussi le code 1.
 
-**Restaurer une sauvegarde.** Elle est faite par le `pg_dump` de la version du serveur, `/usr/lib/postgresql/<version>/bin/pg_dump` ([#384](https://github.com/dascritch/machincast/issues/384)), sinon par celui du `PATH` : le `pg_dump` du `PATH` est le plus récent installé, et sa sauvegarde ne se relirait pas avec un `pg_restore` plus ancien (`unsupported version (1.16) in file header`). Elle se relit avec le `pg_restore` du serveur, de préférence dans une base neuve, pour comparer avant de remplacer quoi que ce soit :
+**Restaurer une sauvegarde.** Elle est faite par le `pg_dump` de la version du serveur, `/usr/lib/postgresql/<version>/bin/pg_dump` ([#384](https://github.com/dascritch/machincast/issues/384)), sinon par celui du `PATH` : le `pg_dump` du `PATH` est le plus récent installé, et sa sauvegarde ne se relirait pas avec un `pg_restore` plus ancien (`unsupported version (1.16) in file header`). Sur un poste neuf, `./install.sh` propose de la réimporter dans la base qu'il crée ; à la main, `Machin restore-db` ([Export et réimportation](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db)). Pour seulement la consulter, elle se relit avec le `pg_restore` du serveur, dans une base neuve, pour comparer avant de remplacer quoi que ce soit :
 
 ```bash
 sudo -u postgres createdb --owner="$(id -un)" machincast_restauree
 pg_restore --dbname=machincast_restauree --no-owner sauvegardes/machincast-2026-10-22T08-30-00.dump
 ```
+
+## Export et réimportation de la base : Machin backup-db, Machin restore-db
+
+Pour repartir vite après une panne, sur ce poste ou sur un autre ([#347](https://github.com/dascritch/machincast/issues/347)) :
+
+1. **Exporter** : `Machin backup-db` sauvegarde la base de production, comme la première étape de la maintenance, sans rien modifier d'autre : `pg_dump` de la version du serveur, au format personnalisé de PostgreSQL, dans un nouveau fichier daté, `<base>-<AAAA-MM-JJTHH-MM-SS>.dump`, du répertoire des sauvegardes (`backup.directory`, le répertoire personnel du compte par défaut ; `--backups REPERTOIRE` pour un autre). L'interface le lance aussi, sans terminal, menu **Maintenance → Exporter la base…** ; la barre d'état dit où la sauvegarde est enregistrée, ou pourquoi elle n'a pas pu l'être. Le répertoire se règle dans **Fichier → Paramètres du service…**, page **Sauvegarde**, qui copie aussi `machincast.toml`, sous un nom daté, là où on le choisit, comme une clé USB.
+2. **Réimporter** : sur le poste neuf, `./install.sh` crée la base de production, puis propose de réimporter une sauvegarde ([Réimporter une sauvegarde](../../../INSTALL.fr.md#réimporter-une-sauvegarde)). À la main, sur une base vide :
+
+```bash
+Machin backup-db
+Machin backup-db --backups /media/cle/radio
+Machin restore-db /media/cle/radio/machincast-2026-11-17T10-00-00.dump
+```
+
+`Machin restore-db FICHIER` vérifie d'abord la sauvegarde, et refuse :
+
+- un fichier introuvable, ou qui n'est pas une sauvegarde de MachinCast : `pg_restore` ne le lit pas, ou les tables de MachinCast et le registre de ses migrations y manquent ;
+- une sauvegarde d'une version plus récente de MachinCast, dont des migrations sont inconnues de celle installée : `… vient d'une version plus récente de MachinCast (migrations inconnues : …) : mettre d'abord MachinCast à jour` ;
+- une base de production qui n'est pas vide : **une base n'est jamais écrasée**. Pour repartir d'une sauvegarde sur un poste déjà installé, la base se supprime d'abord, après une dernière sauvegarde (`sudo -u postgres dropdb machincast`, du nom de `database.production`) ; `./install.sh` la recrée, puis propose la réimportation.
+
+Puis le `pg_restore` de la version du serveur la réimporte en une seule transaction : un échec laisse la base vide. Ses tables reviennent au compte qui la réimporte, avec les droits des rôles de MachinCast, que `./install.sh` a créés sur le serveur. Une sauvegarde d'une version plus ancienne reçoit enfin les migrations qui lui manquent. Code 0 si tout est fait, 1 sinon ; `Machin backup-db` de même. Ses fichiers sonores ne sont pas dans la sauvegarde : ils se recopient à part, aux mêmes chemins.
 
 ## Purge de la base : Machin purge
 

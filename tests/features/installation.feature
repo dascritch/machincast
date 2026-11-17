@@ -602,3 +602,66 @@ Fonctionnalité: Vérifications de l'installation
 	Scénario: install.sh ne retire un répertoire que par retirer_repertoires
 		Alors install.sh ne lance « rm --recursive » que dans retirer_repertoires
 		Et les extensions des sonores d'install.sh sont celles de machincast.protection
+
+	# ─── Réimportation d'une sauvegarde à la création de la base (https://github.com/dascritch/machincast/issues/347) ───
+	# Quand install.sh vient de créer la base de production, il propose de réimporter une sauvegarde d'une installation
+	# précédente, sur ce poste ou sur un autre, faite par Machin backup-db ou Machin maintenance-db : par kdialog sur un
+	# poste graphique, dans le terminal sinon, comme par ssh. Il la réimporte par Machin restore-db, qui la vérifie,
+	# avant d'appliquer le schéma. Une réimportation refusée repose la question. --restore FICHIER la réimporte sans
+	# rien demander ; --no-restore ne la propose pas. Les scénarios lancent sa fonction, Machin restore-db et kdialog
+	# remplacés par des scripts.
+
+	Scénario: install.sh ne propose la réimportation que pour la base de production qu'il vient de créer, avant le schéma
+		Alors install.sh propose de réimporter une sauvegarde après avoir créé la base de production, avant d'appliquer le schéma
+
+	Plan du scénario: Sur un poste graphique, kdialog demande s'il faut réimporter une sauvegarde, puis laquelle
+		Étant donné un poste graphique avec kdialog
+		Et kdialog répond <réponse>, puis choisit « /media/cle/machincast-2026-11-01T10-00-00.dump »
+		Quand install.sh propose de réimporter une sauvegarde
+		Alors install.sh <résultat>
+
+		Exemples:
+			| réponse                           | résultat                                                                                    |
+			| « Oui, importer une sauvegarde »  | a réimporté « /media/cle/machincast-2026-11-01T10-00-00.dump » par Machin restore-db        |
+			| « Non, on repart de zéro »        | n'a rien réimporté, et dit « nouvelle base : on repart de zéro »                            |
+
+	Scénario: kdialog pose la question du ticket, et cherche une sauvegarde de MachinCast dans le répertoire personnel
+		Étant donné un poste graphique avec kdialog
+		Et kdialog répond « Non, on repart de zéro », puis choisit « /media/cle/machincast-2026-11-01T10-00-00.dump »
+		Quand install.sh propose de réimporter une sauvegarde
+		Alors kdialog a demandé « Vous semblez faire une installation neuve de MachinCast. L'aviez-vous déjà fait tourner sur ce poste ou sur un autre ? Faut-il récupérer sa base de données ? »
+
+	Scénario: Sans affichage graphique, comme par ssh, les questions se posent dans le terminal
+		Étant donné un poste sans affichage graphique, dans un terminal
+		Quand install.sh propose de réimporter une sauvegarde, et que je réponds « o » puis « ~/sauvegardes/machincast.dump »
+		Alors install.sh a réimporté « <personnel>/sauvegardes/machincast.dump » par Machin restore-db
+
+	Scénario: Une réimportation refusée repose la question
+		Étant donné un poste sans affichage graphique, dans un terminal
+		Et Machin restore-db qui refuse la sauvegarde
+		Quand install.sh propose de réimporter une sauvegarde, et que je réponds « o » puis « /tmp/ancienne.dump » puis « n »
+		Alors install.sh a tenté de réimporter « /tmp/ancienne.dump », a reposé la question, et dit « nouvelle base : on repart de zéro »
+
+	Scénario: Sans affichage graphique ni terminal, rien n'est réimporté, et install.sh dit comment le faire
+		Étant donné un poste sans affichage graphique ni terminal
+		Quand install.sh propose de réimporter une sauvegarde
+		Alors install.sh n'a rien réimporté, et dit « nouvelle base, sans sauvegarde réimportée : ./install.sh --restore FICHIER en réimporte une »
+
+	Plan du scénario: --restore FICHIER réimporte sans rien demander, --no-restore ne propose rien
+		Étant donné un poste graphique avec kdialog
+		Et install.sh lancé avec « <options> »
+		Quand install.sh propose de réimporter une sauvegarde
+		Alors install.sh <résultat>
+		Et kdialog n'a rien demandé
+
+		Exemples:
+			| options                       | résultat                                                       |
+			| --restore /srv/base.dump      | a réimporté « /srv/base.dump » par Machin restore-db           |
+			| --no-restore                  | n'a rien réimporté                                             |
+
+	Scénario: Avec --restore, une sauvegarde refusée arrête install.sh, avant le schéma
+		Étant donné un poste graphique avec kdialog
+		Et install.sh lancé avec « --restore /srv/base.dump »
+		Et Machin restore-db qui refuse la sauvegarde
+		Quand install.sh propose de réimporter une sauvegarde
+		Alors install.sh s'arrête avec le message « sauvegarde /srv/base.dump non réimportée : corriger, puis Machin restore-db FICHIER avant de relancer ./install.sh »

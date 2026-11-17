@@ -78,6 +78,6 @@ Chaque programme agit dans la base avec ses propres droits : le compte qui le la
 | `Machin indexer` | `machincast_indexer` | Lire les banques et leurs répertoires ; ajouter et mettre à jour des sonores, les ranger dans les banques, et en retirer ceux qui sortent de leurs durées ; noter la fin du parcours de chaque répertoire. Il ne supprime aucun sonore, et n'ajoute au log que ses démarrages et ses fins ([Démarrages et fins dans le log](commandes.md#démarrages-et-fins-dans-le-log)). |
 | `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques, les séquences et les événements ; lire l'airplay et le log, sans les modifier. |
 
-`Machin maintenance-db` et `Machin purge` n'endossent aucun rôle : ils agissent en propriétaire de la base, ce qu'est le compte de MachinCast. Seule la purge efface des lignes de l'airplay et du log.
+`Machin maintenance-db`, `Machin backup-db`, `Machin restore-db` et `Machin purge` n'endossent aucun rôle : ils agissent en propriétaire de la base, ce qu'est le compte de MachinCast. Seule la purge efface des lignes de l'airplay et du log.
 
 Le détail, table par table, est dans la [spécification, § 3.2](../spec.md#32-rôles-et-droits). Ajouter un autre compte est décrit dans [INSTALL.md](../../../INSTALL.fr.md#ajouter-un-autre-compte).

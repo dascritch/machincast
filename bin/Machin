@@ -21,7 +21,7 @@ REPERTOIRE_DU_WRAPPER="${WRAPPER%/*}"
 charger_messages "${REPERTOIRE_DU_WRAPPER}/.."
 
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
-BINAIRES=(player indexer interface maintenance-db purge grant-read)
+BINAIRES=(player indexer interface maintenance-db backup-db restore-db purge grant-read)
 UNITE_LECTURE="machincast.service"
 
 CODE_USAGE=2
@@ -53,6 +53,10 @@ taken from the .venv venv of the project, without it being activated, or else fr
   maintenance-db
                backs up, checks and optimises the database
                (https://github.com/dascritch/machincast/issues/127)
+  backup-db    backs up the database into a dated file of the backup directory
+               (backup.directory, the personal directory by default)
+  restore-db   restores such a backup into a new, empty database, after checking
+               it (https://github.com/dascritch/machincast/issues/347)
   purge        erases from the database what exceeds the expiry duration: old
                plays of the airplay, lines of the log, deleted elements; never a
                file (https://github.com/dascritch/machincast/issues/268)
