@@ -12,7 +12,7 @@ from pytest_bdd import parsers, scenarios, then, when
 
 from machincast.installation import ACTIONS
 from machincast.interface import version
-from tests.markdown import broken_anchors, broken_links
+from tests.markdown import broken_anchors, broken_links, prose_lines, sentence_ends
 
 scenarios("documentation.feature")
 
@@ -390,3 +390,23 @@ def documentation_links(language: str) -> None:
 		for link in broken_links(document):
 			broken_list.append(link)
 	assert not broken_list, broken_list
+
+
+@then(parsers.parse("chaque ligne de prose de « {document} » ne porte qu'une phrase"))
+def one_sentence_per_line(document: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/445 : tests.markdown.sentence_ends dit où une ligne en porte
+	deux ; la coupure se fait là, la suite indentée sous son élément de liste."""
+	faults = []
+	for number, line in prose_lines(ROOT / document):
+		if sentence_ends(line):
+			faults.append(f"{document}:{number} : {line[:80]}…")
+	assert not faults, faults
+
+
+@then(parsers.parse("aucune ligne de « {document} » ne dépasse {limit:d} caractères"))
+def short_lines(document: str, limit: int) -> None:
+	faults = []
+	for number, line in enumerate((ROOT / document).read_text(encoding="utf-8").split("\n"), start=1):
+		if len(line) > limit:
+			faults.append(f"{document}:{number} : {len(line)} caractères")
+	assert not faults, faults
