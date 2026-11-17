@@ -25,13 +25,15 @@ Trois branches protégées, sans commit direct ([#480](https://github.com/dascri
 | Branche | Ce qu'elle porte | Ce qui y entre |
 | --- | --- | --- |
 | `preprod` | Les tickets terminés, en attente de la prochaine release. | Les PR des branches de ticket. |
-| `qualif` | La release candidate, qui tourne une semaine à l'antenne. | Une PR de `preprod` vers `qualif`, par release. |
+| `qualif` | La release candidate, qui tourne une semaine à l'antenne. | Une PR de `preprod` vers `qualif`, par release ; les PR des corrections de la qualification. |
 | `main` | La dernière version publiée, taguée. | Une PR de `qualif` vers `main`, après la semaine de qualification. |
 
 - **Un ticket** part de `preprod`, sur une branche `dev/<numéro>-<sujet>`, et y revient par une PR.
 	Sa PR ne lance que les scénarios du ticket, jamais la suite complète ([Quels tests lancer](tests.md#quels-tests-lancer)).
 - **Une release candidate** passe de `preprod` à `qualif` par une PR, qui s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites ([Publier une version](../developpement/release.md)).
 - **La qualification** dure une semaine : la release candidate tourne à l'antenne depuis `qualif`.
+	Un défaut trouvé pendant cette semaine se corrige par un ticket dont la branche part de `qualif` et y revient : la release candidate n'embarque aucune nouvelle fonctionnalité de `preprod`.
+	La correction revient ensuite sur `preprod` par une PR de `qualif` vers `preprod`, et la semaine reprend.
 	Puis une PR de `qualif` vers `main` la livre, et elle est taguée sur `main`.
 
 ## Definition of done
@@ -105,7 +107,7 @@ Une correction d'une PR ouverte, demandée en relecture ou trouvée ensuite, est
 Le relecteur voit ainsi ce qui a changé depuis sa dernière relecture.
 
 - Jamais de `git commit --amend` : un commit déjà poussé n'est jamais modifié.
-- Pour remettre la branche d'une PR à jour avec sa branche de base, `preprod` pour un ticket (par exemple après la fusion d'une autre PR qui touche les mêmes fichiers), `git rebase` sur elle, jamais un commit de fusion : chaque commit est rejoué tel quel, et un conflit se résout dans le commit qui le provoque.
+- Pour remettre la branche d'une PR à jour avec sa branche de base, `preprod` pour un ticket, `qualif` pour une correction de la qualification (par exemple après la fusion d'une autre PR qui touche les mêmes fichiers), `git rebase` sur elle, jamais un commit de fusion : chaque commit est rejoué tel quel, et un conflit se résout dans le commit qui le provoque.
 	La branche se pousse alors avec `git push --force-with-lease`, jamais `--force`, qui écraserait un commit poussé entre-temps.
 - Le message suit le format ci-dessus, lié au même ticket, avec le type qui convient : `fix` pour un défaut, `refactor`, `test` ou `docs` pour le reste.
 	Par exemple :

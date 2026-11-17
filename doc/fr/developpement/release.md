@@ -15,7 +15,7 @@ Tout vient du tag `v<version>` et des fichiers des nouveautés, un par langue ([
 Une version passe par trois branches protégées ([Branches](../regles/developpement.md#branches), [#480](https://github.com/dascritch/machincast/issues/480)) :
 
 1. **`preprod`** reçoit les tickets, puis le commit « Version <version> » ([Préparer la version](#préparer-la-version)).
-2. **`qualif`** reçoit la release candidate, par une PR de `preprod` vers `qualif`. Cette PR s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites : les étapes 6 à 9 ci-dessous. La release candidate tourne ensuite une semaine à l'antenne. Un défaut trouvé pendant cette semaine se corrige par un ticket sur `preprod`, puis une nouvelle PR vers `qualif`, et la semaine reprend.
+2. **`qualif`** reçoit la release candidate, par une PR de `preprod` vers `qualif`. Cette PR s'accompagne de la suite complète, de la documentation à jour, de sa traduction anglaise et de ses captures d'écran refaites : les étapes 6 à 9 ci-dessous. La release candidate tourne ensuite une semaine à l'antenne. Un défaut trouvé pendant cette semaine se corrige par un ticket dont la branche part de `qualif` et y revient par une PR : la release candidate n'embarque ainsi aucune nouvelle fonctionnalité de `preprod`. La correction revient ensuite sur `preprod` par une PR de `qualif` vers `preprod`, et la semaine reprend.
 3. **`main`** reçoit la version qualifiée, par une PR de `qualif` vers `main`, puis elle est taguée et publiée ([Publier](#publier)).
 
 ## Préparer la version
