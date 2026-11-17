@@ -39,6 +39,11 @@ machincast.interface.card.
 - « Vérification complète », pour un fichier enregistré, demande l'audit complet de ce seul sonore
   (requested_check) ; le bouton attend sa fin (wait_check), puis une question propose de
   rafraîchir la fiche (finished_check).
+- Analyse complète proposée (https://github.com/dascritch/machincast/issues/388) : sous les champs, un fichier jamais
+  vérifié en entier propose « Vérification complète » ; des valeurs que l'indexeur remplit (AUTOMATIC), saisies à la
+  main, proposent « Revenir aux valeurs du fichier… », qui, confirmé, les retire de edited_fields et relance la
+  vérification complète, forcée même sur un fichier déjà audité. Pendant la vérification, ces valeurs le disent par
+  leur infobulle, et la dernière vérification complète est « en cours… ».
 """
 
 import subprocess
@@ -189,15 +194,37 @@ STAT_DELAY = 5
 """Secondes laissées à stat pour lire la date de création d'un fichier, sur un partage réseau par exemple."""
 
 
+AUTOMATIC = ("artist", "title", "duration", "detected_start", "detected_end")
+"""Les champs de edited_fields que l'indexeur remplit, avec les clés des métadonnées musicales
+(« music_metadata.<clé> ») : ceux auxquels « Revenir aux valeurs du fichier… » rend la main
+(https://github.com/dascritch/machincast/issues/388)."""
+NEVER_AUDITED = _("Never fully checked: its silences are not measured. « Full check » does it now.")
+ENTERED_BY_HAND = _(
+	"Entered by hand: {list}. « Back to the file values… » gives them back to the analysis of the file."
+)
+BACK_TO_FILE = _("Back to the file values")
+BACK_TO_FILE_QUESTION = _(
+	"These values, entered by hand, will be replaced by what the full check finds in the file: {list}."
+)
+MODIFIED_CARD = _("Save or cancel the changes of the card first.")
+CHECK_RUNNING = _("Full check running: this value will be updated.")
+
+
+def automatic(field: str) -> bool:
+	"""Un champ de edited_fields que l'indexeur remplit."""
+	return (field in AUTOMATIC) or (field.startswith("music_metadata."))
+
+
 PREVIEW = _("Listen to the sound on the pre-listen output, never on air")
 """L'infobulle de « Pré-écoute… », celle de fiche_sonore.ui."""
 
 
 class SoundCard(Card):
 	# « Pré-écoute… » émet requested_preview, de la Fiche (https://github.com/dascritch/machincast/issues/116).
-	requested_check = Signal(int)
+	requested_check = Signal(int, bool)
 	"""« Vérification complète » : le sonore dont faire l'audit complet
-	(https://github.com/dascritch/machincast/issues/190)."""
+	(https://github.com/dascritch/machincast/issues/190), et s'il est forcé, même sur un fichier déjà audité :
+	après « Revenir aux valeurs du fichier… » (https://github.com/dascritch/machincast/issues/388)."""
 	category = "sound"
 	CLOSES_AFTER_SAVE = True
 
@@ -223,6 +250,8 @@ class SoundCard(Card):
 		self.timeline.moved_slider.connect(self._put_marker)
 		self._edited_fields: set[str] = set()
 		"""Les champs saisis à la main avant l'ouverture de la fiche, d'après la base."""
+		self._edited_order: list[str] = []
+		"""Les mêmes, dans l'ordre de la base."""
 		timeline_layout = QVBoxLayout(self.ui.timeline_place)
 		timeline_layout.setContentsMargins(0, 0, 0, 0)
 		timeline_layout.addWidget(self.timeline)
@@ -237,6 +266,12 @@ class SoundCard(Card):
 		self.ui.preview.setIcon(icons.icon("preview"))
 		self.ui.preview.clicked.connect(self._preview)
 		self.ui.check.clicked.connect(self._check)
+		self.ui.back_to_file.clicked.connect(self._back_to_file)
+		self._back_to_file_tooltip = self.ui.back_to_file.toolTip()
+		self._checks_at = ""
+		"""La dernière vérification complète montrée, le temps d'une vérification."""
+		self._tooltips: dict[QWidget, str] = {}
+		"""Les infobulles des valeurs que remplit la vérification complète, le temps qu'elle tourne."""
 		self._file = False
 		"""Le sonore lu est un fichier : seul un fichier se vérifie."""
 		self._in_check = False
@@ -424,28 +459,99 @@ class SoundCard(Card):
 
 	def _check(self) -> None:
 		if self.identifier is not None:
-			self.requested_check.emit(self.identifier)
+			self.requested_check.emit(self.identifier, False)
+
+	def _automatic_edited(self) -> list[str]:
+		"""Les champs que l'indexeur remplit, saisis à la main, dans l'ordre de la base."""
+		found = []
+		for field in self._edited_order:
+			if automatic(field):
+				found.append(field)
+		return found
+
+	def _back_to_file(self) -> None:
+		"""Après confirmation, les valeurs du fichier saisies à la main reviennent à l'indexeur, et la vérification
+		complète, forcée, les relit (https://github.com/dascritch/machincast/issues/388)."""
+		identifier = self.identifier
+		fields = self._automatic_edited()
+		if (identifier is None) or (fields == []):
+			return
+		names = []
+		for field in fields:
+			names.append(LABELS.get(field, field))
+		if not dialogs.confirm_action(self, BACK_TO_FILE, BACK_TO_FILE_QUESTION.format(list=", ".join(names))):
+			return
+		with self.connection.transaction():
+			queries.forget_edited(self.connection, identifier, fields)
+		kept = []
+		for field in self._edited_order:
+			if field not in fields:
+				kept.append(field)
+		self._show_edited(kept)
+		self.requested_check.emit(identifier, True)
 
 	def wait_check(self) -> None:
-		"""La vérification complète est lancée : le bouton attend sa fin."""
+		"""La vérification complète est lancée : le bouton attend sa fin, et les valeurs qu'elle remplira le disent
+		(https://github.com/dascritch/machincast/issues/388)."""
 		self._in_check = True
 		self.ui.check.setText(_("Checking…"))
-		self._refresh_check()
 		self.message.setText(_("Full check running…"))
+		ui = self.ui
+		self._tooltips = {}
+		for field in (ui.artist, ui.title, ui.duration, ui.detected_start, ui.detected_end):
+			self._tooltips[field] = field.toolTip()
+			field.setToolTip(CHECK_RUNNING)
+		self._checks_at = ui.checks_at.text()
+		ui.checks_at.setText(_("in progress…"))
+		self._refresh_check()
 
 	def finished_check(self, text: str) -> None:
 		"""La vérification complète est finie : une question propose de rafraîchir la fiche, qui montre alors ce que
 		l'indexeur a écrit."""
 		self._in_check = False
 		self.ui.check.setText(_("Full check"))
+		for field, tooltip in self._tooltips.items():
+			field.setToolTip(tooltip)
+		self._tooltips = {}
+		self.ui.checks_at.setText(self._checks_at)
 		self._refresh_check()
 		self.message.clear()
 		if dialogs.offer_refresh(self, text):
 			self.refresh()
 
 	def _refresh_check(self) -> None:
-		"""Un fichier enregistré se vérifie, une seule fois à la fois ; un stream ne se vérifie pas."""
-		self.ui.check.setEnabled((self.identifier is not None) and (self._file) and (not self._in_check))
+		"""Un fichier enregistré se vérifie, une seule fois à la fois ; un stream ne se vérifie pas. Sous les champs, ce
+		que la fiche propose : la vérification complète d'un fichier jamais vérifié en entier, le retour aux valeurs
+		du fichier saisies à la main, seulement sur une fiche sans modification
+		(https://github.com/dascritch/machincast/issues/388)."""
+		ui = self.ui
+		checkable = (self.identifier is not None) and (self._file)
+		ui.check.setEnabled((checkable) and (not self._in_check))
+		edited = []
+		if checkable:
+			edited = self._automatic_edited()
+		names = []
+		for field in edited:
+			names.append(LABELS.get(field, field))
+		sentences = []
+		if (checkable) and (not self._in_check) and (not self._audited):
+			sentences.append(NEVER_AUDITED)
+		if (not self._in_check) and (names != []):
+			sentences.append(ENTERED_BY_HAND.format(list=", ".join(names)))
+		ui.analysis_offer.setText(" ".join(sentences))
+		ui.analysis_offer.setVisible(sentences != [])
+		ui.back_to_file.setVisible(edited != [])
+		ui.back_to_file.setEnabled((not self._in_check) and (not self.modified))
+		tooltip = self._back_to_file_tooltip
+		if self.modified:
+			tooltip = MODIFIED_CARD
+		ui.back_to_file.setToolTip(tooltip)
+
+	def _mark(self, *, modified: bool) -> None:
+		"""Une fiche modifiée ne revient pas aux valeurs du fichier avant d'être enregistrée ou annulée."""
+		super()._mark(modified=modified)
+		if hasattr(self, "_back_to_file_tooltip"):
+			self._refresh_check()
 
 	def _read(self) -> None:
 		"""Lit le sonore en base ; un nouveau stream est actif, sans adresse ni réglage."""
@@ -619,9 +725,12 @@ class SoundCard(Card):
 
 	def _show_edited(self, edited_fields: object) -> None:
 		field_set = set()
+		order = []
 		for edited in _list(edited_fields):
 			field_set.add(str(edited))
+			order.append(str(edited))
 		self._edited_fields = field_set
+		self._edited_order = order
 		edited_list = []
 		for edited in _list(edited_fields):
 			edited_list.append(LABELS.get(str(edited), str(edited)))
@@ -631,6 +740,7 @@ class SoundCard(Card):
 				list=", ".join(edited_list)
 			)
 		self.ui.edited_fields.setText(edited_text)
+		self._refresh_check()
 
 	def _show_date(self, box: QCheckBox, date: QDateTimeEdit, value: object) -> None:
 		"""Une période sans date part de l'heure de l'horloge, à la minute, quand sa case se coche."""
