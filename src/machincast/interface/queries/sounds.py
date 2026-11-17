@@ -48,6 +48,16 @@ def insert_stream(connection: Connection, stream_url: object, feed: object) -> i
 	return int(str(created[0]))
 
 
+def forget_edited(connection: Connection, sound: int, fields: list[str]) -> None:
+	"""Ces champs ne sont plus saisis à la main : l'indexeur les remplit de nouveau
+	(https://github.com/dascritch/machincast/issues/388)."""
+	connection.execute(
+		"UPDATE sounds SET edited_fields = ARRAY(SELECT field FROM unnest(edited_fields) AS field"
+		" WHERE NOT field = ANY(%s)) WHERE id = %s",
+		(fields, sound),
+	)
+
+
 def edited_fields(connection: Connection, sound: int) -> list[str] | None:
 	"""Les champs que l'indexeur ne change plus, verrouillés pour la modification ; None si le sonore est absent."""
 	line = connection.execute("SELECT edited_fields FROM sounds WHERE id = %s FOR UPDATE", (sound,)).fetchone()

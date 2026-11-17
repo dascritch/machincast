@@ -624,7 +624,7 @@ class MainWindow(QMainWindow):
 		card.requested_duplication.connect(self._duplicate)
 		card.requested_preview.connect(self._preview)
 		if isinstance(card, SoundCard):
-			card.requested_check.connect(lambda sound, card=card: self._check_fully(card, sound))
+			card.requested_check.connect(lambda sound, force, card=card: self._check_fully(card, sound, force=force))
 		if category == "event":
 			card.deleted.connect(self._guarantee_background_programming)
 			card.saved.connect(self._guarantee_background_programming)
@@ -652,10 +652,11 @@ class MainWindow(QMainWindow):
 		assert isinstance(card, Card)
 		card.copy(identifier)
 
-	def _check_fully(self, card: SoundCard, sound: int) -> None:
-		"""L'audit complet du sonore, au seuil de silence de la configuration ; sa fiche attend."""
+	def _check_fully(self, card: SoundCard, sound: int, *, force: bool = False) -> None:
+		"""L'audit complet du sonore, au seuil de silence de la configuration ; sa fiche attend. force : même un fichier
+		déjà audité est relu (https://github.com/dascritch/machincast/issues/388)."""
 		card.wait_check()
-		self.full_check.launch(sound, self.silence_threshold)
+		self.full_check.launch(sound, self.silence_threshold, force=force)
 
 	def _full_finished_check(self, sound: int, text: str) -> None:
 		"""La barre d'état le dit ; la fiche du sonore, encore ouverte, propose de se rafraîchir."""

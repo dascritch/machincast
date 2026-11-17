@@ -541,6 +541,23 @@ class Ui_SoundCard(object):
 
         self.arrangement.addLayout(self.body)
 
+        self.analysis = QHBoxLayout()
+        self.analysis.setObjectName(u"analysis")
+        self.analysis_offer = QLabel(SoundCard)
+        self.analysis_offer.setObjectName(u"analysis_offer")
+        self.analysis_offer.setWordWrap(True)
+
+        self.analysis.addWidget(self.analysis_offer)
+
+        self.back_to_file = QPushButton(SoundCard)
+        self.back_to_file.setObjectName(u"back_to_file")
+
+        self.analysis.addWidget(self.back_to_file)
+
+        self.analysis.setStretch(0, 1)
+
+        self.arrangement.addLayout(self.analysis)
+
         self.foot = QHBoxLayout()
         self.foot.setObjectName(u"foot")
         self.delete = QPushButton(SoundCard)
@@ -690,6 +707,10 @@ class Ui_SoundCard(object):
         ___qtablewidgetitem7.setText(QCoreApplication.translate("SoundCard", u"Bank", None))
         ___qtablewidgetitem8 = self.plays.horizontalHeaderItem(6)
         ___qtablewidgetitem8.setText(QCoreApplication.translate("SoundCard", u"Incidents", None))
+#if QT_CONFIG(tooltip)
+        self.back_to_file.setToolTip(QCoreApplication.translate("SoundCard", u"The values entered by hand are given back to the indexer, then the full check reads the file again", None))
+#endif // QT_CONFIG(tooltip)
+        self.back_to_file.setText(QCoreApplication.translate("SoundCard", u"Back to the file values\u2026", None))
         self.delete.setText(QCoreApplication.translate("SoundCard", u"\u274c Delete\u2026", None))
 #if QT_CONFIG(tooltip)
         self.delete.setToolTip(QCoreApplication.translate("SoundCard", u"Deletes the element from the database, after confirmation; no file is touched.", None))

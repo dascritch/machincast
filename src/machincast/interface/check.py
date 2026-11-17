@@ -132,10 +132,13 @@ class FullCheck(QObject):
 		"""Vérifications lancées dont la fin n'est pas encore annoncée ; tenu dans le fil de l'interface."""
 		self._finished.connect(self._announce)
 
-	def launch(self, sound: int, silence_threshold: float) -> None:
+	def launch(self, sound: int, silence_threshold: float, *, force: bool = False) -> None:
+		"""force : même un fichier déjà audité au même seuil, inchangé, est relu
+		(https://github.com/dascritch/machincast/issues/388). La vérification ne prend pas le verrou de Machin indexer :
+		elle tourne même pendant une indexation."""
 		self._remaining_list += 1
 		feed = threading.Thread(
-			target=lambda: self._finished.emit(sound, self._check(sound, silence_threshold)),
+			target=lambda: self._finished.emit(sound, self._check(sound, silence_threshold, force=force)),
 			name="full check",
 			daemon=True,
 		)
@@ -155,7 +158,7 @@ class FullCheck(QObject):
 		self._remaining_list -= 1
 		self.finished.emit(sound, text)
 
-	def _check(self, sound: int, silence_threshold: float) -> str:
+	def _check(self, sound: int, silence_threshold: float, *, force: bool) -> str:
 		def check(path: Path, *, silence_threshold: float | None = None) -> Check:
 			# Appelé par son nom au moment du décodage : les scénarios le remplacent.
 			return _check_full_file(path, silence_threshold=silence_threshold)
@@ -163,7 +166,12 @@ class FullCheck(QObject):
 		try:
 			with open_connection(self.socket, self.database, Role.INDEXING) as connection:
 				report = check_sounds(
-					connection, check, full_audit=True, identifiers=[sound], silence_threshold=silence_threshold
+					connection,
+					check,
+					full_audit=True,
+					identifiers=[sound],
+					silence_threshold=silence_threshold,
+					force=force,
 				)
 				states = sound_states(connection, [sound])
 		except (UnavailableDecoder, psycopg.Error) as error:
