@@ -164,6 +164,8 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Maintenance | Faire lire les fichiers sonores au service de diffusion… | Donne au service la lecture des sonores de toutes les banques, sans rien changer d'autre sur les fichiers ([Ajouter un sonore](sonores.md#ajouter-un-sonore), [#381](https://github.com/dascritch/machincast/issues/381)). Inactive tant que le service de diffusion n'est pas installé. |
 | Maintenance | Moniteur de la sortie… | À venir ([#85](https://github.com/dascritch/machincast/issues/85)). |
 | Aide | Documentation | Ouvre ce guide dans le navigateur web. |
+| Aide | Votre installation… | Ouvre le document de votre équipe, à compléter : qui appeler en cas de souci sur l'ordinateur, l'antenne ou l'émetteur, la programmation musicale, les partenariats, les publicités, les émissions enregistrées et les directs extérieurs ([#451](https://github.com/dascritch/machincast/issues/451)). Il est sur le Bureau, sauf s'il a été placé ailleurs (page **Interface** des préférences) ; s'il a disparu, il est recréé depuis le modèle, jamais par-dessus le vôtre. Il s'ouvre dans l'éditeur de texte du poste. |
+| Aide | Lien de l'équipe… | Ouvre dans le navigateur l'adresse de votre équipe : un cloud, un Gitlab, un Jira, un Drive… Grisée tant qu'aucune adresse n'est donnée, page **Interface** des préférences. |
 | Aide | Signaler un problème… | Ouvre les tickets de MachinCast dans le navigateur web. |
 | Aide | Version | Donne la version de MachinCast, sa date de publication ou de sa dernière modification, et les nouveautés de la version ([#208](https://github.com/dascritch/machincast/issues/208)), avec trois liens : **Code**, le dépôt de MachinCast, **Auteur : DaScritch** et **Pour : &lt;FMR&gt;**, la radio ([#332](https://github.com/dascritch/machincast/issues/332)). |
 
@@ -218,6 +220,8 @@ Page **Interface** :
 | Proposer au lancement ce qui manque pour démarrer | Cochée par défaut : la fenêtre [Pour bien démarrer](#pour-bien-démarrer). |
 | Icône de l'application | L'icône des fenêtres de MachinCast, de son raccourci dans le menu des applications et sur le bureau, et de la barre des tâches. **Choisir une image…** en prend une autre, SVG, PNG ou JPEG, de préférence carrée, le logo de la radio par exemple ; **Icône de MachinCast** revient à celle d'origine. Une image illisible n'est pas prise : `Image illisible : …`. La nouvelle icône vaut dès **OK**. |
 | Lignes chargées à la fois | 1 000 par défaut, 100 au moins : les sonores qu'une fiche de banque, les éléments qu'une fiche de séquence ou d'événement, ou les lignes que la liste des Sonores, montre d'abord, et ceux qu'elle charge de plus chaque fois qu'on arrive au bas de sa liste ([#383](https://github.com/dascritch/machincast/issues/383)). Un nombre plus grand peut fortement ralentir l'interface pour une banque qui a un très grand nombre de sonores. Vaut pour les fiches ouvertes ensuite. |
+
+**Votre installation**, sur la même page ([#451](https://github.com/dascritch/machincast/issues/451)) : le **document** que **Aide → Votre installation…** ouvre, celui du Bureau quand le champ est vide, ou un autre choisi par **Choisir le document…** ; et le **lien de l'équipe**, une adresse qui commence par `http://` ou `https://`, que **Aide → Lien de l'équipe…** ouvre. **OK** reste grisé tant que le lien n'est pas une adresse web.
 
 Page **Audio** :
 
