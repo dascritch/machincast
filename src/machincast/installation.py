@@ -9,8 +9,8 @@
 	python -m machincast.installation tmpfiles, logrotate                      répertoires du service, rotation des logs
 	python -m machincast.installation rule        --config machincast.toml   règle polkit qui le pilote, et protège le poste
 	python -m machincast.installation logind, system-conf                      touches d'alimentation, Ctrl+Alt+Suppr
-	python -m machincast.installation purge-unit  --config machincast.toml   unité systemd de la purge
-	python -m machincast.installation purge-timer --config machincast.toml   son minuteur, chaque jour à midi
+	python -m machincast.installation daily-unit, daily-timer                 tâche quotidienne : purge, audit complet
+	python -m machincast.installation indexing-unit, indexing-timer           indexation rapide, toutes les heures
 	python -m machincast.installation shortcut    --config machincast.toml   raccourci de l'interface (.desktop)
 	python -m machincast.installation devices     --config machincast.toml   périphériques de sortie du poste
 	python -m machincast.installation on-air      --config machincast.toml   antenne utilisable par le service
@@ -55,16 +55,17 @@ from machincast.cli import launch  # noqa: E402
 from machincast.configuration import PROJECT_DIRECTORY, Audio, AudioOutput, Configuration  # noqa: E402
 from machincast.database import apply_migrations, url_yoyo  # noqa: E402
 from machincast.i18n import _  # noqa: E402
-from machincast.service import UNIT  # noqa: E402
+from machincast.indexer.indexer import ONGOING_CODE  # noqa: E402
+from machincast.service import DAILY_UNIT, INDEXING_UNIT, UNIT  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
 DESCRIPTION = _("MachinCast installation steps, called by install.sh.")
 FAILURE_CODE = 1
-PURGE_UNIT = "machincast-purge.service"
-"""L'unité de la purge, Machin purge : les mêmes noms dans install.sh."""
-PURGE_TIMER = "machincast-purge.timer"
-PURGE_HOUR = "*-*-* 12:00:00"
-"""Chaque jour à midi : en journée, quand le poste de l'antenne est allumé."""
+DAILY_STATE = "machincast-tasks"
+"""Le répertoire d'état de la tâche quotidienne, /var/lib/machincast-tasks, que systemd crée au compte de MachinCast :
+machincast.schedule y note son dernier passage."""
+DAILY_CHECK = "*:0/15"
+"""Tous les quarts d'heure, la tâche quotidienne est proposée ; elle ne passe que due (machincast.schedule)."""
 
 # Nom explicite : lancé par python -m, ce module s'appelle __main__, hors du journal « machincast ».
 log = logging.getLogger("machincast.installation")
@@ -540,14 +541,17 @@ def wireplumber_desktop(audio: Audio) -> str:
 	)
 
 
-def purge_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
-	"""L'unité de la purge : Machin purge, une fois, sous le compte de MachinCast, propriétaire de la base. Son
-	minuteur la lance ; elle n'a pas de section Install. Ses messages vont dans journald."""
-	return f"""# MachinCast database purge (https://github.com/dascritch/machincast/issues/268).
-# Installed by install.sh --service; do not edit here, run install.sh --service again.
+def daily_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
+	"""L'unité de la tâche quotidienne (https://github.com/dascritch/machincast/issues/455), sous le compte de
+	MachinCast, propriétaire de la base : machincast.schedule la réserve, si elle est due (ExecCondition : sinon,
+	l'unité est sautée sans échec) ; puis Machin purge et l'audit complet, l'un après l'autre. Le code 3 de l'indexeur,
+	un audit déjà en cours, n'est pas un échec. Son minuteur la lance ; elle n'a pas de section Install."""
+	return f"""# MachinCast daily tasks (https://github.com/dascritch/machincast/issues/455).
+# Installed by install.sh --service; do not edit here, run install.sh --service again. The hour is set by
+# schedule.daily in machincast.toml, or in the interface: this unit does not change.
 
 [Unit]
-Description=MachinCast: database purge (Machin purge)
+Description=MachinCast: daily tasks (Machin purge, then a full audit)
 After=postgresql.service
 
 [Service]
@@ -555,23 +559,66 @@ Type=oneshot
 User={account.name}
 Group={account.group}
 WorkingDirectory={directory}
+StateDirectory={DAILY_STATE}
+ExecCondition={directory}/.venv/bin/python -m machincast.schedule claim
 ExecStart={directory}/bin/Machin purge
-SyslogIdentifier=machincast-purge
+ExecStart={directory}/bin/Machin indexer --full-audit
+SuccessExitStatus={ONGOING_CODE}
+SyslogIdentifier=machincast-daily
 """
 
 
-def purge_timer() -> str:
-	"""Le minuteur de la purge : chaque jour à midi ; une purge manquée, poste éteint, se fait à son démarrage."""
-	return f"""# Daily purge of the MachinCast database (https://github.com/dascritch/machincast/issues/268).
+def daily_timer() -> str:
+	"""Le minuteur de la tâche quotidienne : tous les quarts d'heure ; l'unité ne passe qu'une fois par jour, due."""
+	return f"""# MachinCast daily tasks, checked every quarter of an hour (https://github.com/dascritch/machincast/issues/455).
 # Installed by install.sh --service; do not edit here, run install.sh --service again.
 
 [Unit]
-Description=MachinCast: daily database purge, at noon
+Description=MachinCast: daily tasks, checked every quarter of an hour
 
 [Timer]
-OnCalendar={PURGE_HOUR}
+OnCalendar={DAILY_CHECK}
+Unit={DAILY_UNIT}
+
+[Install]
+WantedBy=timers.target
+"""
+
+
+def indexing_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
+	"""L'unité de l'indexation rapide (https://github.com/dascritch/machincast/issues/455), sous le compte de
+	MachinCast. Une indexation rapide déjà en cours, lancée depuis l'interface, donne le code 3 : pas un échec. systemd
+	ne la relance pas tant que la précédente tourne."""
+	return f"""# MachinCast quick indexing (https://github.com/dascritch/machincast/issues/455).
+# Installed by install.sh --service; do not edit here, run install.sh --service again.
+
+[Unit]
+Description=MachinCast: quick indexing (Machin indexer)
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User={account.name}
+Group={account.group}
+WorkingDirectory={directory}
+ExecStart={directory}/bin/Machin indexer
+SuccessExitStatus={ONGOING_CODE}
+SyslogIdentifier=machincast-indexing
+"""
+
+
+def indexing_timer() -> str:
+	"""Le minuteur de l'indexation rapide : toutes les heures ; une heure manquée, poste éteint, passe à son démarrage."""
+	return f"""# MachinCast quick indexing, every hour (https://github.com/dascritch/machincast/issues/455).
+# Installed by install.sh --service; do not edit here, run install.sh --service again.
+
+[Unit]
+Description=MachinCast: quick indexing, every hour
+
+[Timer]
+OnCalendar=hourly
 Persistent=true
-Unit={PURGE_UNIT}
+Unit={INDEXING_UNIT}
 
 [Install]
 WantedBy=timers.target
@@ -720,13 +767,23 @@ def _wireplumber_desktop(configuration: Configuration) -> int:
 	return 0
 
 
-def _purge_unit(_configuration: Configuration) -> int:
-	sys.stdout.write(purge_unit(Account.current()))
+def _daily_unit(_configuration: Configuration) -> int:
+	sys.stdout.write(daily_unit(Account.current()))
 	return 0
 
 
-def _purge_timer(_configuration: Configuration) -> int:
-	sys.stdout.write(purge_timer())
+def _daily_timer(_configuration: Configuration) -> int:
+	sys.stdout.write(daily_timer())
+	return 0
+
+
+def _indexing_unit(_configuration: Configuration) -> int:
+	sys.stdout.write(indexing_unit(Account.current()))
+	return 0
+
+
+def _indexing_timer(_configuration: Configuration) -> int:
+	sys.stdout.write(indexing_timer())
 	return 0
 
 
@@ -844,8 +901,12 @@ def _forget_personal_sounds(configuration: Configuration) -> int:
 
 ACTIONS = {
 	"check": _check,
+	"daily-timer": _daily_timer,
+	"daily-unit": _daily_unit,
 	"databases": _databases,
 	"devices": _devices,
+	"indexing-timer": _indexing_timer,
+	"indexing-unit": _indexing_unit,
 	"logind": _logind,
 	"logrotate": _logrotate,
 	"migrate": _migrate,
@@ -854,8 +915,6 @@ ACTIONS = {
 	"personal-sounds": _personal_sounds,
 	"on-air": _on_air,
 	"pipewire-unit": _pipewire_unit,
-	"purge-timer": _purge_timer,
-	"purge-unit": _purge_unit,
 	"rule": _rule,
 	"shortcut": _shortcut,
 	"system-conf": _system_conf,

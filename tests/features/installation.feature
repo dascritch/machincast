@@ -370,8 +370,10 @@ Fonctionnalité: Vérifications de l'installation
 			| wireplumber-desktop | FICHIER_WIREPLUMBER_BUREAU  |
 			| tmpfiles            | FICHIER_TMPFILES            |
 			| logrotate           | FICHIER_LOGROTATE           |
-			| purge-unit          | FICHIER_UNITE_PURGE         |
-			| purge-timer         | FICHIER_MINUTEUR_PURGE      |
+			| daily-unit          | FICHIER_UNITE_QUOTIDIENNE   |
+			| daily-timer         | FICHIER_MINUTEUR_QUOTIDIEN  |
+			| indexing-unit       | FICHIER_UNITE_INDEXATION    |
+			| indexing-timer      | FICHIER_MINUTEUR_INDEXATION |
 			| rule                | FICHIER_REGLE               |
 			| logind              | FICHIER_LOGIND              |
 			| system-conf         | FICHIER_SYSTEME             |
@@ -397,62 +399,114 @@ Fonctionnalité: Vérifications de l'installation
 	Scénario: Le répertoire d'accueil des sonores est au compte de MachinCast et au groupe du service
 		Alors install.sh crée « /home/machincast » au compte de MachinCast, au groupe « machincast », en mode 2750
 
-	# ─── Purge quotidienne (https://github.com/dascritch/machincast/issues/268) ─────
-	# install.sh --service installe aussi le minuteur de la purge : chaque jour à midi, Machin purge efface de la base
-	# ce qui dépasse la durée de péremption, sous le compte de MachinCast. --remove-service le retire avec le service.
+	# ─── Tâches du service (https://github.com/dascritch/machincast/issues/268, https://github.com/dascritch/machincast/issues/455) ─────
+	# install.sh --service installe deux minuteurs, sous le compte de MachinCast : l'indexation rapide toutes les heures,
+	# et, tous les quarts d'heure, la tâche quotidienne, qui ne passe que due (machincast.schedule) : Machin purge, puis
+	# l'audit complet, à l'heure réglée (schedule.daily). --no-timers ne les installe pas, et retire ceux d'avant ;
+	# --remove-service les retire avec le service. Ils remplacent le minuteur de la purge à midi, retiré à la mise à jour.
 
-	Scénario: L'unité de la purge lance Machin purge une fois, sous le compte de MachinCast
-		Quand je lance « python -m machincast.installation purge-unit » avec la configuration de test
+	Scénario: L'unité de la tâche quotidienne la réserve, puis lance la purge et l'audit complet, sous le compte de MachinCast
+		Quand je lance « python -m machincast.installation daily-unit » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                                    |
+			| Description | MachinCast: daily tasks (Machin purge, then a full audit) |
+			| After       | postgresql.service                                        |
+		Et l'unité a, dans la section « Service » :
+			| clé               | valeur                                                 |
+			| Type              | oneshot                                                |
+			| User              | <compte>                                               |
+			| Group             | <groupe>                                               |
+			| WorkingDirectory  | <répertoire>                                           |
+			| StateDirectory    | machincast-tasks                                       |
+			| ExecCondition     | <répertoire>/.venv/bin/python -m machincast.schedule claim |
+			| ExecStart         | <répertoire>/bin/Machin purge                          |
+			| ExecStart         | <répertoire>/bin/Machin indexer --full-audit           |
+			| SuccessExitStatus | 3                                                      |
+			| SyslogIdentifier  | machincast-daily                                       |
+		Et l'unité n'a pas de section « Install »
+
+	Scénario: Le minuteur de la tâche quotidienne la propose tous les quarts d'heure
+		Quand je lance « python -m machincast.installation daily-timer » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
 			| clé         | valeur                                                          |
-			| Description | MachinCast: database purge (Machin purge)                       |
-			| After       | postgresql.service                                              |
-		Et l'unité a, dans la section « Service » :
-			| clé              | valeur                          |
-			| Type             | oneshot                         |
-			| User             | <compte>                        |
-			| Group            | <groupe>                        |
-			| WorkingDirectory | <répertoire>                    |
-			| ExecStart        | <répertoire>/bin/Machin purge   |
-			| SyslogIdentifier | machincast-purge                |
-		Et l'unité n'a pas de section « Install »
-
-	Scénario: Le minuteur de la purge la lance chaque jour à midi, et la rattrape si le poste était éteint
-		Quand je lance « python -m machincast.installation purge-timer » avec la configuration de test
-		Alors la commande se termine sans erreur
-		Et l'unité a, dans la section « Unit » :
-			| clé         | valeur                                                 |
-			| Description | MachinCast: daily database purge, at noon              |
+			| Description | MachinCast: daily tasks, checked every quarter of an hour       |
 		Et l'unité a, dans la section « Timer » :
 			| clé        | valeur                   |
-			| OnCalendar | *-*-* 12:00:00           |
-			| Persistent | true                     |
-			| Unit       | machincast-purge.service |
+			| OnCalendar | *:0/15                   |
+			| Unit       | machincast-daily.service |
 		Et l'unité a, dans la section « Install » :
 			| clé      | valeur        |
 			| WantedBy | timers.target |
 
-	Scénario: L'unité de la purge suit le compte de MachinCast, quel qu'il soit
-		Quand l'unité de la purge est rédigée pour le compte « radio », du groupe « antenne », dans « /home/radio/machincast »
-		Alors l'unité de la purge a, dans la section « Service », entre autres :
+	Scénario: L'unité de l'indexation rapide lance Machin indexer, sous le compte de MachinCast
+		Quand je lance « python -m machincast.installation indexing-unit » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                          |
+			| Description | MachinCast: quick indexing (Machin indexer)     |
+			| After       | postgresql.service                              |
+		Et l'unité a, dans la section « Service » :
+			| clé               | valeur                          |
+			| Type              | oneshot                         |
+			| User              | <compte>                        |
+			| Group             | <groupe>                        |
+			| WorkingDirectory  | <répertoire>                    |
+			| ExecStart         | <répertoire>/bin/Machin indexer |
+			| SuccessExitStatus | 3                               |
+			| SyslogIdentifier  | machincast-indexing             |
+		Et l'unité n'a pas de section « Install »
+
+	Scénario: Le minuteur de l'indexation rapide la lance toutes les heures, et la rattrape si le poste était éteint
+		Quand je lance « python -m machincast.installation indexing-timer » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité a, dans la section « Unit » :
+			| clé         | valeur                                    |
+			| Description | MachinCast: quick indexing, every hour    |
+		Et l'unité a, dans la section « Timer » :
+			| clé        | valeur                      |
+			| OnCalendar | hourly                      |
+			| Persistent | true                        |
+			| Unit       | machincast-indexing.service |
+		Et l'unité a, dans la section « Install » :
+			| clé      | valeur        |
+			| WantedBy | timers.target |
+
+	Scénario: Les unités des tâches suivent le compte de MachinCast, quel qu'il soit
+		Quand les unités des tâches sont rédigées pour le compte « radio », du groupe « antenne », dans « /home/radio/machincast »
+		Alors l'unité de la tâche quotidienne a, dans la section « Service », entre autres :
+			| clé              | valeur                                       |
+			| User             | radio                                        |
+			| Group            | antenne                                      |
+			| WorkingDirectory | /home/radio/machincast                       |
+			| ExecStart        | /home/radio/machincast/bin/Machin purge      |
+			| ExecStart        | /home/radio/machincast/bin/Machin indexer --full-audit |
+		Et l'unité de l'indexation rapide a, dans la section « Service », entre autres :
 			| clé              | valeur                                  |
 			| User             | radio                                   |
-			| Group            | antenne                                 |
-			| WorkingDirectory | /home/radio/machincast                  |
-			| ExecStart        | /home/radio/machincast/bin/Machin purge |
+			| ExecStart        | /home/radio/machincast/bin/Machin indexer |
 
-	Scénario: systemd accepte l'unité et le minuteur de la purge
+	Scénario: systemd accepte les unités et les minuteurs des tâches
 		Étant donné l'outil « systemd-analyze » du poste
-		Quand je lance « python -m machincast.installation purge-unit » avec la configuration de test
-		Et j'enregistre sa sortie en « machincast-purge.service »
-		Et je lance « python -m machincast.installation purge-timer » avec la configuration de test
-		Et j'enregistre sa sortie en « machincast-purge.timer »
-		Alors « systemd-analyze verify » accepte « machincast-purge.service »
-		Et « systemd-analyze verify » accepte « machincast-purge.timer »
+		Quand je lance « python -m machincast.installation daily-unit » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-daily.service »
+		Et je lance « python -m machincast.installation daily-timer » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-daily.timer »
+		Et je lance « python -m machincast.installation indexing-unit » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-indexing.service »
+		Et je lance « python -m machincast.installation indexing-timer » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-indexing.timer »
+		Alors « systemd-analyze verify » accepte ensemble « machincast-daily.service », « machincast-daily.timer », « machincast-indexing.service » et « machincast-indexing.timer »
 
-	Scénario: Les noms de l'unité et du minuteur de la purge sont ceux qu'installe install.sh
-		Alors install.sh installe et retire l'unité et le minuteur de la purge de machincast.installation
+	Scénario: install.sh installe les minuteurs des tâches, sauf avec --no-timers, qui retire ceux d'avant
+		https://github.com/dascritch/machincast/issues/455 : un poste dont l'installation est pilotée par un outil de
+		déploiement, comme Ansible, garde ses propres tâches. Sans --service, une mise à jour ne vérifie les minuteurs que
+		s'ils sont installés : le choix de --no-timers tient.
+		Alors install.sh a les noms des tâches du service de machincast.service
+		Et install.sh, avec --no-timers, n'installe aucun minuteur et retire ceux d'avant
+		Et install.sh ne vérifie les minuteurs d'un service installé que s'ils le sont
+		Et install.sh retire l'ancien minuteur de la purge à midi, à l'installation comme au retrait du service
 
 	# ─── Raccourci et icône de l'interface (https://github.com/dascritch/machincast/issues/62) ─────
 	# install.sh installe le raccourci que rédige machincast.installation dans le menu des applications du compte, et,

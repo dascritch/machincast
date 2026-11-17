@@ -256,7 +256,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et le fichier « jingles/intro.flac », sain
 		Et une autre indexation rapide en cours sur la base
 		Quand Machin indexer est lancé sur la base de test
-		Alors Machin indexer se termine avec le code 1, en signalant « indexation refusée : une autre indexation rapide est en cours sur cette base »
+		Alors Machin indexer se termine avec le code 3, en signalant « indexation refusée : une autre indexation rapide est en cours sur cette base »
 		Et la base contient 0 sonore
 		Quand l'autre indexation se termine
 		Et Machin indexer est lancé sur la base de test
@@ -268,7 +268,7 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Et le fichier « jingles/intro.flac », sain
 		Et un autre audit complet en cours sur la base
 		Quand Machin indexer est lancé sur la base de test, en audit complet
-		Alors Machin indexer se termine avec le code 1, en signalant « indexation refusée : un autre audit complet est en cours sur cette base »
+		Alors Machin indexer se termine avec le code 3, en signalant « indexation refusée : un autre audit complet est en cours sur cette base »
 		Et la base contient 0 sonore
 
 	Plan du scénario: Une indexation rapide et un audit complet tournent en même temps

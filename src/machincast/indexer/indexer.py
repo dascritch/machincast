@@ -37,6 +37,11 @@ ONGOING = {
 }
 
 
+ONGOING_CODE = 3
+"""Le code de sortie de Machin indexer refusé parce qu'une indexation du même mode tourne déjà sur la base : pas un
+échec pour son minuteur (https://github.com/dascritch/machincast/issues/455)."""
+
+
 class OngoingIndexing(Exception):
 	"""Une autre indexation du même mode tient son verrou sur la base : celle-ci ne commence pas."""
 
