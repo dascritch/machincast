@@ -153,22 +153,50 @@ Fonctionnalité: Raccourcis des onglets
 		Et j'appuie sur « Ctrl+W »
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
-	Scénario: Ctrl+S enregistre la fiche ouverte, comme son bouton « Enregistrer »
+	Scénario: Ctrl+S enregistre la fiche ouverte, qui reste ouverte
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Un »
 		Et je saisis le nom interne « Un bis »
 		Et j'appuie sur « Ctrl+S »
+		Alors l'onglet ouvert est « Séquence : Un bis »
+		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+		Et aucune question n'a été posée
+
+	Plan du scénario: Ctrl+Entrée enregistre la fiche ouverte, puis la ferme
+		Les deux touches Entrée, celle du clavier principal (Return) et celle du pavé numérique (Enter).
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je saisis le nom interne « Un bis »
+		Et j'appuie sur « <touches> »
 		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Quand j'ouvre la fiche de la séquence « Un bis »
 		Alors l'onglet ouvert est « Séquence : Un bis »
 
-	Scénario: Ctrl+S ne fait rien sur une fiche sans modification, ni sur un onglet qui ne s'enregistre pas
+		Exemples:
+			| touches     |
+			| Ctrl+Return |
+			| Ctrl+Enter  |
+
+	Scénario: Ctrl+Entrée ferme une fiche sans modification, et une fiche refusée reste ouverte
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et j'appuie sur « Ctrl+Return »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Quand j'ouvre la fiche de la séquence « Deux »
+		Et je saisis le nom interne «  »
+		Et j'appuie sur « Ctrl+Return »
+		Alors l'onglet ouvert est « Séquence : Deux »
+		Et la fiche signale « Le nom interne est obligatoire. »
+
+	Scénario: Ctrl+S et Ctrl+Entrée ne font rien sur une fiche sans modification, ni sur un onglet qui ne s'enregistre pas
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Un »
 		Et j'appuie sur « Ctrl+S »
 		Alors l'onglet ouvert est « Séquence : Un »
 		Quand j'appuie sur « Shift+F1 »
 		Et j'appuie sur « Ctrl+S »
+		Et j'appuie sur « Ctrl+Return »
 		Alors l'onglet ouvert est « Antenne »
 		Et aucune question n'a été posée
 
