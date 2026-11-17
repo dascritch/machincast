@@ -34,6 +34,7 @@ from tests.interface_steps import (
 	Context,
 	identifier,
 	open_in,
+	opened_card,
 	slide,
 	type_,
 	window,
@@ -43,7 +44,12 @@ from tests.waiting import settle
 scenarios("bank_card.feature")
 
 HIDINGS = {"hérité du sonore": None, "masqués": True, "affichés": False}
-MODES = {"séquentielle": "sequential", "aléatoire": "random"}
+MODES = {
+	"séquentielle": "sequential",
+	"aléatoire": "random",
+	"A→Z du nom de fichier": "filename_ascending",
+	"Z→A du nom de fichier": "filename_descending",
+}
 
 
 @pytest.fixture
@@ -351,7 +357,7 @@ def reorderable(interface: Context, verdict: str) -> None:
 @then(
 	parsers.re(
 		r"la banque « (?P<name>[^»]+) » est en base : (?:nom public « (?P<public_name>[^»]+) »|sans nom public),"
-		r" (?P<mode>séquentielle|aléatoire), masquage « (?P<hiding>[^»]+) »,"
+		r" (?P<mode>séquentielle|aléatoire|A→Z du nom de fichier|Z→A du nom de fichier), masquage « (?P<hiding>[^»]+) »,"
 		r" (?P<repeat>avec|sans) « ne pas répéter »"
 	)
 )
@@ -784,3 +790,13 @@ def sort_sounds(interface: Context, qtbot: QtBot, title: str) -> None:
 	column = titles.index(title)
 	position = QPoint(header.sectionViewportPosition(column) + header.sectionSize(column) // 2, header.height() // 2)
 	qtbot.mouseClick(header.viewport(), Qt.MouseButton.LeftButton, pos=position)
+
+
+@then(parsers.re(r"le choix du mode propose (?P<texts>«.+)"))
+def offered_modes(interface: Context, texts: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/454"""
+	choice = opened_card(interface).ui.mode
+	text_list = []
+	for index in range(choice.count()):
+		text_list.append(choice.itemText(index))
+	assert text_list == NAME.findall(texts)

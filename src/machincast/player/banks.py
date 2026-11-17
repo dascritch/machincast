@@ -5,6 +5,10 @@ fourni. Un redémarrage du binaire, ou un sonore ajouté à une banque, ne pertu
 
 - Séquentiel : le premier sonore jouable qui suit, dans l'ordre des positions, le dernier joué via cette banque ;
   après le dernier, la liste reprend au début. Sans passage via la banque, le premier sonore jouable.
+- A→Z ou Z→A du nom de fichier (https://github.com/dascritch/machincast/issues/454) : comme le séquentiel, dans l'ordre
+  du nom de fichier des sonores, sans son répertoire, croissant ou décroissant, au lieu de l'ordre des positions ; les
+  noms se comparent tels quels, caractère par caractère, et l'ordre se recalcule à chaque choix : un fichier ajouté
+  ou renommé prend aussitôt sa place. Un stream se range par son adresse.
 - Aléatoire contrôlé : un sonore joué via cette banque n'est plus tiré tant que tous les sonores jouables de la
   banque ne l'ont pas été. Les cycles se lisent dans les passages via la banque, du plus ancien au plus récent :
   un cycle se clôt quand tous les sonores jouables y sont passés. Le dernier sonore joué n'ouvre jamais le cycle
@@ -32,6 +36,8 @@ from machincast.player.history import IN_DATABASE, History
 from machincast.randomness import Randomness
 
 PLAYABLE_STATE = "active"
+FILENAME_ORDERS = {"filename_ascending": False, "filename_descending": True}
+"""Les modes dans l'ordre du nom de fichier, et s'il est décroissant (https://github.com/dascritch/machincast/issues/454)."""
 
 
 @dataclass(frozen=True)
@@ -40,6 +46,8 @@ class Candidate:
 
 	sound: int
 	state: str
+	location: str
+	"""L'emplacement du fichier, ou l'adresse d'un stream : son nom ordonne les modes du nom de fichier."""
 	broadcast_start: datetime | None
 	broadcast_end: datetime | None
 	playback_max: int | None
@@ -99,7 +107,7 @@ def _read_candidates(
 		line_list.append(int(str(line[0])))
 	plays = history.plays(connection, line_list)
 	candidates = []
-	for sound, state, start, end, maximum in lines:
+	for sound, state, start, end, maximum, location in lines:
 		if isinstance(start, datetime):
 			known_start = start
 		else:
@@ -112,6 +120,7 @@ def _read_candidates(
 			Candidate(
 				sound=int(str(sound)),
 				state=str(state),
+				location=str((location) or ("")),
 				broadcast_start=known_start,
 				broadcast_end=known_end,
 				playback_max=integer_or_none(maximum),
@@ -124,8 +133,8 @@ def _read_candidates(
 def _candidates(connection: psycopg.Connection[TupleRow], bank: int, history: History) -> list[Candidate]:
 	return _read_candidates(
 		connection,
-		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays"
-		" FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
+		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays,"
+		" COALESCE(s.location, s.stream_url) FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
 		" WHERE bs.bank_id = %s ORDER BY bs.position",
 		bank,
 		history,
@@ -138,17 +147,32 @@ def playable_sound(
 	"""Le sonore est-il jouable à l'instant (§ 4.5) : pour un sonore placé directement dans un événement."""
 	candidates = _read_candidates(
 		connection,
-		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays FROM sounds s WHERE s.id = %s",
+		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays,"
+		" COALESCE(s.location, s.stream_url) FROM sounds s WHERE s.id = %s",
 		sound,
 		history,
 	)
 	return (bool(candidates)) and (playable(candidates[0], instant))
 
 
+def file_name(candidate: Candidate) -> str:
+	"""Le nom du fichier, sans son répertoire ; l'adresse d'un stream, entière."""
+	return candidate.location.rsplit("/", 1)[-1]
+
+
+def by_file_name(candidates: list[Candidate], *, descending: bool) -> list[Candidate]:
+	"""Les sonores dans l'ordre de leur nom de fichier ; à nom égal, dans l'ordre de leur position."""
+	return sorted(candidates, key=file_name, reverse=descending)
+
+
 def _playable_list(
-	connection: psycopg.Connection[TupleRow], bank: int, instant: datetime, history: History
+	connection: psycopg.Connection[TupleRow], bank: int, instant: datetime, history: History, mode: str = ""
 ) -> tuple[list[int], set[int]]:
+	"""L'ordre des sonores de la banque, celui de leurs positions ou de leur nom de fichier selon le mode, et ceux
+	qui sont jouables."""
 	candidates = _candidates(connection, bank, history)
+	if mode in FILENAME_ORDERS:
+		candidates = by_file_name(candidates, descending=FILENAME_ORDERS[mode])
 	sounds = []
 	for c in candidates:
 		sounds.append(c.sound)
@@ -191,10 +215,11 @@ def choose_sound(
 	line = connection.execute("SELECT mode::text FROM banks WHERE id = %s", (bank,)).fetchone()
 	if line is None:
 		return None
-	order, playable_list = _playable_list(connection, bank, instant, history)
+	mode = str(line[0])
+	order, playable_list = _playable_list(connection, bank, instant, history, mode)
 	playable_list -= excluded_list
 	played_list = history.played_via_bank(connection, bank)
-	if line[0] == "sequential":
+	if (mode == "sequential") or (mode in FILENAME_ORDERS):
 		last_played = None
 		if played_list:
 			last_played = played_list[0]
