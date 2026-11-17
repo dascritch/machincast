@@ -1,5 +1,6 @@
 """Fixtures communes aux scénarios (https://github.com/dascritch/machincast/issues/5)."""
 
+import importlib
 import os
 from collections.abc import Iterator
 from datetime import UTC, datetime
@@ -153,3 +154,22 @@ def origin_palette(qapp: Any) -> Iterator[None]:
 	origin = QPalette(qapp.palette())
 	yield
 	qapp.setPalette(origin)
+
+
+SESSION_STATE = (
+	("machincast.interface.display", "_disabled_preview"),
+	("machincast.interface.preferences", "_current_list"),
+	("machincast.interface.preferences", "_retention"),
+	("machincast.interface.preferences", "_table_rows"),
+)
+"""Les variables qu'un module de l'interface garde pour la session, que la fenêtre règle à son ouverture : la
+pré-écoute désactivée, les préférences. Un scénario de base.feature vérifie qu'aucune ne manque."""
+
+
+@pytest.fixture(autouse=True)
+def session_state(monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Chaque état de session de l'interface est remis à la fin du scénario : un scénario qui ouvre une fenêtre ne le
+	laisse pas aux suivants (https://github.com/dascritch/machincast/issues/346)."""
+	for name, variable in SESSION_STATE:
+		module = importlib.import_module(name)
+		monkeypatch.setattr(module, variable, getattr(module, variable))

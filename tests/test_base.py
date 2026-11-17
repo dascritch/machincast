@@ -641,3 +641,19 @@ def steps_size() -> None:
 		if lines > 1500:
 			faults.append(f"{path.name} : {lines} lignes")
 	assert not faults, faults
+
+
+@then("chaque variable globale d'un module de l'interface est remise après chaque scénario par tests/conftest.py")
+def interface_session_state() -> None:
+	"""https://github.com/dascritch/machincast/issues/346 : une variable qu'un module de l'interface déclare `global`
+	pour la changer est un état de la session ; tests.conftest.SESSION_STATE la nomme, pour la remettre."""
+	from tests.conftest import SESSION_STATE
+
+	found = set()
+	for path in sorted((ROOT / "src" / "machincast" / "interface").rglob("*.py")):
+		module = ".".join(path.relative_to(ROOT / "src").with_suffix("").parts)
+		for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+			if isinstance(node, ast.Global):
+				for name in node.names:
+					found.add((module, name))
+	assert found == set(SESSION_STATE), sorted(found ^ set(SESSION_STATE))
