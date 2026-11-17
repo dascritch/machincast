@@ -42,7 +42,6 @@ Then: adapt `machincast.toml` ([see below](#adapting-the-configuration)), then r
 
 - **Ubuntu 26.04 LTS**. Other LTS versions (24.04…) are accepted, with a warning; non-LTS versions are refused. MachinCast is checked with the GStreamer version of Ubuntu 26.04, 1.28: with an older version, like 1.24 in Ubuntu 24.04, the installation warns, and nothing is guaranteed ([#284](https://github.com/dascritch/machincast/issues/284)).
 - **The account that will use MachinCast, with `sudo` rights**. The installation is single-user: a single Unix account uses MachinCast, the one that installs it. The script is run with that account, never with `sudo`: it asks for the password only for the steps that need it.
-- **A dedicated machine**, with a processor of 1 GHz at least, 2 GB of RAM and 50 GB of disk space for the sounds ([#338](https://github.com/dascritch/machincast/issues/338)). In production, the [playout service](#playout-service) is installed on it.
 - **Internet access**, for apt and pip.
 - **PostgreSQL 16 or newer**, installed by the script if missing. Ubuntu 26.04 provides a suitable version.
 
@@ -172,14 +171,14 @@ The playout service speaks the language of the system (`localectl status`, `sudo
 
 ## Preparing the on-air machine
 
-The machine that plays out is also a desktop computer: everything it plays on the on-air device goes on air. Two desktop settings prevent this ([#250](https://github.com/dascritch/machincast/issues/250)). Once the [playout service](#playout-service) is installed, they are no longer needed: the on-air card is reserved for it, hidden from the sessions of the machine, and no desktop program can play on it any more ([#381](https://github.com/dascritch/machincast/issues/381)). They apply to playout without the service, such as a test playout. The paths below are those of the KDE Plasma system settings, the desktop of Ubuntu 26.04 LTS used on air; their names may vary from one version or desktop to another.
+The machine that plays out is also a desktop computer: everything it plays on the on-air device goes on air. Three desktop settings prevent this ([#250](https://github.com/dascritch/machincast/issues/250)). The paths below are those of the KDE Plasma system settings, the desktop of Ubuntu 26.04 LTS used on air; their names may vary from one version or desktop to another.
 
 **1. The on-air device is not the desktop's default output.** The default output is that of every program that does not choose one: the browser, a video call, a video player, the system sounds. On the on-air device, they would go on air. MachinCast does not need it: `Machin player` always plays on `audio.device`, and the preview on `audio.preview`, whether or not they are the default output.
 
 - In **System Settings → Sound**, playback devices page, choose as default output another device than the on-air one: the control room headphones, or the machine's speakers.
 - To check, on the command line: `wpctl status`, under PipeWire, marks the default output with a `*` among the « Sinks »; `pactl get-default-sink` gives its identifier, to compare with `audio.device`. `wpctl set-default <number>` chooses another, by the numbers of `wpctl status`.
 
-**2. Notification sounds are muted.** A notification, a received message, a plugged-in USB key, the volume set from the keyboard make a sound, on the default output, or on air if it still is. With the playout service, they are no longer active on air; without it:
+**2. Notification sounds are muted.** A notification, a received message, a plugged-in USB key, the volume set from the keyboard make a sound, on the default output, or on air if it still is:
 
 - in **Colours & Themes → Global Theme → System Sounds**, uncheck, top right, **Enable notification sounds**;
 
@@ -189,7 +188,7 @@ The machine that plays out is also a desktop computer: everything it plays on th
 
   ![KDE Plasma Sound page: the « Sons de notification » (notification sounds) line of the playback streams, muted, at 0 %](doc/fr/administration/images/kde-sons-de-notification.png)
 
-**The screen saver and the session lock can stay on.** The [VU meter](doc/fr/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) pauses during sleep, and resumes on return ([#346](https://github.com/dascritch/machincast/issues/346)); playout itself goes on. Suspending the machine, which would cut the air, asks for an administrator's password once the service is installed ([protection of the machine](#playout-service), [#448](https://github.com/dascritch/machincast/issues/448)): it must not be scheduled in **System Settings → Power Management**.
+**3. No screen sleep.** When a screen turns back on, the machine's sound server can interrupt the preview for a while, and the station's [VU meter](doc/fr/utilisateur/prise-en-main.md#vu-mètre-de-lantenne) reopens ([#259](https://github.com/dascritch/machincast/issues/259), [#311](https://github.com/dascritch/machincast/issues/311)). Playout itself goes on. In **System Settings → Power Management**, on AC power, set **Turn off screen** to **Never**. Suspending the machine (**Suspend session**) must not be scheduled either: asleep, the machine no longer plays out.
 
 ## Checking the installation
 

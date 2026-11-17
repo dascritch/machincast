@@ -55,6 +55,7 @@ The known failures of MachinCast, their causes, what to check, and the scenarios
 
 **To check**:
 
+- That the screen of the on-air machine does not go to sleep: see [Preparing the on-air machine](INSTALL.md#preparing-the-on-air-machine) ([#250](https://github.com/dascritch/machincast/issues/250)).
 - Restart the preview once the sound is back. If the VU meter stays unavailable for more than 10 seconds, check that the sound server is running (`systemctl --user status pipewire`), then open an issue with the console output of `Machin interface`.
 
 ## The station switches to the preview output when the session locks
