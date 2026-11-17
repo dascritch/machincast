@@ -31,6 +31,7 @@ Machin --help                         # aide complète
 | `Machin purge` | [Purge de la base de production](#purge-de-la-base--machin-purge) : efface ce qui dépasse la durée de péremption, jamais un fichier. |
 | `Machin grant-read` | [Lecture des sonores par le service de diffusion](#lecture-par-le-service-de-diffusion--machin-grant-read), qui tourne sous son propre compte. |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
+| `Machin tasks` | [Tâches régulières](#tâches-régulières--machin-tasks) : ce qui est dû, lancé tous les quarts d'heure par le minuteur du service. |
 
 **Options de `Machin`**, placées avant le nom du programme :
 
@@ -114,7 +115,17 @@ Elle dit, et écrit dans le log de la base, ligne `purge`, ce qu'elle a effacé,
 
 Code 0 quand la purge est faite ; 1 si la base est injoignable, ou sur une erreur de la base : rien n'est alors effacé. Comme la maintenance, elle se lance avec le compte de MachinCast, propriétaire de la base, qui efface sans endosser de rôle.
 
-**La durée** se règle dans `machincast.toml` ([Configuration](configuration.md#durée-de-péremption)), ou dans l'interface, **Fichier → Préférences de l'interface…**, page **Base**. **Avec le service de diffusion** (`./install.sh --service`), un minuteur systemd la lance chaque jour à l'heure de `schedule.daily`, 10:00 par défaut, réglable dans **Fichier → Paramètres du service…**, page **Tâches**, puis l'audit complet ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion), [#455](https://github.com/dascritch/machincast/issues/455)) ; ses messages se lisent par `journalctl --unit=machincast-daily.service`. Sans service, ou avec `--no-timers`, elle se lance à la main.
+**La durée** se règle dans `machincast.toml` ([Configuration](configuration.md#durée-de-péremption)), ou dans l'interface, **Fichier → Préférences de l'interface…**, page **Base**. **Avec le service de diffusion** (`./install.sh --service`), un minuteur systemd la lance chaque jour à l'heure de `schedule.daily`, 10:00 par défaut, réglable dans **Fichier → Paramètres du service…**, page **Tâches**, puis l'audit complet ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion), [#455](https://github.com/dascritch/machincast/issues/455)) ; ses messages se lisent par `journalctl --unit=machincast-tasks.service`. Sans service, ou avec `--no-timers`, elle se lance à la main.
+
+## Tâches régulières : Machin tasks
+
+`Machin tasks` ([#455](https://github.com/dascritch/machincast/issues/455)) lance les tâches régulières qui sont dues, et rien d'autre. **Avec le service de diffusion** (`./install.sh --service`, sauf avec `--no-timers`), le minuteur systemd `machincast-tasks.timer` le lance tous les quarts d'heure, sous le compte de MachinCast ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)). Aujourd'hui, une tâche :
+
+- **la tâche quotidienne**, une fois par jour à partir de l'heure de `schedule.daily`, 10:00 par défaut, réglable dans **Fichier → Paramètres du service…**, page **Tâches** : `Machin purge`, puis `Machin indexer --full-audit`. Elle remplace la purge de midi. `python -m machincast.schedule claim` dit si elle est due, et note son passage dans le répertoire d'état du service, `/var/lib/machincast-tasks` : une tâche manquée, poste éteint, passe au quart d'heure qui suit son démarrage ; une tâche en échec n'est pas relancée avant le lendemain.
+
+Ce que fait chaque passage est dans le wrapper, pas dans l'unité systemd : une tâche peut s'y ajouter, ou le minuteur changer de périodicité, sans toucher à l'autre. `Machin tasks` ne prend pas d'argument, sauf `--config FICHIER` avant `tasks`, transmis à chaque tâche. Il se lance d'ordinaire par son unité, qui lui donne son répertoire d'état ; à la main, sans elle, il sort avec le code 2.
+
+Code 0 quand rien n'était dû, ou que tout ce qui l'était a réussi : un audit complet déjà en cours, lancé depuis l'interface, n'est pas un échec ; sinon, celui de la première tâche en échec, qui arrête la tâche quotidienne (une purge en échec n'est pas suivie de l'audit) ; 127 sans le venv de MachinCast. Ses messages se lisent par `journalctl --unit=machincast-tasks.service`.
 
 ## Lecture par le service de diffusion : Machin grant-read
 

@@ -370,8 +370,8 @@ Fonctionnalité: Vérifications de l'installation
 			| wireplumber-desktop | FICHIER_WIREPLUMBER_BUREAU  |
 			| tmpfiles            | FICHIER_TMPFILES            |
 			| logrotate           | FICHIER_LOGROTATE           |
-			| daily-unit          | FICHIER_UNITE_QUOTIDIENNE   |
-			| daily-timer         | FICHIER_MINUTEUR_QUOTIDIEN  |
+			| tasks-unit          | FICHIER_UNITE_TACHES        |
+			| tasks-timer         | FICHIER_MINUTEUR_TACHES     |
 			| indexing-unit       | FICHIER_UNITE_INDEXATION    |
 			| indexing-timer      | FICHIER_MINUTEUR_INDEXATION |
 			| rule                | FICHIER_REGLE               |
@@ -401,41 +401,40 @@ Fonctionnalité: Vérifications de l'installation
 
 	# ─── Tâches du service (https://github.com/dascritch/machincast/issues/268, https://github.com/dascritch/machincast/issues/455) ─────
 	# install.sh --service installe deux minuteurs, sous le compte de MachinCast : l'indexation rapide toutes les heures,
-	# et, tous les quarts d'heure, la tâche quotidienne, qui ne passe que due (machincast.schedule) : Machin purge, puis
-	# l'audit complet, à l'heure réglée (schedule.daily). --no-timers ne les installe pas, et retire ceux d'avant ;
-	# --remove-service les retire avec le service. Ils remplacent le minuteur de la purge à midi, retiré à la mise à jour.
+	# et, tous les quarts d'heure, les tâches régulières, Machin tasks, qui lance ce qui est dû : la tâche quotidienne,
+	# Machin purge puis l'audit complet, à l'heure réglée (schedule.daily, 10:00 par défaut). Ce que fait chaque passage
+	# est dans le wrapper (tests/wrapper/taches.bats) : l'unité ne change pas avec les tâches. --no-timers n'installe
+	# pas les minuteurs, et retire ceux d'avant ; --remove-service les retire avec le service. Ils remplacent le
+	# minuteur de la purge à midi, retiré à la mise à jour.
 
-	Scénario: L'unité de la tâche quotidienne la réserve, puis lance la purge et l'audit complet, sous le compte de MachinCast
-		Quand je lance « python -m machincast.installation daily-unit » avec la configuration de test
+	Scénario: L'unité des tâches régulières lance Machin tasks, sous le compte de MachinCast
+		Quand je lance « python -m machincast.installation tasks-unit » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
-			| clé         | valeur                                                    |
-			| Description | MachinCast: daily tasks (Machin purge, then a full audit) |
-			| After       | postgresql.service                                        |
+			| clé         | valeur                                  |
+			| Description | MachinCast: regular tasks (Machin tasks) |
+			| After       | postgresql.service                      |
 		Et l'unité a, dans la section « Service » :
-			| clé               | valeur                                                 |
-			| Type              | oneshot                                                |
-			| User              | <compte>                                               |
-			| Group             | <groupe>                                               |
-			| WorkingDirectory  | <répertoire>                                           |
-			| StateDirectory    | machincast-tasks                                       |
-			| ExecCondition     | <répertoire>/.venv/bin/python -m machincast.schedule claim |
-			| ExecStart         | <répertoire>/bin/Machin purge                          |
-			| ExecStart         | <répertoire>/bin/Machin indexer --full-audit           |
-			| SuccessExitStatus | 3                                                      |
-			| SyslogIdentifier  | machincast-daily                                       |
+			| clé              | valeur                        |
+			| Type             | oneshot                       |
+			| User             | <compte>                      |
+			| Group            | <groupe>                      |
+			| WorkingDirectory | <répertoire>                  |
+			| StateDirectory   | machincast-tasks              |
+			| ExecStart        | <répertoire>/bin/Machin tasks |
+			| SyslogIdentifier | machincast-tasks              |
 		Et l'unité n'a pas de section « Install »
 
-	Scénario: Le minuteur de la tâche quotidienne la propose tous les quarts d'heure
-		Quand je lance « python -m machincast.installation daily-timer » avec la configuration de test
+	Scénario: Le minuteur des tâches régulières les lance tous les quarts d'heure
+		Quand je lance « python -m machincast.installation tasks-timer » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité a, dans la section « Unit » :
-			| clé         | valeur                                                          |
-			| Description | MachinCast: daily tasks, checked every quarter of an hour       |
+			| clé         | valeur                                              |
+			| Description | MachinCast: regular tasks, every quarter of an hour |
 		Et l'unité a, dans la section « Timer » :
 			| clé        | valeur                   |
 			| OnCalendar | *:0/15                   |
-			| Unit       | machincast-daily.service |
+			| Unit       | machincast-tasks.service |
 		Et l'unité a, dans la section « Install » :
 			| clé      | valeur        |
 			| WantedBy | timers.target |
@@ -475,13 +474,12 @@ Fonctionnalité: Vérifications de l'installation
 
 	Scénario: Les unités des tâches suivent le compte de MachinCast, quel qu'il soit
 		Quand les unités des tâches sont rédigées pour le compte « radio », du groupe « antenne », dans « /home/radio/machincast »
-		Alors l'unité de la tâche quotidienne a, dans la section « Service », entre autres :
-			| clé              | valeur                                       |
-			| User             | radio                                        |
-			| Group            | antenne                                      |
-			| WorkingDirectory | /home/radio/machincast                       |
-			| ExecStart        | /home/radio/machincast/bin/Machin purge      |
-			| ExecStart        | /home/radio/machincast/bin/Machin indexer --full-audit |
+		Alors l'unité des tâches régulières a, dans la section « Service », entre autres :
+			| clé              | valeur                                  |
+			| User             | radio                                   |
+			| Group            | antenne                                 |
+			| WorkingDirectory | /home/radio/machincast                  |
+			| ExecStart        | /home/radio/machincast/bin/Machin tasks |
 		Et l'unité de l'indexation rapide a, dans la section « Service », entre autres :
 			| clé              | valeur                                  |
 			| User             | radio                                   |
@@ -489,15 +487,15 @@ Fonctionnalité: Vérifications de l'installation
 
 	Scénario: systemd accepte les unités et les minuteurs des tâches
 		Étant donné l'outil « systemd-analyze » du poste
-		Quand je lance « python -m machincast.installation daily-unit » avec la configuration de test
-		Et j'enregistre sa sortie en « machincast-daily.service »
-		Et je lance « python -m machincast.installation daily-timer » avec la configuration de test
-		Et j'enregistre sa sortie en « machincast-daily.timer »
+		Quand je lance « python -m machincast.installation tasks-unit » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-tasks.service »
+		Et je lance « python -m machincast.installation tasks-timer » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-tasks.timer »
 		Et je lance « python -m machincast.installation indexing-unit » avec la configuration de test
 		Et j'enregistre sa sortie en « machincast-indexing.service »
 		Et je lance « python -m machincast.installation indexing-timer » avec la configuration de test
 		Et j'enregistre sa sortie en « machincast-indexing.timer »
-		Alors « systemd-analyze verify » accepte ensemble « machincast-daily.service », « machincast-daily.timer », « machincast-indexing.service » et « machincast-indexing.timer »
+		Alors « systemd-analyze verify » accepte ensemble « machincast-tasks.service », « machincast-tasks.timer », « machincast-indexing.service » et « machincast-indexing.timer »
 
 	Scénario: install.sh installe les minuteurs des tâches, sauf avec --no-timers, qui retire ceux d'avant
 		https://github.com/dascritch/machincast/issues/455 : un poste dont l'installation est pilotée par un outil de

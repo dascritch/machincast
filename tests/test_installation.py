@@ -39,11 +39,11 @@ from machincast.installation import (
 	check_output,
 	check_streams,
 	check_versions,
-	daily_unit,
 	indexing_unit,
 	polkit_rule,
 	shortcut,
 	systemd_unit,
+	tasks_unit,
 )
 from machincast.interface.application import application
 from machincast.protection import SOUND_EXTENSIONS
@@ -480,14 +480,14 @@ def write_tasks(name: str, group: str, directory: str) -> dict[str, str]:
 	"""https://github.com/dascritch/machincast/issues/455"""
 	account = Account(name, group, 1001)
 	return {
-		"la tâche quotidienne": daily_unit(account, Path(directory)),
-		"l'indexation rapide": indexing_unit(account, Path(directory)),
+		"des tâches régulières": tasks_unit(account, Path(directory)),
+		"de l'indexation rapide": indexing_unit(account, Path(directory)),
 	}
 
 
 @then(
 	parsers.re(
-		r"l'unité de (?P<task>la tâche quotidienne|l'indexation rapide) a, dans la section « (?P<name>[^»]+) »,"
+		r"l'unité (?P<task>des tâches régulières|de l'indexation rapide) a, dans la section « (?P<name>[^»]+) »,"
 		r" entre autres :"
 	)
 )
@@ -500,11 +500,11 @@ def task_section(written_tasks: dict[str, str], task: str, name: str, datatable:
 def sh_task_names() -> None:
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
 	for expected in (
-		f'UNITE_QUOTIDIENNE="{service.DAILY_UNIT}"',
-		f'MINUTEUR_QUOTIDIEN="{service.DAILY_TIMER}"',
+		f'UNITE_TACHES="{service.TASKS_UNIT}"',
+		f'MINUTEUR_TACHES="{service.TASKS_TIMER}"',
 		f'UNITE_INDEXATION="{service.INDEXING_UNIT}"',
 		f'MINUTEUR_INDEXATION="{service.INDEXING_TIMER}"',
-		f'FICHIER_MINUTEUR_QUOTIDIEN="{service.DAILY_TIMER_FILE}"',
+		f'FICHIER_MINUTEUR_TACHES="{service.TASKS_TIMER_FILE}"',
 	):
 		assert expected in install, expected
 
@@ -519,8 +519,8 @@ def sh_no_timers() -> None:
 	)
 	tasks = _function(install, "installer_minuteurs")
 	for expected in (
-		'executer sudo systemctl enable --now "${MINUTEUR_QUOTIDIEN}" "${MINUTEUR_INDEXATION}"',
-		'installer_fichier daily-unit "${FICHIER_UNITE_QUOTIDIENNE}"',
+		'executer sudo systemctl enable --now "${MINUTEUR_TACHES}" "${MINUTEUR_INDEXATION}"',
+		'installer_fichier tasks-unit "${FICHIER_UNITE_TACHES}"',
 		'installer_fichier indexing-timer "${FICHIER_MINUTEUR_INDEXATION}"',
 	):
 		assert expected in tasks, expected
@@ -532,7 +532,7 @@ def sh_no_timers() -> None:
 @then("install.sh ne vérifie les minuteurs d'un service installé que s'ils le sont")
 def sh_checks_installed_timers() -> None:
 	checking = _function((PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8"), "fichiers_du_service_perimes")
-	assert 'if [[ -e "${FICHIER_MINUTEUR_QUOTIDIEN}" ]]; then' in checking, checking
+	assert 'if [[ -e "${FICHIER_MINUTEUR_TACHES}" ]]; then' in checking, checking
 
 
 @then("install.sh retire l'ancien minuteur de la purge à midi, à l'installation comme au retrait du service")
