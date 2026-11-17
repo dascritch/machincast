@@ -1,8 +1,10 @@
 """Scénarios de « Votre installation » et du lien de l'équipe (https://github.com/dascritch/machincast/issues/451).
 
 Le document se crée par python -m machincast.notes create, comme install.sh le lance, dans un processus à part, avec
-la langue demandée ; xdg-user-dir et les éditeurs du poste sont des scripts du répertoire du scénario, en tête du PATH,
-qui notent leurs arguments. Les étapes de la fenêtre et de ses menus sont dans tests/interface_steps.py.
+la langue demandée ; xdg-user-dir, xdg-mime, gio et les éditeurs du poste sont des scripts du répertoire du scénario,
+en tête du PATH, qui notent leurs arguments (https://github.com/dascritch/machincast/issues/491). Les applications du
+bureau sont celles de XDG_DATA_HOME et XDG_DATA_DIRS, dans le répertoire du scénario. Les étapes de la fenêtre et de
+ses menus sont dans tests/interface_steps.py.
 """
 
 import os
@@ -18,14 +20,13 @@ from PySide6.QtWidgets import QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.configuration import PROJECT_DIRECTORY, Crossfades
+from machincast.interface.installation_notes import EDITORS
 from machincast.interface.preferences import INTERFACE, PreferencesWindow, Settings
 from tests.database_fixtures import configuration_test
 from tests.interface_steps import Context, configuration_file
 from tests.test_preferences import TEST_PREVIEW
 
 scenarios("installation_notes.feature")
-
-EDITORS = ("kwrite", "gnome-text-editor")
 
 
 @dataclass
@@ -57,10 +58,16 @@ def station(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Station:
 	home.mkdir()
 	monkeypatch.setenv("PATH", f"{commands}:{os.environ['PATH']}")
 	monkeypatch.setenv("HOME", str(home))
+	monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "applications-du-compte"))
+	monkeypatch.setenv("XDG_DATA_DIRS", str(tmp_path / "applications-du-systeme"))
 	for editor in EDITORS:
 		for directory in os.environ["PATH"].split(":"):
 			assert not (Path(directory) / editor).exists(), f"{editor} installé sur le poste des tests"
-	return Station(tmp_path, commands, home)
+	station = Station(tmp_path, commands, home)
+	# Jamais les associations ni les applications du poste des tests : sans étape, le bureau n'en a aucune.
+	imitate(station, "xdg-mime", "exit 4")
+	imitate(station, "gio", f'echo "$*" >"{tmp_path}/gio.ouvert"')
+	return station
 
 
 def imitate(station: Station, name: str, script: str) -> None:
@@ -120,6 +127,32 @@ def configured_link(interface: Context, address: str) -> None:
 def editors(station: Station, names: str) -> None:
 	for name in re.findall(r"« ([^»]+) »", names):
 		imitate(station, name, f'echo "$*" >"{station.directory}/{name}.ouvert"')
+
+
+@given(parsers.parse("le bureau associe les fichiers texte à « {application} », et les .md à Okular"))
+def associations(station: Station, application: str) -> None:
+	applications = station.directory / "applications-du-compte" / "applications"
+	applications.mkdir(parents=True)
+	(applications / application).write_text("[Desktop Entry]\nType=Application\nName=Bloc-notes\n", encoding="utf-8")
+	imitate(
+		station,
+		"xdg-mime",
+		f'[[ "$1 $2" == "query default" ]] || exit 1\ncase "$3" in\n\ttext/plain) echo "{application}" ;;\n'
+		"\ttext/markdown) echo org.kde.okular.desktop ;;\n\t*) exit 4 ;;\nesac",
+	)
+
+
+@then(parsers.parse("gio a lancé « {application} » sur « {path} »"))
+def launched_by_gio(station: Station, qtbot: object, application: str, path: str) -> None:
+	opened = station.directory / "gio.ouvert"
+	qtbot.waitUntil(opened.exists, timeout=5000)  # type: ignore[attr-defined]
+	desktop = station.directory / "applications-du-compte" / "applications" / application
+	assert opened.read_text(encoding="utf-8").strip() == f"launch {desktop} {station.path(path)}"
+
+
+@then("le navigateur web n'a rien ouvert")
+def nothing_opened(interface: Context) -> None:
+	assert interface.opened_pages == []
 
 
 @when("le poste n'a plus d'éditeur de texte")

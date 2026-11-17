@@ -7,10 +7,12 @@ Fonctionnalité: Votre installation, un document éditable, et le lien de l'équ
 	https://github.com/dascritch/machincast/issues/451. « Votre installation » est un document Markdown, sur le Bureau du
 	compte par défaut, ou à l'emplacement de interface.notes. Il se crée depuis un modèle, dans la langue de la session,
 	par install.sh à l'installation, ou par l'interface s'il manque, et n'est jamais écrasé. Aide → « Votre
-	installation… » l'ouvre dans l'éditeur de texte du poste : kwrite, sinon Gnome Text Editor, sinon le programme du
-	bureau. Aide → « Lien de l'équipe… » ouvre dans le navigateur l'adresse de interface.team_link : un cloud local, un
-	Gitlab, un Jira… Un chemin qui commence par « …/ » est dans le répertoire du scénario ; xdg-user-dir et les éditeurs
-	y sont des scripts, qui notent leurs arguments.
+	installation… » l'ouvre toujours dans un éditeur de texte (https://github.com/dascritch/machincast/issues/491) : le
+	premier présent de kate, kwrite, gnome-text-editor, gedit, mousepad, xed, pluma et featherpad, sinon l'application
+	que le bureau associe aux fichiers texte (text/plain), jamais celle des .md, une visionneuse comme Okular. Aide →
+	« Lien de l'équipe… » ouvre dans le navigateur l'adresse de interface.team_link : un cloud local, un Gitlab, un
+	Jira… Un chemin qui commence par « …/ » est dans le répertoire du scénario ; xdg-user-dir, xdg-mime, gio et les
+	éditeurs y sont des scripts, qui notent leurs arguments.
 
 	Contexte:
 		Étant donné l'horloge de l'interface au « 2026-11-17 13:00:00 »
@@ -57,17 +59,41 @@ Fonctionnalité: Votre installation, un document éditable, et le lien de l'équ
 		Et le document « …/Bureau/Votre installation MachinCast.md » commence par « Complétez ce document, il est à vous ! »
 		Et la barre d'état annonce « Votre installation : …/Bureau/Votre installation MachinCast.md, créé depuis le modèle. »
 
-	Scénario: Sans kwrite, Gnome Text Editor ouvre le document ; sans l'un ni l'autre, le programme du bureau
+	Plan du scénario: Le premier éditeur présent ouvre le document
 		Étant donné le Bureau « …/Bureau » du compte
 		Et le document « …/Bureau/Votre installation MachinCast.md » qui contient « Notes »
-		Et les éditeurs « gnome-text-editor » sur le poste
+		Et les éditeurs <présents> sur le poste
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Votre installation… » dans le menu « Aide »
-		Alors « gnome-text-editor » a ouvert « …/Bureau/Votre installation MachinCast.md »
+		Alors « <éditeur> » a ouvert « …/Bureau/Votre installation MachinCast.md »
 		Et la barre d'état annonce « Votre installation : …/Bureau/Votre installation MachinCast.md. »
-		Quand le poste n'a plus d'éditeur de texte
+
+		Exemples:
+			| présents                                | éditeur           |
+			| « kate », « kwrite »                    | kate              |
+			| « gnome-text-editor », « gedit »        | gnome-text-editor |
+			| « featherpad », « mousepad »            | mousepad          |
+			| « pluma », « featherpad »               | pluma             |
+
+	Scénario: Sans éditeur connu, l'application des fichiers texte du bureau ouvre le document, jamais celle des .md
+		Étant donné le Bureau « …/Bureau » du compte
+		Et le document « …/Bureau/Votre installation MachinCast.md » qui contient « Notes »
+		Et le bureau associe les fichiers texte à « org.exemple.bloc-notes.desktop », et les .md à Okular
+		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Votre installation… » dans le menu « Aide »
-		Alors le navigateur web a ouvert « file://…/Bureau/Votre installation MachinCast.md »
+		Alors gio a lancé « org.exemple.bloc-notes.desktop » sur « …/Bureau/Votre installation MachinCast.md »
+		Et la barre d'état annonce « Votre installation : …/Bureau/Votre installation MachinCast.md. »
+		Et le navigateur web n'a rien ouvert
+
+	Scénario: Sans aucun éditeur, la barre d'état le dit, et donne le chemin du document
+		Étant donné le Bureau « …/Bureau » du compte
+		Et le document « …/Bureau/Votre installation MachinCast.md » qui contient « Notes »
+		Et les éditeurs « kwrite » sur le poste
+		Quand le poste n'a plus d'éditeur de texte
+		Et la fenêtre de l'interface s'ouvre
+		Et je choisis « Votre installation… » dans le menu « Aide »
+		Alors la barre d'état annonce « Votre installation : aucun éditeur de texte trouvé ; le document est …/Bureau/Votre installation MachinCast.md. »
+		Et le navigateur web n'a rien ouvert
 
 	Scénario: Sans adresse, « Lien de l'équipe… » est inactive, et son infobulle dit où la donner
 		Quand la fenêtre de l'interface s'ouvre
