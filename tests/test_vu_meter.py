@@ -5,23 +5,29 @@ tests/preview_steps.py. Sur la sortie factice, le port de monitoring est un sign
 scénario choisit (monitor.DUMMY_SIGNAL).
 """
 
+import itertools
 import re
+import subprocess
+import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QRectF, Qt
+from PySide6.QtDBus import QDBusConnection, QDBusMessage
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Audio
-from machincast.interface import binding, monitor, preview
+from machincast.interface import binding, monitor, preview, screen_saver, states
 from machincast.interface.monitor import Monitor, monitor_source
 from machincast.interface.vu_meter import VuMeter
 from tests.interface_steps import Context, actions, window
 from tests.preview_steps import SIGNALS, home
+from tests.waiting import quiet
 
 scenarios("vu_meter.feature")
 
@@ -311,7 +317,6 @@ def port_channels(port: object, count: int) -> None:
 def reopen(interface: Context) -> object:
 	screen = home(interface)
 	previous = screen.monitor._pipeline
-	assert previous is not None
 	screen.change_on_air(screen.monitor.audio)
 	return previous
 
@@ -598,3 +603,90 @@ def public_name_to_keyboard(interface: Context, keys: str) -> None:
 			captions.append(caption)
 	assert len(captions) == 1, captions
 	assert QKeySequence.mnemonic(captions[0].text()).toString() == keys
+
+
+# ─── Session en veille ─────────────────────────────────────
+
+BUS_NAMES = itertools.count()
+"""Un nom par connexion à un bus de session à part : QtDBus garde les connexions par leur nom."""
+
+
+class AudioServer:
+	"""Un serveur audio qui ne répond plus aux changements d'état : chaque pilote attend, dans son fil, que la porte
+	s'ouvre (https://github.com/dascritch/machincast/issues/346)."""
+
+	def __init__(self) -> None:
+		self.gate = threading.Event()
+		self.pilots: list[states.Pilot] = []
+
+
+@given("un serveur audio qui ne répond plus aux changements d'état", target_fixture="audio_server")
+def stuck_audio_server(monkeypatch: pytest.MonkeyPatch) -> Iterator[AudioServer]:
+	server = AudioServer()
+
+	class StuckPilot(states.Pilot):
+		def __init__(self, pipeline: object) -> None:
+			server.pilots.append(self)
+			super().__init__(pipeline)  # type: ignore[arg-type]
+
+		def _change(self, pipeline: object) -> None:
+			server.gate.wait()
+			super()._change(pipeline)  # type: ignore[arg-type]
+
+	monkeypatch.setattr(states, "Pilot", StuckPilot)
+	yield server
+	server.gate.set()
+
+
+@when("le serveur audio répond de nouveau")
+def audio_server_answers(audio_server: AudioServer) -> None:
+	audio_server.gate.set()
+
+
+@then(parsers.parse("le port de monitoring n'a été ouvert qu'une fois en {seconds:d} secondes"))
+def opened_once(qtbot: QtBot, audio_server: AudioServer, seconds: int) -> None:
+	quiet(qtbot, seconds * 1000, reason="une seconde ouverture du port de monitoring")
+	assert len(audio_server.pilots) == 1, len(audio_server.pilots)
+
+
+@given("un bus de session à part", target_fixture="session_bus")
+def separate_session_bus(monkeypatch: pytest.MonkeyPatch) -> Iterator[QDBusConnection]:
+	"""Un dbus-daemon à part : le bus où l'interface écoute l'économiseur d'écran, et d'où le scénario l'émet."""
+	with subprocess.Popen(
+		["dbus-daemon", "--session", "--nofork", "--print-address"],
+		stdout=subprocess.PIPE,
+		stderr=subprocess.DEVNULL,
+		text=True,
+	) as daemon:
+		assert daemon.stdout is not None
+		address = daemon.stdout.readline().strip()
+		listening = f"machincast-tests-{next(BUS_NAMES)}"
+		emitting = f"machincast-tests-{next(BUS_NAMES)}"
+		monkeypatch.setattr(screen_saver, "bus", lambda: QDBusConnection.connectToBus(address, listening))
+		yield QDBusConnection.connectToBus(address, emitting)
+		QDBusConnection.disconnectFromBus(emitting)
+		QDBusConnection.disconnectFromBus(listening)
+		daemon.terminate()
+
+
+def _screen_saver(session_bus: QDBusConnection, active: bool) -> None:
+	message = QDBusMessage.createSignal(screen_saver.PATH, screen_saver.INTERFACE, screen_saver.SIGNAL)
+	message.setArguments([active])
+	assert session_bus.send(message)
+
+
+@when("l'économiseur d'écran s'active")
+def screen_saver_on(session_bus: QDBusConnection) -> None:
+	_screen_saver(session_bus, True)
+
+
+@when("l'économiseur d'écran s'arrête")
+def screen_saver_off(session_bus: QDBusConnection) -> None:
+	_screen_saver(session_bus, False)
+
+
+@then("l'onglet Antenne ne capture bientôt plus rien")
+def soon_nothing_captured(interface: Context, qtbot: QtBot) -> None:
+	monitor_ = home(interface).monitor
+	qtbot.waitUntil(lambda: not monitor_.active(), timeout=DELAY)
+	assert (monitor_.levels, monitor_.peaks) == ([], [])

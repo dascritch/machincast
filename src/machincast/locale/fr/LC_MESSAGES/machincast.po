@@ -4191,6 +4191,15 @@ msgid "unreadable list of {plural}: {error}"
 msgstr "liste des {plural} illisible : {error}"
 
 #: machincast/interface/monitor.py
+msgid "Unavailable: the previous monitoring port has not closed yet."
+msgstr ""
+"Indisponible : le port de monitoring précédent ne s'est pas encore fermé."
+
+#: machincast/interface/monitor.py
+msgid "Paused: session locked or screen saver active."
+msgstr "En pause : session verrouillée ou économiseur d'écran actif."
+
+#: machincast/interface/monitor.py
 msgid "Unavailable with the ALSA output, which has no monitoring port."
 msgstr "Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring."
 

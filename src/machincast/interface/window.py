@@ -104,6 +104,7 @@ from machincast.interface.indexer import FINISHED, LAUNCHED, TITLES
 from machincast.interface.lists import BANKS, EVENTS, FEEDS, SEQUENCES, SOUNDS, List, Source
 from machincast.interface.preview import PreviewWindow
 from machincast.interface.queries import cards as cards_queries
+from machincast.interface.screen_saver import ScreenSaver
 from machincast.interface.search import SearchScreen
 from machincast.interface.sequence_card import SequenceCard
 from machincast.interface.simulation import SimulationScreen
@@ -251,6 +252,9 @@ class MainWindow(QMainWindow):
 		self.calendar.modified_grid.connect(self.broadcast.modified_grid)
 		self.tab_manager.add_fixed(self.calendar, _("Calendar"), "calendar")
 		self.home.opened.connect(self._open)
+		# Le VU-mètre en pause pendant la veille de la session (https://github.com/dascritch/machincast/issues/346).
+		self.screen_saver = ScreenSaver(self)
+		self.screen_saver.changed.connect(self._screen_saver_changed)
 		self.home.requested_preview.connect(self._preview)
 		# Le clic droit sur le prochain sonore (https://github.com/dascritch/machincast/issues/257).
 		self.home.requested_skip.connect(lambda: self.broadcast.interrupt("sound"))
@@ -1134,6 +1138,14 @@ class MainWindow(QMainWindow):
 		"""Sans périphérique d'antenne, sur une vraie sortie, Machin player refuse de diffuser : la barre d'état le
 		dit."""
 		self.to_fill_in_on_air.setVisible(self.audio.to_fill_in_on_air())
+
+	def _screen_saver_changed(self) -> None:
+		"""La veille de la session ferme le port de monitoring de l'antenne ; son retour le rouvre
+		(https://github.com/dascritch/machincast/issues/346)."""
+		if self.screen_saver.asleep:
+			self.home.monitor.pause()
+		else:
+			self.home.monitor.resume()
 
 	def _open(self, category: str, identifier: int, _name: str) -> None:
 		self.requested_detail.emit(category, identifier)

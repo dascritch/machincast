@@ -3,8 +3,10 @@
 Lancer, mettre en pause ou arrêter un pipeline ouvre ou ferme son périphérique audio : le serveur audio du poste peut
 tarder à répondre, ou ne plus répondre, par exemple au retour d'un écran verrouillé. Demandé dans le fil de
 l'interface, ce changement d'état la figeait. Chaque pipeline a donc son Pilote : un fil qui fait ses changements
-d'état, un à un, dans l'ordre demandé ; l'interface les demande sans les attendre. Un pipeline arrêté (eteindre) l'est
-par son fil, qui s'achève ensuite ; un pipeline qui ne répond plus n'immobilise que son fil.
+d'état, un à un, dans l'ordre demandé ; l'interface les demande sans les attendre. Un pipeline arrêté (switch_off) l'est
+par son fil, qui s'achève ensuite ; un pipeline qui ne répond plus n'immobilise que son fil, et released dit s'il a
+libéré son périphérique, pour ne pas en ouvrir d'autre tant qu'il le retient
+(https://github.com/dascritch/machincast/issues/346).
 
 Ce module est le seul de l'interface à appeler set_state (blocked_devices.feature).
 """
@@ -50,6 +52,11 @@ class Pilot:
 			self._off = True
 			self._ask(Gst.State.NULL)
 			self._requests.put(END)
+
+	def released(self, delay: float) -> bool:
+		"""Le pipeline arrêté par switch_off a libéré son périphérique, ou le fait dans les `delay` secondes : vrai si
+		c'est le cas. Un serveur audio qui ne répond plus le retient (https://github.com/dascritch/machincast/issues/346)."""
+		return (self._off) and (self.wait(delay))
 
 	def wait(self, delay: float) -> bool:
 		"""Attend, delai secondes au plus, que les demandes soient faites ; vrai si elles le sont. Pour ce qui doit
