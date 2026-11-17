@@ -14,6 +14,7 @@ Le binaire tourne comme service systemd.
 	Voir [developpement.md](developpement.md#fichiers-sonores).
 - Le début d'un événement coupe **net** le sonore en cours.
 - Une banque jouée fait jouer **un seul** sonore.
+- Les modes A→Z et Z→A du nom de fichier suivent le séquentiel, dans l'ordre du nom de fichier, recalculé à chaque choix ([#454](https://github.com/dascritch/machincast/issues/454)).
 - Le mode aléatoire est contrôlé : pas de répétition dans une banque avant d'avoir joué tous ses sonores.
 	Le cycle est propre à chaque banque.
 - Une banque marquée « ne pas répéter » ne passe jamais deux fois de suite, même d'un événement à l'autre : l'élément est sauté, et l'événement se termine s'il ne reste rien d'autre de jouable ([#63](https://github.com/dascritch/machincast/issues/63)).

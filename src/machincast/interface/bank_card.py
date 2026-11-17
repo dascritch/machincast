@@ -86,7 +86,13 @@ from machincast.interface.lists import (
 from machincast.interface.queries import banks
 from machincast.interface.ui.bank_card import Ui_BankCard
 
-MODES = (("sequential", _("Sequential")), ("random", _("Random")))
+MODES = (
+	("sequential", _("Sequential")),
+	("random", _("Random")),
+	# https://github.com/dascritch/machincast/issues/454
+	("filename_ascending", _("A→Z of the file name")),
+	("filename_descending", _("Z→A of the file name")),
+)
 CROSSFADE_RULES = (
 	("sound", _("Keep the sounds' own")),
 	("default", _("Apply if the sound has none")),

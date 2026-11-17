@@ -20,7 +20,12 @@ scenarios("sound_choice.feature")
 
 Connection = psycopg.Connection[tuple[object, ...]]
 ITEM = re.compile(r"« ([^»]+) »")
-MODES = {"séquentielle": "sequential", "aléatoire": "random"}
+MODES = {
+	"séquentielle": "sequential",
+	"aléatoire": "random",
+	"A→Z du nom de fichier": "filename_ascending",
+	"Z→A du nom de fichier": "filename_descending",
+}
 
 
 @dataclass
@@ -44,11 +49,15 @@ def hour(text: str) -> datetime:
 
 
 def sound(database: Connection, name: str) -> int:
-	line = database.execute("SELECT id FROM sounds WHERE location = %s", (f"/sons/{name}.flac",)).fetchone()
+	"""Un nom rangé dans /sons/, ou un emplacement complet, qui commence par « / »."""
+	location = f"/sons/{name}.flac"
+	if name.startswith("/"):
+		location = name
+	line = database.execute("SELECT id FROM sounds WHERE location = %s", (location,)).fetchone()
 	if line is None:
 		line = database.execute(
 			"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'active') RETURNING id",
-			(f"/sons/{name}.flac",),
+			(location,),
 		).fetchone()
 	assert line is not None
 	return int(str(line[0]))
@@ -57,7 +66,10 @@ def sound(database: Connection, name: str) -> int:
 def sound_name(database: Connection, identifier: int) -> str:
 	line = database.execute("SELECT location FROM sounds WHERE id = %s", (identifier,)).fetchone()
 	assert line is not None
-	return str(line[0]).removeprefix("/sons/").removesuffix(".flac")
+	location = str(line[0])
+	if not location.startswith("/sons/"):
+		return location
+	return location.removeprefix("/sons/").removesuffix(".flac")
 
 
 def bank(database: Connection, name: str) -> int:
@@ -118,11 +130,28 @@ def clock(context: Context, text: str) -> None:
 	context.clock = FixedClock(hour(text))
 
 
-@given(parsers.re(r"une banque (?P<mode>séquentielle|aléatoire) « (?P<name>[^»]+) » contenant (?P<list_>.+)"))
-def container_bank(empty_database: Connection, mode: str, name: str, list_: str) -> None:
+@given(
+	parsers.re(
+		r"une banque (?P<mode>séquentielle|aléatoire|A→Z du nom de fichier|Z→A du nom de fichier) « (?P<name>[^»]+) »"
+		r" contenant (?P<files>les fichiers )?(?P<list_>.+)"
+	)
+)
+def container_bank(empty_database: Connection, mode: str, name: str, files: str | None, list_: str) -> None:
+	"""« contenant les fichiers » : des emplacements complets, au lieu de noms rangés dans /sons/."""
 	empty_database.execute("INSERT INTO banks (internal_name, mode) VALUES (%s, %s)", (name, MODES[mode]))
 	for sound_name in names(list_):
-		add(empty_database, name, sound_name)
+		if files is not None:
+			empty_database.execute(
+				"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'active')", (sound_name,)
+			)
+			empty_database.execute(
+				"INSERT INTO bank_sounds (bank_id, sound_id, position)"
+				" SELECT %s, id, (SELECT COALESCE(MAX(position), 0) + 1 FROM bank_sounds WHERE bank_id = %s)"
+				" FROM sounds WHERE location = %s",
+				(bank(empty_database, name), bank(empty_database, name), sound_name),
+			)
+		if files is None:
+			add(empty_database, name, sound_name)
 
 
 @given(parsers.parse("le sonore « {sound_name} » ajouté à la banque « {bank_name} »"))
