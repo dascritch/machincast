@@ -383,10 +383,20 @@ def stopped_after(interface: Context, limit: str) -> None:
 	)
 )
 def of_outset(interface: Context, qtbot: QtBot, start: str) -> None:
-	"""Bien avant que la lecture ne l'atteigne d'elle-même : la lecture y a sauté."""
+	"""La lecture y a sauté : sa première position connue y est déjà, sans passer par le début du fichier. Le temps
+	que la lecture met à démarrer n'y fait rien, sous charge ou après la relance d'un lecteur bloqué
+	(https://github.com/dascritch/machincast/issues/504)."""
 	player = preview_window(interface).player
 	expected = _seconds(start)
-	qtbot.waitUntil(lambda: expected - 0.05 <= ((player.position()) or (0.0)) <= expected + 0.3, timeout=250)
+	first: list[float] = []
+
+	def known() -> None:
+		position = player.position()
+		assert (position is not None) and (position > 0.0), position
+		first.append(position)
+
+	qtbot.waitUntil(known, timeout=DELAY)
+	assert expected - 0.05 <= first[0] <= expected + 0.3, first[0]
 
 
 @then("la pré-écoute ne calcule plus de forme d'onde")
