@@ -1,10 +1,11 @@
 """Le presse-papiers des listes d'éléments et de sonores (https://github.com/dascritch/machincast/issues/129).
 
-Les éléments d'un événement ou d'une séquence (machincast.interface.items), et les sonores d'une banque
-(machincast.interface.bank_card), se copient dans un même format : une liste d'entrées, chacune avec son genre
-(« sound », « bank », « sequence »), son identifiant en base, le fichier d'un sonore pas encore en base, le feed d'un
-stream à créer, et son nom. Ils passent aussi en texte, une ligne par entrée, ses colonnes séparées par des
-tabulations. Ctrl+C et Ctrl+V ne servent que dans la liste qui a le focus.
+Les éléments d'un événement ou d'une séquence (machincast.interface.items), les sonores d'une banque
+(machincast.interface.bank_card) et les résultats de la recherche (machincast.interface.search) se copient dans un
+même format : une liste d'entrées, chacune avec son genre (« sound », « bank », « sequence », « event »), son
+identifiant en base, le fichier d'un sonore pas encore en base, le feed d'un stream à créer, et son nom. Ils passent
+aussi en texte, une ligne par entrée, ses colonnes séparées par des tabulations. Ctrl+C et Ctrl+V ne servent que dans la liste qui a le focus. Chaque liste colle ce qu'elle peut contenir,
+et laisse le reste de côté, en le disant : un événement copié depuis la recherche n'est l'élément d'aucune liste.
 """
 
 import json
@@ -12,7 +13,7 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QMimeData, Qt
 from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut
-from PySide6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem
+from PySide6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem, QWidget
 
 from machincast.i18n import _
 
@@ -53,20 +54,26 @@ def copied() -> list[dict[str, object]]:
 	return payload
 
 
-def shortcuts(tree: QTreeWidget, copy: Callable[[], None], paste: Callable[[], None]) -> None:
-	"""Ctrl+C et Ctrl+V, quand la liste a le focus."""
-	for keys, act in ((QKeySequence.StandardKey.Copy, copy), (QKeySequence.StandardKey.Paste, paste)):
-		shortcut = QShortcut(QKeySequence(keys), tree)
+def shortcuts(view: QWidget, copy: Callable[[], None], paste: Callable[[], None] | None = None) -> None:
+	"""Ctrl+C, et Ctrl+V pour une liste où coller, quand la liste a le focus."""
+	bindings: list[tuple[QKeySequence.StandardKey, Callable[[], None]]] = [(QKeySequence.StandardKey.Copy, copy)]
+	if paste is not None:
+		bindings.append((QKeySequence.StandardKey.Paste, paste))
+	for keys, act in bindings:
+		shortcut = QShortcut(QKeySequence(keys), view)
 		shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
 		shortcut.activated.connect(act)
 
 
-def offer(menu: QMenu, *, chosen: bool, copy: Callable[[], None], paste: Callable[[], None]) -> None:
-	"""« Copier » et « Coller » en fin de menu, inactifs sans ligne choisie ou sans entrée copiée."""
+def offer(menu: QMenu, *, chosen: bool, copy: Callable[[], None], paste: Callable[[], None] | None = None) -> None:
+	"""« Copier », et « Coller » pour une liste où coller, en fin de menu ; inactifs sans ligne choisie ou sans entrée
+	copiée."""
 	entry_copy = menu.addAction(COPY)
 	entry_copy.setShortcut(QKeySequence(QKeySequence.StandardKey.Copy))
 	entry_copy.setEnabled(chosen)
 	entry_copy.triggered.connect(copy)
+	if paste is None:
+		return
 	entry_paste = menu.addAction(PASTE)
 	entry_paste.setShortcut(QKeySequence(QKeySequence.StandardKey.Paste))
 	entry_paste.setEnabled(copied() != [])

@@ -4064,6 +4064,13 @@ msgstr "Laissé de côté, une séquence ne contient pas de séquence : {list}."
 
 #: machincast/interface/items.py
 #, python-brace-format
+msgid "Set aside, an event is not an item of a playlist: {list}."
+msgstr ""
+"Laissé de côté, un événement n'est pas un élément d'une liste de lecture : "
+"{list}."
+
+#: machincast/interface/items.py
+#, python-brace-format
 msgid ""
 "Items: {shown} shown out of {total}, the rest is loaded as you scroll down"
 msgstr ""

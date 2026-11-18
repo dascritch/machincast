@@ -7,7 +7,10 @@ des accents, dans le nom interne et le nom public des événements, des séquenc
 le titre des sonores (chercher). Les résultats vont dans l'ordre : événements, séquences, banques, sonores, chacun par
 nom. La table les donne au fil de la frappe, jusqu'à LIMITE, avec le compte ; le champ ne propose pas de suggestions.
 Ouvrir une ligne de la table (double-clic, Entrée) demande la fiche de l'élément (signal ouverte), sans toucher au texte
-cherché. La recherche se relance à l'ouverture de l'onglet et au
+cherché. Plusieurs lignes se choisissent à la fois (Ctrl, Maj) ; Ctrl+C, ou « Copier » au clic droit, les copie dans
+le presse-papiers des listes d'éléments (machincast.interface.clipboard,
+https://github.com/dascritch/machincast/issues/129) : une banque, un événement ou une séquence y colle ce qu'elle peut
+contenir. La recherche se relance à l'ouverture de l'onglet et au
 rafraîchissement des onglets : jamais en boucle.
 
 Les accents sont retirés des deux côtés : en base par translate(), pour les lettres de ACCENTUEES ; dans le texte tapé
@@ -19,19 +22,20 @@ from dataclasses import dataclass
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, Signal
+from PySide6.QtCore import QModelIndex, QPoint, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QLabel,
 	QLineEdit,
+	QMenu,
 	QTableView,
 	QVBoxLayout,
 	QWidget,
 )
 
 from machincast.i18n import _, counted
-from machincast.interface import icons
+from machincast.interface import clipboard, icons
 from machincast.interface.columns import Columns
 from machincast.interface.lists import STATES, without_accents
 from machincast.interface.queries import search as queries
@@ -119,11 +123,13 @@ class SearchScreen(QWidget):
 		self.table.setModel(self.model)
 		self.table.setAlternatingRowColors(True)
 		self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-		self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+		self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 		self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 		self.table.verticalHeader().hide()
 		self.table.horizontalHeader().setStretchLastSection(True)
 		self.columns = Columns(self.table, "recherche")
+		self.columns.line_menu = self.line_menu
+		clipboard.shortcuts(self.table, self.copy)
 		arrangement.addWidget(self.table)
 		self.field.textChanged.connect(self._find)
 		self.table.activated.connect(self._opened_line)
@@ -174,3 +180,30 @@ class SearchScreen(QWidget):
 		if 0 <= row < len(self.results):
 			result = self.results[row]
 			self.opened.emit(result.category, result.identifier, result.name)
+
+	def chosen(self) -> list[int]:
+		"""Les rangs des lignes choisies, dans l'ordre de la table."""
+		rows = []
+		for index in self.table.selectionModel().selectedRows():
+			rows.append(index.row())
+		return sorted(rows)
+
+	def copy(self) -> None:
+		"""Les résultats choisis vont au presse-papiers, dans l'ordre de la table, avec leur texte."""
+		entries = []
+		text_list = []
+		for row in self.chosen():
+			result = self.results[row]
+			entries.append(clipboard.entry(result.category, result.identifier, None, None, result.name))
+			cells = []
+			for column in range(self.model.columnCount()):
+				cells.append(self.model.item(row, column).text())
+			text_list.append("\t".join(cells))
+		if entries != []:
+			clipboard.put(entries, text_list)
+
+	def line_menu(self, _position: QPoint) -> QMenu:
+		"""« Copier » les résultats choisis, sur une ligne ou hors des lignes."""
+		menu = QMenu(self.table)
+		clipboard.offer(menu, chosen=self.chosen() != [], copy=self.copy)
+		return menu

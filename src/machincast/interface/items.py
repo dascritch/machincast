@@ -22,7 +22,8 @@ Commune aux fiches d'une séquence (machincast.interface.sequence_card) et d'un 
   presse-papiers, dans leur ordre, et en texte, une ligne par élément ; Ctrl+V, ou « Coller », les ajoute après la
   ligne courante, ou en fin de liste, dans cette fiche ou dans une autre, d'un événement ou d'une séquence, ou
   dans une banque (machincast.interface.clipboard, machincast.interface.bank_card). Une
-  séquence collée dans une séquence est laissée de côté, et la fiche le dit ; un élément effacé de la base depuis la
+  séquence collée dans une séquence est laissée de côté, comme un événement copié depuis la recherche
+  (machincast.interface.search), et la fiche le dit ; un élément effacé de la base depuis la
   copie n'est pas collé (https://github.com/dascritch/machincast/issues/129).
 """
 
@@ -63,6 +64,7 @@ LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.It
 COLUMNS = {"sound": "sound_id", "bank": "bank_id", "sequence": "sequence_id"}
 """Colonne de chaque genre d'élément, dans sequence_items et event_items."""
 SET_ASIDE = _("Set aside, a sequence does not contain a sequence: {list}.")
+EVENTS_ASIDE = _("Set aside, an event is not an item of a playlist: {list}.")
 PARTIAL_ITEMS = _("Items: {shown} shown out of {total}, the rest is loaded as you scroll down")
 """Le titre de la liste tant que tous ses éléments ne sont pas lus (https://github.com/dascritch/machincast/issues/383)."""
 """Le stream repris pour un feed : le premier par titre qui le suit."""
@@ -557,7 +559,7 @@ class ItemList(QObject):
 		self.load_all()
 		with self.card.connection.transaction():
 			self._read_marked()
-			lines, aside = self._copied_lines(copied_list)
+			lines, aside, events = self._copied_lines(copied_list)
 		row = self.list_.topLevelItemCount()
 		current = self.list_.currentItem()
 		if current is not None:
@@ -574,17 +576,22 @@ class ItemList(QObject):
 		if last is not None:
 			self.list_.setCurrentItem(last, 0, QItemSelectionModel.SelectionFlag.NoUpdate)
 		self._refresh_buttons()
+		said = []
 		if aside != []:
-			self.card.message.setText(SET_ASIDE.format(list=", ".join(aside)))
+			said.append(SET_ASIDE.format(list=", ".join(aside)))
+		if events != []:
+			said.append(EVENTS_ASIDE.format(list=", ".join(events)))
+		if said != []:
+			self.card.message.setText(" ".join(said))
 
-	def _copied_lines(self, copied_list: list[dict[str, object]]) -> tuple[list[QTreeWidgetItem], list[str]]:
-		"""Les lignes des éléments copiés, dans leur ordre, lues en base ; et les noms des séquences laissées de côté.
-		Un élément effacé de la base depuis la copie n'a pas de ligne."""
+	def _copied_lines(self, copied_list: list[dict[str, object]]) -> tuple[list[QTreeWidgetItem], list[str], list[str]]:
+		"""Les lignes des éléments copiés, dans leur ordre, lues en base ; les noms des séquences laissées de côté, et
+		ceux des événements, copiés depuis la recherche. Un élément effacé de la base depuis la copie n'a pas de ligne."""
 		identifiers: dict[str, list[int]] = {}
 		files = []
 		for copied in copied_list:
 			category, item = str(copied["category"]), copied["item"]
-			if isinstance(item, int):
+			if (isinstance(item, int)) and (category in self.buttons.add):
 				identifiers.setdefault(category, []).append(item)
 			if (item is None) and (copied["file"] is not None):
 				files.append(str(copied["file"]))
@@ -594,13 +601,17 @@ class ItemList(QObject):
 			by_file[str(sound[3])] = sound
 		lines: list[QTreeWidgetItem] = []
 		aside: list[str] = []
+		events: list[str] = []
 		for copied in copied_list:
-			category, item = str(copied["category"]), copied["item"]
-			if category not in self.buttons.add:
-				aside.append(str(copied["name"]))
+			category = str(copied["category"])
+			if category == "event":
+				events.append(str(copied["name"]))
 			else:
-				self._copied_line(copied, fetched, by_file, lines)
-		return lines, aside
+				if category not in self.buttons.add:
+					aside.append(str(copied["name"]))
+				else:
+					self._copied_line(copied, fetched, by_file, lines)
+		return lines, aside, events
 
 	def _copied_line(
 		self,
