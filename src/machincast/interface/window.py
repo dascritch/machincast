@@ -72,6 +72,7 @@ from machincast.configuration import (
 )
 from machincast.i18n import _
 from machincast.interface import (
+	broadcast_status,
 	columns,
 	control,
 	dialogs,
@@ -93,6 +94,8 @@ from machincast.interface.application import identify
 from machincast.interface.background_programming import guarantee
 from machincast.interface.bank_card import BankCard
 from machincast.interface.broadcast_control import (
+	INCOMPLETE_SERVICE,
+	INSTALLED_SERVICE,
 	BroadcastControl,
 )
 from machincast.interface.calendar import ONE_HOUR, Calendar, long_date
@@ -201,6 +204,7 @@ class MainWindow(QMainWindow):
 		retention: int = RETENTION,
 		dead_air: DeadAirSettings | None = None,
 		daily: time = DAILY,
+		station: str = "",
 	) -> None:
 		"""indexing_command : Machin indexer, avec la configuration de l'interface
 		(indexer.indexing_command). configuration : le fichier où « Préférences… » enregistre les réglages,
@@ -211,6 +215,9 @@ class MainWindow(QMainWindow):
 		blanc dans un sonore qu'il donne, pour Machin player (https://github.com/dascritch/machincast/issues/122)."""
 		super().__init__(parent)
 		self.configuration = configuration
+		self.station = station
+		"""Le nom de la radio, metadata.public_text, dans le titre de la fenêtre
+		(https://github.com/dascritch/machincast/issues/495)."""
 		self.audio = audio
 		"""Sortie de l'antenne et périphérique de pré-écoute (https://github.com/dascritch/machincast/issues/116)."""
 		self.preview: PreviewWindow | None = None
@@ -302,6 +309,7 @@ class MainWindow(QMainWindow):
 			lambda state: self.stopped_broadcast.setVisible(state.state == "stopped")
 		)
 		self.home.client.received_state.connect(self._follow_public_text)
+		self.home.client.received_state.connect(lambda _state: self.show_status())
 		self._public_text: str | None = None
 		"""Le texte public du sonore en cours, titre de l'écoute de l'antenne."""
 		self.home.client.received_state.connect(self.broadcast.offer_interruptions)
@@ -1183,6 +1191,21 @@ class MainWindow(QMainWindow):
 		if self._index(full_audit=True):
 			return _("Silence threshold changed: full audit launched, in its own window.")
 		return _("Silence threshold changed: full audit impossible, Machin indexer could not be launched.")
+
+	def show_status(self) -> None:
+		"""Le statut coloré de la diffusion, sur l'onglet Antenne, et le titre de la fenêtre, selon le service et l'état
+		de la diffusion (https://github.com/dascritch/machincast/issues/495)."""
+		installed = self.broadcast.service.installed
+		broadcasting = self.home.state.state == "playing"
+		self.home.ui.playback_state.setStyleSheet(
+			broadcast_status.style(installed=installed, broadcasting=broadcasting)
+		)
+		indicator = broadcast_status.NOT_BROADCASTING
+		if broadcasting:
+			indicator = INCOMPLETE_SERVICE
+			if installed:
+				indicator = INSTALLED_SERVICE
+		self.setWindowTitle(broadcast_status.window_title(indicator, self.station))
 
 	def _flag_on_air(self) -> None:
 		"""Sans périphérique d'antenne, sur une vraie sortie, Machin player refuse de diffuser : la barre d'état le

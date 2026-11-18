@@ -18,7 +18,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.configuration import PROJECT_DIRECTORY, load
 from machincast.installation import systemd_unit
-from machincast.interface import control
+from machincast.interface import broadcast_status, control
 from machincast.interface.control import service_configuration
 from tests.interface_steps import Context, configuration_file, window
 
@@ -272,6 +272,42 @@ def on_air_title(interface: Context, title: str) -> None:
 	"""Le titre brut, témoin compris : les autres scénarios le lisent sans lui (tab_title)."""
 	tabs = window(interface).ui.tabs
 	assert tabs.tabText(tabs.indexOf(window(interface).home)) == title
+
+
+def _status_style(interface: Context) -> str:
+	return window(interface).home.ui.playback_state.styleSheet()
+
+
+@then(
+	parsers.parse("l'état de la diffusion est sur fond {background}, en texte {text}, avec un liseré {border} de 2 px")
+)
+def coloured_status(interface: Context, background: str, text: str, border: str) -> None:
+	style = _status_style(interface)
+	for part in (f"background-color: {background};", f"color: {text};", f"border: 2px solid {border};"):
+		assert part in style, style
+
+
+@then(
+	parsers.parse(
+		"l'état de la diffusion devient bientôt « {state} », sans fond coloré, avec un liseré {border} de 2 px"
+	)
+)
+def uncoloured_status(interface: Context, qtbot: QtBot, state: str, border: str) -> None:
+	caption = window(interface).home.ui.playback_state
+	qtbot.waitUntil(lambda: caption.text() == state, timeout=5000)
+	style = _status_style(interface)
+	assert f"border: 2px solid {border};" in style, style
+	assert "background-color" not in style, style
+
+
+@then(parsers.parse("le titre de la fenêtre est « {title} »"))
+def window_title(interface: Context, qtbot: QtBot, title: str) -> None:
+	qtbot.waitUntil(lambda: window(interface).windowTitle() == title, timeout=5000)
+
+
+@then(parsers.parse("sur le fond {background}, le texte de l'état de la diffusion est {text}"))
+def contrasted(background: str, text: str) -> None:
+	assert broadcast_status.contrasting_text(background) == text
 
 
 @then(parsers.parse("la dernière ligne de la fenêtre ne dit pas « {text} »"))

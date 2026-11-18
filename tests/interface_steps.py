@@ -947,6 +947,7 @@ def open_window(interface: Context, qtbot: QtBot, with_configuration: bool = Tru
 	retention = RETENTION
 	interface_settings = None
 	audio = configuration_test().audio
+	station = configuration_test().metadata.public_text
 	if with_configuration:
 		path = configuration_file(interface)
 		interface.initial_configuration = path.read_bytes()
@@ -956,6 +957,7 @@ def open_window(interface: Context, qtbot: QtBot, with_configuration: bool = Tru
 		retention = load(path).database.retention
 		interface_settings = load(path).interface
 		audio = load(path).audio
+		station = load(path).metadata.public_text
 	if not interface.active_suggestions:
 		interface_settings = dataclasses.replace((interface_settings) or (Interface()), suggestions=False)
 	audio = dataclasses.replace(audio, **interface.audio)  # type: ignore[arg-type]
@@ -970,6 +972,7 @@ def open_window(interface: Context, qtbot: QtBot, with_configuration: bool = Tru
 		interface=interface_settings,
 		retention=retention,
 		dead_air=dead_air,
+		station=station,
 	)
 	interface.window.requested_detail.connect(
 		lambda category, number: interface.requests.append((SCENARIO.get(category, category), number))
