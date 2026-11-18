@@ -61,7 +61,7 @@ L'onglet **Antenne** montre en un coup d'œil ce qui passe et ce qui va passer (
 
 - **Le témoin de son titre** dit si la diffusion est installée pour de bon : **🟩 Antenne** tant que le service de diffusion n'est pas installé (un [poste d'essai](antenne.md#piloter-la-diffusion)), **🟥 Antenne** dès qu'il l'est, que la diffusion tourne ou non.
 - **La couleur de l'état de la diffusion** dit, d'un coup d'œil, si l'on est à l'antenne pour de bon ou en essai ([#495](https://github.com/dascritch/machincast/issues/495)) : un liseré permanent **rouge** quand le service de diffusion est installé, **vert** sur un poste d'essai. `En diffusion` prend aussi ce fond, avec un texte blanc ou noir, le plus lisible des deux.
-- **Le titre de la fenêtre**, dans la barre des tâches du bureau, dit « MachinCast », puis 🟥 ou 🟩 tant que la diffusion tourne, ou ⛶ quand elle ne tourne pas, et enfin le nom de la radio, le texte public de la configuration ; par exemple « MachinCast 🟥 Radio FMR ».
+- **Le titre de la fenêtre**, dans la barre des tâches du bureau, dit « MachinCast », puis 🟥 ou 🟩 tant que la diffusion tourne, même pendant un blanc à l'antenne, ou ⛶ quand elle est à l'arrêt, et enfin le nom de la radio, le texte public de la configuration ; par exemple « MachinCast 🟥 Radio FMR ».
 - **🔇 Diffusion arrêtée**, en permanence à droite de la dernière ligne de la fenêtre, tant que la diffusion ne tourne pas : rien ne part à l'antenne. Il disparaît dès qu'elle reprend.
 
 ![L'onglet Antenne : l'heure, le texte public, l'état de la diffusion, l'événement à l'antenne, le sonore en cours et le prochain, le VU-mètre, les sonores à venir et l'historique](../captures/accueil.png)

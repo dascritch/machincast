@@ -268,6 +268,18 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| non installé         | #2e7d32 | #ffffff | 🟩     |
 			| installé, en marche  | #c62828 | #ffffff | 🟥     |
 
+	Plan du scénario: Pendant un blanc à l'antenne, le titre de la fenêtre garde le témoin de couleur, et l'état son liseré sans fond
+		Étant donné le service de diffusion <service>
+		Et une diffusion d'essai qui laisse un blanc, lancée à la main
+		Quand la fenêtre de l'interface s'ouvre
+		Alors l'état de la diffusion devient bientôt « Blanc à l'antenne », sans fond coloré, avec un liseré <fond> de 2 px
+		Et le titre de la fenêtre est « MachinCast <témoin> Radio de test »
+
+		Exemples:
+			| service              | fond    | témoin |
+			| non installé         | #2e7d32 | 🟩     |
+			| installé, en marche  | #c62828 | 🟥     |
+
 	Scénario: Hors diffusion, l'état garde son liseré sans fond coloré, et le titre de la fenêtre porte ⛶
 		Étant donné le service de diffusion non installé
 		Et une diffusion d'essai qui tourne, lancée à la main

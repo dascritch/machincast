@@ -1005,7 +1005,7 @@ Mise en œuvre ([#23](https://github.com/dascritch/machincast/issues/23), `machi
 	Un message illisible est signalé sur la sortie d'erreur et ignoré.
 - **Statut coloré** ([#495](https://github.com/dascritch/machincast/issues/495), `machincast.interface.broadcast_status`) : l'état de la diffusion a en permanence un liseré de 2 px, rouge (`#c62828`) quand le service de diffusion est installé, vert (`#2e7d32`) sans lui, pour une diffusion d'essai.
 	« En diffusion » prend aussi ce fond, et le texte blanc ou noir dont le rapport de contraste du WCAG 2 avec lui est le plus grand.
-	Le titre de la fenêtre est « MachinCast », suivi du témoin de l'onglet Antenne (🟩 ou 🟥) en diffusion, de « ⛶ » sinon, puis du nom de la radio, `metadata.public_text` ; tous deux suivent l'état du service et celui de la diffusion (`MainWindow.show_status`).
+	Le titre de la fenêtre est « MachinCast », suivi du témoin de l'onglet Antenne (🟩 ou 🟥) en diffusion et pendant un blanc à l'antenne, de « ⛶ » à l'arrêt, puis du nom de la radio, `metadata.public_text` ; tous deux suivent l'état du service et celui de la diffusion (`MainWindow.show_status`).
 - **Airplay** : les 10 derniers passages, même anciens (`airplay.LAST_LIST`, [#244](https://github.com/dascritch/machincast/issues/244)), dans l'encart « Airplay : les 10 derniers sonores ».
 	Lu en base avec le rôle de l'interface (`machincast.interface.airplay.read_airplay`), à l'ouverture, puis seulement quand la socket annonce un autre sonore en cours (ou aucun) que celui que la table connaît.
 	Jamais en boucle.
