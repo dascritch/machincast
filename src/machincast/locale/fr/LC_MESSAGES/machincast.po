@@ -4726,6 +4726,15 @@ msgid "{channels} channels"
 msgstr "{channels} canaux"
 
 #: machincast/interface/search.py
+msgid "Search"
+msgstr "Recherche"
+
+#: machincast/interface/search.py
+#, python-brace-format
+msgid "Search: {text}"
+msgstr "Recherche : {text}"
+
+#: machincast/interface/search.py
 msgid "Internal name"
 msgstr "Nom interne"
 
@@ -5746,10 +5755,6 @@ msgstr " Icône mise à jour {places}."
 #: machincast/interface/window.py
 msgid "Output monitor…"
 msgstr "Moniteur de la sortie…"
-
-#: machincast/interface/window.py
-msgid "Search"
-msgstr "Recherche"
 
 #: machincast/interface/window.py
 msgid "Simulation"

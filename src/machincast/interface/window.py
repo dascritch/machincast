@@ -402,7 +402,8 @@ class MainWindow(QMainWindow):
 		display_menu = self.menuBar().addMenu(_("&View"))
 		look_up = display_menu.addAction(_("Search…"))
 		look_up.setShortcut(QKeySequence("Ctrl+F"))
-		look_up.triggered.connect(self._open_search)
+		# Le signal donne son booléen « coché » : il ne doit pas tenir lieu du texte d'une recherche rouverte.
+		look_up.triggered.connect(lambda _ticked=False: self._open_search())
 
 		def add_open_action(source: Source, title: str) -> None:
 			if source.category not in ON_DEMAND:
@@ -620,7 +621,7 @@ class MainWindow(QMainWindow):
 			case _ if (category == "list") and (rest in ON_DEMAND):
 				self.tab_manager.open_list(rest)
 			case "search":
-				self._open_search()
+				self._open_search(rest)
 			case "simulation":
 				self._open_simulation()
 			case "airplay":
@@ -768,24 +769,29 @@ class MainWindow(QMainWindow):
 		"""Le calendrier, onglet fixe, revient au premier plan (https://github.com/dascritch/machincast/issues/307)."""
 		self.ui.tabs.setCurrentWidget(self.calendar)
 
-	def _open_search(self) -> None:
-		"""Un seul onglet de recherche (https://github.com/dascritch/machincast/issues/27) : celui qui est ouvert
-		revient au premier plan ; le curseur va dans son champ."""
+	def _open_search(self, text: str | None = None) -> None:
+		"""Ctrl+F : un nouvel onglet de recherche, le curseur dans son champ ; sur une recherche encore vide, le curseur
+		y va seulement (https://github.com/dascritch/machincast/issues/502). Une recherche rouverte, fermée ou retenue
+		au lancement, reprend son texte."""
 		tabs = self.ui.tabs
-		opened_list = []
-		for index in range(tabs.count()):
-			opened_list.append(tabs.widget(index))
-		search = None
-		for screen in opened_list:
-			if isinstance(screen, SearchScreen):
-				search = screen
-				break
-		if search is None:
-			search = SearchScreen(self.connection)
-			search.opened.connect(self._open)
-			self.tab_manager.add_tab(search, _("Search"))
+		current = tabs.currentWidget()
+		if (text is None) and (isinstance(current, SearchScreen)) and (current.field.text().strip() == ""):
+			current.focus()
+			return
+		search = SearchScreen(self.connection)
+		search.opened.connect(self._open)
+		search.field.textChanged.connect(lambda _text: self._title_search(search))
+		self.tab_manager.add_tab(search, search.title())
+		if text is not None:
+			search.field.setText(text)
 		tabs.setCurrentWidget(search)
 		search.focus()
+
+	def _title_search(self, search: SearchScreen) -> None:
+		"""L'onglet d'une recherche est titré de son texte, au fil de la frappe."""
+		index = self.ui.tabs.indexOf(search)
+		if index >= 0:
+			self.tab_manager.title_tab(index, search.title())
 
 	def _open_simulation(self) -> None:
 		"""Un seul onglet de simulation (https://github.com/dascritch/machincast/issues/37) : celui qui est ouvert

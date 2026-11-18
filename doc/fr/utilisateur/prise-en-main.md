@@ -144,7 +144,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Fichier | Préférences de l'interface… | Ce qui vaut aussitôt, sans toucher la diffusion ([Préférences](#préférences)). |
 | Fichier | Paramètres du service… | Ce que Machin player prend à son redémarrage : OK redémarre la diffusion ([Préférences](#préférences)). |
 | Fichier | Quitter | Ferme l'interface, aussi par <kbd>Alt</kbd>+<kbd>Q</kbd>. Demande d'abord quoi faire des fiches modifiées. La diffusion, elle, continue. |
-| Affichage | Rechercher… | Ouvre la recherche, aussi par <kbd>Ctrl</kbd>+<kbd>F</kbd> ([Rechercher](#rechercher)). |
+| Affichage | Rechercher… | Ouvre une nouvelle recherche, aussi par <kbd>Ctrl</kbd>+<kbd>F</kbd> ([Rechercher](#rechercher)). |
 | Affichage | Ouvrir l'onglet Sonores, Ouvrir l'onglet Feeds | Ouvrent ces listes, ou les ramènent au premier plan ([Listes](listes.md#listes)). |
 | Affichage | Ouvrir l'onglet Grille horaire | Ramène au premier plan le calendrier, toujours ouvert après l'onglet Antenne ([Calendrier](grille.md#calendrier)). |
 | Affichage | Ouvrir l'onglet Simulation | Ouvre la simulation ([Simulation](grille.md#simulation)). |
@@ -187,7 +187,9 @@ La barre d'état le confirme, « Onglets rafraîchis. », et nomme les fiches la
 
 ## Rechercher
 
-**Affichage → Rechercher…**, ou <kbd>Ctrl</kbd>+<kbd>F</kbd>, ouvre l'onglet **Recherche**, ou y revient, le curseur dans le champ.
+**Affichage → Rechercher…**, ou <kbd>Ctrl</kbd>+<kbd>F</kbd>, ouvre un nouvel onglet **Recherche**, le curseur dans le champ. Plusieurs recherches peuvent être ouvertes à la fois ([#502](https://github.com/dascritch/machincast/issues/502)), pour remplir une banque à partir de plusieurs termes par exemple. Chaque onglet prend le texte cherché pour titre, comme **Recherche : jingle**. Sur une recherche encore vide, <kbd>Ctrl</kbd>+<kbd>F</kbd> n'en ouvre pas d'autre : le curseur y va seulement.
+
+Une recherche fermée par erreur se rouvre avec son texte et ses résultats, par <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> ou **Affichage → Onglets fermés récemment**. Les recherches ouvertes à la fermeture de l'interface se rouvrent de même au lancement suivant.
 
 ![La recherche de « café » : un résultat par sonore dont l'artiste ou le titre contient le texte tapé](../captures/recherche.png)
 

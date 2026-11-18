@@ -10,8 +10,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QCompleter
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast.interface import search
+from machincast.interface import columns, search
 from machincast.interface.search import SearchScreen
+from machincast.interface.tab_manager import ACTIVE_TAB_KEY, TAB_KEY
 from tests.interface_steps import NAME, Context, window
 
 scenarios("search.feature")
@@ -20,7 +21,10 @@ Connection = psycopg.Connection[tuple[object, ...]]
 
 
 def screen(interface: Context) -> SearchScreen:
+	"""La recherche de l'onglet ouvert, sinon la seule ouverte (https://github.com/dascritch/machincast/issues/502)."""
 	tabs = window(interface).ui.tabs
+	if isinstance(current := tabs.currentWidget(), SearchScreen):
+		return current
 	index_list = []
 	for index in range(tabs.count()):
 		if isinstance(widget := tabs.widget(index), SearchScreen):
@@ -140,3 +144,11 @@ def results(interface: Context, datatable: list[list[str]]) -> None:
 @then(parsers.parse("le compte des résultats est « {text} »"))
 def count(interface: Context, text: str) -> None:
 	assert screen(interface).count.text() == text
+
+
+@given(parsers.re(r"les onglets retenus (?P<keys>«.+)"))
+def retained_tabs(keys: str) -> None:
+	"""Les clés d'onglets retenues à la dernière fermeture, l'onglet Antenne actif."""
+	settings = columns.settings()
+	settings.setValue(TAB_KEY, NAME.findall(keys))
+	settings.setValue(ACTIVE_TAB_KEY, "on_air")

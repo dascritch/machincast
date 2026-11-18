@@ -39,7 +39,8 @@ ON_DEMAND = frozenset({"sound", "feed"})
 OLD_TAB_KEYS = {
 	"antenne": "on_air",
 	"calendrier": "calendar",
-	"recherche": "search",
+	"recherche": "search:",
+	"search": "search:",
 	"liste:Événements": "list:event",
 	"liste:Séquences": "list:sequence",
 	"liste:Banques": "list:bank",
@@ -47,7 +48,8 @@ OLD_TAB_KEYS = {
 	"liste:Feeds": "list:feed",
 }
 """Les clés des onglets retenus avant https://github.com/dascritch/machincast/issues/368, en français, et leur clé
-anglaise : les onglets retenus par une version d'avant se rouvrent."""
+anglaise : les onglets retenus par une version d'avant se rouvrent. Une recherche, « search » avant
+https://github.com/dascritch/machincast/issues/502, est « search: » suivi de son texte."""
 
 
 OLD_CATEGORIES = {"sonore": "sound", "banque": "bank", "séquence": "sequence", "événement": "event"}
@@ -210,8 +212,9 @@ class TabManager:
 			return f"list:{self.keys[screen]}"
 		if screen in self.fixed:
 			return self.fixed[screen]
+		if isinstance(screen, SearchScreen):
+			return screen.key()
 		for category, key in (
-			(SearchScreen, "search"),
 			(SimulationScreen, "simulation"),
 			(AirplayScreen, "airplay"),
 		):
@@ -268,17 +271,20 @@ class TabManager:
 		for index in range(tabs.count()):
 			if (screen := tabs.widget(index)) is not None:
 				screens.append(screen)
-		by_key = {}
+		# Plusieurs onglets peuvent avoir la même clé, deux recherches du même texte
+		# (https://github.com/dascritch/machincast/issues/502) : chacun prend la place suivante de sa clé.
+		by_key: dict[str | None, list[QWidget]] = {}
 		for keyed in screens:
-			by_key[self.tab_key(keyed)] = keyed
+			by_key.setdefault(self.tab_key(keyed), []).append(keyed)
 		key_list = []
-		for key in dict.fromkeys(order):
-			if key in by_key:
-				key_list.append(by_key[key])
+		for key in order:
+			if by_key.get(key):
+				key_list.append(by_key[key].pop(0))
+		placed = set(key_list)
 		retained = iter(key_list)
 		wanted: list[QWidget] = []
 		for screen in screens:
-			if self.tab_key(screen) in order:
+			if screen in placed:
 				screen = next(retained)
 			wanted.append(screen)
 		for index, screen in enumerate(wanted):
