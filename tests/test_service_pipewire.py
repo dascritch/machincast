@@ -189,7 +189,7 @@ def preview_on_air(tmp_path: Path, context: SimpleNamespace, on_air: str, previe
 @then(parsers.parse("le flux de la pré-écoute joue sur « {card} » dans le PipeWire de la session"))
 def preview_plays(context: SimpleNamespace, card: str) -> None:
 	session = context.session
-	assert session._wait(lambda: session.linked_to(audio.PREVIEW.program) == {card}), session.objects()
+	assert session._wait(lambda: session.linked_to(audio.PREVIEW.program) == {card}), session.summary()
 
 
 @when("les cartes de l'antenne sont listées depuis une session sans PipeWire")
@@ -232,7 +232,7 @@ def trial_sound(tmp_path: Path, context: SimpleNamespace, card: str) -> None:
 @then(parsers.parse("le son de test joue sur « {card} » dans le PipeWire du service"))
 def trial_sound_plays(context: SimpleNamespace, card: str) -> None:
 	bench = context.service
-	assert bench._wait(lambda: bench.linked_to(sound_cards.TEST_SOUND.program) == {card}), bench.objects()
+	assert bench._wait(lambda: bench.linked_to(sound_cards.TEST_SOUND.program) == {card}), bench.summary()
 
 
 # ─── Service injoignable ───────────────────────────────────
