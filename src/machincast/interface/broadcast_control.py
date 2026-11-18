@@ -143,6 +143,7 @@ class BroadcastControl(QObject):
 			indicator = INSTALLED_SERVICE
 		index = self.window.ui.tabs.indexOf(self.window.home)
 		self.window.tab_manager.title_tab(index, f"{indicator} {ON_AIR}")
+		self.window.show_status()
 		if self.service.installed:
 			# En marche : arrêter ; arrêté ou en échec : démarrer.
 			allowed = {"start": not self.service.running, "stop": self.service.running}

@@ -253,6 +253,46 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| en marche |
 			| en échec  |
 
+	# ─── Statut coloré de la diffusion (https://github.com/dascritch/machincast/issues/495) ───
+
+	Plan du scénario: « En diffusion » est sur fond rouge en service, vert en essai, et le titre de la fenêtre porte le témoin et la radio
+		Étant donné le service de diffusion <service>
+		Et une diffusion d'essai qui tourne, lancée à la main
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne
+		Alors l'état de la diffusion est sur fond <fond>, en texte <texte>, avec un liseré <fond> de 2 px
+		Et le titre de la fenêtre est « MachinCast <témoin> Radio de test »
+
+		Exemples:
+			| service              | fond    | texte   | témoin |
+			| non installé         | #2e7d32 | #ffffff | 🟩     |
+			| installé, en marche  | #c62828 | #ffffff | 🟥     |
+
+	Scénario: Hors diffusion, l'état garde son liseré sans fond coloré, et le titre de la fenêtre porte ⛶
+		Étant donné le service de diffusion non installé
+		Et une diffusion d'essai qui tourne, lancée à la main
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne
+		Et je choisis « ⏹ Arrêter la diffusion d'essai » dans le menu « Diffusion »
+		Alors l'état de la diffusion devient bientôt « À l'arrêt », sans fond coloré, avec un liseré #2e7d32 de 2 px
+		Et le titre de la fenêtre est « MachinCast ⛶ Radio de test »
+
+	Scénario: Le service installé, arrêté : liseré rouge, et ⛶ dans le titre de la fenêtre
+		Étant donné le service de diffusion installé, arrêté
+		Quand la fenêtre de l'interface s'ouvre
+		Alors l'état de la diffusion devient bientôt « À l'arrêt », sans fond coloré, avec un liseré #c62828 de 2 px
+		Et le titre de la fenêtre est « MachinCast ⛶ Radio de test »
+
+	Plan du scénario: Le texte prend, du blanc ou du noir, celui qui contraste le plus avec le fond
+		Alors sur le fond <fond>, le texte de l'état de la diffusion est <texte>
+
+		Exemples:
+			| fond    | texte   |
+			| #c62828 | #ffffff |
+			| #2e7d32 | #ffffff |
+			| #ffeb3b | #000000 |
+			| #66bb6a | #000000 |
+
 	Scénario: La dernière ligne de la fenêtre dit « 🔇 Diffusion arrêtée » tant que la diffusion ne tourne pas
 		Étant donné le service de diffusion non installé
 		Et une diffusion d'essai qui tourne, lancée à la main
