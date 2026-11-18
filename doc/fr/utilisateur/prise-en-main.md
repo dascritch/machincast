@@ -89,9 +89,9 @@ Entre les deux sonores, la colonne **Antenne** montre ce qui sort réellement à
 - **Blanc**, en dessous : ce voyant s'allume, orange, quand le son reste à -50 dB ou moins pendant 5 secondes : un blanc à l'antenne. Il s'éteint dès que le son revient.
 - **Écouter l'antenne** : un clic sur le VU-mètre ouvre la [pré-écoute](sonores.md#pré-écoute) sur l'antenne, sans la lancer. **Diffusion → Pré-écoute de l'antenne**, ou <kbd>Alt</kbd>+<kbd>P</kbd>, l'ouvre de même, et la lance aussitôt ([#245](https://github.com/dascritch/machincast/issues/245)) ; pendant l'écoute, l'entrée devient **Arrêter la pré-écoute de l'antenne**, et <kbd>Alt</kbd>+<kbd>P</kbd> l'arrête aussi ([#256](https://github.com/dascritch/machincast/issues/256)). Le titre de la fenêtre d'écoute est « en cours : » suivi du texte public du sonore à l'antenne, et le suit d'un sonore à l'autre.
 
-Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme qui y joue. Quand il ne peut pas, un message le dit sous les voyants :
+Le VU-mètre écoute le périphérique de l'antenne, quel que soit le programme qui y joue. Quand il ne peut pas, toute sa zone, voyants compris, se grise ([#497](https://github.com/dascritch/machincast/issues/497)) : sa raison s'affiche en infobulle, en passant la souris sur le VU-mètre. Quand elle demande d'agir (sortie ALSA, périphérique de l'antenne à renseigner, compte hors du groupe `machincast`), la barre d'état l'annonce aussi, une fois. La zone se dégrise d'elle-même dès que l'écoute revient.
 
-| Message | Ce qu'il faut faire |
+| Infobulle | Ce qu'il faut faire |
 | --- | --- |
 | `Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring.` | Rien : le poste utilise une sortie qui ne permet pas d'écouter l'antenne. L'administrateur peut passer à PipeWire ou PulseAudio. |
 | `Indisponible : périphérique de l'antenne à renseigner.` | Choisir le périphérique de l'antenne dans **Fichier → Paramètres du service…**, page **Audio**. |

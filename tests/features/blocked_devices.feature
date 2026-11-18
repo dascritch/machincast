@@ -53,7 +53,7 @@ Fonctionnalité: Un périphérique audio qui ne répond plus ne fige pas l'inter
 		Étant donné le signal de test « bref » sur l'antenne factice
 		Et un nouvel essai du port de monitoring après une demi-seconde
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring s'est fermé. »
+		Alors la zone du VU-mètre de l'antenne est bientôt grisée, avec une infobulle qui commence par « Indisponible : le port de monitoring s'est fermé. »
 		Quand le serveur audio ne répond plus
 		Alors le port de monitoring de l'antenne est bientôt réessayé
 		Et l'interface n'a jamais attendu le serveur audio

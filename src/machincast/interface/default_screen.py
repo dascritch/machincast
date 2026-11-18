@@ -71,6 +71,9 @@ PREVIEW_NEXT = _("Listen to the next sound on the pre-listen output, never on ai
 
 class DefaultScreen(QWidget):
 	requested_listening = Signal()
+	unavailable_action = Signal(str)
+	"""Le VU-mètre est indisponible pour une raison qui demande une action : la barre d'état l'annonce, une fois
+	(https://github.com/dascritch/machincast/issues/497)."""
 	"""Clic sur le VU-mètre de l'antenne, disponible : l'écouter en pré-écoute
 	(https://github.com/dascritch/machincast/issues/24)."""
 	reread_airplay = Signal()
@@ -227,6 +230,10 @@ class DefaultScreen(QWidget):
 		self.client.received_state.connect(self.show_state)
 		self.client.open_connection()
 		self.vu_meter = VuMeter(ui.vu_meter_place, vertical=True)
+		self._port_tooltip = _("Unknown monitoring port.")
+		"""L'infobulle du VU-mètre disponible : le port qu'il écoute."""
+		self._announced: str | None = None
+		"""La dernière raison annoncée dans la barre d'état, pour ne l'annoncer qu'une fois."""
 		arrangement = QVBoxLayout(ui.vu_meter_place)
 		arrangement.setContentsMargins(0, 0, 0, 0)
 		arrangement.addWidget(self.vu_meter)
@@ -243,6 +250,7 @@ class DefaultScreen(QWidget):
 			tooltip = _("Monitoring port: {port_name}. Click: listen to the on-air output on the pre-listen.").format(
 				port_name=port_name(audio)
 			)
+		self._port_tooltip = tooltip
 		self.vu_meter.setToolTip(tooltip)
 		self.monitor.start()
 
@@ -258,8 +266,7 @@ class DefaultScreen(QWidget):
 	def _display_on_air(self) -> None:
 		ui, monitor = self.ui, self.monitor
 		self.vu_meter.display(monitor.levels, monitor.peaks)
-		ui.monitor_state.setText((monitor.unavailable) or (""))
-		ui.monitor_state.setVisible(monitor.unavailable is not None)
+		self._grey_out(monitor.unavailable, action=monitor.action)
 		for light, lit, tint in (
 			(ui.dead_air_light, monitor.dead_air, "#e0a020"),
 			(ui.clipping_light, monitor.clipping, "#d03030"),
@@ -270,6 +277,26 @@ class DefaultScreen(QWidget):
 				if lit:
 					style = LIT_LIGHT.format(tint=tint)
 				light.setStyleSheet(style)
+
+	def announce_unavailable(self) -> None:
+		"""Annonce de nouveau la raison qui demande une action, pour la barre d'état qui vient de s'y abonner."""
+		self._announced = None
+		self._grey_out(self.monitor.unavailable, action=self.monitor.action)
+
+	def _grey_out(self, unavailable: str | None, *, action: bool) -> None:
+		"""Indisponible, toute la zone du VU-mètre se grise, la raison en infobulle, sans texte qui bouscule la
+		fenêtre ; une raison qui demande une action s'annonce une fois (https://github.com/dascritch/machincast/issues/497)."""
+		column = self.ui.on_air_column
+		tooltip = (unavailable) or (self._port_tooltip)
+		column.setEnabled(unavailable is None)
+		if self.vu_meter.toolTip() != tooltip:
+			self.vu_meter.setToolTip(tooltip)
+			column.setToolTip((unavailable) or (""))
+		if (action) and (unavailable is not None) and (unavailable != self._announced):
+			self.unavailable_action.emit(unavailable)
+		self._announced = None
+		if action:
+			self._announced = unavailable
 
 	def closeEvent(self, event: QCloseEvent) -> None:
 		self._clock.stop()

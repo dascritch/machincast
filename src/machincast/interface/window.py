@@ -310,6 +310,8 @@ class MainWindow(QMainWindow):
 		)
 		self.home.client.received_state.connect(self._follow_public_text)
 		self.home.client.received_state.connect(lambda _state: self.show_status())
+		self.home.unavailable_action.connect(self.ui.state_bar.showMessage)
+		self.home.announce_unavailable()
 		self._public_text: str | None = None
 		"""Le texte public du sonore en cours, titre de l'écoute de l'antenne."""
 		self.home.client.received_state.connect(self.broadcast.offer_interruptions)

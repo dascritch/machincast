@@ -8,7 +8,9 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 	une colonne verticale : par canal, le VU (niveau moyen, RMS) et, par-dessus, le bargraph de crête, dont un repère
 	garde le maximum 2 secondes. Les niveaux se lisent sur le port de monitoring du périphérique de l'antenne :
 	pipewiresrc qui capture la sortie (stream.capture.sink) avec PipeWire, pulsesrc sur son « .monitor » avec
-	PulseAudio. ALSA n'en a pas : le VU-mètre se dit indisponible, sans erreur. Au-dessus du VU-mètre, un voyant
+	PulseAudio. ALSA n'en a pas : le VU-mètre est indisponible, sans erreur. Indisponible, toute la zone du VU-mètre se
+	grise, sans texte qui bouscule la fenêtre : la raison est dans son infobulle, et, quand elle demande une action, la
+	barre d'état l'annonce une fois (https://github.com/dascritch/machincast/issues/497). Au-dessus du VU-mètre, un voyant
 	« Saturation » s'allume dès qu'une crête atteint -1 dBFS, et reste allumé 3 secondes ; dessous, un voyant « Blanc »
 	s'allume après 5 secondes à -50 dBFS ou moins. Un clic sur le VU-mètre écoute l'antenne dans la fenêtre de pré-écoute (https://github.com/dascritch/machincast/issues/116).
 
@@ -128,14 +130,16 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Étant donné la configuration audio sortie « alsa », avec le périphérique d'antenne « hw:0 »
 		Et un nouvel essai du port de monitoring après une demi-seconde
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le VU-mètre de l'antenne est indisponible : « Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring. »
+		Alors la zone du VU-mètre de l'antenne est grisée, avec l'infobulle « Indisponible avec la sortie ALSA, qui n'a pas de port de monitoring. »
 		Et l'onglet Antenne ne capture rien
 		Et le port de monitoring ne sera pas rouvert
 
 	Scénario: Sans périphérique d'antenne, le VU-mètre est indisponible
 		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le VU-mètre de l'antenne est indisponible : « Indisponible : périphérique de l'antenne à renseigner. »
+		Alors la zone du VU-mètre de l'antenne est grisée, avec l'infobulle « Indisponible : périphérique de l'antenne à renseigner. »
+		Et la barre d'état a annoncé une fois « Indisponible : périphérique de l'antenne à renseigner. »
+		Et la colonne de l'antenne n'a aucun texte sous ses voyants
 		Et l'onglet Antenne ne capture rien
 		Et le port de monitoring ne sera pas rouvert
 
@@ -159,16 +163,16 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Étant donné la configuration audio sortie « pipewire », sans périphérique d'antenne
 		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « casque-usb »
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : PipeWire, périphérique à renseigner. Clic : écouter l'antenne en pré-écoute. »
+		Alors la zone du VU-mètre de l'antenne est grisée, avec l'infobulle « Indisponible : périphérique de l'antenne à renseigner. »
 		Quand je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors le VU-mètre de l'antenne est intitulé « Antenne », avec l'infobulle « Port de monitoring : PipeWire, carte-2. Clic : écouter l'antenne en pré-écoute. »
-		Et le VU-mètre de l'antenne ne dit plus « Indisponible : périphérique de l'antenne à renseigner. »
+		Et l'infobulle du VU-mètre de l'antenne ne dit plus « Indisponible : périphérique de l'antenne à renseigner. »
 
 	Scénario: Un port de monitoring qui ne s'ouvre pas est signalé, puis réessayé
 		Étant donné le signal de test « introuvable » sur l'antenne factice
 		Et un nouvel essai du port de monitoring après une demi-seconde
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : »
+		Alors la zone du VU-mètre de l'antenne est bientôt grisée, avec une infobulle qui commence par « Indisponible : »
 		Quand le signal de test « sinusoïde à -10 dB » remplace celui de l'antenne factice
 		Alors le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
 		Et le VU-mètre de l'antenne est disponible
@@ -176,7 +180,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 	Scénario: Un port de monitoring qui se ferme est signalé
 		Étant donné le signal de test « bref » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring s'est fermé. »
+		Alors la zone du VU-mètre de l'antenne est bientôt grisée, avec une infobulle qui commence par « Indisponible : le port de monitoring s'est fermé. »
 
 	Scénario: Un port de monitoring qui ne donne plus rien, sans erreur ni fin, est rouvert
 		https://github.com/dascritch/machincast/issues/311 : au retour d'une session verrouillée et d'un écran éteint, le
@@ -189,7 +193,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Alors le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
 		Et le VU-mètre de l'antenne reste disponible pendant 4 secondes
 		Quand le port de monitoring de l'antenne cesse de donner du son, sans erreur ni fin
-		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes. »
+		Alors la zone du VU-mètre de l'antenne est bientôt grisée, avec une infobulle qui commence par « Indisponible : le port de monitoring ne donne plus rien depuis 3 secondes. »
 		Et le VU-mètre de l'antenne ne montre aucun canal
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
 		Et le VU-mètre de l'antenne est disponible
@@ -436,7 +440,9 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et un nouvel essai du port de monitoring après une demi-seconde
 		Et un serveur audio qui ne répond plus aux changements d'état
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « Indisponible : le port de monitoring précédent ne s'est pas encore fermé. »
+		Alors la zone du VU-mètre de l'antenne est bientôt grisée, avec une infobulle qui commence par « Indisponible : le port de monitoring précédent ne s'est pas encore fermé. »
+		Et la barre d'état n'a rien annoncé du VU-mètre
+		Et la colonne de l'antenne n'a aucun texte sous ses voyants
 		Et le port de monitoring n'a été ouvert qu'une fois en 5 secondes
 		Quand le serveur audio répond de nouveau
 		Alors le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
@@ -454,7 +460,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
 		Et l'économiseur d'écran s'active
 		Alors l'onglet Antenne ne capture bientôt plus rien
-		Et le VU-mètre de l'antenne est indisponible : « En pause : session verrouillée ou économiseur d'écran actif. »
+		Et la zone du VU-mètre de l'antenne est grisée, avec l'infobulle « En pause : session verrouillée ou économiseur d'écran actif. »
 		Et le port de monitoring ne sera pas rouvert
 		Quand l'onglet Antenne rouvre le port de monitoring de la même antenne
 		Alors l'onglet Antenne ne capture rien

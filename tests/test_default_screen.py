@@ -1428,7 +1428,7 @@ def high_column(context: Context, qtbot: QtBot) -> None:
 @then("le VU-mètre de l'antenne occupe sa colonne : ses voyants gardent leur hauteur, il prend le reste")
 def vu_meter_in_column(context: Context) -> None:
 	ui = screen(context).ui
-	for light in (ui.clipping_light, ui.dead_air_light, ui.monitor_state):
+	for light in (ui.clipping_light, ui.dead_air_light):
 		# Un texte qui passe à la ligne a la hauteur de ses lignes, à sa largeur.
 		expected = light.sizeHint().height()
 		if light.hasHeightForWidth():

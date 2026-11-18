@@ -179,12 +179,36 @@ def peaks(interface: Context) -> None:
 def available(interface: Context) -> None:
 	screen = home(interface)
 	assert screen.monitor.unavailable is None
-	assert (screen.ui.monitor_state.text(), screen.ui.monitor_state.isVisibleTo(screen)) == ("", False)
+	assert screen.ui.on_air_column.isEnabled()
+	assert screen.vu_meter.toolTip().startswith("Port de monitoring : ")
 
 
-@then(parsers.parse("le VU-mètre de l'antenne ne dit plus « {text} »"))
+@then(parsers.parse("l'infobulle du VU-mètre de l'antenne ne dit plus « {text} »"))
 def says_more(interface: Context, text: str) -> None:
-	assert home(interface).ui.monitor_state.text() != text
+	assert home(interface).vu_meter.toolTip() != text
+
+
+@then(parsers.parse("la barre d'état a annoncé une fois « {text} »"))
+def announced_once(interface: Context, text: str) -> None:
+	"""Annoncée à l'ouverture de la fenêtre, puis plus, même si le VU-mètre se relit."""
+	assert interface.announcements.count(text) == 1, interface.announcements
+
+
+@then("la barre d'état n'a rien annoncé du VU-mètre")
+def nothing_announced(interface: Context) -> None:
+	for announcement in interface.announcements:
+		assert not announcement.startswith(("Indisponible", "En pause")), interface.announcements
+
+
+@then("la colonne de l'antenne n'a aucun texte sous ses voyants")
+def no_text(interface: Context) -> None:
+	"""Les voyants « Saturation » et « Blanc » sont ses seuls textes : rien ne s'ajoute, rien ne bouscule la fenêtre."""
+	ui = home(interface).ui
+	labels = []
+	for label in ui.on_air_column.findChildren(QLabel):
+		if label.isVisibleTo(ui.on_air_column):
+			labels.append(label.objectName())
+	assert sorted(labels) == ["clipping_light", "dead_air_light"], labels
 
 
 @then("le port de monitoring ne sera pas rouvert")
@@ -267,11 +291,11 @@ def is_off(interface: Context, name: str) -> None:
 	assert not light(interface, name).property("allume")  # type: ignore[attr-defined]
 
 
-@then(parsers.parse("le VU-mètre de l'antenne est indisponible : « {text} »"))
+@then(parsers.parse("la zone du VU-mètre de l'antenne est grisée, avec l'infobulle « {text} »"))
 def unavailable(interface: Context, text: str) -> None:
 	screen = home(interface)
-	assert screen.ui.monitor_state.text() == text
-	assert screen.ui.monitor_state.isVisibleTo(screen)
+	assert not screen.ui.on_air_column.isEnabled()
+	assert (screen.vu_meter.toolTip(), screen.ui.on_air_column.toolTip()) == (text, text)
 	assert screen.vu_meter.levels == []
 
 
