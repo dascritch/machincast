@@ -44,6 +44,13 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
   (SoundLine : la durée dans l'ordre des durées, le reste par son texte), après avoir lu toute la banque ; en mode
   séquentiel, l'ordre est celui de passage, et ne se trie pas : passer en séquentiel rend l'ordre d'avant le tri
   (ORDER), pour ne jamais enregistrer un ordre trié.
+- Copier-coller (https://github.com/dascritch/machincast/issues/129, machincast.interface.clipboard) : Ctrl+C, ou
+  « Copier » au clic droit, copie les sonores choisis, dans leur ordre ; Ctrl+V, ou « Coller », colle des sonores
+  copiés d'une banque, d'un événement ou d'une séquence. En mode séquentiel, sans filtre, ils vont après la ligne
+  courante ; sinon, en fin de liste, ou à leur place dans le tri. Ils restent choisis. Une banque ne contient que des
+  sonores, chacun une fois : une banque ou une séquence copiée est laissée de côté, comme un stream pas encore créé,
+  et un sonore déjà dans la banque n'est pas collé une seconde fois ; la fiche le dit. Un sonore effacé de la base
+  depuis la copie n'est pas collé ; un fichier pas encore en base est collé comme un fichier déposé.
 
 Les fenêtres de dialogue sont celles de machincast.interface.dialogs.
 """
@@ -54,7 +61,7 @@ from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTime
+from PySide6.QtCore import QItemSelectionModel, Qt, QTime
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
 	QAbstractItemView,
@@ -71,7 +78,7 @@ from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.conversion import text_or_none
 from machincast.i18n import _
-from machincast.interface import dialogs, display, preferences, service_access
+from machincast.interface import clipboard, dialogs, display, preferences, service_access
 from machincast.interface.card import Card, Connection, Refusal, rank_of, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.dialogs import Removal
@@ -147,6 +154,13 @@ class SoundLine(QTreeWidgetItem):
 		return without_accents(self.text(column)) < without_accents(other.text(column))
 
 
+def _key(sound: tuple[object, ...]) -> object:
+	"""Un sonore en base se reconnaît à son identifiant, un fichier pas encore en base à son chemin."""
+	if sound[0] is None:
+		return sound[4]
+	return int(str(sound[0]))
+
+
 def _matches(line: QTreeWidgetItem, text: str) -> bool:
 	"""Une colonne de la ligne contient le texte, déjà sans majuscules ni accents."""
 	for column in range(line.columnCount()):
@@ -159,6 +173,8 @@ PARTIAL_SOUNDS = _("Sounds: {shown} shown out of {total}, the rest is loaded as 
 
 
 ALREADY_IN_BANK = _("A sound already in the bank is not added a second time.")
+NOT_SOUNDS = _("Set aside, a bank only contains sounds: {list}.")
+ALREADY_PASTED = _("Already in the bank, not pasted a second time: {list}.")
 """Remarque du choix des sonores."""
 FOLDER_ON_SOUNDS = _(" A folder is dropped on the indexed directories.")
 """Conseil pour un dossier déposé sur les sonores."""
@@ -259,6 +275,7 @@ class BankCard(Card):
 		self.ui.sounds.currentItemChanged.connect(self._refresh_buttons)
 		self.ui.sounds.itemSelectionChanged.connect(self._refresh_buttons)
 		self.columns.line_menu = lambda position: self.sound_menu(self.ui.sounds.itemAt(position))
+		clipboard.shortcuts(self.ui.sounds, self.copy_sounds, self.paste_sounds)
 		self.ui.sounds.itemActivated.connect(self._open_sound)
 		# Filtre et tri des sonores (https://github.com/dascritch/machincast/issues/393).
 		self.ui.sound_filter.textChanged.connect(self._filter_sounds)
@@ -462,15 +479,23 @@ class BankCard(Card):
 			if (chosen is not None) and (sound is not None):
 				banks.set_sound_state(self.connection, int(sound), chosen)
 
-	def sound_menu(self, line: QTreeWidgetItem | None) -> QMenu | None:
+	def sound_menu(self, line: QTreeWidgetItem | None) -> QMenu:
 		"""Le menu du clic droit sur cette ligne : « Pré-écoute… » de son sonore, puis l'état des sonores choisis si
-		elle en fait partie, d'elle seule sinon ; aucun hors d'une ligne."""
-		if line is None:
-			return None
+		elle en fait partie, d'elle seule sinon ; puis, sur une ligne ou hors des lignes, « Copier » et « Coller »
+		(https://github.com/dascritch/machincast/issues/129)."""
+		menu = QMenu(self)
+		if line is not None:
+			self._line_entries(menu, line)
+			menu.addSeparator()
+		clipboard.offer(
+			menu, chosen=self.ui.sounds.selectedItems() != [], copy=self.copy_sounds, paste=self.paste_sounds
+		)
+		return menu
+
+	def _line_entries(self, menu: QMenu, line: QTreeWidgetItem) -> None:
 		lines = self.ui.sounds.selectedItems()
 		if line not in lines:
 			lines = [line]
-		menu = QMenu(self)
 		for state, text in CHOSEN_STATES:
 			entry = menu.addAction(text)
 			entry.triggered.connect(lambda _ticked=False, state=state: self._choose_state(lines, state))
@@ -479,7 +504,98 @@ class BankCard(Card):
 		sound = line.data(0, SOUND)
 		if sound is not None:
 			display.offer_preview(menu, int(sound), self.requested_preview.emit)
-		return menu
+
+	def copy_sounds(self) -> None:
+		"""Les sonores choisis vont au presse-papiers, dans l'ordre de la liste, comme les éléments d'un événement."""
+		entries = []
+		text_list = []
+		for line in self._lines():
+			if line.isSelected():
+				entries.append(clipboard.entry("sound", line.data(0, SOUND), line.data(0, FILE), None, line.text(0)))
+				text_list.append(clipboard.text(self.ui.sounds, line))
+		if entries != []:
+			clipboard.put(entries, text_list)
+
+	def paste_sounds(self) -> None:
+		"""Les sonores copiés s'ajoutent, une fois chacun, et restent choisis ; la fiche dit ce qu'elle laisse de côté."""
+		copied_list = clipboard.copied()
+		if copied_list == []:
+			return
+		self.load_all()
+		lines, aside, already = self._pasted_lines(copied_list)
+		tree = self.ui.sounds
+		current = tree.currentItem()
+		in_order = (self.ui.mode.currentData() == "sequential") and (self.ui.sound_filter.text() == "")
+		if (in_order) and (current is not None):
+			tree.insertTopLevelItems(tree.indexOfTopLevelItem(current) + 1, lines)
+		else:
+			self._append(lines)
+		pasted = set()
+		for line in lines:
+			pasted.add(line.data(0, ORDER))
+		tree.clearSelection()
+		last = None
+		for line in self._lines():
+			if line.data(0, ORDER) in pasted:
+				line.setSelected(True)
+				last = line
+		if last is not None:
+			tree.setCurrentItem(last, 0, QItemSelectionModel.SelectionFlag.NoUpdate)
+		self._refresh_buttons()
+		said = []
+		if aside != []:
+			said.append(NOT_SOUNDS.format(list=", ".join(aside)))
+		if already != []:
+			said.append(ALREADY_PASTED.format(list=", ".join(already)))
+		if said != []:
+			self.message.setText(" ".join(said))
+
+	def _pasted_lines(self, copied_list: list[dict[str, object]]) -> tuple[list[QTreeWidgetItem], list[str], list[str]]:
+		"""Les lignes des sonores copiés, lus en base, dans leur ordre ; les noms laissés de côté, et ceux déjà dans la
+		banque. Un fichier pas encore en base passe le crible du service, comme un dépôt."""
+		identifiers = []
+		files = []
+		aside = []
+		for copied in copied_list:
+			if (copied["category"] != "sound") or (copied["feed"] is not None):
+				aside.append(str(copied["name"]))
+			else:
+				if isinstance(copied["item"], int):
+					identifiers.append(copied["item"])
+				else:
+					files.append(Path(str(copied["file"])))
+		screening = service_access.screen(self, files)
+		if screening.messages != []:
+			self.message.setText(screening.text())
+		accepted = []
+		for path in screening.accepted:
+			accepted.append(str(path))
+		with self.connection.transaction():
+			fetched_list = banks.sounds_by_identifier(self.connection, identifiers)
+			fetched_list += banks.sounds_by_location(self.connection, accepted)
+		by_key: dict[object, tuple[object, ...]] = {}
+		for fetched in fetched_list:
+			by_key[int(str(fetched[0]))] = fetched
+			by_key[str(fetched[4])] = fetched
+		present: set[object] = set()
+		for line in self._lines():
+			present.add(_key((line.data(0, SOUND), None, None, None, line.data(0, FILE))))
+		lines: list[QTreeWidgetItem] = []
+		already = []
+		for copied in copied_list:
+			key = copied["item"]
+			if key is None:
+				key = copied["file"]
+			sound = by_key.get(key)
+			if (sound is None) and (key in accepted):
+				sound = (None, None, None, None, key, key, "preview")
+			if (sound is not None) and (_key(sound) in present):
+				already.append(str(copied["name"]))
+				sound = None
+			if sound is not None:
+				present.add(_key(sound))
+				lines.append(self._line(sound))
+		return lines, aside, already
 
 	def _choose_state(self, lines: list[QTreeWidgetItem], state: str) -> None:
 		"""L'état choisi se montre aussitôt ; un sonore en aperçu, ou pas encore en base, garde le sien."""

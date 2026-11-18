@@ -20,22 +20,21 @@ Commune aux fiches d'une séquence (machincast.interface.sequence_card) et d'un 
   l'historique de diffusion la désigne pour reprendre la liste. Un élément effacé de la base entre-temps est oublié ;
 - plusieurs lignes se choisissent à la fois (Ctrl, Maj) ; Ctrl+C, ou « Copier » au clic droit, les copie dans le
   presse-papiers, dans leur ordre, et en texte, une ligne par élément ; Ctrl+V, ou « Coller », les ajoute après la
-  ligne courante, ou en fin de liste, dans cette fiche ou dans une autre, d'un événement ou d'une séquence. Une
+  ligne courante, ou en fin de liste, dans cette fiche ou dans une autre, d'un événement ou d'une séquence, ou
+  dans une banque (machincast.interface.clipboard, machincast.interface.bank_card). Une
   séquence collée dans une séquence est laissée de côté, et la fiche le dit ; un élément effacé de la base depuis la
   copie n'est pas collé (https://github.com/dascritch/machincast/issues/129).
 """
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QItemSelectionModel, QMimeData, QObject, Qt, Signal
-from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut
+from PySide6.QtCore import QItemSelectionModel, QObject, Qt, Signal
 from PySide6.QtWidgets import QAbstractItemView, QGroupBox, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
 
 from machincast.conversion import integer_or_none, text_or_none
 from machincast.i18n import _, counted
-from machincast.interface import dialogs, display, preferences
+from machincast.interface import clipboard, dialogs, display, preferences
 from machincast.interface.card import Card, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
@@ -63,10 +62,6 @@ LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.It
 
 COLUMNS = {"sound": "sound_id", "bank": "bank_id", "sequence": "sequence_id"}
 """Colonne de chaque genre d'élément, dans sequence_items et event_items."""
-MIME = "application/x-machincast-items"
-"""Le format des éléments copiés dans le presse-papiers (https://github.com/dascritch/machincast/issues/129)."""
-COPY = _("Copy")
-PASTE = _("Paste")
 SET_ASIDE = _("Set aside, a sequence does not contain a sequence: {list}.")
 PARTIAL_ITEMS = _("Items: {shown} shown out of {total}, the rest is loaded as you scroll down")
 """Le titre de la liste tant que tous ses éléments ne sont pas lus (https://github.com/dascritch/machincast/issues/383)."""
@@ -137,10 +132,7 @@ class ItemList(QObject):
 		self.columns.before_export = self.load_all
 		list_.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 		list_.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-		for keys, act in ((QKeySequence.StandardKey.Copy, self.copy), (QKeySequence.StandardKey.Paste, self.paste)):
-			shortcut = QShortcut(QKeySequence(keys), list_)
-			shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
-			shortcut.activated.connect(act)
+		clipboard.shortcuts(list_, self.copy, self.paste)
 		self.drop = FileDrop(list_)
 		self.drop.dropped.connect(self._drop_in)
 		model = list_.model()
@@ -546,40 +538,20 @@ class ItemList(QObject):
 		chosen_list = self.chosen()
 		if chosen_list == []:
 			return
-		payload = []
+		entries = []
 		text_list = []
 		for line in chosen_list:
-			payload.append(
-				{
-					"category": line.data(0, CATEGORY),
-					"item": line.data(0, ITEM),
-					"file": line.data(0, FILE),
-					"feed": line.data(0, FEED),
-					"name": line.text(1),
-				}
+			entries.append(
+				clipboard.entry(
+					line.data(0, CATEGORY), line.data(0, ITEM), line.data(0, FILE), line.data(0, FEED), line.text(1)
+				)
 			)
-			cells = []
-			for column in range(self.list_.columnCount()):
-				cells.append(line.text(column))
-			text_list.append("\t".join(cells))
-		data = QMimeData()
-		data.setData(MIME, json.dumps(payload).encode())
-		data.setText("\n".join(text_list) + "\n")
-		QGuiApplication.clipboard().setMimeData(data)
-
-	@staticmethod
-	def copied() -> list[dict[str, object]]:
-		"""Les éléments du presse-papiers ; aucun s'il n'en vient pas."""
-		data = QGuiApplication.clipboard().mimeData()
-		if (data is None) or (not data.hasFormat(MIME)):
-			return []
-		payload = json.loads(bytes(data.data(MIME).data()).decode())
-		assert isinstance(payload, list)
-		return payload
+			text_list.append(clipboard.text(self.list_, line))
+		clipboard.put(entries, text_list)
 
 	def paste(self) -> None:
 		"""Les éléments copiés s'ajoutent après la ligne courante, ou en fin de liste, et restent choisis."""
-		copied_list = self.copied()
+		copied_list = clipboard.copied()
 		if copied_list == []:
 			return
 		self.load_all()
@@ -670,14 +642,7 @@ class ItemList(QObject):
 		if (line is not None) and (line.data(0, CATEGORY) == "sound") and (line.data(0, ITEM) is not None):
 			display.offer_preview(menu, int(line.data(0, ITEM)), self.card.requested_preview.emit)
 			menu.addSeparator()
-		copy = menu.addAction(COPY)
-		copy.setShortcut(QKeySequence(QKeySequence.StandardKey.Copy))
-		copy.setEnabled(self.chosen() != [])
-		copy.triggered.connect(self.copy)
-		paste = menu.addAction(PASTE)
-		paste.setShortcut(QKeySequence(QKeySequence.StandardKey.Paste))
-		paste.setEnabled(self.copied() != [])
-		paste.triggered.connect(self.paste)
+		clipboard.offer(menu, chosen=self.chosen() != [], copy=self.copy, paste=self.paste)
 		return menu
 
 	def _open(self, line: QTreeWidgetItem) -> None:

@@ -1,5 +1,5 @@
 # language: fr
-Fonctionnalité: Copier et coller les éléments d'une liste, d'une fiche à l'autre
+Fonctionnalité: Copier et coller les éléments ou les sonores d'une liste, d'une fiche à l'autre
 	En tant que programmateur musical,
 	je veux sélectionner et copier plusieurs lignes à la fois d'une table,
 	afin de les coller dans une table de même catégorie.
@@ -11,6 +11,11 @@ Fonctionnalité: Copier et coller les éléments d'une liste, d'une fiche à l'a
 	contient pas de séquence : une séquence collée dans une séquence est laissée de côté, et la fiche le dit. Rien
 	n'est en base avant « Enregistrer ».
 
+	Les sonores d'une banque se copient et se collent de même, d'une banque à l'autre, ou avec les éléments d'un
+	événement ou d'une séquence. Une banque ne contient que des sonores, chacun une fois : une banque ou une séquence
+	collée dans une banque est laissée de côté, un sonore déjà dans la banque n'est pas collé une seconde fois, et la
+	fiche le dit. En mode séquentiel, les sonores collés vont après la ligne courante ; en aléatoire, en fin de liste.
+
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-11-18 10:30:00 »
@@ -20,7 +25,7 @@ Fonctionnalité: Copier et coller les éléments d'une liste, d'une fiche à l'a
 			|             | Jingle fin   | file | active | 4        | /srv/habillage/fin.flac   |
 			| Les Gaufres | Spot         | file | active | 30       | /srv/pubs/spot.flac       |
 		Et la banque « Publicité », aléatoire, sans nom public, avec « Spot »
-		Et la banque « Habillage », séquentielle, sans nom public, avec « Jingle début »
+		Et la banque « Habillage », séquentielle, sans nom public, avec « Jingle début », « Jingle fin »
 		Et la séquence « Passage pub », sans nom public, avec le sonore « Jingle début », la banque « Publicité », le sonore « Jingle fin »
 		Et les événements :
 			| name     | public_name | priority               | starts_at        | ends_at          | days   |
@@ -39,7 +44,7 @@ Fonctionnalité: Copier et coller les éléments d'une liste, d'une fiche à l'a
 		Et je choisis les éléments n° 1 à 1 de la liste
 		Et je colle les éléments
 		Alors la liste de la fiche montre les éléments « Jingle fin », « Passage pub », « Les Gaufres – Spot »
-		Et les éléments collés sont choisis
+		Et les lignes choisies de la liste sont « Passage pub », « Les Gaufres – Spot »
 		Quand j'enregistre la fiche
 		Alors les éléments de l'événement « Midi » sont, dans l'ordre, le sonore « Jingle fin », la séquence « Passage pub », le sonore « Spot »
 
@@ -109,4 +114,64 @@ Fonctionnalité: Copier et coller les éléments d'une liste, d'une fiche à l'a
 			"""
 			sonore	Les Gaufres – Spot	/srv/pubs/spot.flac
 			banque	Publicité	aléatoire
+			"""
+
+	# ─── Les sonores d'une banque ──────────────────────────────
+
+	Scénario: Les sonores d'un événement se collent dans une banque séquentielle, après sa ligne courante
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je choisis les éléments n° 1 à 4 de la liste
+		Et je copie les éléments choisis
+		Et j'ouvre la fiche de la banque « Habillage »
+		Et je choisis les éléments n° 1 à 1 de la liste
+		Et je colle les éléments
+		Alors la liste de la fiche montre les éléments « Jingle début », « Les Gaufres – Spot », « Jingle fin »
+		Et les lignes choisies de la liste sont « Les Gaufres – Spot »
+		Et la fiche dit « Laissé de côté, une banque ne contient que des sonores : Habillage, Passage pub, Publicité. »
+		Quand j'enregistre la fiche
+		Alors les sonores de la banque « Habillage » sont, dans l'ordre, « Jingle début », « Spot », « Jingle fin »
+
+	Scénario: Les sonores d'une banque se collent dans une autre, une fois chacun
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Habillage »
+		Et je choisis les éléments n° 1 à 2 de la liste
+		Et je copie les éléments choisis
+		Et j'ouvre la fiche de la banque « Publicité »
+		Et je colle les éléments
+		Alors la liste de la fiche montre les éléments « Les Gaufres – Spot », « Jingle début », « Jingle fin »
+		Et les lignes choisies de la liste sont « Jingle début », « Jingle fin »
+		Quand je colle les éléments
+		Alors la liste de la fiche montre les éléments « Les Gaufres – Spot », « Jingle début », « Jingle fin »
+		Et la fiche dit « Déjà dans la banque, pas collé une seconde fois : Jingle début, Jingle fin. »
+		Quand j'enregistre la fiche
+		Alors les sonores de la banque « Publicité » sont, dans l'ordre, « Spot », « Jingle début », « Jingle fin »
+
+	Scénario: Ctrl+C et Ctrl+V copient les sonores d'une banque vers un événement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Habillage »
+		Et je choisis les éléments n° 1 à 2 de la liste
+		Et j'appuie sur Ctrl+C dans la liste
+		Et j'ouvre la fiche de l'événement « Midi »
+		Et j'appuie sur Ctrl+V dans la liste
+		Alors la liste de la fiche montre les éléments « Jingle fin », « Jingle début », « Jingle fin »
+
+	Scénario: Le clic droit sur un sonore de la banque propose aussi « Copier » et « Coller »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Habillage »
+		Et je choisis les éléments n° 2 à 2 de la liste
+		Et je choisis « Copier » au clic droit sur l'élément n° 2 de la liste
+		Et j'ouvre la fiche de la séquence « Passage pub »
+		Et je choisis les éléments n° 1 à 1 de la liste
+		Et je choisis « Coller » au clic droit sur l'élément n° 1 de la liste
+		Alors la liste de la fiche montre les éléments « Jingle début », « Jingle fin », « Publicité », « Jingle fin »
+
+	Scénario: Les sonores copiés d'une banque passent aussi en texte
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Publicité »
+		Et je choisis les éléments n° 1 à 1 de la liste
+		Et je copie les éléments choisis
+		Alors le presse-papiers contient le texte :
+			"""
+			Les Gaufres – Spot	0:30	actif	/srv/pubs/spot.flac
 			"""
