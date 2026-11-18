@@ -49,6 +49,10 @@ FICHIER_REGLE="/etc/polkit-1/rules.d/50-machincast.rules"
 # neutralisent les touches, le capot et Ctrl+Alt+Suppr en console.
 FICHIER_LOGIND="/etc/systemd/logind.conf.d/50-machincast.conf"
 FICHIER_SYSTEME="/etc/systemd/system.conf.d/50-machincast.conf"
+# Les cartes son du poste d'antenne ne s'endorment jamais (https://github.com/dascritch/machincast/issues/499) : les
+# mêmes chemins dans machincast.power_save.
+FICHIER_MODPROBE="/etc/modprobe.d/machincast.conf"
+FICHIER_USB="/etc/udev/rules.d/50-machincast-usb.rules"
 # Purge quotidienne de la base, installée avec le service (https://github.com/dascritch/machincast/issues/268) : les
 # mêmes noms dans machincast.installation.
 # Les tâches du service (https://github.com/dascritch/machincast/issues/455) : l'indexation rapide toutes les heures, et
@@ -743,7 +747,8 @@ fichiers_du_service_perimes() {
 		"wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" "wireplumber-service:${FICHIER_WIREPLUMBER_SERVICE}" \
 		"wireplumber-desktop:${FICHIER_WIREPLUMBER_BUREAU}" "tmpfiles:${FICHIER_TMPFILES}" \
 		"logrotate:${FICHIER_LOGROTATE}" \
-		"rule:${FICHIER_REGLE}" "logind:${FICHIER_LOGIND}" "system-conf:${FICHIER_SYSTEME}"; do
+		"rule:${FICHIER_REGLE}" "logind:${FICHIER_LOGIND}" "system-conf:${FICHIER_SYSTEME}" \
+		"power-save:${FICHIER_MODPROBE}" "usb-power:${FICHIER_USB}"; do
 		fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
 	done
 	# Les minuteurs ne se vérifient que s'ils sont installés : le choix de --no-timers tient
@@ -1136,6 +1141,7 @@ installer_service() {
 	fi
 	installer_fichier rule "${FICHIER_REGLE}" || true
 	proteger_le_poste
+	garder_les_cartes_eveillees
 	executer sudo systemctl enable --now "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
 	if "${unites_changees}" || "${service_change}"; then
 		# Une unité ou une configuration modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
@@ -1230,6 +1236,22 @@ proteger_le_poste() {
 	fi
 }
 
+# Les cartes son du poste d'antenne ne s'endorment jamais (https://github.com/dascritch/machincast/issues/499) :
+# snd_hda_intel sans économie d'énergie, et les périphériques USB toujours éveillés ; machincast.power_save les applique
+# aussitôt, sans attendre le redémarrage.
+garder_les_cartes_eveillees() {
+	local change=false
+	if installer_fichier power-save "${FICHIER_MODPROBE}"; then
+		change=true
+	fi
+	if installer_fichier usb-power "${FICHIER_USB}"; then
+		change=true
+	fi
+	if "${change}"; then
+		executer sudo "${VENV}/bin/python" -m machincast.power_save wake --root /
+	fi
+}
+
 # Retire un fichier installé par --service, s'il existe ; vrai s'il existait.
 retirer_fichier() {
 	local fichier="$1"
@@ -1254,10 +1276,15 @@ retirer_service() {
 	local fichier
 	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
 		"${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
-		"${FICHIER_LOGROTATE}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}"; do
+		"${FICHIER_LOGROTATE}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}" \
+		"${FICHIER_MODPROBE}" "${FICHIER_USB}"; do
 		retirer_fichier "${fichier}" || true
 	done
 	executer sudo systemctl daemon-reload
+	# Les cartes son retrouvent leur économie d'énergie au prochain redémarrage
+	# (https://github.com/dascritch/machincast/issues/499).
+	executer sudo udevadm control --reload
+	info 'the sound cards go back to power saving at the next restart'
 	# La politique d'Ubuntu revient (https://github.com/dascritch/machincast/issues/448) : extinction, redémarrage et
 	# veille sans mot de passe, touches, capot et Ctrl+Alt+Suppr actifs.
 	if [[ "$(systemctl is-enabled ctrl-alt-del.target 2>/dev/null || true)" == "masked" ]]; then

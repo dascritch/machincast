@@ -2303,6 +2303,7 @@ msgid "{failure}: {error}"
 msgstr "{failure} : {error}"
 
 #: machincast/interface/control.py
+#: machincast/interface/power_save_switch.py
 #, python-brace-format
 msgid "exit code {code}"
 msgstr "code de sortie {code}"
@@ -4456,6 +4457,37 @@ msgstr "Indisponible : {message}"
 #, python-brace-format
 msgid "Unavailable: {text}"
 msgstr "Indisponible : {text}"
+
+#: machincast/interface/power_save_switch.py
+msgid "Sound cards always awake"
+msgstr "Cartes son toujours éveillées"
+
+#: machincast/interface/power_save_switch.py
+msgid "Sound cards always awake: they no longer go to power saving."
+msgstr ""
+"Cartes son toujours éveillées : elles ne passent plus en économie d'énergie."
+
+#: machincast/interface/power_save_switch.py
+msgid "Sound cards back to power saving, at the next restart."
+msgstr ""
+"Cartes son de nouveau en économie d'énergie, au prochain redémarrage."
+
+#: machincast/interface/power_save_switch.py
+msgid "Sound cards not set: authentication refused."
+msgstr "Cartes son non réglées : authentification refusée."
+
+#: machincast/interface/power_save_switch.py
+#, python-brace-format
+msgid "Sound cards not set: {error}"
+msgstr "Cartes son non réglées : {error}"
+
+#: machincast/interface/power_save_switch.py
+msgid "Sound cards not set: pkexec missing, install the pkexec package."
+msgstr "Cartes son non réglées : pkexec absent, installer le paquet pkexec."
+
+#: machincast/interface/power_save_switch.py
+msgid "Set by install.sh --service, with the broadcast service."
+msgstr "Réglé par install.sh --service, avec le service de diffusion."
 
 #: machincast/interface/preferences.py
 msgid ""
@@ -6705,6 +6737,36 @@ msgid ""
 msgstr ""
 "carte virtuelle « {name} » non créée ({reason}) : la sortie factice ne joue "
 "aucun son"
+
+#: machincast/power_save.py
+msgid "sound cards always awake"
+msgstr "cartes son toujours éveillées"
+
+#: machincast/power_save.py
+msgid ""
+"settings removed: the power saving of the sound cards comes back at the "
+"next restart"
+msgstr ""
+"réglages retirés : l'économie d'énergie des cartes son revient au prochain "
+"redémarrage"
+
+#: machincast/power_save.py
+msgid "snd_hda_intel is not loaded: its setting will apply when it loads"
+msgstr "snd_hda_intel n'est pas chargé : son réglage vaudra à son chargement"
+
+#: machincast/power_save.py
+msgid "Keeps the sound cards of the on-air computer out of power saving."
+msgstr ""
+"Garde les cartes son du poste d'antenne hors de l'économie d'énergie."
+
+#: machincast/power_save.py
+msgid "root of the system, / by default"
+msgstr "racine du système, / par défaut"
+
+#: machincast/power_save.py
+#, python-brace-format
+msgid "sound cards not set: {error}"
+msgstr "cartes son non réglées : {error}"
 
 #: machincast/programs.py
 msgid "trial broadcast"
@@ -9464,6 +9526,11 @@ msgstr "%s absent"
 #: install.sh
 msgid "Removal of the broadcast service"
 msgstr "Retrait du service de diffusion"
+
+#: install.sh
+msgid "the sound cards go back to power saving at the next restart"
+msgstr ""
+"les cartes son retrouvent leur économie d'énergie au prochain redémarrage"
 
 #: install.sh
 msgid "[simulation] sudo -u postgres psql: DROP ROLE IF EXISTS %s"

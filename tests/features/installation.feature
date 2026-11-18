@@ -377,6 +377,8 @@ Fonctionnalité: Vérifications de l'installation
 			| rule                | FICHIER_REGLE               |
 			| logind              | FICHIER_LOGIND              |
 			| system-conf         | FICHIER_SYSTEME             |
+			| power-save          | FICHIER_MODPROBE            |
+			| usb-power           | FICHIER_USB                 |
 
 	Scénario: install.sh --service demande d'abord de dédier le poste à l'antenne, puis de sortir MachinCast d'un répertoire personnel
 		Alors install.sh, avec --service, demande de dédier le poste puis déplace MachinCast, avant toute autre étape
