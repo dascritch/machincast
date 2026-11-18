@@ -17,13 +17,20 @@ Commune aux fiches d'une séquence (machincast.interface.sequence_card) et d'un 
   (machincast.shared.no_repeat.ignored_calls_to_edges). Une séquence compte par la première et la dernière de ses
   lignes, quand ce sont des banques ;
 - à l'enregistrement, une ligne restée dans la liste garde son identifiant en base, à sa nouvelle position :
-  l'historique de diffusion la désigne pour reprendre la liste. Un élément effacé de la base entre-temps est oublié.
+  l'historique de diffusion la désigne pour reprendre la liste. Un élément effacé de la base entre-temps est oublié ;
+- plusieurs lignes se choisissent à la fois (Ctrl, Maj) ; Ctrl+C, ou « Copier » au clic droit, les copie dans le
+  presse-papiers, dans leur ordre, et en texte, une ligne par élément ; Ctrl+V, ou « Coller », les ajoute après la
+  ligne courante, ou en fin de liste, dans cette fiche ou dans une autre, d'un événement ou d'une séquence. Une
+  séquence collée dans une séquence est laissée de côté, et la fiche le dit ; un élément effacé de la base depuis la
+  copie n'est pas collé (https://github.com/dascritch/machincast/issues/129).
 """
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QItemSelectionModel, QMimeData, QObject, Qt, Signal
+from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut
 from PySide6.QtWidgets import QAbstractItemView, QGroupBox, QMenu, QPushButton, QTreeWidget, QTreeWidgetItem
 
 from machincast.conversion import integer_or_none, text_or_none
@@ -56,6 +63,11 @@ LINE = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.It
 
 COLUMNS = {"sound": "sound_id", "bank": "bank_id", "sequence": "sequence_id"}
 """Colonne de chaque genre d'élément, dans sequence_items et event_items."""
+MIME = "application/x-machincast-items"
+"""Le format des éléments copiés dans le presse-papiers (https://github.com/dascritch/machincast/issues/129)."""
+COPY = _("Copy")
+PASTE = _("Paste")
+SET_ASIDE = _("Set aside, a sequence does not contain a sequence: {list}.")
 PARTIAL_ITEMS = _("Items: {shown} shown out of {total}, the rest is loaded as you scroll down")
 """Le titre de la liste tant que tous ses éléments ne sont pas lus (https://github.com/dascritch/machincast/issues/383)."""
 """Le stream repris pour un feed : le premier par titre qui le suit."""
@@ -124,6 +136,11 @@ class ItemList(QObject):
 		self.columns = Columns(list_, VIEWS[table])
 		self.columns.before_export = self.load_all
 		list_.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+		list_.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+		for keys, act in ((QKeySequence.StandardKey.Copy, self.copy), (QKeySequence.StandardKey.Paste, self.paste)):
+			shortcut = QShortcut(QKeySequence(keys), list_)
+			shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+			shortcut.activated.connect(act)
 		self.drop = FileDrop(list_)
 		self.drop.dropped.connect(self._drop_in)
 		model = list_.model()
@@ -508,7 +525,134 @@ class ItemList(QObject):
 		self.card.flag_ignored(ignored, _("these are not sound files"))
 
 	def _remove(self) -> None:
-		self.list_.takeTopLevelItem(self.list_.indexOfTopLevelItem(self.list_.currentItem()))
+		"""Retire les lignes choisies, ou la ligne courante."""
+		chosen_list = self.chosen()
+		if chosen_list == []:
+			chosen_list = [self.list_.currentItem()]
+		for line in chosen_list:
+			self.list_.takeTopLevelItem(self.list_.indexOfTopLevelItem(line))
+
+	def chosen(self) -> list[QTreeWidgetItem]:
+		"""Les lignes choisies, dans l'ordre de la liste."""
+		chosen_list = []
+		for line in self.lines():
+			if line.isSelected():
+				chosen_list.append(line)
+		return chosen_list
+
+	def copy(self) -> None:
+		"""Les lignes choisies vont au presse-papiers : pour une liste d'éléments, et en texte, une ligne par élément,
+		ses colonnes séparées par des tabulations."""
+		chosen_list = self.chosen()
+		if chosen_list == []:
+			return
+		payload = []
+		text_list = []
+		for line in chosen_list:
+			payload.append(
+				{
+					"category": line.data(0, CATEGORY),
+					"item": line.data(0, ITEM),
+					"file": line.data(0, FILE),
+					"feed": line.data(0, FEED),
+					"name": line.text(1),
+				}
+			)
+			cells = []
+			for column in range(self.list_.columnCount()):
+				cells.append(line.text(column))
+			text_list.append("\t".join(cells))
+		data = QMimeData()
+		data.setData(MIME, json.dumps(payload).encode())
+		data.setText("\n".join(text_list) + "\n")
+		QGuiApplication.clipboard().setMimeData(data)
+
+	@staticmethod
+	def copied() -> list[dict[str, object]]:
+		"""Les éléments du presse-papiers ; aucun s'il n'en vient pas."""
+		data = QGuiApplication.clipboard().mimeData()
+		if (data is None) or (not data.hasFormat(MIME)):
+			return []
+		payload = json.loads(bytes(data.data(MIME).data()).decode())
+		assert isinstance(payload, list)
+		return payload
+
+	def paste(self) -> None:
+		"""Les éléments copiés s'ajoutent après la ligne courante, ou en fin de liste, et restent choisis."""
+		copied_list = self.copied()
+		if copied_list == []:
+			return
+		self.load_all()
+		with self.card.connection.transaction():
+			self._read_marked()
+			lines, aside = self._copied_lines(copied_list)
+		row = self.list_.topLevelItemCount()
+		current = self.list_.currentItem()
+		if current is not None:
+			row = self.list_.indexOfTopLevelItem(current) + 1
+		count = len(lines)
+		self.list_.insertTopLevelItems(row, lines)
+		self.list_.clearSelection()
+		# Relues dans la liste : insérées, les lignes sont à elle.
+		last = None
+		for index in range(row, row + count):
+			last = self.list_.topLevelItem(index)
+			assert last is not None
+			last.setSelected(True)
+		if last is not None:
+			self.list_.setCurrentItem(last, 0, QItemSelectionModel.SelectionFlag.NoUpdate)
+		self._refresh_buttons()
+		if aside != []:
+			self.card.message.setText(SET_ASIDE.format(list=", ".join(aside)))
+
+	def _copied_lines(self, copied_list: list[dict[str, object]]) -> tuple[list[QTreeWidgetItem], list[str]]:
+		"""Les lignes des éléments copiés, dans leur ordre, lues en base ; et les noms des séquences laissées de côté.
+		Un élément effacé de la base depuis la copie n'a pas de ligne."""
+		identifiers: dict[str, list[int]] = {}
+		files = []
+		for copied in copied_list:
+			category, item = str(copied["category"]), copied["item"]
+			if isinstance(item, int):
+				identifiers.setdefault(category, []).append(item)
+			if (item is None) and (copied["file"] is not None):
+				files.append(str(copied["file"]))
+		fetched = self._read(identifiers)
+		by_file = {}
+		for sound in queries.sounds_per_file(self.card.connection, files):
+			by_file[str(sound[3])] = sound
+		lines: list[QTreeWidgetItem] = []
+		aside: list[str] = []
+		for copied in copied_list:
+			category, item = str(copied["category"]), copied["item"]
+			if category not in self.buttons.add:
+				aside.append(str(copied["name"]))
+			else:
+				self._copied_line(copied, fetched, by_file, lines)
+		return lines, aside
+
+	def _copied_line(
+		self,
+		copied: dict[str, object],
+		fetched: dict[str, dict[int, QTreeWidgetItem]],
+		by_file: dict[str, tuple[object, ...]],
+		lines: list[QTreeWidgetItem],
+	) -> None:
+		"""Ajoute la ligne d'un élément copié : une nouvelle à chaque fois, un même élément pouvant revenir."""
+		category, item = str(copied["category"]), copied["item"]
+		if isinstance(item, int):
+			if item in fetched.get(category, {}):
+				lines.append(fetched[category][item].clone())
+			return
+		if copied["feed"] is not None:
+			feed = int(str(copied["feed"]))
+			marks = queries.feed_marks(self.card.connection, feed)
+			if marks is not None:
+				line = self._line("sound", [str(marks[0]), _("{url}, new stream").format(url=marks[1])], (None, None))
+				line.setData(0, FEED, feed)
+				lines.append(line)
+			return
+		file = str(copied["file"])
+		lines.append(self._sound_line(by_file.get(file, (None, None, None, file, file))))
 
 	def _move(self, offset: int) -> None:
 		line = self.list_.currentItem()
@@ -518,13 +662,22 @@ class ItemList(QObject):
 		# Rendue courante, la ligne déplacée met à jour les boutons (currentItemChanged).
 		self.list_.setCurrentItem(line)
 
-	def line_menu(self, line: QTreeWidgetItem | None) -> QMenu | None:
-		"""Le menu du clic droit sur une ligne : « Pré-écoute… » d'un sonore en base ; aucun pour une banque, une
-		séquence, un fichier déposé pas encore enregistré, ou hors d'une ligne (https://github.com/dascritch/machincast/issues/226)."""
-		if (line is None) or (line.data(0, CATEGORY) != "sound") or (line.data(0, ITEM) is None):
-			return None
+	def line_menu(self, line: QTreeWidgetItem | None) -> QMenu:
+		"""Le menu du clic droit : « Pré-écoute… » d'un sonore en base (https://github.com/dascritch/machincast/issues/226),
+		puis « Copier » les lignes choisies et « Coller » les éléments copiés, inactifs sans elles
+		(https://github.com/dascritch/machincast/issues/129)."""
 		menu = QMenu(self.list_)
-		display.offer_preview(menu, int(line.data(0, ITEM)), self.card.requested_preview.emit)
+		if (line is not None) and (line.data(0, CATEGORY) == "sound") and (line.data(0, ITEM) is not None):
+			display.offer_preview(menu, int(line.data(0, ITEM)), self.card.requested_preview.emit)
+			menu.addSeparator()
+		copy = menu.addAction(COPY)
+		copy.setShortcut(QKeySequence(QKeySequence.StandardKey.Copy))
+		copy.setEnabled(self.chosen() != [])
+		copy.triggered.connect(self.copy)
+		paste = menu.addAction(PASTE)
+		paste.setShortcut(QKeySequence(QKeySequence.StandardKey.Paste))
+		paste.setEnabled(self.copied() != [])
+		paste.triggered.connect(self.paste)
 		return menu
 
 	def _open(self, line: QTreeWidgetItem) -> None:

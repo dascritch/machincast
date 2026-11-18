@@ -4040,6 +4040,19 @@ msgid "unreadable stream of feed {feed}: {error}"
 msgstr "stream du feed {feed} illisible : {error}"
 
 #: machincast/interface/items.py
+msgid "Copy"
+msgstr "Copier"
+
+#: machincast/interface/items.py
+msgid "Paste"
+msgstr "Coller"
+
+#: machincast/interface/items.py
+#, python-brace-format
+msgid "Set aside, a sequence does not contain a sequence: {list}."
+msgstr "Laissé de côté, une séquence ne contient pas de séquence : {list}."
+
+#: machincast/interface/items.py
 #, python-brace-format
 msgid ""
 "Items: {shown} shown out of {total}, the rest is loaded as you scroll down"

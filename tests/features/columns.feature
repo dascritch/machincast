@@ -153,7 +153,7 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre chaque onglet et la fiche de chaque genre
 		Alors chaque tableau de l'interface a des colonnes déplaçables, de largeur libre, avec le menu des colonnes de sa vue
-		Et le clic droit hors des lignes de chaque tableau de l'interface ne propose que « Exporter ce tableau… »
+		Et le clic droit hors des lignes de chaque tableau de l'interface finit par « Exporter ce tableau… », après « Copier » et « Coller » dans les listes d'éléments
 
 	# ─── Exporter un tableau (https://github.com/dascritch/machincast/issues/329) ───
 
