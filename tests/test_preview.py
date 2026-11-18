@@ -6,6 +6,7 @@ tests/broadcast_steps.py. La pré-écoute joue sur la sortie factice des tests, 
 VU-mètre avancent comme sur un vrai périphérique. Les périphériques du poste sont remplacés par ceux du scénario.
 """
 
+import logging
 import re
 import shutil
 import tomllib
@@ -14,6 +15,7 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from gi.repository import Gst
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QApplication, QSlider
@@ -21,7 +23,8 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.exceptions import TimeoutError as ExceededDelay
 from pytestqt.qtbot import QtBot
 
-from machincast.interface.preview import PreviewWindow
+from machincast.interface import preview
+from machincast.interface.preview import PreviewWindow, Source
 from tests.interface_steps import NAME, Context, configuration_file, window
 from tests.preview_steps import preview_window
 from tests.sounds import SOUND_FILES
@@ -410,3 +413,47 @@ def has_share(interface: Context) -> None:
 @then("la fenêtre de pré-écoute est fermée avec elle")
 def closed_with(interface: Context) -> None:
 	assert not preview_window(interface).isVisible()
+
+
+# ─── Lecteur bloqué (https://github.com/dascritch/machincast/issues/504) ───
+
+BLOCKED_PIPELINE = "audiotestsrc ! valve drop=true ! fakesink"
+"""Un pipeline qui n'atteint jamais l'état PLAYING : sa sortie attend un son que la vanne ne laisse pas passer, comme
+playbin3 quand decodebin3 ne crée pas de décodeur."""
+
+
+@given("un délai de garde de la pré-écoute d'une demi-seconde")
+def short_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(preview, "GUARD_DELAY", 0.5)
+
+
+@given(
+	parsers.re(
+		r"(?P<which>le premier lecteur|tous les lecteurs) de la pré-écoute (?:bloqué à son|bloqués à leur) lancement"
+	)
+)
+def blocked_players(monkeypatch: pytest.MonkeyPatch, which: str) -> None:
+	original = preview.Player._build
+	built: list[Source] = []
+
+	def build(player: preview.Player, source: Source) -> Gst.Element:
+		built.append(source)
+		if (which == "tous les lecteurs") or (len(built) == 1):
+			return Gst.parse_launch(BLOCKED_PIPELINE)
+		return original(player, source)
+
+	monkeypatch.setattr(preview.Player, "_build", build)
+
+
+@then("la pré-écoute ne signale rien")
+def reports_nothing(interface: Context) -> None:
+	assert preview_window(interface).ui.message.text() == ""
+
+
+@then(parsers.parse("le journal de la pré-écoute note « {text} »"))
+def logged(caplog: pytest.LogCaptureFixture, text: str) -> None:
+	messages = []
+	for record in caplog.records:
+		if (record.name == preview.__name__) and (record.levelno == logging.WARNING):
+			messages.append(record.getMessage())
+	assert text in messages, messages

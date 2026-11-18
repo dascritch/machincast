@@ -144,12 +144,15 @@ def source(interface: Context, source: str) -> None:
 def state(interface: Context, qtbot: QtBot, soon: str | None, state: str, time: str | None) -> None:
 	ui = preview_window(interface).ui
 
-	def reached() -> bool:
-		return (ui.state.text() == state) and ((time is None) or (ui.time.text() == time))
+	def reached() -> None:
+		"""À l'expiration du délai, l'échec dit ce que montrait la fenêtre
+		(https://github.com/dascritch/machincast/issues/504)."""
+		shown = (ui.state.text(), ui.time.text(), ui.message.text())
+		assert (shown[0] == state) and ((time is None) or (shown[1] == time)), shown
 
 	if soon is not None:
 		qtbot.waitUntil(reached, timeout=DELAY)
-	assert reached(), (ui.state.text(), ui.time.text(), ui.message.text())
+	reached()
 
 
 @then(parsers.re(r"les commandes de la pré-écoute sont : (?P<commands>.+)"))

@@ -4615,6 +4615,11 @@ msgid "Unreadable image: {chosen}"
 msgstr "Image illisible : {chosen}"
 
 #: machincast/interface/preview.py
+#, python-brace-format
+msgid "no sound {delay} s after its start, after {relaunches} relaunches"
+msgstr "aucun son {delay} s après son lancement, après {relaunches} relances"
+
+#: machincast/interface/preview.py
 msgid "No sound"
 msgstr "Aucun sonore"
 
@@ -4673,6 +4678,15 @@ msgstr "fichier introuvable, {address}"
 
 #: machincast/interface/preview.py
 #, python-brace-format
+msgid ""
+"pre-listen: no sound {delay} s after its start, playback relaunched "
+"({count}/{relaunches})"
+msgstr ""
+"pré-écoute : aucun son {delay} s après son lancement, lecture relancée "
+"({count}/{relaunches})"
+
+#: machincast/interface/preview.py
+#, python-brace-format
 msgid "On air: {name}"
 msgstr "Antenne : {name}"
 
@@ -4680,6 +4694,11 @@ msgstr "Antenne : {name}"
 #, python-brace-format
 msgid "pre-listen: {title} ({address})"
 msgstr "pré-écoute : {title} ({address})"
+
+#: machincast/interface/preview.py
+#, python-brace-format
+msgid "pre-listen: {error}"
+msgstr "pré-écoute : {error}"
 
 #: machincast/interface/preview.py
 #, python-brace-format

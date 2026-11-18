@@ -12,6 +12,12 @@ un minuteur de Qt : rien ne bloque l'interface.
   configuration (write_preview), qui garde ses commentaires, et arrête la lecture en cours.
 - Lecteur : lecture et pause, arrêt, qui ramène au début. La fin du fichier ramène à l'arrêt ; une erreur aussi, et
   elle est signalée.
+- Lecteur bloqué (https://github.com/dascritch/machincast/issues/504) : avec GStreamer 1.28.2, playbin3 ne démarre
+  parfois jamais, sans erreur ni fin. decodebin3 ne crée pas de décodeur, et la sortie attend un son qui ne vient pas
+  (environ une lecture sur cent d'un FLAC d'une seconde, sous charge). Comme une voie de l'antenne
+  (https://github.com/dascritch/machincast/issues/281), un fichier qui n'a pas atteint l'état PLAYING GUARD_DELAY
+  après son lancement est relancé dans un nouveau pipeline, RELAUNCHES fois au plus, puis signalé. Le journal note
+  chaque relance. Un stream, qui a son propre délai de connexion, et l'écoute de l'antenne n'y sont pas soumis.
 - Frise d'un fichier (machincast.interface.timeline, https://github.com/dascritch/machincast/issues/224) : elle tient
   lieu de barre de position, pendant la lecture ou sa pause, et montre sa forme d'onde, calculée en tâche de fond à
   l'ouverture, ses silences et ses crossfades enregistrés, et la partie jouée à l'antenne. « Début joué » et « Fin
@@ -29,6 +35,7 @@ bouton « Pré-écoute » de la fenêtre, a pour titre « en cours : » et le te
 
 import logging
 import math
+import time
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -62,6 +69,12 @@ LEVEL_INTERVAL = 50 * Gst.MSECOND
 STREAM_BUFFER = 5
 """Secondes de son qu'un stream reçoit d'avance : le pré-décodé en est la part remplie."""
 STATES = {"stopped": _("Stopped"), "playing": _("Playing"), "paused": _("Paused")}
+GUARD_DELAY = 2.0
+"""Secondes laissées à un fichier pour que sa lecture démarre (état PLAYING) : il y faut d'ordinaire moins de 0,1 s,
+même sous charge ; au-delà, le lecteur est bloqué (https://github.com/dascritch/machincast/issues/504)."""
+RELAUNCHES = 2
+"""Relances d'un lecteur bloqué, avant de signaler la lecture impossible."""
+BLOCKED = _("no sound {delay} s after its start, after {relaunches} relaunches")
 NO = _("No sound")
 CHANNELS = {1: "mono", 2: _("stereo")}
 BROADCAST = _("(broadcast)")
@@ -168,10 +181,16 @@ class Player:
 		"""Volume de la lecture, de 0 à 1 : plein, sauf écouté comme à l'antenne."""
 		self.last_position: float | None = None
 		"""La dernière position relevée pendant la lecture, gardée après l'arrêt."""
+		self.clock = time.monotonic
+		self._started_at: float | None = None
+		"""Le lancement de la lecture, tant qu'elle n'a pas atteint l'état PLAYING ; None sinon."""
+		self._has_played = False
+		self._relaunches = 0
 
 	def load(self, source: Source | None) -> None:
 		self.halt()
 		self.last_position = None
+		self._relaunches = 0
 		self.source = source
 		# Dans le journal, que l'achèvement d'un rapport de crash reprend
 		# (https://github.com/dascritch/machincast/issues/413).
@@ -209,6 +228,8 @@ class Player:
 		assert self._piloted is not None
 		self._piloted.to(Gst.State.PLAYING)
 		self.state = "playing"
+		if not self._has_played:
+			self._started_at = self.clock()
 		if (plan is not None) and (since_start):
 			self.put_to(plan.start_marker())
 		on_air = self._on_air_by_pipewire(self.source.on_air)
@@ -224,6 +245,7 @@ class Player:
 		if self._piloted is not None:
 			self._piloted.to(Gst.State.PAUSED)
 			self.state = "paused"
+		self._started_at = None
 		self._unbind()
 
 	def halt(self) -> None:
@@ -233,6 +255,8 @@ class Player:
 		self._pipeline, self._piloted, self._level = None, None, None
 		self.state = "stopped"
 		self.levels = []
+		self._started_at = None
+		self._has_played = False
 
 	def _unbind(self) -> None:
 		binding.unbind(self._links)
@@ -312,6 +336,9 @@ class Player:
 		pipeline = self._pipeline
 		if pipeline is None:
 			return
+		if self._blocked(pipeline):
+			self._relaunch()
+			return
 		bus = pipeline.get_bus()
 		assert bus is not None
 		while (message := bus.pop()) is not None:
@@ -329,6 +356,35 @@ class Player:
 				self._read_levels(message.get_structure())
 		self._read_format()
 		self._follow_played_part()
+
+	def _blocked(self, pipeline: Gst.Element) -> bool:
+		"""La lecture d'un fichier n'a pas atteint l'état PLAYING GUARD_DELAY après son lancement, sans erreur ni fin :
+		elle ne jouera rien. Jamais une fois qu'elle a joué, ni pour un stream ou l'écoute de l'antenne."""
+		source = self.source
+		if (self._started_at is None) or (self._has_played) or (source is None):
+			return False
+		if (source.stream) or (source.on_air is not None):
+			return False
+		_result, current, _pending = pipeline.get_state(0)
+		if current == Gst.State.PLAYING:
+			self._has_played = True
+			return False
+		return self.clock() - self._started_at >= GUARD_DELAY
+
+	def _relaunch(self) -> None:
+		"""Relance un lecteur bloqué dans un nouveau pipeline, RELAUNCHES fois au plus, puis le signale."""
+		self.halt()
+		if self._relaunches >= RELAUNCHES:
+			self.error = BLOCKED.format(delay=decimal(f"{GUARD_DELAY:g}"), relaunches=RELAUNCHES)
+			log.warning(_("pre-listen: {error}").format(error=self.error))
+			return
+		self._relaunches += 1
+		log.warning(
+			_("pre-listen: no sound {delay} s after its start, playback relaunched ({count}/{relaunches})").format(
+				delay=decimal(f"{GUARD_DELAY:g}"), count=self._relaunches, relaunches=RELAUNCHES
+			)
+		)
+		self.read()
 
 	def _on_air_plan(self) -> Plan | None:
 		"""Le plan du fichier, s'il est écouté comme à l'antenne ; None sinon."""

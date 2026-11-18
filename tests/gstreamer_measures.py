@@ -228,7 +228,7 @@ def _versions() -> str:
 
 def main(arguments: list[str] | None = None) -> int:
 	analysis = argparse.ArgumentParser(description="Mesure des blocages de GStreamer, format par format.")
-	analysis.add_argument("-n", "--essais", type=int, default=1000, help="essais par pipeline et par format")
+	analysis.add_argument("-n", "--trials", type=int, default=1000, help="essais par pipeline et par format")
 	analysis.add_argument("-j", "--parallel", type=int, default=1, help="mesures menées à la fois, pour la charge")
 	analysis.add_argument("--pipelines", nargs="+", choices=PIPELINES, default=list(PIPELINES))
 	analysis.add_argument("--formats", nargs="+", choices=FORMATS, default=list(FORMATS))
