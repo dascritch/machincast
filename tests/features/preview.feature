@@ -144,6 +144,19 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et la pré-écoute ne signale rien
 		Et le journal de la pré-écoute note « pré-écoute : aucun son 0,5 s après son lancement, lecture relancée (1/2) »
 
+	Scénario: Un lecteur bloqué puis mis en pause est relancé en pause, et garde le déplacement demandé sur la frise
+		Étant donné un délai de garde de la pré-écoute d'une demi-seconde
+		Et le premier lecteur de la pré-écoute bloqué à son lancement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je clique sur « Pré-écoute… »
+		Et je lance la pré-écoute
+		Et je mets la pré-écoute en pause
+		Et je clique sur la frise de la pré-écoute à 60 % de sa largeur
+		Alors la position de la pré-écoute est bientôt entre 0,5 et 0,7 seconde
+		Et la pré-écoute est « En pause »
+		Et le journal de la pré-écoute note « pré-écoute : aucun son 0,5 s après son lancement, lecture relancée (1/2) »
+
 	Scénario: Un lecteur toujours bloqué est signalé, après deux relances
 		Étant donné un délai de garde de la pré-écoute d'une demi-seconde
 		Et tous les lecteurs de la pré-écoute bloqués à leur lancement

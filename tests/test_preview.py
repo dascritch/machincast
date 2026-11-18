@@ -34,6 +34,8 @@ scenarios("preview.feature")
 Connection = psycopg.Connection[tuple[object, ...]]
 DELAY = 5000
 """Millisecondes laissées à GStreamer pour ce qui arrive « bientôt »."""
+VOLUME_GAP = 0.001
+"""Écart toléré sur le volume de la pré-écoute, de 0 à 1."""
 
 
 @given(
@@ -350,9 +352,11 @@ def remark(interface: Context, qtbot: QtBot, text: str) -> None:
 def volume(interface: Context, qtbot: QtBot, soon: str | None, volume: str) -> None:
 	player = preview_window(interface).player
 	expected = int(volume) / 100
+	# Le même écart, un millième, pour l'attente et pour la vérification : le volume de l'enveloppe se règle à chaque
+	# relève, et n'atteint pas toujours exactement 1 (https://github.com/dascritch/machincast/issues/504).
 	if soon is not None:
-		qtbot.waitUntil(lambda: abs(player.volume - expected) < 0.001, timeout=DELAY)
-	assert player.volume == pytest.approx(expected), player.volume
+		qtbot.waitUntil(lambda: abs(player.volume - expected) < VOLUME_GAP, timeout=DELAY)
+	assert abs(player.volume - expected) < VOLUME_GAP, player.volume
 
 
 @then(parsers.parse("le volume de la pré-écoute est sous {volume:d} %, au début de la montée"))
