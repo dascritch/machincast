@@ -73,7 +73,7 @@ from machincast.player.state import StateSocket
 
 socket = StateSocket(Path(sys.argv[1]))
 socket.open_()
-socket.publish({"timestamp": "2026-10-20T16:40:00+02:00", "state": "playing", "current": None, "next": None})
+socket.publish({"timestamp": "2026-10-20T16:40:00+02:00", "state": sys.argv[3], "current": None, "next": None})
 
 
 def stop(_signal_number, _frame):
@@ -212,11 +212,12 @@ def refused_maintenance(interface: Context) -> None:
 	interface.maintenance = False
 
 
-@given("une diffusion d'essai qui tourne, lancée à la main")
-def trial_broadcast(interface: Context, station: Station) -> None:
+@given(parsers.re(r"une diffusion d'essai qui (?P<doing>tourne|laisse un blanc), lancée à la main"))
+def trial_broadcast(interface: Context, station: Station, doing: str) -> None:
 	"""Dans un processus à part, sur la socket d'état où l'interface la cherche : c'est lui qu'arrête SIGTERM."""
 	socket = interface.directory / "lecture.sock"
-	station.trial = subprocess.Popen([sys.executable, "-c", TRIAL_PLAYER, str(socket), str(station.trial_stop)])
+	state = {"tourne": "playing", "laisse un blanc": "dead_air"}[doing]
+	station.trial = subprocess.Popen([sys.executable, "-c", TRIAL_PLAYER, str(socket), str(station.trial_stop), state])
 
 
 @when("le service de diffusion passe en marche")

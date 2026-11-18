@@ -1201,7 +1201,8 @@ class MainWindow(QMainWindow):
 			broadcast_status.style(installed=installed, broadcasting=broadcasting)
 		)
 		indicator = broadcast_status.NOT_BROADCASTING
-		if broadcasting:
+		# Un blanc à l'antenne garde le témoin de couleur : la diffusion tourne, sans rien à jouer.
+		if self.home.state.state in broadcast_status.ON_AIR_STATES:
 			indicator = INCOMPLETE_SERVICE
 			if installed:
 				indicator = INSTALLED_SERVICE

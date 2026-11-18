@@ -3,7 +3,7 @@
 L'état de la diffusion, sur l'onglet Antenne, a en permanence un liseré de 2 px, rouge quand le service de diffusion est
 installé, vert pour une diffusion d'essai ; « En diffusion » prend aussi ce fond, et un texte blanc ou noir, celui qui
 contraste le plus. Le titre de la fenêtre dit « MachinCast », le témoin de l'onglet Antenne en diffusion, ⛶ sinon, et le
-nom de la radio, metadata.public_text.
+nom de la radio, metadata.public_text. Pendant un blanc à l'antenne, la diffusion tourne : le titre garde le témoin.
 """
 
 APPLICATION = "MachinCast"
@@ -12,6 +12,8 @@ SERVICE = "#c62828"
 TRIAL = "#2e7d32"
 """Le vert d'une installation sans service : la diffusion d'essai."""
 WHITE, BLACK = "#ffffff", "#000000"
+ON_AIR_STATES = frozenset({"playing", "dead_air"})
+"""Les états de la diffusion où le titre de la fenêtre porte le témoin de couleur : en diffusion, et pendant un blanc."""
 NOT_BROADCASTING = "⛶"
 """Le témoin du titre de la fenêtre quand rien n'est en diffusion."""
 BORDER = 2
