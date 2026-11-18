@@ -26,9 +26,9 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'appuie sur « Ctrl+F »
 		Et je tape « cafe » dans le champ de recherche
-		Alors la colonne « Type » de l'onglet « Recherche » montre « Sonore » en entier
-		Et la colonne « Nom interne » de l'onglet « Recherche » montre « Les Gaufres – Café à minuit » en entier
-		Et la dernière colonne de l'onglet « Recherche » s'étire jusqu'au bord du tableau
+		Alors la colonne « Type » de l'onglet « Recherche : cafe » montre « Sonore » en entier
+		Et la colonne « Nom interne » de l'onglet « Recherche : cafe » montre « Les Gaufres – Café à minuit » en entier
+		Et la dernière colonne de l'onglet « Recherche : cafe » s'étire jusqu'au bord du tableau
 
 	Scénario: Les colonnes d'une liste montrent leur contenu en entier, et suivent une nouvelle lecture
 		Quand la fenêtre de l'interface s'ouvre

@@ -11,6 +11,11 @@ Fonctionnalité: Recherche globale
 	frappe, jusqu'à une limite, dans l'ordre : événements, séquences, banques, sonores, chacun par nom. Le champ ne
 	propose pas de suggestions. Ouvrir une ligne de la table ouvre la fiche de l'élément.
 
+	https://github.com/dascritch/machincast/issues/502. Plusieurs recherches s'ouvrent à la fois : Ctrl+F ouvre toujours
+	un nouvel onglet, sauf sur une recherche encore vide, où le curseur va seulement. Chaque onglet est titré de son
+	texte, « Recherche : jingle ». Une recherche fermée se rouvre avec son texte et ses résultats, par Ctrl+Maj+T ou le
+	menu des onglets fermés, comme les recherches ouvertes au lancement suivant.
+
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
@@ -30,28 +35,65 @@ Fonctionnalité: Recherche globale
 
 	# ─── Ouverture ─────────────────────────────────────────────
 
-	Scénario: L'onglet « Recherche » s'ouvre par le menu Affichage, une seule fois, et se ferme
+	Scénario: L'onglet « Recherche » s'ouvre par le menu Affichage, et se ferme
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Rechercher… » dans le menu « Affichage »
 		Alors l'onglet ouvert est « Recherche »
 		Et le champ de recherche a le focus
 		Et seul l'onglet « Recherche » a un bouton de fermeture
-		Quand j'ouvre l'onglet « Sonores »
-		Et je choisis « Rechercher… » dans le menu « Affichage »
-		Alors l'onglet ouvert est « Recherche »
-		Et la fenêtre a les onglets « Antenne », « Recherche », « Sonores », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Quand je ferme l'onglet « Recherche »
-		Alors la fenêtre a les onglets « Antenne », « Sonores », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
-	Scénario: Ctrl+F ouvre la recherche, ou y revient en sélectionnant le texte cherché
+	Scénario: Ctrl+F ouvre une nouvelle recherche, titrée de son texte ; sur une recherche vide, il y reste
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'appuie sur « Ctrl+F »
 		Alors l'onglet ouvert est « Recherche »
+		Quand j'appuie sur « Ctrl+F »
+		Alors la fenêtre a les onglets « Antenne », « Recherche », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 		Quand je tape « jingle » dans le champ de recherche
-		Et j'ouvre l'onglet « Antenne »
-		Et j'appuie sur « Ctrl+F »
+		Alors l'onglet ouvert est « Recherche : jingle »
+		Quand j'appuie sur « Ctrl+F »
 		Alors l'onglet ouvert est « Recherche »
-		Et le champ de recherche a le focus, avec « jingle » sélectionné
+		Et le champ de recherche a le focus
+		Et la fenêtre a les onglets « Antenne », « Recherche : jingle », « Recherche », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+
+	Scénario: Plusieurs recherches à la fois, chacune avec son texte et ses résultats
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'appuie sur « Ctrl+F »
+		Et je tape « jingle » dans le champ de recherche
+		Et j'appuie sur « Ctrl+F »
+		Et je tape « croissant » dans le champ de recherche
+		Alors les résultats nommés sont « Café-croissant »
+		Quand j'ouvre l'onglet « Recherche : jingle »
+		Alors le champ de recherche contient « jingle »
+		Et les résultats nommés sont « Jingle »
+
+	Scénario: Une recherche fermée se rouvre avec son texte et ses résultats
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'appuie sur « Ctrl+F »
+		Et je tape « croissant » dans le champ de recherche
+		Et je ferme l'onglet « Recherche : croissant »
+		Et j'appuie sur « Ctrl+Shift+T »
+		Alors l'onglet ouvert est « Recherche : croissant »
+		Et le champ de recherche contient « croissant »
+		Et les résultats nommés sont « Café-croissant »
+
+	Scénario: Les recherches ouvertes se rouvrent au lancement suivant, avec leur texte
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'appuie sur « Ctrl+F »
+		Et je tape « jingle » dans le champ de recherche
+		Et j'appuie sur « Ctrl+F »
+		Et je tape « croissant » dans le champ de recherche
+		Et je ferme la fenêtre de l'interface
+		Et la fenêtre de l'interface s'ouvre
+		Alors la fenêtre a les onglets « Antenne », « Recherche : jingle », « Recherche : croissant », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Et l'onglet ouvert est « Recherche : croissant »
+		Et les résultats nommés sont « Café-croissant »
+
+	Scénario: Une recherche retenue par une version d'avant se rouvre vide
+		Étant donné les onglets retenus « on_air », « search », « calendar », « list:event », « list:sequence », « list:bank », « incidents »
+		Quand la fenêtre de l'interface s'ouvre
+		Alors la fenêtre a les onglets « Antenne », « Recherche », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
 
 	# ─── Résultats ─────────────────────────────────────────────
 
@@ -124,7 +166,7 @@ Fonctionnalité: Recherche globale
 		Et j'ouvre le résultat « <ligne> »
 		Alors l'onglet ouvert est « <onglet> »
 		Et l'écran de détail de <genre> « <nom> » est demandé
-		Quand j'ouvre l'onglet « Recherche »
+		Quand j'ouvre l'onglet « Recherche : cafe »
 		Alors le champ de recherche contient « cafe »
 
 		Exemples:

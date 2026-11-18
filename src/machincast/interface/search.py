@@ -2,7 +2,8 @@
 https://github.com/dascritch/machincast/issues/105, spec § 8.2).
 
 L'onglet « Recherche » (SearchScreen), qui se ferme, s'ouvre par « Affichage → Rechercher… » ou Ctrl+F
-(machincast.interface.window). Dès MINIMUM caractères, le texte tapé est cherché, sans tenir compte des majuscules ni
+(machincast.interface.window). Plusieurs recherches s'ouvrent à la fois, chacune titrée de son texte ; fermée, une
+recherche se rouvre avec son texte, comme au lancement suivant (https://github.com/dascritch/machincast/issues/502). Dès MINIMUM caractères, le texte tapé est cherché, sans tenir compte des majuscules ni
 des accents, dans le nom interne et le nom public des événements, des séquences et des banques, et dans l'artiste et
 le titre des sonores (chercher). Les résultats vont dans l'ordre : événements, séquences, banques, sonores, chacun par
 nom. La table les donne au fil de la frappe, jusqu'à LIMITE, avec le compte ; le champ ne propose pas de suggestions.
@@ -50,6 +51,10 @@ LIMIT = 500
 COLUMNS = (_("Type"), _("Internal name"), _("Public name"), _("Status"))
 TYPES = {"event": _("Event"), "sequence": _("Sequence"), "bank": _("Bank"), "sound": _("Sound")}
 TOO_SHORT = _("Type at least {minimum} characters.").format(minimum=MINIMUM)
+TITLE = _("Search")
+TITLED = _("Search: {text}")
+"""Le titre d'un onglet de recherche, suivi du texte cherché : plusieurs se distinguent
+(https://github.com/dascritch/machincast/issues/502)."""
 
 
 @dataclass(frozen=True)
@@ -133,6 +138,18 @@ class SearchScreen(QWidget):
 		arrangement.addWidget(self.table)
 		self.field.textChanged.connect(self._find)
 		self.table.activated.connect(self._opened_line)
+
+	def title(self) -> str:
+		"""« Recherche » sans texte, « Recherche : jingle » avec."""
+		text = self.field.text().strip()
+		if text == "":
+			return TITLE
+		return TITLED.format(text=text)
+
+	def key(self) -> str:
+		"""Ce qui la désigne d'un lancement à l'autre, et parmi les onglets fermés : « search: » et son texte, pour la
+		rouvrir telle quelle (https://github.com/dascritch/machincast/issues/502)."""
+		return f"search:{self.field.text()}"
 
 	def focus(self) -> None:
 		"""Le curseur dans le champ, son texte sélectionné : une nouvelle frappe le remplace."""

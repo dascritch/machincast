@@ -1164,7 +1164,11 @@ Mise en œuvre des listes ([#26](https://github.com/dascritch/machincast/issues/
 
 Mise en œuvre de la recherche globale ([#27](https://github.com/dascritch/machincast/issues/27), [#105](https://github.com/dascritch/machincast/issues/105), `machincast.interface.search`) :
 
-- **Onglet** : « Recherche », qui se ferme, unique ; **Affichage → Rechercher…** ou Ctrl+F l'ouvre, ou y revient, le curseur dans le champ et son texte sélectionné (`SearchScreen.focus`).
+- **Onglets** ([#502](https://github.com/dascritch/machincast/issues/502)) : « Recherche », qui se ferme ; plusieurs s'ouvrent à la fois.
+	**Affichage → Rechercher…** ou Ctrl+F ouvre toujours un nouvel onglet, le curseur dans son champ, sauf sur une recherche encore vide, où le curseur va seulement (`MainWindow._open_search`).
+	Chaque onglet est titré de son texte, « Recherche : jingle », au fil de la frappe (`SearchScreen.title`).
+	Sa clé, `search:` suivi de son texte (`SearchScreen.key`), le rouvre tel quel : fermé, par Ctrl+Maj+T ou le menu des onglets fermés ; ouvert, au lancement suivant, avec ses résultats.
+	Une recherche retenue par une version d'avant, `search` ou `recherche`, se rouvre vide.
 - **Champs cherchés** : le nom interne et le nom public des événements, des séquences et des banques ; l'artiste et le titre des sonores, jamais leur emplacement.
 	Le texte est cherché dès 2 caractères (`MINIMUM`), n'importe où dans le champ, sans tenir compte des majuscules ni des accents (`translate()` et `lower()` en base, `lists.without_accents` pour le texte tapé) ; `%`, `_` et `\` sont cherchés tels quels.
 	En dessous, le compte dit « Tapez au moins 2 caractères. ».
