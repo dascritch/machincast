@@ -155,6 +155,30 @@ class PipeWireBench:
 				linked_list.add(str(names.get(info.get("input-node-id"))))
 		return linked_list
 
+	def summary(self) -> str:
+		"""Les nœuds et les liens du PipeWire, une ligne chacun : un échec dit ce qu'il y avait, au lieu d'un pw-dump
+		entier, coupé par pytest."""
+		lines = []
+		names = {}
+		for object_ in self.objects():
+			info = object_.get("info")
+			if (object_.get("type") == "PipeWire:Interface:Node") and (isinstance(info, dict)):
+				properties = info.get("props", {})
+				names[object_["id"]] = properties.get("node.name")
+				lines.append(
+					f"nœud {object_['id']} {properties.get('node.name')} ({properties.get('media.class')}),"
+					f" application {properties.get('application.name')}, cible {properties.get('target.object')},"
+					f" état {info.get('state')}"
+				)
+		for object_ in self.objects():
+			info = object_.get("info")
+			if (object_.get("type") == "PipeWire:Interface:Link") and (isinstance(info, dict)):
+				lines.append(
+					f"lien {names.get(info.get('output-node-id'))} → {names.get(info.get('input-node-id'))},"
+					f" état {info.get('state')}"
+				)
+		return "\n".join(lines)
+
 
 @pytest.fixture
 def context() -> SimpleNamespace:

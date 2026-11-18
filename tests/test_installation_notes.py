@@ -2,7 +2,8 @@
 
 Le document se crée par python -m machincast.notes create, comme install.sh le lance, dans un processus à part, avec
 la langue demandée ; xdg-user-dir, xdg-mime, gio et les éditeurs du poste sont des scripts du répertoire du scénario,
-en tête du PATH, qui notent leurs arguments (https://github.com/dascritch/machincast/issues/491). Les applications du
+en tête du PATH, qui notent leurs arguments (https://github.com/dascritch/machincast/issues/491). Les éditeurs ne se
+cherchent que là (installation_notes.EDITOR_PATH) : ceux installés sur le poste des tests n'y sont pour rien. Les applications du
 bureau sont celles de XDG_DATA_HOME et XDG_DATA_DIRS, dans le répertoire du scénario. Les étapes de la fenêtre et de
 ses menus sont dans tests/interface_steps.py.
 """
@@ -20,6 +21,7 @@ from PySide6.QtWidgets import QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.configuration import PROJECT_DIRECTORY, Crossfades
+from machincast.interface import installation_notes
 from machincast.interface.installation_notes import EDITORS
 from machincast.interface.preferences import INTERFACE, PreferencesWindow, Settings
 from tests.database_fixtures import configuration_test
@@ -60,9 +62,9 @@ def station(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Station:
 	monkeypatch.setenv("HOME", str(home))
 	monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "applications-du-compte"))
 	monkeypatch.setenv("XDG_DATA_DIRS", str(tmp_path / "applications-du-systeme"))
-	for editor in EDITORS:
-		for directory in os.environ["PATH"].split(":"):
-			assert not (Path(directory) / editor).exists(), f"{editor} installé sur le poste des tests"
+	# Les éditeurs ne se cherchent que parmi les commandes du scénario : ceux du poste des tests, kate sous KDE par
+	# exemple, n'y sont jamais (https://github.com/dascritch/machincast/issues/508).
+	monkeypatch.setattr(installation_notes, "EDITOR_PATH", str(commands))
 	station = Station(tmp_path, commands, home)
 	# Jamais les associations ni les applications du poste des tests : sans étape, le bureau n'en a aucune.
 	imitate(station, "xdg-mime", "exit 4")

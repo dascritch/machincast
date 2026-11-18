@@ -21,6 +21,9 @@ from machincast.interface import dialogs
 
 EDITORS = ("kate", "kwrite", "gnome-text-editor", "gedit", "mousepad", "xed", "pluma", "featherpad")
 """Les éditeurs de texte essayés, dans l'ordre : ceux de KDE, de GNOME, puis de Xfce, Cinnamon, MATE et LXQt."""
+EDITOR_PATH: str | None = None
+"""Les répertoires où chercher les éditeurs : le PATH par défaut ; ceux du scénario dans les tests, jamais les éditeurs
+installés sur le poste des tests (https://github.com/dascritch/machincast/issues/508)."""
 TEXT_TYPE = "text/plain"
 """Le type dont l'application associée ouvre le document, faute d'éditeur connu : celle des .md n'édite pas toujours."""
 XDG_DELAY = 5
@@ -57,7 +60,7 @@ def open_notes(configuration: Path | None) -> str:
 def edit(path: Path) -> bool:
 	"""Ouvre le fichier dans un éditeur de texte, détaché : vrai si l'un d'eux a été lancé."""
 	for editor in EDITORS:
-		program = shutil.which(editor)
+		program = shutil.which(editor, path=EDITOR_PATH)
 		if program is not None:
 			started, _pid = QProcess.startDetached(program, [str(path)])
 			if started:
