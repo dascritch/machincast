@@ -46,7 +46,7 @@ from psycopg.rows import TupleRow
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
-from machincast import access, crash, personal, service  # noqa: E402
+from machincast import access, crash, personal, power_save, service  # noqa: E402
 from machincast import audio as audio_outputs  # noqa: E402
 from machincast import log as log_directory  # noqa: E402
 from machincast import shortcut as write_shortcut  # noqa: E402
@@ -802,6 +802,16 @@ def _system_conf(_configuration: Configuration) -> int:
 	return 0
 
 
+def _power_save(_configuration: Configuration) -> int:
+	sys.stdout.write(power_save.modprobe())
+	return 0
+
+
+def _usb_power(_configuration: Configuration) -> int:
+	sys.stdout.write(power_save.usb_rule())
+	return 0
+
+
 def _shortcut(configuration: Configuration) -> int:
 	sys.stdout.write(shortcut(icon=configuration.interface.icon))
 	return 0
@@ -915,11 +925,13 @@ ACTIONS = {
 	"personal-sounds": _personal_sounds,
 	"on-air": _on_air,
 	"pipewire-unit": _pipewire_unit,
+	"power-save": _power_save,
 	"rule": _rule,
 	"shortcut": _shortcut,
 	"system-conf": _system_conf,
 	"tmpfiles": _tmpfiles,
 	"unit": _unit,
+	"usb-power": _usb_power,
 	"wireplumber-desktop": _wireplumber_desktop,
 	"wireplumber-service": _wireplumber_service,
 	"wireplumber-unit": _wireplumber_unit,

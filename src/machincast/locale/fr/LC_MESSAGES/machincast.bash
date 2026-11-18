@@ -165,6 +165,7 @@ MACHINCAST_MESSAGES+=(
 	[$'the broadcast is launched by hand again, with Machin player; the database purge, with Machin purge']=$'la diffusion se lance de nouveau à la main, par Machin player ; la purge de la base, par Machin purge'
 	[$'the logs stay in %s: sudo rm -r %s removes them']=$'les logs restent dans %s : sudo rm -r %s les efface'
 	[$'the session of %s no longer needs to stay active at startup: sudo loginctl disable-linger %s']=$'la session de %s n\'a plus besoin de rester active au démarrage : sudo loginctl disable-linger %s'
+	[$'the sound cards go back to power saving at the next restart']=$'les cartes son retrouvent leur économie d\'énergie au prochain redémarrage'
 	[$'the sound files stay in %s']=$'les sonores restent dans %s'
 	[$'the tasks: journalctl --unit=%s --unit=%s; the hour of the daily task: schedule.daily']=$'les tâches : journalctl --unit=%s --unit=%s ; l\'heure de la tâche quotidienne : schedule.daily'
 	[$'they go on: the database may change under them, relaunch them after the installation']=$'ils continuent : la base peut changer sous eux, les relancer après l\'installation'

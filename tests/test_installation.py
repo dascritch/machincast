@@ -19,7 +19,7 @@ from PySide6.QtGui import QColor, QIcon, QImage
 from PySide6.QtWidgets import QApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import access, installation, service
+from machincast import access, installation, power_save, service
 from machincast import log as log_directory
 from machincast.audio import Plugin
 from machincast.configuration import PROJECT_DIRECTORY, AudioOutput
@@ -593,6 +593,8 @@ def sh_service_names() -> None:
 		f'UNITE_WIREPLUMBER="{WIREPLUMBER_UNIT}"',
 		f'DOSSIER_WIREPLUMBER_SERVICE="{installation.SERVICE_WIREPLUMBER.parent}"',
 		f'/{installation.WIREPLUMBER_FRAGMENT}"',
+		f'FICHIER_MODPROBE="{power_save.MODPROBE}"',
+		f'FICHIER_USB="{power_save.USB_RULE}"',
 	):
 		assert expected in install, expected
 
@@ -604,6 +606,7 @@ def sh_service_files(datatable: list[list[str]]) -> None:
 	installing = (
 		_function(install, "installer_service")
 		+ _function(install, "proteger_le_poste")
+		+ _function(install, "garder_les_cartes_eveillees")
 		+ _function(install, "installer_minuteurs")
 	)
 	checking = _function(install, "fichiers_du_service_perimes")
