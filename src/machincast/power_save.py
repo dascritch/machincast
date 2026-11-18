@@ -101,6 +101,7 @@ def enable(root: Path) -> list[str]:
 def disable(root: Path) -> list[str]:
 	"""Retire les deux réglages : l'économie d'énergie revient au prochain redémarrage."""
 	for path, _text in SETTINGS:
+		# fichier de MachinCast : un réglage qu'il a lui-même écrit, dans /etc (SETTINGS).
 		_in(root, path).unlink(missing_ok=True)
 	_udevadm("control", "--reload")
 	return [_("settings removed: the power saving of the sound cards comes back at the next restart")]
