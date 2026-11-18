@@ -76,6 +76,30 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **Scénarios qui le surveillent** : `tests/features/locked_output.feature`, sur un PipeWire et un WirePlumber à part, à chaque passage des tests ; ignorés si `pipewire` et `wireplumber` ne sont pas installés.
 
+## L'antenne claque, ou perd son début, quand une carte son se réveille
+
+**Symptôme** : après un moment sans son sur une carte, un claquement (« pop ») passe à l'antenne, ou le début du sonore suivant manque, le temps que la carte se réveille. Une carte son USB peut aussi disparaître un instant, puis revenir.
+
+**Cause** ([#499](https://github.com/dascritch/machincast/issues/499)) : Ubuntu met les cartes son en **économie d'énergie** quand elles ne jouent rien. Le module `snd_hda_intel`, celui des cartes intégrées à la carte mère, éteint leur codec après quelques secondes de silence (`power_save`) : la documentation du noyau prévient qu'on peut entendre un claquement au changement d'état, et que le réveil prend du temps ([Notes on Power-Saving Mode](https://docs.kernel.org/sound/designs/powersave.html)). Le noyau suspend de même les périphériques USB inactifs (« autosuspend ») : une carte son USB suspendue se reconnecte à son réveil. Sur un poste d'antenne, un blanc, un événement vide ou un arrêt de la diffusion suffisent à endormir une carte.
+
+**Ce que fait MachinCast** : avec le service de diffusion, `install.sh --service` installe deux réglages, et les applique aussitôt :
+
+- `/etc/modprobe.d/machincast.conf`, `options snd_hda_intel power_save=0` : les cartes intégrées ne s'éteignent plus ;
+- `/etc/udev/rules.d/50-machincast-usb.rules` : les périphériques USB, cartes son USB comprises, ne sont plus suspendus. Le poste étant dédié à l'antenne, la règle vaut pour tout l'USB.
+
+`./install.sh --remove-service` les retire ; l'économie d'énergie revient au prochain redémarrage. Sur un poste d'essai, sans service, **Maintenance → Cartes son toujours éveillées** les règle depuis l'interface, avec le mot de passe d'un administrateur.
+
+**Ce que cela coûte en électricité** : peu. D'après les mesures publiées, le codec d'une carte intégrée consomme de l'ordre de 0,2 à 0,3 W, que son économie d'énergie récupère ([ThinkWiki, audio codec power saving](https://www.thinkwiki.org/wiki/How_to_enable_audio_codec_power_saving)). Un périphérique USB suspendu ne tire presque plus rien ; éveillé, un périphérique alimenté par l'USB 2 tire 0,5 W par unité de charge (100 mA sous 5 V), 2,5 W au plus, mais bien moins quand il ne fait rien : la différence dépend de ce qui est branché, et une carte son USB que la diffusion fait jouer ne s'endort de toute façon pas. Pour un poste d'antenne allumé jour et nuit, compter au plus quelques watts, soit quelques dizaines de kWh par an : 1 W en continu fait 8,8 kWh par an. C'est peu devant la consommation du poste lui-même, de plusieurs dizaines de watts. Sur un portable, l'autonomie sur batterie baisse un peu : un poste d'antenne reste branché sur le secteur.
+
+**À vérifier** :
+
+- `cat /sys/module/snd_hda_intel/parameters/power_save` donne `0` ; sans le fichier, le module n'est pas chargé, et le poste n'a pas de carte intégrée en service.
+- `cat /sys/bus/usb/devices/*/power/control` donne `on` partout ; `auto` sur une ligne : la règle n'est pas encore appliquée, `sudo udevadm trigger --subsystem-match=usb --action=change` le fait.
+- `ls /etc/modprobe.d/machincast.conf /etc/udev/rules.d/50-machincast-usb.rules` : les deux réglages sont en place.
+- Un outil d'économie d'énergie, comme TLP ou powertop (`powertop --auto-tune`), peut remettre l'économie d'énergie après MachinCast : ne pas l'installer sur un poste d'antenne, ou en exclure le son et l'USB.
+
+**Scénarios qui le surveillent** : `tests/features/power_save.feature`, dans une racine du système à part, à chaque passage des tests.
+
 ## Scénarios à lancer avant une version
 
 Certains scénarios ne tournent ni avec `pytest`, ni avec `bin/Machin dev-test` : ils sont lents, ou ont besoin d'un serveur à part. Ils sont marqués `@release`, et se lancent avant chaque version ([#208](https://github.com/dascritch/machincast/issues/208)), et après toute mise à jour de GStreamer ou de libsoup :
