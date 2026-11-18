@@ -1,7 +1,8 @@
 """Scénarios du copier-coller des éléments d'un événement ou d'une séquence
 (https://github.com/dascritch/machincast/issues/129).
 
-Le presse-papiers est celui de l'application, vidé avant et après chaque scénario : sous la plateforme offscreen de
+La liste de la fiche est celle de ses éléments, ou celle des sonores d'une banque. Le presse-papiers est celui de
+l'application, vidé avant et après chaque scénario : sous la plateforme offscreen de
 Qt, des données laissées au presse-papiers font planter Python à sa sortie, après les tests. Les fiches s'ouvrent par les étapes de
 tests/interface_steps.py ; celle du scénario est l'onglet ouvert.
 """
@@ -9,14 +10,18 @@ tests/interface_steps.py ; celle du scénario est l'onglet ouvert.
 from collections.abc import Iterator
 
 import pytest
-from PySide6.QtCore import QMimeData, QPoint
+from PySide6.QtCore import QMimeData, QPoint, Qt
 from PySide6.QtGui import QAction, QGuiApplication
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem
 from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
+from machincast.interface.bank_card import BankCard
 from machincast.interface.card import Card
+from machincast.interface.columns import Columns
 from machincast.interface.items import ItemList
 from tests.interface_steps import NAME, Context, window
+from tests.test_bank_card import sounds_in_database
 from tests.test_event_card import items_in_database
 
 scenarios("copy_paste.feature")
@@ -24,6 +29,7 @@ scenarios("copy_paste.feature")
 then(parsers.re(r"les éléments de l'événement « (?P<name>[^»]+) » sont, dans l'ordre, (?P<items>.+)"))(
 	items_in_database
 )
+then(parsers.re(r"les sonores de la banque « (?P<name>[^»]+) » sont, dans l'ordre, (?P<titles>.+)"))(sounds_in_database)
 
 
 @pytest.fixture(autouse=True)
@@ -47,7 +53,34 @@ def items(interface: Context) -> ItemList:
 
 
 def list_(interface: Context) -> QTreeWidget:
+	opened = card(interface)
+	if isinstance(opened, BankCard):
+		return opened.ui.sounds
 	return items(interface).list_
+
+
+def lines(interface: Context) -> list[QTreeWidgetItem]:
+	view = list_(interface)
+	found = []
+	for row in range(view.topLevelItemCount()):
+		line = view.topLevelItem(row)
+		assert line is not None
+		found.append(line)
+	return found
+
+
+def name(interface: Context, line: QTreeWidgetItem) -> str:
+	"""Le nom d'un sonore d'une banque est dans sa première colonne ; celui d'un élément, après son genre."""
+	if isinstance(card(interface), BankCard):
+		return line.text(0)
+	return line.text(1)
+
+
+def columns(interface: Context) -> Columns:
+	opened = card(interface)
+	if isinstance(opened, BankCard):
+		return opened.columns
+	return items(interface).columns
 
 
 @given("un presse-papiers vide")
@@ -59,24 +92,41 @@ def empty_clipboard() -> None:
 def choose(interface: Context, first: int, last: int) -> None:
 	view = list_(interface)
 	view.clearSelection()
-	lines = items(interface).lines()
-	view.setCurrentItem(lines[last - 1])
-	for line in lines[first - 1 : last]:
+	found = lines(interface)
+	view.setCurrentItem(found[last - 1])
+	for line in found[first - 1 : last]:
 		line.setSelected(True)
 
 
 @when("je copie les éléments choisis")
 def copy(interface: Context) -> None:
+	opened = card(interface)
+	if isinstance(opened, BankCard):
+		opened.copy_sounds()
+		return
 	items(interface).copy()
 
 
 @when("je colle les éléments")
 def paste(interface: Context) -> None:
+	opened = card(interface)
+	if isinstance(opened, BankCard):
+		opened.paste_sounds()
+		return
 	items(interface).paste()
 
 
+@when(parsers.re(r"j'appuie sur Ctrl\+(?P<key>[CV]) dans la liste"))
+def keys(interface: Context, qtbot: QtBot, key: str) -> None:
+	view = list_(interface)
+	view.window().activateWindow()
+	view.setFocus()
+	qtbot.waitUntil(view.hasFocus, timeout=5000)
+	qtbot.keyClick(view, key.lower(), Qt.KeyboardModifier.ControlModifier)
+
+
 def _menu_at(interface: Context, position: QPoint) -> dict[str, QAction]:
-	menu = items(interface).columns.table_menu(position)
+	menu = columns(interface).table_menu(position)
 	found = {}
 	for action in menu.actions():
 		found[action.text()] = action
@@ -84,7 +134,7 @@ def _menu_at(interface: Context, position: QPoint) -> dict[str, QAction]:
 
 
 def _position(interface: Context, number: int) -> QPoint:
-	line: QTreeWidgetItem = items(interface).lines()[number - 1]
+	line = lines(interface)[number - 1]
 	return list_(interface).visualItemRect(line).center()
 
 
@@ -96,17 +146,21 @@ def right_click(interface: Context, entry: str, number: int) -> None:
 @then(parsers.re(r"la liste de la fiche montre les éléments (?P<names>«.+)"))
 def shown(interface: Context, names: str) -> None:
 	shown_list = []
-	for line in items(interface).lines():
-		shown_list.append(line.text(1))
+	for line in lines(interface):
+		shown_list.append(name(interface, line))
 	assert shown_list == NAME.findall(names)
 
 
-@then("les éléments collés sont choisis")
-def pasted_chosen(interface: Context) -> None:
+@then(parsers.re(r"les lignes choisies de la liste sont (?P<names>«.+)"))
+def chosen(interface: Context, names: str) -> None:
 	chosen_list = []
-	for line in items(interface).chosen():
-		chosen_list.append(line.text(1))
-	assert chosen_list == ["Passage pub", "Les Gaufres – Spot"]
+	for line in lines(interface):
+		if line.isSelected():
+			chosen_list.append(name(interface, line))
+	assert chosen_list == NAME.findall(names)
+	current = list_(interface).currentItem()
+	assert current is not None
+	assert name(interface, current) == chosen_list[-1]
 
 
 @then(parsers.parse("la fiche dit « {text} »"))

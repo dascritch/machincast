@@ -1475,6 +1475,16 @@ msgstr ""
 "Un sonore qui est déjà dans la banque n'y est pas ajouté une seconde fois."
 
 #: machincast/interface/bank_card.py
+#, python-brace-format
+msgid "Set aside, a bank only contains sounds: {list}."
+msgstr "Laissé de côté, une banque ne contient que des sonores : {list}."
+
+#: machincast/interface/bank_card.py
+#, python-brace-format
+msgid "Already in the bank, not pasted a second time: {list}."
+msgstr "Déjà dans la banque, pas collé une seconde fois : {list}."
+
+#: machincast/interface/bank_card.py
 msgid " A folder is dropped on the indexed directories."
 msgstr " Un dossier se dépose sur les répertoires indexés."
 
@@ -2081,6 +2091,14 @@ msgstr "Ajouter"
 #, python-brace-format
 msgid "Add {plural}"
 msgstr "Ajouter des {plural}"
+
+#: machincast/interface/clipboard.py
+msgid "Copy"
+msgstr "Copier"
+
+#: machincast/interface/clipboard.py
+msgid "Paste"
+msgstr "Coller"
 
 #: machincast/interface/columns.py
 msgid "Reset the columns"
@@ -4038,14 +4056,6 @@ msgstr "événements de secours illisibles : {error}"
 #, python-brace-format
 msgid "unreadable stream of feed {feed}: {error}"
 msgstr "stream du feed {feed} illisible : {error}"
-
-#: machincast/interface/items.py
-msgid "Copy"
-msgstr "Copier"
-
-#: machincast/interface/items.py
-msgid "Paste"
-msgstr "Coller"
 
 #: machincast/interface/items.py
 #, python-brace-format
