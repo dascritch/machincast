@@ -133,6 +133,28 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et je lance la pré-écoute
 		Alors la pré-écoute est bientôt « À l'arrêt », à « 0:00 / 0:01 »
 
+	Scénario: Un lecteur bloqué à son lancement est relancé, et le fichier joue jusqu'au bout
+		Étant donné un délai de garde de la pré-écoute d'une demi-seconde
+		Et le premier lecteur de la pré-écoute bloqué à son lancement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je clique sur « Pré-écoute… »
+		Et je lance la pré-écoute
+		Alors la pré-écoute est bientôt « À l'arrêt », à « 0:00 / 0:01 »
+		Et la pré-écoute ne signale rien
+		Et le journal de la pré-écoute note « pré-écoute : aucun son 0,5 s après son lancement, lecture relancée (1/2) »
+
+	Scénario: Un lecteur toujours bloqué est signalé, après deux relances
+		Étant donné un délai de garde de la pré-écoute d'une demi-seconde
+		Et tous les lecteurs de la pré-écoute bloqués à leur lancement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je clique sur « Pré-écoute… »
+		Et je lance la pré-écoute
+		Alors la pré-écoute signale bientôt « Lecture impossible : aucun son 0,5 s après son lancement, après 2 relances »
+		Et la pré-écoute est « À l'arrêt »
+		Et le journal de la pré-écoute note « pré-écoute : aucun son 0,5 s après son lancement, lecture relancée (2/2) »
+
 	Scénario: Fermer la fenêtre arrête la pré-écoute
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche du sonore « Café à minuit »

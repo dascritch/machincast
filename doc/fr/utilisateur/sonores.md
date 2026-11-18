@@ -129,6 +129,8 @@ Il n'y a qu'une fenêtre de pré-écoute : pré-écouter un autre sonore le met 
 
 **Casque qui ne répond plus.** Au retour d'un écran verrouillé ou mis en veille, le son du poste peut s'interrompre un moment : la pré-écoute s'arrête alors, et dit pourquoi (« Lecture impossible : … »). L'interface reste utilisable ; relancer la lecture une fois le son revenu ([#259](https://github.com/dascritch/machincast/issues/259)). L'économiseur d'écran et le verrouillage de la session peuvent pourtant rester actifs : seule une pré-écoute en cours est à relancer, et la diffusion n'est pas touchée ([#346](https://github.com/dascritch/machincast/issues/346), [Préparer le poste d'antenne](../../../INSTALL.fr.md#préparer-le-poste-dantenne)).
 
+**Lecture qui ne démarre pas** ([#504](https://github.com/dascritch/machincast/issues/504)) : il arrive, rarement, que la lecture d'un fichier reste à `0:00` sans démarrer. Au bout de 2 secondes, la pré-écoute la relance d'elle-même, deux fois au plus, sans rien demander. Si elle ne démarre toujours pas, elle s'arrête et dit pourquoi (« Lecture impossible : aucun son 2 s après son lancement, après 2 relances »). Chaque relance est notée au journal de l'interface.
+
 ### Frise d'un fichier
 
 Un fichier a une **frise** ([#224](https://github.com/dascritch/machincast/issues/224)), qui s'étend sur toute sa durée. Un stream, ou l'antenne, n'en a pas.
