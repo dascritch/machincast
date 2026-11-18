@@ -1174,6 +1174,9 @@ Mise en œuvre de la recherche globale ([#27](https://github.com/dascritch/machi
 - **Table des résultats** : colonnes Type, Nom interne, Nom public, Statut (l'état d'un sonore) ; jusqu'à 500 lignes (`LIMIT`).
 	Le compte dit « aucun résultat », « 1 résultat », « N résultats », ou « N premiers résultats sur T » quand la limite coupe la table.
 	Un double-clic ou Entrée sur une ligne ouvre la fiche de l'élément, sans toucher au texte tapé.
+- **Copier** ([#129](https://github.com/dascritch/machincast/issues/129), `SearchScreen.copy`, `machincast.interface.clipboard`) : plusieurs résultats se choisissent (Ctrl, Maj) ; Ctrl+C, ou « Copier » au clic droit, les copie, quel que soit leur genre, dans le presse-papiers des listes d'éléments.
+	La table ne propose pas « Coller ».
+	Une banque n'en colle que les sonores, un événement ou une séquence ses sonores, banques et séquences (pas de séquence dans une séquence) ; un événement copié est laissé de côté partout (« Laissé de côté, un événement n'est pas un élément d'une liste de lecture : … »), et la fiche dit ce qu'elle laisse.
 - **Lecture** : en base, avec le rôle de l'interface, à chaque frappe, à l'ouverture de l'onglet et par « Rafraîchir les onglets » (F5) ; jamais en boucle.
 	Une erreur de base s'affiche à la place du compte.
 - Vue calendrier (jour, semaine) montrant à la fois l'airplay (ce qui a effectivement été diffusé) et les événements prévus.
@@ -1340,7 +1343,10 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 	Le tri par colonne (`SoundLine`, la durée par secondes, les autres colonnes par leur texte sans accents) n'existe qu'en mode aléatoire, où l'ordre ne compte pas ; il lit aussi toutes les pages.
 	Chaque ligne porte son rang dans la banque (rôle `ORDER`), renuméroté à l'entrée en mode aléatoire ; le passage en mode séquentiel désactive le tri et, si une colonne était triée, remet les lignes dans ce rang (`_restore_order`) : un ordre trié n'est jamais enregistré.
 - Sélection multiple des sonores liés ([#114](https://github.com/dascritch/machincast/issues/114)) : une colonne État ; le clic droit sur plusieurs sonores les active ou les désactive, à l'enregistrement de la fiche (« Annuler » l'oublie ; un sonore en aperçu reste en aperçu) ; « ➖ Retirer le sonore » les retire tous, avec un seul avertissement pour ceux des répertoires de la banque ; « Monter » et « Descendre » ne servent qu'à un sonore seul.
-- Copier-coller des sonores ([#129](https://github.com/dascritch/machincast/issues/129), `BankCard.copy_sounds`, `paste_sounds`, `machincast.interface.clipboard`) : le même presse-papiers que les éléments d'un événement ou d'une séquence, dans les deux sens. Les sonores collés sont relus en base, et ajoutés une fois chacun : après la ligne courante en mode séquentiel sans filtre, en fin de liste ou à leur place dans le tri sinon. Une banque ou une séquence copiée est laissée de côté (« Laissé de côté, une banque ne contient que des sonores : … »), comme un stream pas encore créé ; un sonore déjà dans la banque n'est pas collé (« Déjà dans la banque, pas collé une seconde fois : … »). Un fichier pas encore en base est collé comme un fichier déposé, au crible du service.
+- Copier-coller des sonores ([#129](https://github.com/dascritch/machincast/issues/129), `BankCard.copy_sounds`, `paste_sounds`, `machincast.interface.clipboard`) : le même presse-papiers que les éléments d'un événement ou d'une séquence, dans les deux sens.
+	Les sonores collés sont relus en base, et ajoutés une fois chacun : après la ligne courante en mode séquentiel sans filtre, en fin de liste ou à leur place dans le tri sinon.
+	Une banque ou une séquence copiée est laissée de côté (« Laissé de côté, une banque ne contient que des sonores : … »), comme un stream pas encore créé ; un sonore déjà dans la banque n'est pas collé (« Déjà dans la banque, pas collé une seconde fois : … »).
+	Un fichier pas encore en base est collé comme un fichier déposé, au crible du service.
 
 Mise en œuvre ([#31](https://github.com/dascritch/machincast/issues/31), `machincast.interface.bank_card`, `machincast.interface.choice`, `machincast.interface.dialogs`) :
 

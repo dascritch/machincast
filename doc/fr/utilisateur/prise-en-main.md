@@ -193,6 +193,8 @@ La barre d'état le confirme, « Onglets rafraîchis. », et nomme les fiches la
 
 Dès 2 caractères, sans tenir compte des majuscules ni des accents, le texte tapé est cherché dans le nom interne et le nom public des **événements**, des **séquences** et des **banques**, et dans l'artiste et le titre des **sonores**. La table suit la frappe : jusqu'à 500 résultats, avec leur type, nom interne, nom public et statut (l'état d'un sonore), dans l'ordre événements, séquences, banques, puis sonores. Un double-clic ou <kbd>Entrée</kbd> sur une ligne ouvre sa fiche. Le compte dit combien il y a de résultats, ou « 500 premiers résultats sur … » quand il y en a davantage : préciser alors le texte.
 
+**Copier des résultats** ([#129](https://github.com/dascritch/machincast/issues/129)) : plusieurs résultats se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd> ; <kbd>Ctrl</kbd>+<kbd>C</kbd>, ou **Copier** au clic droit, les copie, puis <kbd>Ctrl</kbd>+<kbd>V</kbd> les colle dans une [banque](sonores.md#fiche-dune-banque), un [événement](grille.md#fiche-dun-événement) ou une [séquence](grille.md#fiche-dune-séquence). Chacune ne prend que ce qu'elle peut contenir parmi les résultats choisis : une banque, seulement les sonores ; un événement, les sonores, banques et séquences. Ce qui est laissé de côté, un événement par exemple, est dit en haut de la fiche.
+
 ## Préférences
 
 Le menu **Fichier** ouvre deux fenêtres ([#389](https://github.com/dascritch/machincast/issues/389)) :

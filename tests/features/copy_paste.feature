@@ -16,6 +16,9 @@ Fonctionnalité: Copier et coller les éléments ou les sonores d'une liste, d'u
 	collée dans une banque est laissée de côté, un sonore déjà dans la banque n'est pas collé une seconde fois, et la
 	fiche le dit. En mode séquentiel, les sonores collés vont après la ligne courante ; en aléatoire, en fin de liste.
 
+	Les résultats de la recherche (Ctrl+F) se copient aussi, quel que soit leur genre : chaque liste ne colle que ce
+	qu'elle peut contenir, parmi les résultats choisis, et dit ce qu'elle laisse de côté.
+
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-11-18 10:30:00 »
@@ -175,3 +178,39 @@ Fonctionnalité: Copier et coller les éléments ou les sonores d'une liste, d'u
 			"""
 			Les Gaufres – Spot	0:30	actif	/srv/pubs/spot.flac
 			"""
+
+	# ─── Depuis la recherche ───────────────────────────────────
+
+	Scénario: Des résultats mêlés de la recherche ne collent dans une banque que les sonores choisis
+		Étant donné les sonores :
+			| artist | title       | type | state  | duration | location               |
+			|        | Midi pile   | file | active | 3        | /srv/habillage/pile.flac |
+			|        | Midi tapant | file | active | 3        | /srv/habillage/tapant.flac |
+		Et la séquence « Avant midi », sans nom public, avec le sonore « Jingle début »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'appuie sur « Ctrl+F »
+		Et je tape « midi » dans le champ de recherche
+		Alors les résultats nommés sont « Midi », « Avant midi », « Midi pile », « Midi tapant »
+		Quand je choisis les résultats n° 1 à 3 de la recherche
+		Et j'appuie sur « Ctrl+C »
+		Et j'ouvre la fiche de la banque « Publicité »
+		Et j'appuie sur Ctrl+V dans la liste
+		Alors la liste de la fiche montre les éléments « Les Gaufres – Spot », « Midi pile »
+		Et la fiche dit « Laissé de côté, une banque ne contient que des sonores : Midi, Avant midi. »
+		Quand j'enregistre la fiche
+		Alors les sonores de la banque « Publicité » sont, dans l'ordre, « Spot », « Midi pile »
+
+	Scénario: Des résultats mêlés de la recherche se collent dans un événement, sauf les événements
+		Étant donné les sonores :
+			| artist | title     | type | state  | duration | location               |
+			|        | Midi pile | file | active | 3        | /srv/habillage/pile.flac |
+		Et la séquence « Avant midi », sans nom public, avec le sonore « Jingle début »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'appuie sur « Ctrl+F »
+		Et je tape « midi » dans le champ de recherche
+		Et je choisis les résultats n° 1 à 3 de la recherche
+		Et je choisis « Copier » au clic droit dans la recherche
+		Et j'ouvre la fiche de l'événement « Midi »
+		Et je colle les éléments
+		Alors la liste de la fiche montre les éléments « Jingle fin », « Avant midi », « Midi pile »
+		Et la fiche dit « Laissé de côté, un événement n'est pas un élément d'une liste de lecture : Midi. »

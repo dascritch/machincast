@@ -10,7 +10,7 @@ tests/interface_steps.py ; celle du scénario est l'onglet ouvert.
 from collections.abc import Iterator
 
 import pytest
-from PySide6.QtCore import QMimeData, QPoint, Qt
+from PySide6.QtCore import QItemSelection, QItemSelectionModel, QMimeData, QPoint, Qt
 from PySide6.QtGui import QAction, QGuiApplication
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -23,12 +23,15 @@ from machincast.interface.items import ItemList
 from tests.interface_steps import NAME, Context, window
 from tests.test_bank_card import sounds_in_database
 from tests.test_event_card import items_in_database
+from tests.test_search import result_names, screen, type_
 
 scenarios("copy_paste.feature")
 
 then(parsers.re(r"les éléments de l'événement « (?P<name>[^»]+) » sont, dans l'ordre, (?P<items>.+)"))(
 	items_in_database
 )
+when(parsers.parse("je tape « {text} » dans le champ de recherche"))(type_)
+then(parsers.re(r"les résultats nommés sont (?P<names>aucun|«.+)"))(result_names)
 then(parsers.re(r"les sonores de la banque « (?P<name>[^»]+) » sont, dans l'ordre, (?P<titles>.+)"))(sounds_in_database)
 
 
@@ -119,10 +122,34 @@ def paste(interface: Context) -> None:
 @when(parsers.re(r"j'appuie sur Ctrl\+(?P<key>[CV]) dans la liste"))
 def keys(interface: Context, qtbot: QtBot, key: str) -> None:
 	view = list_(interface)
-	view.window().activateWindow()
+	with qtbot.waitActive(window(interface)):
+		window(interface).activateWindow()
 	view.setFocus()
 	qtbot.waitUntil(view.hasFocus, timeout=5000)
 	qtbot.keyClick(view, key.lower(), Qt.KeyboardModifier.ControlModifier)
+
+
+@when(parsers.parse("je choisis les résultats n° {first:d} à {last:d} de la recherche"))
+def choose_results(interface: Context, qtbot: QtBot, first: int, last: int) -> None:
+	"""Comme d'un clic, puis Maj+clic : la table a le focus."""
+	table = screen(interface).table
+	model = table.model()
+	table.setCurrentIndex(model.index(first - 1, 0))
+	selection = QItemSelection(model.index(first - 1, 0), model.index(last - 1, model.columnCount() - 1))
+	table.selectionModel().select(selection, QItemSelectionModel.SelectionFlag.ClearAndSelect)
+	table.setFocus()
+	qtbot.waitUntil(table.hasFocus, timeout=5000)
+
+
+@when(parsers.parse("je choisis « {entry} » au clic droit dans la recherche"))
+def right_click_results(interface: Context, entry: str) -> None:
+	found = screen(interface).columns.table_menu(QPoint(-1, -1))
+	action_list = []
+	for action in found.actions():
+		if action.text() == entry:
+			action_list.append(action)
+	(chosen_action,) = action_list
+	chosen_action.trigger()
 
 
 def _menu_at(interface: Context, position: QPoint) -> dict[str, QAction]:
