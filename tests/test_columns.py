@@ -24,6 +24,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface import columns as column_module
+from machincast.interface import items
 from machincast.interface.columns import EXPORT, REINSTATE, Columns
 from machincast.interface.search import SearchScreen
 from tests.interface_steps import NAME, Context, choose_in_menu, tab, window
@@ -398,8 +399,13 @@ def abandon(interface: Context, tab_: str) -> None:
 	_export(interface, tab_, None)
 
 
-@then("le clic droit hors des lignes de chaque tableau de l'interface ne propose que « Exporter ce tableau… »")
+@then(
+	"le clic droit hors des lignes de chaque tableau de l'interface finit par « Exporter ce tableau… », après « Copier »"
+	" et « Coller » dans les listes d'éléments"
+)
 def export_everywhere(interface: Context) -> None:
+	"""Les listes d'éléments d'un événement et d'une séquence proposent aussi le copier-coller
+	(https://github.com/dascritch/machincast/issues/129)."""
 	views = []
 	for view in window(interface).findChildren(QAbstractItemView):
 		if (isinstance(view, (QTableView, QTreeView))) and (not _in_calendar(view)):
@@ -407,7 +413,10 @@ def export_everywhere(interface: Context) -> None:
 	for view in views:
 		(columns,) = view.findChildren(Columns)
 		assert view.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu, columns.name
-		assert _texts(columns.table_menu(QPoint(-1, -1))) == [EXPORT], columns.name
+		expected = [EXPORT]
+		if columns.name in items.VIEWS.values():
+			expected = [items.COPY, items.PASTE, "—", EXPORT]
+		assert _texts(columns.table_menu(QPoint(-1, -1))) == expected, columns.name
 
 
 @then(parsers.parse("le sélecteur de fichier a proposé « {name} »"))
