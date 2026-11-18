@@ -80,10 +80,17 @@ def short_retry(monkeypatch: pytest.MonkeyPatch) -> None:
 	monkeypatch.setattr(monitor, "RETRY", 500)
 
 
-@then(parsers.parse("le VU-mètre de l'antenne est bientôt indisponible, avec une erreur qui commence par « {start} »"))
+@then(
+	parsers.parse(
+		"la zone du VU-mètre de l'antenne est bientôt grisée, avec une infobulle qui commence par « {start} »"
+	)
+)
 def unavailable_soon(interface: Context, qtbot: QtBot, start: str) -> None:
-	caption = home(interface).ui.monitor_state
-	qtbot.waitUntil(lambda: caption.text().startswith(start), timeout=DELAY)
+	screen = home(interface)
+	qtbot.waitUntil(
+		lambda: (not screen.ui.on_air_column.isEnabled()) and (screen.vu_meter.toolTip().startswith(start)),
+		timeout=DELAY,
+	)
 
 
 @when("je lance la pré-écoute")

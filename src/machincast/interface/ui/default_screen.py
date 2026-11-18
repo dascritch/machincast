@@ -284,12 +284,6 @@ class Ui_DefaultScreen(object):
 
         self.on_air_layout.addWidget(self.dead_air_light)
 
-        self.monitor_state = QLabel(self.on_air_column)
-        self.monitor_state.setObjectName(u"monitor_state")
-        self.monitor_state.setWordWrap(True)
-
-        self.on_air_layout.addWidget(self.monitor_state)
-
         self.on_air_layout.setStretch(1, 1)
 
         self.sounds.addWidget(self.on_air_column)
@@ -573,7 +567,6 @@ class Ui_DefaultScreen(object):
         self.dead_air_light.setToolTip(QCoreApplication.translate("DefaultScreen", u"More than 5 seconds below -50 dBFS", None))
 #endif // QT_CONFIG(tooltip)
         self.dead_air_light.setText(QCoreApplication.translate("DefaultScreen", u"Dead air", None))
-        self.monitor_state.setText("")
         self.next_frame.setTitle(QCoreApplication.translate("DefaultScreen", u"Next sound", None))
 #if QT_CONFIG(tooltip)
         self.next_timeline_place.setToolTip(QCoreApplication.translate("DefaultScreen", u"Waveform, silences and fades of the next sound, as the broadcast will play it", None))

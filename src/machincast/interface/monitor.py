@@ -84,7 +84,12 @@ NO_SERVICE_ACCESS = _(
 
 
 class Unavailable(Exception):
-	"""Le port de monitoring ne peut pas s'ouvrir : le message dit pourquoi."""
+	"""Le port de monitoring ne peut pas s'ouvrir : le message dit pourquoi. action : la raison demande une action de
+	l'équipe ou de l'administrateur, que la barre d'état annonce (https://github.com/dascritch/machincast/issues/497)."""
+
+	def __init__(self, message: str, *, action: bool = False) -> None:
+		super().__init__(message)
+		self.action = action
 
 
 def port_name(audio: Audio) -> str:
@@ -107,9 +112,9 @@ def port_name(audio: Audio) -> str:
 def check(audio: Audio) -> None:
 	"""Lève Indisponible si l'antenne n'a pas de port de monitoring."""
 	if audio.on_air()[0] == "alsa":
-		raise Unavailable(WITHOUT_ALSA)
+		raise Unavailable(WITHOUT_ALSA, action=True)
 	if audio.to_fill_in_on_air():
-		raise Unavailable(WITHOUT_ON_AIR)
+		raise Unavailable(WITHOUT_ON_AIR, action=True)
 
 
 def monitor_source(audio: Audio) -> Gst.Element:
@@ -147,7 +152,7 @@ def _service_connection() -> socket.socket | None:
 	try:
 		return service.connect_pipewire()
 	except OSError as error:
-		raise Unavailable(NO_SERVICE_ACCESS.format(error=error.strerror)) from None
+		raise Unavailable(NO_SERVICE_ACCESS.format(error=error.strerror), action=True) from None
 
 
 class _ServiceBin(Gst.Bin):
@@ -205,6 +210,8 @@ class Monitor(QObject):
 		self.levels: list[float] = []
 		self.peaks: list[float] = []
 		self.unavailable: str | None = None
+		self.action = False
+		"""La raison de l'indisponibilité demande une action : l'onglet Antenne l'annonce dans la barre d'état."""
 		self.dead_air = False
 		self.clipping = False
 		self._sound_since: float | None = None
@@ -231,20 +238,21 @@ class Monitor(QObject):
 		reste fermé ; tant que le port précédent n'a pas libéré son périphérique, aucun autre ne s'ouvre."""
 		self.halt()
 		if self.paused:
-			self.unavailable = PAUSED
+			self.unavailable, self.action = PAUSED, False
 			self.changed.emit()
 			return
 		if not self._previous_released():
 			self._unavailable(NOT_RELEASED)
 			return
 		if self.audio is None:
+			self.action = False
 			self.unavailable = _("Unavailable: unknown on-air output.")
 			self.changed.emit()
 			return
 		try:
 			source = monitor_source(self.audio)
 		except Unavailable as error:
-			self._unavailable(str(error))
+			self._unavailable(str(error), action=error.action)
 			return
 		pipeline = Gst.Pipeline.new("moniteur-antenne")
 		conversion = Gst.ElementFactory.make("audioconvert", None)
@@ -261,7 +269,7 @@ class Monitor(QObject):
 		level.link(sink)
 		self._pipeline, self._level = pipeline, level
 		self._piloted = states.Pilot(pipeline)
-		self.unavailable = None
+		self.unavailable, self.action = None, False
 		self._sound_since = self._read_off_levels = self.clock()
 		# Ouvrir le port peut attendre le serveur audio : son pilote l'ouvre, et la relève dit s'il ne s'ouvre pas.
 		self._piloted.to(Gst.State.PLAYING)
@@ -297,9 +305,9 @@ class Monitor(QObject):
 		self.levels, self.peaks = [], []
 		self.dead_air, self.clipping = False, False
 
-	def _unavailable(self, message: str) -> None:
+	def _unavailable(self, message: str, *, action: bool = False) -> None:
 		self.halt()
-		self.unavailable = message
+		self.unavailable, self.action = message, action
 		if (self.audio is not None) and (message not in (WITHOUT_ALSA, WITHOUT_ON_AIR)):
 			self._retry.start(RETRY)
 		self.changed.emit()

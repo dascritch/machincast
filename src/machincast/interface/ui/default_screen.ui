@@ -369,7 +369,7 @@
        <property name="title">
         <string>On air</string>
        </property>
-       <layout class="QVBoxLayout" name="on_air_layout" stretch="0,1,0,0">
+       <layout class="QVBoxLayout" name="on_air_layout" stretch="0,1,0">
         <item>
          <widget class="QLabel" name="clipping_light">
           <property name="font">
@@ -419,16 +419,6 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="monitor_state">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
           </property>
          </widget>
         </item>
