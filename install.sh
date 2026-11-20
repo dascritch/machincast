@@ -109,7 +109,7 @@ DOSSIER_APPLICATIONS="${XDG_DATA_HOME:-${HOME}/.local/share}/applications"
 ICONE_DU_THEME="${XDG_DATA_HOME:-${HOME}/.local/share}/icons/hicolor/512x512/apps/machincast.png"
 CONFIGURATION="${RACINE}/machincast.toml"
 VENV="${RACINE}/.venv"
-ROLES=(player indexer interface)
+ROLES=(player indexer interface intranet)
 
 # Prérequis système : ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51).
 # Même liste que AGENTS.md, sans les outils de développement.
@@ -575,7 +575,7 @@ preparer_postgresql() {
 			DECLARE
 				role text;
 			BEGIN
-				FOREACH role IN ARRAY ARRAY['machincast_player', 'machincast_indexer', 'machincast_interface'] LOOP
+				FOREACH role IN ARRAY ARRAY['machincast_player', 'machincast_indexer', 'machincast_interface', 'machincast_intranet'] LOOP
 					IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = role) THEN
 						EXECUTE format('CREATE ROLE %I NOLOGIN', role);
 					END IF;
@@ -583,7 +583,7 @@ preparer_postgresql() {
 			END;
 			$$;
 		SQL
-		info 'roles machincast_player, machincast_indexer and machincast_interface present'
+		info 'roles machincast_player, machincast_indexer, machincast_interface and machincast_intranet present'
 	fi
 	# Une base de production neuve peut reprendre celle d'une installation précédente, avant le schéma, qui lui applique
 	# ensuite les migrations qui lui manquent (https://github.com/dascritch/machincast/issues/347).
@@ -596,10 +596,10 @@ preparer_postgresql() {
 	# l'utilisateur postgres, qui peut attribuer les rôles quel que soit le compte qui les a créés. Sans héritage
 	# des droits : chaque binaire endosse son rôle par SET ROLE (doc/fr/spec.md § 3.2).
 	if "${SIMULATION}"; then
-		info '[simulation] sudo -u postgres psql: GRANT machincast_player, machincast_indexer, machincast_interface TO %s WITH INHERIT FALSE, SET TRUE' "${UTILISATEUR}"
+		info '[simulation] sudo -u postgres psql: GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO %s WITH INHERIT FALSE, SET TRUE' "${UTILISATEUR}"
 	else
 		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --variable=nom="${UTILISATEUR}" <<-'SQL'
-			GRANT machincast_player, machincast_indexer, machincast_interface TO :"nom" WITH INHERIT FALSE, SET TRUE;
+			GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO :"nom" WITH INHERIT FALSE, SET TRUE;
 		SQL
 		info '%s can assume the roles %s' "${UTILISATEUR}" "${ROLES[*]}"
 	fi

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMenu, QTabBar, QTabWid
 from machincast.i18n import _
 from machincast.interface import columns, icons, key_hints
 from machincast.interface.airplay_tab import AirplayScreen
+from machincast.interface.api_tab import ApiScreen
 from machincast.interface.calendar import Calendar
 from machincast.interface.card import Card
 from machincast.interface.lists import List
@@ -106,6 +107,8 @@ def screen_category(screen: QWidget) -> str:
 		return "simulation"
 	if isinstance(screen, AirplayScreen):
 		return "airplay"
+	if isinstance(screen, ApiScreen):
+		return "api"
 	return ""
 
 
@@ -217,6 +220,7 @@ class TabManager:
 		for category, key in (
 			(SimulationScreen, "simulation"),
 			(AirplayScreen, "airplay"),
+			(ApiScreen, "api"),
 		):
 			if isinstance(screen, category):
 				return key
@@ -388,7 +392,7 @@ class TabManager:
 		found: list[QWidget] = []
 		for index in range(tabs.count()):
 			screen = tabs.widget(index)
-			closing = isinstance(screen, (Card, SearchScreen, SimulationScreen, AirplayScreen))
+			closing = isinstance(screen, (Card, SearchScreen, SimulationScreen, AirplayScreen, ApiScreen))
 			on_demand = (isinstance(screen, List)) and (self.keys[screen] in ON_DEMAND)
 			if (screen is not None) and ((closing) or (on_demand)):
 				found.append(screen)

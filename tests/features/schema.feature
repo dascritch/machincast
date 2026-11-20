@@ -27,6 +27,7 @@ Fonctionnalité: Schéma de la base de données
 			| sequence_items   |
 			| airplay          |
 			| log              |
+			| api_users        |
 
 	Scénario: La purge entre deux scénarios vide chaque table, et remet les identifiants à 1
 		https://github.com/dascritch/machincast/issues/280 : la purge vide table par table (tests.database_fixtures.PURGE_ORDER),
@@ -59,22 +60,22 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 4 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending »
+		Alors 5 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users »
 
 	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
 		https://github.com/dascritch/machincast/issues/454
 		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
 		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
-		Et j'annule les 2 dernières migrations
+		Et j'annule les 3 dernières migrations
 		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	Scénario: Annuler l'ordre ascendant du tableau ramène ces banques à l'ordre descendant, le mode séquentiel
 		https://github.com/dascritch/machincast/issues/535
 		Quand j'enregistre dans "banks" : internal_name = 'Jingles', mode = 'sequential_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
-		Et j'annule la dernière migration
+		Et j'annule les 2 dernières migrations
 		Alors les banques « Jingles », « Chroniques » sont en modes « sequential », « filename_ascending »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
@@ -161,6 +162,26 @@ Fonctionnalité: Schéma de la base de données
 		Étant donné les éléments de référence en base
 		Quand je modifie le titre du sonore de référence
 		Alors sa date de modification a avancé
+
+	# ─── Comptes de l'intranet ─────────────────────────────
+
+	Plan du scénario: Un compte de l'intranet incohérent est refusé
+		https://github.com/dascritch/machincast/issues/537 : un nom qui se tape dans une adresse, unique, et une
+		empreinte scrypt, jamais un mot de passe.
+
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
+		Et j'enregistre dans "api_users" : <valeurs>
+		Alors la base refuse l'enregistrement
+
+		Exemples:
+			| valeurs                                                    |
+			| name = 'la regie', password_hash = 'scrypt$1'              |
+			| name = 'régie', password_hash = 'scrypt$1'                 |
+			| name = '', password_hash = 'scrypt$1'                      |
+			| name = 'regie', password_hash = 'scrypt$2'                 |
+			| name = 'technique', password_hash = 'tisane-au-micro'      |
+			| name = 'technique', password_hash = 'scrypt$1', role = 'admin' |
 
 	# ─── Banques ───────────────────────────────────────────
 

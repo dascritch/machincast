@@ -56,6 +56,7 @@ KINDS = {
 	"calendar": Kind(_("Help on the schedule"), "grille"),
 	"simulation": Kind(_("Help on the simulation"), "simulation"),
 	"airplay": Kind(_("Help on the Airplay tab"), "airplay"),
+	"api": Kind(_("Help on the API tab"), "api"),
 	"search": Kind(_("Help on the search"), "recherche"),
 	"incidents": Kind(_("Help on the Incidents tab"), "incidents"),
 }

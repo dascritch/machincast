@@ -55,6 +55,7 @@ from machincast.interface.suggestions import Shortfalls, SuggestionsWindow  # no
 from machincast.interface.window import MainWindow  # noqa: E402
 from machincast.player.simulation import simulate  # noqa: E402
 from machincast.player.state import StateSocket  # noqa: E402
+from machincast.shared import passwords  # noqa: E402
 from tests.database_fixtures import (  # noqa: E402
 	configuration_test,
 	purge_database,
@@ -265,6 +266,17 @@ def fill(connection: Connection) -> Demonstration:
 		"INSERT INTO feeds (name, url) VALUES ('Studio mobile', 'https://flux.radio-exemple.test/mobile') RETURNING id",
 		(),
 	)
+	# Les comptes de l'intranet, de l'onglet API (https://github.com/dascritch/machincast/issues/537).
+	for name, role, disabled in (
+		("regie", "actions", False),
+		("matinale", "consult", False),
+		("stagiaire", "consult", True),
+	):
+		connection.execute(
+			"INSERT INTO api_users (name, password_hash, role, disabled_at) VALUES (%s, %s, %s,"
+			" CASE WHEN %s THEN clock_timestamp() END)",
+			(name, passwords.digest("demonstration-machincast"), role, disabled),
+		)
 	banks = {}
 	for key, (name, public_name, mode, no_repeat, members, folder) in BANKS.items():
 		banks[key] = _un(
@@ -828,7 +840,7 @@ def produce(directory: Path) -> dict[str, Path]:
 	return screenshots
 
 
-CLOSED = ("simulation", "airplay", "search")
+CLOSED = ("simulation", "airplay", "api", "search")
 """Les onglets qu'une image annotée ouvre, puis referme : les fiches aussi."""
 LISTS = {"list:sound": "Sonores", "list:bank": "Banques", "list:sequence": "Séquences", "list:event": "Événements"}
 
@@ -856,6 +868,7 @@ def _show_kind(window: MainWindow, connection: Connection, kind: str) -> None:
 	openings = {
 		"calendar": window._open_calendar,
 		"airplay": window._open_airplay,
+		"api": window._open_api,
 		"simulation": lambda: _simulate(window),
 	}
 	if kind in openings:

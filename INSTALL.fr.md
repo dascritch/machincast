@@ -126,8 +126,8 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Paquets système | Installe les paquets du [tableau des prérequis](#prérequis). | Paquets apt. |
 | Environnement virtuel Python | Crée `.venv` dans le répertoire de MachinCast, sans accès aux paquets Python du système, et y installe MachinCast et ses dépendances. | `.venv` dans le répertoire de MachinCast. |
 | Configuration | Copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas. Un `machincast.toml` existant n'est jamais modifié. | `machincast.toml`. |
-| PostgreSQL | En tant qu'utilisateur `postgres` : crée le rôle PostgreSQL du compte, **sans aucun droit particulier** sur le serveur ; crée les bases de production et de test nommées dans `machincast.toml`, dont le compte devient propriétaire ; crée les trois rôles de groupe de MachinCast. Une base de production qu'il vient de créer peut reprendre une sauvegarde d'une installation précédente ([Réimporter une sauvegarde](#réimporter-une-sauvegarde)). Puis, avec le compte : applique le schéma aux deux bases. | Serveur PostgreSQL. |
-| Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les trois rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
+| PostgreSQL | En tant qu'utilisateur `postgres` : crée le rôle PostgreSQL du compte, **sans aucun droit particulier** sur le serveur ; crée les bases de production et de test nommées dans `machincast.toml`, dont le compte devient propriétaire ; crée les quatre rôles de groupe de MachinCast. Une base de production qu'il vient de créer peut reprendre une sauvegarde d'une installation précédente ([Réimporter une sauvegarde](#réimporter-une-sauvegarde)). Puis, avec le compte : applique le schéma aux deux bases. | Serveur PostgreSQL. |
+| Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les quatre rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
 | Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
 | Liens | `/opt/machincast` vers le répertoire de MachinCast ; `/usr/local/bin/Machin` vers le wrapper ; l'autocomplétion bash dans `/usr/share/bash-completion/completions/Machin`. | Trois liens symboliques. |
 | Version et greffons GStreamer, sortie audio | Avertit si GStreamer ou ses greffons sont plus anciens que la version 1.28, avec laquelle MachinCast est vérifié, en nommant le paquet à mettre à jour ([#284](https://github.com/dascritch/machincast/issues/284)). Vérifie que GStreamer sait décoder MP3, M4A, AAC, Ogg, FLAC et WAV, lire les streams HTTP et HTTPS, et créer la sortie audio de `machincast.toml`, sans jouer aucun son. | Rien. |
@@ -137,7 +137,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 À la fin, il affiche `Installation terminée`. Le service de diffusion n'est installé que sur demande : voir [Service de diffusion](#service-de-diffusion).
 
-**Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_player` pour la diffusion, `machincast_indexer` pour l'indexation, `machincast_interface` pour l'interface graphique. Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/fr/spec.md#32-rôles-et-droits).
+**Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_player` pour la diffusion, `machincast_indexer` pour l'indexation, `machincast_interface` pour l'interface graphique, `machincast_intranet` pour le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)). Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/fr/spec.md#32-rôles-et-droits).
 
 ## Adapter la configuration
 
@@ -311,8 +311,8 @@ MachinCast est prévu pour un seul compte Unix, celui qui l'installe, et `instal
 COMPTE=programmation
 # Rôle PostgreSQL du compte, sans aucun droit particulier sur le serveur
 sudo -u postgres createuser "${COMPTE}"
-# Autorisation à endosser les trois rôles de MachinCast, sans en hériter les droits
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
+# Autorisation à endosser les quatre rôles de MachinCast, sans en hériter les droits
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
 # Lecture du journal du service, effective après le redémarrage du poste
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
@@ -325,7 +325,7 @@ Pour retirer l'accès d'un compte :
 
 ```bash
 COMPTE=programmation
-sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface FROM \"${COMPTE}\""
+sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface, machincast_intranet FROM \"${COMPTE}\""
 ```
 
 ## Mettre à jour
@@ -422,16 +422,16 @@ sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
 sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
-	-c "CREATE ROLE machincast_interface NOLOGIN"
+	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_intranet NOLOGIN"
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
 
-Les trois rôles de groupe appartiennent au serveur, pas à une base : ils servent aux deux bases, et ne se créent qu'une fois. Une erreur `role … already exists` signifie qu'ils existent déjà.
+Les quatre rôles de groupe appartiennent au serveur, pas à une base : ils servent aux deux bases, et ne se créent qu'une fois. Une erreur `role … already exists` signifie qu'ils existent déjà.
 
 **5. Rôles du compte.**
 
 ```bash
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 ```
 
 **6. Journal système.**

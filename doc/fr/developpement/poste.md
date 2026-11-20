@@ -4,7 +4,7 @@
 
 **Le poste de développement et de test est en Ubuntu 26.04 LTS**, la cible de MachinCast, avec sa version de GStreamer, la 1.28 ([#284](https://github.com/dascritch/machincast/issues/284)). Les défauts de GStreamer dépendent de sa version : un résultat de test, ou une mesure, obtenu sur une autre version ne vaut pas pour la cible. Un scénario de `installation.feature` échoue sur un poste dont GStreamer est plus ancien. Un compte rendu de test, un ticket ou une PR donne la version d'Ubuntu et celle de GStreamer du poste (`gst-inspect-1.0 --version`).
 
-Un poste installé par `install.sh` suffit pour lancer les tests : le compte n'a besoin d'aucun droit PostgreSQL particulier, puisqu'il est propriétaire de la base de test et endosse déjà les trois rôles. Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle.
+Un poste installé par `install.sh` suffit pour lancer les tests : le compte n'a besoin d'aucun droit PostgreSQL particulier, puisqu'il est propriétaire de la base de test et endosse déjà les quatre rôles. Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle.
 
 En plus, installer les outils de développement et les dépendances de test ([#77](https://github.com/dascritch/machincast/issues/77)) :
 
@@ -43,7 +43,7 @@ cp tests/configuration-test.toml configuration-test-locale.toml   # puis y chang
 MACHINCAST_CONFIG_TEST=configuration-test-locale.toml pytest
 ```
 
-Si PostgreSQL est injoignable, ou si le compte n'endosse pas les trois rôles, les scénarios de base de données sont ignorés avec la commande à lancer.
+Si PostgreSQL est injoignable, ou si le compte n'endosse pas les quatre rôles, les scénarios de base de données sont ignorés avec la commande à lancer.
 
 Sans `install.sh`, préparer la base de test à la main avec les étapes 2, 4 et 5 de [Installer à la main](../../../INSTALL.fr.md#installer-à-la-main), en ne créant que la base `machincast_test`. Les commandes de développement sont résumées dans [AGENTS.md](../../../AGENTS.md), et les règles du projet dans [doc/fr/regles](../regles/developpement.md).
 

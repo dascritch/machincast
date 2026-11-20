@@ -294,6 +294,18 @@ Journal de toutes les opérations du binaire lecture, normales comme incidents.
 L'indexeur n'écrit pas dans le log : ses incidents ne figurent donc pas dans l'écran des incidents.
 La purge efface les lignes plus vieilles que la durée de péremption, et y écrit son bilan (`kind` `purge`, niveau `info`).
 
+#### `api_users`
+
+Les comptes de l'intranet et de l'API ([#537](https://github.com/dascritch/machincast/issues/537)), que gère l'onglet « API » de l'interface ([§ 8.15](#815-onglet-api)).
+
+| Champ | Description |
+| --- | --- |
+| `id`, `created_at`, `modified_at` | |
+| `name` | Unique ; lettres sans accent, chiffres, point, tiret et souligné, pour se taper dans une adresse, `https://nom@adresse` (`CHECK`). |
+| `password_hash` | Empreinte scrypt salée du mot de passe, `scrypt$n$r$p$sel$empreinte` (`machincast.shared.passwords`) ; jamais le mot de passe lui-même. |
+| `role` | `consult` (l'intranet et l'API en lecture) ou `actions` (de même, et les actions de l'API à venir), type `api_role`. |
+| `disabled_at` | Renseigné, le compte est désactivé : il ne se connecte plus. |
+
 #### Choix de modélisation
 
 Le schéma, les rôles et les droits sont créés par une seule migration, `src/machincast/migrations/0001.initial-schema.sql`, fusion de toutes les migrations écrites avant que le projet serve réellement ([PR #70](https://github.com/dascritch/machincast/pull/70), [PR #90](https://github.com/dascritch/machincast/pull/90), [PR #100](https://github.com/dascritch/machincast/pull/100), puis [#314](https://github.com/dascritch/machincast/issues/314) pour les quatorze suivantes), réécrite avec des noms anglais ([#358](https://github.com/dascritch/machincast/issues/358)).
@@ -320,32 +332,33 @@ Les migrations `0002` à `0007` l'ont rejointe, MachinCast étant encore en alph
 
 ### 3.2 Rôles et droits
 
-Un rôle PostgreSQL par binaire : `machincast_player`, `machincast_indexer`, `machincast_interface`.
-Ils sont créés par la migration `0001.initial-schema` ([#4](https://github.com/dascritch/machincast/issues/4)) et partagés par la base de production et la base de test.
+Un rôle PostgreSQL par binaire : `machincast_player`, `machincast_indexer`, `machincast_interface`, et `machincast_intranet` pour le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)).
+Ils sont créés par la migration `0001.initial-schema` ([#4](https://github.com/dascritch/machincast/issues/4)), `machincast_intranet` par `0005.api-users`, et partagés par la base de production et la base de test.
 
 - Ce sont des **rôles de groupe**, sans connexion.
 	Un utilisateur système se connecte avec son propre rôle, par authentification **peer** sur la socket Unix.
 - L'utilisateur est membre des rôles qu'il peut endosser, **sans en hériter les droits** : connecté, il n'a accès à rien.
 	Chaque binaire endosse son rôle par `SET ROLE` dès la connexion (`machincast.database.open_connection`).
 	L'indexation lancée depuis l'interface, sous l'utilisateur de bureau, agit donc avec les seuls droits de l'indexation.
-- Un administrateur autorise un compte en tant qu'utilisateur `postgres` : `GRANT machincast_player, machincast_indexer, machincast_interface TO <compte> WITH INHERIT FALSE, SET TRUE` ; `install.sh` le fait pour le compte qui installe ([#40](https://github.com/dascritch/machincast/issues/40)).
+- Un administrateur autorise un compte en tant qu'utilisateur `postgres` : `GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO <compte> WITH INHERIT FALSE, SET TRUE` ; `install.sh` le fait pour le compte qui installe ([#40](https://github.com/dascritch/machincast/issues/40)).
 - Le respect des droits est en plus vérifié dans le code source.
 - PostgreSQL 16 ou plus récent est requis (options `INHERIT` et `SET` des appartenances).
 
-| Table | Lecture (`Machin_player`) | Indexation (`Machin_indexer`) | Interface (`Machin_interface`) |
-| --- | --- | --- | --- |
-| `sounds` | lire ; modifier la seule colonne `state` | lire, insérer, modifier | lire, insérer, modifier, supprimer |
-| `feeds` | lire | — | lire, insérer, modifier, supprimer |
-| `banks` | lire | lire | lire, insérer, modifier, supprimer |
-| `bank_directories` | — | lire ; modifier `scanned_at` | lire, insérer, modifier, supprimer |
-| `bank_sounds` | lire | lire, insérer, supprimer ([#195](https://github.com/dascritch/machincast/issues/195)) | lire, insérer, modifier, supprimer |
-| `events` | lire | — | lire, insérer, modifier, supprimer |
-| `event_items` | lire | — | lire, insérer, modifier, supprimer |
-| `event_skips` | lire | — | lire, insérer, supprimer |
-| `sequences` | lire | — | lire, insérer, modifier, supprimer |
-| `sequence_items` | lire | — | lire, insérer, modifier, supprimer |
-| `airplay` | lire, insérer | — | lire |
-| `log` | insérer (sans `RETURNING`) ; retrouver son démarrage précédent par `machincast_previous_start`, sans lire ([#342](https://github.com/dascritch/machincast/issues/342)) | insérer (sans `RETURNING`, [#341](https://github.com/dascritch/machincast/issues/341)) | lire |
+| Table | Lecture (`Machin_player`) | Indexation (`Machin_indexer`) | Interface (`Machin_interface`) | Intranet |
+| --- | --- | --- | --- | --- |
+| `sounds` | lire ; modifier la seule colonne `state` | lire, insérer, modifier | lire, insérer, modifier, supprimer | — |
+| `feeds` | lire | — | lire, insérer, modifier, supprimer | — |
+| `banks` | lire | lire | lire, insérer, modifier, supprimer | — |
+| `bank_directories` | — | lire ; modifier `scanned_at` | lire, insérer, modifier, supprimer | — |
+| `bank_sounds` | lire | lire, insérer, supprimer ([#195](https://github.com/dascritch/machincast/issues/195)) | lire, insérer, modifier, supprimer | — |
+| `events` | lire | — | lire, insérer, modifier, supprimer | — |
+| `event_items` | lire | — | lire, insérer, modifier, supprimer | — |
+| `event_skips` | lire | — | lire, insérer, supprimer | — |
+| `sequences` | lire | — | lire, insérer, modifier, supprimer | — |
+| `sequence_items` | lire | — | lire, insérer, modifier, supprimer | — |
+| `airplay` | lire, insérer | — | lire | — |
+| `log` | insérer (sans `RETURNING`) ; retrouver son démarrage précédent par `machincast_previous_start`, sans lire ([#342](https://github.com/dascritch/machincast/issues/342)) | insérer (sans `RETURNING`, [#341](https://github.com/dascritch/machincast/issues/341)) | lire | — |
+| `api_users` | — | — | lire, insérer, modifier, supprimer | lire |
 
 L'indexation ne supprime aucun sonore : un fichier disparu fait passer son sonore à l'état `missing`.
 Elle ne supprime que des lignes de `bank_sounds`, pour retirer d'une banque les sonores hors de ses durées ([#195](https://github.com/dascritch/machincast/issues/195), [§ 6.2](#62-indexation-des-répertoires-de-banques)).
@@ -1601,7 +1614,7 @@ Mise en œuvre du menu ([#117](https://github.com/dascritch/machincast/issues/11
 	Une icône changée vaut aussitôt pour les fenêtres, et pour les raccourcis déjà installés dans le menu des applications et sur le bureau (`machincast.shortcut.rewrite`), réécrits en gardant leurs droits, puisque sous Wayland la barre des tâches et le menu prennent l'icône du raccourci ; aucun raccourci n'est créé.
 	La barre d'état dit où l'icône a été mise à jour.
 	Au lancement, une icône illisible ou introuvable laisse celle de MachinCast, et la barre d'état le dit.
-- **Affichage** : « Rechercher… » (Ctrl+F) ouvre l'onglet de la recherche globale ([#27](https://github.com/dascritch/machincast/issues/27), [§ 8.2](#82-recherche-et-navigation)) ; « Ouvrir l'onglet Sonores » et « Ouvrir l'onglet Feeds » ouvrent ces listes ([#180](https://github.com/dascritch/machincast/issues/180)) ; « Ouvrir l'onglet Grille horaire » ramène au premier plan l'onglet fixe du calendrier, « Calendrier » ([§ 8.2](#82-recherche-et-navigation)) ; « Ouvrir l'onglet Simulation » ouvre l'onglet de la simulation ([#37](https://github.com/dascritch/machincast/issues/37), [§ 8.7](#87-écran-de-simulation)) ; « Ouvrir l'onglet Airplay » ouvre l'onglet de l'airplay ([#244](https://github.com/dascritch/machincast/issues/244), [§ 8.1](#81-écran-par-défaut)) ; « Pré-écoute… » ouvre la fenêtre de pré-écoute ([#116](https://github.com/dascritch/machincast/issues/116), [§ 8.3](#83-écran-de-détails-dun-sonore))  ; après un trait, « Rouvrir l'onglet fermé » (Ctrl+Maj+T) et le sous-menu « Onglets fermés récemment », les 5 derniers, le plus récent en tête, relu à chaque ouverture, tous deux inactifs sans onglet à rouvrir ([#428](https://github.com/dascritch/machincast/issues/428), `TabManager.add_reopening`).
+- **Affichage** : « Rechercher… » (Ctrl+F) ouvre l'onglet de la recherche globale ([#27](https://github.com/dascritch/machincast/issues/27), [§ 8.2](#82-recherche-et-navigation)) ; « Ouvrir l'onglet Sonores » et « Ouvrir l'onglet Feeds » ouvrent ces listes ([#180](https://github.com/dascritch/machincast/issues/180)) ; « Ouvrir l'onglet Grille horaire » ramène au premier plan l'onglet fixe du calendrier, « Calendrier » ([§ 8.2](#82-recherche-et-navigation)) ; « Ouvrir l'onglet Simulation » ouvre l'onglet de la simulation ([#37](https://github.com/dascritch/machincast/issues/37), [§ 8.7](#87-écran-de-simulation)) ; « Ouvrir l'onglet Airplay » ouvre l'onglet de l'airplay ([#244](https://github.com/dascritch/machincast/issues/244), [§ 8.1](#81-écran-par-défaut)) ; « Ouvrir l'onglet API » ouvre l'onglet des comptes de l'intranet ([#537](https://github.com/dascritch/machincast/issues/537), [§ 8.15](#815-onglet-api)) ; « Pré-écoute… » ouvre la fenêtre de pré-écoute ([#116](https://github.com/dascritch/machincast/issues/116), [§ 8.3](#83-écran-de-détails-dun-sonore))  ; après un trait, « Rouvrir l'onglet fermé » (Ctrl+Maj+T) et le sous-menu « Onglets fermés récemment », les 5 derniers, le plus récent en tête, relu à chaque ouverture, tous deux inactifs sans onglet à rouvrir ([#428](https://github.com/dascritch/machincast/issues/428), `TabManager.add_reopening`).
 	F5, sans entrée de menu depuis [#532](https://github.com/dascritch/machincast/issues/532) ([#148](https://github.com/dascritch/machincast/issues/148), `MainWindow.refresh`), relit l'onglet ouvert, l'airplay de l'onglet Antenne et chaque fiche ouverte (`Card.refresh`).
 	Une fiche modifiée pose la question de fermeture (« avant de rafraîchir la fiche ») : enregistrer puis relire, abandonner et relire, ou la laisser telle quelle ; un enregistrement refusé la laisse aussi.
 	La fiche d'un élément qui n'est plus en base se ferme.
@@ -1746,6 +1759,18 @@ Mise en œuvre (`Card.copy`, `machincast.interface.card.copy_name`, `MainWindow.
 - **Original intact** : les lignes d'une liste copiée sont des lignes nouvelles de la copie (`ItemList.load(…, copies=True)`) ; l'enregistrement ne reprend jamais une ligne d'une autre séquence ou d'un autre événement.
 	Si l'original est effacé de la base pendant que sa copie est ouverte, « Annuler » et le rafraîchissement laissent la copie telle quelle, en le disant ; elle s'enregistre toujours.
 
+### 8.15 Onglet API
+
+Les comptes de l'intranet et de l'API ([#537](https://github.com/dascritch/machincast/issues/537), ticket enfant de [#524](https://github.com/dascritch/machincast/issues/524)), dans l'onglet « API », qu'ouvre « Ouvrir l'onglet API » du menu « Affichage » (`machincast.interface.api_tab`).
+L'onglet porte la clé, `icons/api.svg`, se ferme, et se rouvre au lancement suivant comme l'onglet Airplay.
+
+- Le tableau des comptes (vue `api-utilisateurs`) donne leur nom, leur rôle, leur état, `actif` ou `désactivé`, et leur date de création.
+- « ➕ Nouveau compte… » ouvre la fenêtre d'un compte (`ApiUserDialog`, `ui/api_user.ui`) : nom, mot de passe, confirmation, rôle.
+	Elle reste ouverte et dit pourquoi tant que la saisie ne convient pas (`api_tab.refusal`) : nom vide, nom hors des lettres sans accent, chiffres, point, tiret et souligné, nom déjà pris, mot de passe de moins de 12 caractères (`passwords.MINIMUM_LENGTH`), confirmation différente.
+- Le compte choisi : « Rôle » le change aussitôt ; « Changer le mot de passe… » rouvre la même fenêtre, sans le nom ni le rôle ; « Désactiver » le désactive, et devient « Réactiver » ; « ❌ Supprimer… » le supprime, après confirmation.
+	Chaque action le dit dans la barre d'état.
+- Le mot de passe n'est jamais gardé : seule son empreinte scrypt salée, calculée par la bibliothèque standard (`machincast.shared.passwords`), va en base, et se vérifie en temps constant.
+
 ## 9. Configuration
 
 - Format TOML, lu par `tomllib`.
@@ -1817,14 +1842,14 @@ Mise en œuvre (`Card.copy`, `machincast.interface.card.copy_name`, `MainWindow.
 	- crée un environnement virtuel Python isolé, **sans** `--system-site-packages`, et y installe toutes les dépendances Python par pip (PySide6, PyGObject, psycopg, yoyo-migrations, python-magic, tomlkit).
 		Le projet suit ainsi l'évolution des paquets sans dépendre des versions de la distribution hôte ;
 	- copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas ;
-	- crée, en tant qu'utilisateur `postgres`, le rôle PostgreSQL du compte courant, **sans aucun droit particulier** (ni `CREATEDB`, ni `CREATEROLE`), les bases de production et de test dont ce compte devient propriétaire, et les trois rôles de groupe ; le compte applique ensuite le schéma, ce que la propriété des bases lui permet ;
+	- crée, en tant qu'utilisateur `postgres`, le rôle PostgreSQL du compte courant, **sans aucun droit particulier** (ni `CREATEDB`, ni `CREATEROLE`), les bases de production et de test dont ce compte devient propriétaire, et les quatre rôles de groupe ; le compte applique ensuite le schéma, ce que la propriété des bases lui permet ;
 	- quand il vient de créer la base de production, propose, avant le schéma, d'y réimporter une sauvegarde d'une installation précédente ([#347](https://github.com/dascritch/machincast/issues/347), `reimporter_une_sauvegarde`) : « Vous semblez faire une installation neuve de MachinCast. L'aviez-vous déjà fait tourner sur ce poste ou sur un autre ? Faut-il récupérer sa base de données ? ».
 		Par kdialog quand une session graphique est là (`DISPLAY` ou `WAYLAND_DISPLAY`, et kdialog installé) : « Oui, importer une sauvegarde » ouvre `kdialog --getopenfilename` sur le répertoire personnel, filtre `*.dump` ; « Non, on repart de zéro » passe.
 		Sinon, comme par ssh, dans le terminal : `[o/N]`, puis le chemin, lu par `read -e`, `~` compris ; sans terminal, rien n'est demandé, et il dit que `--restore FICHIER` en réimporte une.
 		Il la réimporte par `Machin_restore-db` du venv ; refusée, la question revient.
 		`--restore FICHIER` la réimporte sans rien demander, et une sauvegarde refusée arrête install.sh avant le schéma ; `--no-restore` ne propose rien.
 		Une base qui existait déjà n'est jamais concernée ;
-	- autorise le compte courant à endosser les trois rôles de MachinCast, en tant qu'utilisateur `postgres` ; un autre compte s'ajoute plus tard de la même façon (voir `INSTALL.md`, [#71](https://github.com/dascritch/machincast/issues/71)) ;
+	- autorise le compte courant à endosser les quatre rôles de MachinCast, en tant qu'utilisateur `postgres` ; un autre compte s'ajoute plus tard de la même façon (voir `INSTALL.md`, [#71](https://github.com/dascritch/machincast/issues/71)) ;
 	- ajoute le compte courant au groupe `systemd-journal`, pour suivre les logs du service avec `Machin logs` ;
 	- installe en place : `/opt/machincast` est un lien vers le répertoire de MachinCast, `Machin` est relié depuis `/usr/local/bin`, l'autocomplétion depuis `/usr/share/bash-completion/completions` ;
 	- vérifie que GStreamer sait décoder chacun des formats de la spec et créer la sortie audio configurée, sans jouer de son, et nomme sinon le paquet manquant (`python -m machincast.installation check`) ; il avertit, sans échouer, si GStreamer ou un de ses greffons est plus ancien que la version vérifiée, 1.28, celle d'Ubuntu 26.04 (`installation.CHECKED_VERSION`, [#284](https://github.com/dascritch/machincast/issues/284)), en nommant le paquet à mettre à jour ;

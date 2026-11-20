@@ -46,7 +46,7 @@ Les échecs qu'il trouve deviennent des tickets, ou des corrections dans le sien
 	Une table ajoutée à `machincast.database.TABLES` s'y ajoute aussi : un scénario de `schema.feature` le vérifie.
 - Le schéma de la base de test est appliqué par les mêmes migrations yoyo que la production (voir [base-de-donnees.md](base-de-donnees.md)).
 - Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle ([PR #72](https://github.com/dascritch/machincast/pull/72)).
-	Le compte qui les lance doit déjà endosser les trois rôles de MachinCast (`WITH INHERIT FALSE, SET TRUE`), comme après `install.sh`, sans aucun droit particulier sur le serveur.
+	Le compte qui les lance doit déjà endosser les quatre rôles de MachinCast (`WITH INHERIT FALSE, SET TRUE`), comme après `install.sh`, sans aucun droit particulier sur le serveur.
 	Sinon, `empty_database` ignore les scénarios de base en indiquant la commande `postgres` à lancer (`AGENTS.md`).
 	Un compte superutilisateur endosse les rôles sans autorisation : les scénarios de base passent, mais celui de `roles.feature` qui vérifie les autorisations du compte échoue, en expliquant pourquoi et en donnant les commandes à lancer.
 - Un ordre attendu ne dépend jamais de la collation de la base de test, qui suit la langue du poste : en `C.UTF-8`, « Élodie » vient après « Les Gaufres » ; en français, avant ([#134](https://github.com/dascritch/machincast/issues/134)).

@@ -846,6 +846,7 @@ msgid "preview"
 msgstr "aperçu"
 
 #: machincast/indexer/check.py
+#: machincast/interface/api_tab.py
 #: machincast/interface/lists.py
 msgid "disabled"
 msgstr "désactivé"
@@ -1450,6 +1451,110 @@ msgstr "airplay illisible : {error}"
 msgid "Export impossible: {error}"
 msgstr "Export impossible : {error}"
 
+#: machincast/interface/api_tab.py
+msgid "active"
+msgstr "actif"
+
+#: machincast/interface/api_tab.py
+#: machincast/interface/bank_card.py
+#: machincast/interface/groups.py
+#: machincast/interface/ui/api_tab.ui
+msgid "Disable"
+msgstr "Désactiver"
+
+#: machincast/interface/api_tab.py
+#: machincast/interface/bank_card.py
+#: machincast/interface/groups.py
+msgid "Enable"
+msgstr "Réactiver"
+
+#: machincast/interface/api_tab.py
+msgid "consult"
+msgstr "consulter"
+
+#: machincast/interface/api_tab.py
+msgid "API actions"
+msgstr "actions API"
+
+#: machincast/interface/api_tab.py
+#: machincast/interface/feed_card.py
+msgid "The name is required."
+msgstr "Le nom est obligatoire."
+
+#: machincast/interface/api_tab.py
+msgid ""
+"The name only takes letters without accents, digits, dot, hyphen and "
+"underscore."
+msgstr ""
+"Le nom ne prend que des lettres sans accent, des chiffres, le point, le "
+"tiret et le souligné."
+
+#: machincast/interface/api_tab.py
+msgid "Another user already has this name."
+msgstr "Un autre compte porte déjà ce nom."
+
+#: machincast/interface/api_tab.py
+msgid "The password and its confirmation differ."
+msgstr "Le mot de passe et sa confirmation diffèrent."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "{name} enabled again."
+msgstr "{name} réactivé."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "{name} disabled: it can no longer connect."
+msgstr "{name} désactivé : il ne peut plus se connecter."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "The password needs at least {count} characters."
+msgstr "Le mot de passe demande au moins {count} caractères."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid ""
+"Delete the intranet user {name}? It will no longer be able to connect, and "
+"its sessions will end."
+msgstr ""
+"Supprimer le compte de l'intranet {name} ? Il ne pourra plus se connecter, "
+"et ses sessions prendront fin."
+
+#: machincast/interface/api_tab.py
+msgid "Delete a user"
+msgstr "Supprimer un compte"
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "User {name} created."
+msgstr "Compte {name} créé."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "{name} now has the role {role}."
+msgstr "{name} a désormais le rôle {role}."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "Password of {name} changed."
+msgstr "Mot de passe de {name} changé."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "User {name} deleted."
+msgstr "Compte {name} supprimé."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "Password of {name}"
+msgstr "Mot de passe de {name}"
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "unreadable intranet users: {error}"
+msgstr "comptes de l'intranet illisibles : {error}"
+
 #: machincast/interface/background_programming.py
 #: machincast/interface/calendar.py
 #: machincast/interface/event_card.py
@@ -1536,16 +1641,6 @@ msgstr "Masqué par le nom public de la banque"
 #: machincast/interface/sound_card.py
 msgid "Shown"
 msgstr "Affichés"
-
-#: machincast/interface/bank_card.py
-#: machincast/interface/groups.py
-msgid "Enable"
-msgstr "Activer"
-
-#: machincast/interface/bank_card.py
-#: machincast/interface/groups.py
-msgid "Disable"
-msgstr "Désactiver"
 
 #: machincast/interface/bank_card.py
 #: machincast/interface/indexing_status.py
@@ -3510,10 +3605,6 @@ msgid "Feed: {name}"
 msgstr "Feed : {name}"
 
 #: machincast/interface/feed_card.py
-msgid "The name is required."
-msgstr "Le nom est obligatoire."
-
-#: machincast/interface/feed_card.py
 msgid "The address is required."
 msgstr "L'adresse est obligatoire."
 
@@ -4355,6 +4446,7 @@ msgid "Type"
 msgstr "Type"
 
 #: machincast/interface/lists.py
+#: machincast/interface/ui/api_tab.ui
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/preview.ui
 msgid "State"
@@ -5586,6 +5678,10 @@ msgid "Help on the Airplay tab"
 msgstr "Aide sur l'onglet Airplay"
 
 #: machincast/interface/tab_help.py
+msgid "Help on the API tab"
+msgstr "Aide sur l'onglet API"
+
+#: machincast/interface/tab_help.py
 msgid "Help on the search"
 msgstr "Aide sur la recherche"
 
@@ -5935,6 +6031,10 @@ msgid "Open the Airplay tab"
 msgstr "Ouvrir l'onglet Airplay"
 
 #: machincast/interface/window.py
+msgid "Open the API tab"
+msgstr "Ouvrir l'onglet API"
+
+#: machincast/interface/window.py
 msgid "&Tabs"
 msgstr "&Onglets"
 
@@ -5983,6 +6083,10 @@ msgstr "Simulation"
 #: machincast/interface/window.py
 msgid "Airplay"
 msgstr "Airplay"
+
+#: machincast/interface/window.py
+msgid "API"
+msgstr "API"
 
 #: machincast/interface/window.py
 #, python-brace-format
@@ -7395,6 +7499,71 @@ msgstr "l'événement suivant"
 msgid "database unreachable: {error}"
 msgstr "base de données injoignable : {error}"
 
+#: machincast/interface/ui/api_tab.ui
+msgid ""
+"The accounts that can connect to the intranet and to the API, once the "
+"intranet server is switched on in the service settings. A password is never "
+"kept, only its fingerprint."
+msgstr ""
+"Les comptes qui peuvent se connecter à l'intranet et à l'API, une fois le "
+"serveur intranet allumé dans les paramètres du service. Un mot de passe "
+"n'est jamais gardé, seulement son empreinte."
+
+#: machincast/interface/ui/api_tab.ui
+msgid "User"
+msgstr "Utilisateur"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Role"
+msgstr "Rôle"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Created"
+msgstr "Créé le"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "➕ New user…"
+msgstr "➕ Nouveau compte…"
+
+#: machincast/interface/ui/api_tab.ui
+#: machincast/interface/ui/api_user.ui
+msgid "&Role"
+msgstr "&Rôle"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Change the password…"
+msgstr "Changer le mot de passe…"
+
+#: machincast/interface/ui/api_tab.ui
+#: machincast/interface/ui/bank_card.ui
+#: machincast/interface/ui/event_card.ui
+#: machincast/interface/ui/feed_card.ui
+#: machincast/interface/ui/sequence_card.ui
+#: machincast/interface/ui/sound_card.ui
+msgid "❌ Delete…"
+msgstr "❌ Supprimer…"
+
+#: machincast/interface/ui/api_user.ui
+msgid "Intranet user"
+msgstr "Compte de l'intranet"
+
+#: machincast/interface/ui/api_user.ui
+#: machincast/interface/ui/feed_card.ui
+msgid "&Name"
+msgstr "&Nom"
+
+#: machincast/interface/ui/api_user.ui
+msgid "Letters without accents, digits, dot, hyphen, underscore"
+msgstr "Lettres sans accent, chiffres, point, tiret, souligné"
+
+#: machincast/interface/ui/api_user.ui
+msgid "&Password"
+msgstr "&Mot de passe"
+
+#: machincast/interface/ui/api_user.ui
+msgid "&Confirmation"
+msgstr "&Confirmation"
+
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui
 #: machincast/interface/ui/sequence_card.ui
@@ -7535,14 +7704,6 @@ msgstr "↥ Monter"
 #: machincast/interface/ui/sequence_card.ui
 msgid "↧ Move down"
 msgstr "↧ Descendre"
-
-#: machincast/interface/ui/bank_card.ui
-#: machincast/interface/ui/event_card.ui
-#: machincast/interface/ui/feed_card.ui
-#: machincast/interface/ui/sequence_card.ui
-#: machincast/interface/ui/sound_card.ui
-msgid "❌ Delete…"
-msgstr "❌ Supprimer…"
 
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui
@@ -7759,10 +7920,6 @@ msgstr "➕ Ajouter des feeds…"
 #: machincast/interface/ui/sequence_card.ui
 msgid "➖ Remove the element"
 msgstr "➖ Retirer l'élément"
-
-#: machincast/interface/ui/feed_card.ui
-msgid "&Name"
-msgstr "&Nom"
 
 #: machincast/interface/ui/feed_card.ui
 msgid "Required, and unique to this feed"
@@ -9459,9 +9616,11 @@ msgstr ""
 
 #: install.sh
 msgid ""
-"roles machincast_player, machincast_indexer and machincast_interface present"
+"roles machincast_player, machincast_indexer, machincast_interface and "
+"machincast_intranet present"
 msgstr ""
-"rôles machincast_player, machincast_indexer et machincast_interface présents"
+"rôles machincast_player, machincast_indexer, machincast_interface et "
+"machincast_intranet présents"
 
 #: install.sh
 msgid "Roles"
@@ -9470,10 +9629,12 @@ msgstr "Rôles"
 #: install.sh
 msgid ""
 "[simulation] sudo -u postgres psql: GRANT machincast_player, "
-"machincast_indexer, machincast_interface TO %s WITH INHERIT FALSE, SET TRUE"
+"machincast_indexer, machincast_interface, machincast_intranet TO %s WITH "
+"INHERIT FALSE, SET TRUE"
 msgstr ""
 "[simulation] sudo -u postgres psql : GRANT machincast_player, "
-"machincast_indexer, machincast_interface TO %s WITH INHERIT FALSE, SET TRUE"
+"machincast_indexer, machincast_interface, machincast_intranet TO %s WITH "
+"INHERIT FALSE, SET TRUE"
 
 #: install.sh
 msgid "%s can assume the roles %s"

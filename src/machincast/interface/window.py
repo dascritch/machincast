@@ -94,6 +94,7 @@ from machincast.interface import (
 )
 from machincast.interface.adding import add_files
 from machincast.interface.airplay_tab import WITHOUT_METADATA, AirplayScreen
+from machincast.interface.api_tab import ApiScreen
 from machincast.interface.application import identify
 from machincast.interface.background_programming import guarantee
 from machincast.interface.bank_card import BankCard
@@ -435,6 +436,9 @@ class MainWindow(QMainWindow):
 		simulation.triggered.connect(self._open_simulation)
 		airplay = display_menu.addAction(icons.icon("airplay"), _("Open the Airplay tab"))
 		airplay.triggered.connect(self._open_airplay)
+		# Les comptes de l'intranet et de l'API (https://github.com/dascritch/machincast/issues/537).
+		api = display_menu.addAction(icons.icon("api"), _("Open the API tab"))
+		api.triggered.connect(self._open_api)
 		self.preview_action = display_menu.addAction(icons.icon("preview"), _("Pre-listen…"))
 		self.preview_action.triggered.connect(lambda: self._preview(None))
 		display_menu.addSeparator()
@@ -680,6 +684,8 @@ class MainWindow(QMainWindow):
 				self._open_simulation()
 			case "airplay":
 				self._open_airplay()
+			case "api":
+				self._open_api()
 			case "card":
 				card_type, _separator, identifier = rest.partition(":")
 				if (card_type in CARD_TABLES) and (identifier.isdigit()):
@@ -887,6 +893,20 @@ class MainWindow(QMainWindow):
 			self.tab_manager.add_tab(airplay, _("Airplay"))
 		tabs.setCurrentWidget(airplay)
 
+	def _open_api(self) -> None:
+		"""Un seul onglet « API » : celui qui est ouvert revient au premier plan."""
+		tabs = self.ui.tabs
+		api = None
+		for index in range(tabs.count()):
+			screen = tabs.widget(index)
+			if isinstance(screen, ApiScreen):
+				api = screen
+		if api is None:
+			api = ApiScreen(self.connection)
+			api.announces.connect(self.ui.state_bar.showMessage)
+			self.tab_manager.add_tab(api, _("API"))
+		tabs.setCurrentWidget(api)
+
 	def _metadata(self) -> Metadata:
 		"""Le masquage et le texte public de la configuration, pour le texte public des exports de l'airplay."""
 		if self.configuration is None:
@@ -915,7 +935,7 @@ class MainWindow(QMainWindow):
 		if isinstance(card, Calendar):
 			# Onglet fixe (https://github.com/dascritch/machincast/issues/307) : il ne se ferme pas.
 			return
-		if isinstance(card, (SearchScreen, SimulationScreen, AirplayScreen)):
+		if isinstance(card, (SearchScreen, SimulationScreen, AirplayScreen, ApiScreen)):
 			if isinstance(card, AirplayScreen):
 				self.home.reread_airplay.disconnect(card.refresh)
 			if isinstance(card, SimulationScreen):

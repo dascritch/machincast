@@ -134,7 +134,7 @@ From the MachinCast directory, with your own account:
 
 At the end, it shows `Installation finished`. The playout service is only installed on request: see [Playout service](#playout-service).
 
-**PostgreSQL roles.** Each MachinCast program acts with its own rights: `machincast_player` for the broadcast, `machincast_indexer` for the indexing, `machincast_interface` for the graphical interface. An account of the station connects with its own PostgreSQL role, which gives access to nothing by itself: each program assumes its role from the connection. The details are in the [specification, § 3.2](doc/fr/spec.md#32-rôles-et-droits) (French).
+**PostgreSQL roles.** Each MachinCast program acts with its own rights: `machincast_player` for the broadcast, `machincast_indexer` for the indexing, `machincast_interface` for the graphical interface, `machincast_intranet` for the intranet server ([#537](https://github.com/dascritch/machincast/issues/537)). An account of the station connects with its own PostgreSQL role, which gives access to nothing by itself: each program assumes its role from the connection. The details are in the [specification, § 3.2](doc/fr/spec.md#32-rôles-et-droits) (French).
 
 ## Adapting the configuration
 
@@ -307,7 +307,7 @@ COMPTE=programmation
 # PostgreSQL role of the account, without any particular right on the server
 sudo -u postgres createuser "${COMPTE}"
 # Authorisation to assume the three MachinCast roles, without inheriting their rights
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
 # Reading the service journal, effective after the machine restarts
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
@@ -320,7 +320,7 @@ To remove the access of an account:
 
 ```bash
 COMPTE=programmation
-sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface FROM \"${COMPTE}\""
+sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface, machincast_intranet FROM \"${COMPTE}\""
 ```
 
 ## Updating
@@ -417,7 +417,7 @@ sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
 sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
-	-c "CREATE ROLE machincast_interface NOLOGIN"
+	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_intranet NOLOGIN"
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
 
@@ -426,7 +426,7 @@ The three group roles belong to the server, not to a database: they serve both d
 **5. Roles of the account.**
 
 ```bash
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 ```
 
 **6. System journal.**
