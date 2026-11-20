@@ -7104,6 +7104,38 @@ msgstr "dans le menu des applications"
 msgid "on the desktop"
 msgstr "sur le bureau"
 
+#: machincast/status.py
+msgid ""
+"Tells the state of the station: server, radio name, current and next event."
+msgstr ""
+"Dit l'état de la station : serveur, nom de la radio, événement actuel et "
+"suivant."
+
+#: machincast/status.py
+msgid "“service” if the broadcast service is installed, “test” otherwise"
+msgstr "« service » si le service de diffusion est installé, « test » sinon"
+
+#: machincast/status.py
+msgid "the name of the radio (metadata.public_text)"
+msgstr "le nom de la radio (metadata.public_text)"
+
+#: machincast/status.py
+msgid "the current or the next event, “start → end : private name”"
+msgstr "l'événement actuel ou le suivant, « début → fin : nom privé »"
+
+#: machincast/status.py
+msgid "the current event"
+msgstr "l'événement actuel"
+
+#: machincast/status.py
+msgid "the next event"
+msgstr "l'événement suivant"
+
+#: machincast/status.py
+#, python-brace-format
+msgid "database unreachable: {error}"
+msgstr "base de données injoignable : {error}"
+
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui
 #: machincast/interface/ui/sequence_card.ui
@@ -8329,6 +8361,14 @@ msgid ""
 "               files: the bank directories and the added files, or the "
 "paths\n"
 "               given (https://github.com/dascritch/machincast/issues/381)\n"
+"  status       tells the state of the station, one line for a script: "
+"Machin status\n"
+"               server (service or test), radio (the name of the radio), "
+"event --now\n"
+"               or event --next (“start → end : private name”; no line and "
+"exit code 1\n"
+"               without an event) "
+"(https://github.com/dascritch/machincast/issues/518)\n"
 "\n"
 "  Help of a binary: Machin BINARY --help\n"
 "\n"
@@ -8453,6 +8493,14 @@ msgstr ""
 "fichiers\n"
 "               ajoutés, ou les chemins donnés "
 "(https://github.com/dascritch/machincast/issues/381)\n"
+"  status       dit l'état de la station, une ligne pour un script : Machin "
+"status\n"
+"               server (service ou test), radio (le nom de la radio), event "
+"--now\n"
+"               ou event --next (« début → fin : nom privé » ; aucune ligne "
+"et code\n"
+"               de sortie 1 sans événement) "
+"(https://github.com/dascritch/machincast/issues/518)\n"
 "\n"
 "  Aide d'un binaire : Machin BINAIRE --help\n"
 "\n"

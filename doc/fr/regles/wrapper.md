@@ -18,6 +18,9 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 	`Machin dev-screenshots` ([#128](https://github.com/dascritch/machincast/issues/128)) refait les captures du guide de l'antenne avec le Python du venv, depuis le répertoire de MachinCast (`python -m tests.screenshots`) : jamais avec `--config`, puisqu'il n'écrit que dans la base de test.
 - Un nouveau binaire `Machin_<nom>` s'ajoute aussi au tableau `BINAIRES` du wrapper et à son aide complète : un test bats vérifie que `BINAIRES` correspond à `[project.scripts]` de `pyproject.toml`.
 	Un nom peut contenir un tiret, comme `Machin_maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)).
+- `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518)) est un binaire comme les autres, `Machin_status` : le wrapper ne fait que l'appeler.
+	Ses réponses vont sur la sortie standard, une ligne chacune, pour qu'un script les lise : tout autre message passe par le journal.
+	Une nouvelle réponse s'ajoute à `machincast.status`, avec ses scénarios (`status.feature`), sans toucher au wrapper.
 - Le binaire est cherché d'abord dans le venv du projet (`<projet>/.venv/bin`, le projet étant le parent du `bin/` du wrapper, liens symboliques résolus), puis dans le `PATH`.
 	Le venv n'a pas besoin d'être activé.
 - Le wrapper n'est pas installé dans le venv : en développement, `bin/Machin` ; en production, `install.sh` le rend accessible à tout le système.

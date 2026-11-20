@@ -21,7 +21,7 @@ REPERTOIRE_DU_WRAPPER="${WRAPPER%/*}"
 charger_messages "${REPERTOIRE_DU_WRAPPER}/.."
 
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
-BINAIRES=(player indexer interface maintenance-db backup-db restore-db purge grant-read)
+BINAIRES=(player indexer interface maintenance-db backup-db restore-db purge grant-read status)
 UNITE_LECTURE="machincast.service"
 
 CODE_USAGE=2
@@ -63,6 +63,10 @@ taken from the .venv venv of the project, without it being activated, or else fr
   grant-read   lets the broadcast service, under its own account, read the sound
                files: the bank directories and the added files, or the paths
                given (https://github.com/dascritch/machincast/issues/381)
+  status       tells the state of the station, one line for a script: Machin status
+               server (service or test), radio (the name of the radio), event --now
+               or event --next (“start → end : private name”; no line and exit code 1
+               without an event) (https://github.com/dascritch/machincast/issues/518)
 
   Help of a binary: Machin BINARY --help
 
