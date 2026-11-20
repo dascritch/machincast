@@ -5,6 +5,8 @@ fourni. Un redémarrage du binaire, ou un sonore ajouté à une banque, ne pertu
 
 - Séquentiel : le premier sonore jouable qui suit, dans l'ordre des positions, le dernier joué via cette banque ;
   après le dernier, la liste reprend au début. Sans passage via la banque, le premier sonore jouable.
+- Ordre ascendant du tableau (https://github.com/dascritch/machincast/issues/535) : comme le séquentiel, l'ordre
+  descendant du tableau des sonores, mais en remontant les positions, du dernier au premier.
 - A→Z ou Z→A du nom de fichier (https://github.com/dascritch/machincast/issues/454) : comme le séquentiel, dans l'ordre
   du nom de fichier des sonores, sans son répertoire, croissant ou décroissant, au lieu de l'ordre des positions ; les
   noms se comparent tels quels, caractère par caractère, et l'ordre se recalcule à chaque choix : un fichier ajouté
@@ -38,6 +40,10 @@ from machincast.randomness import Randomness
 PLAYABLE_STATE = "active"
 FILENAME_ORDERS = {"filename_ascending": False, "filename_descending": True}
 """Les modes dans l'ordre du nom de fichier, et s'il est décroissant (https://github.com/dascritch/machincast/issues/454)."""
+TABLE_ASCENDING = "sequential_ascending"
+"""L'ordre ascendant du tableau des sonores, en remontant les positions (https://github.com/dascritch/machincast/issues/535)."""
+ORDERED_MODES = ("sequential", TABLE_ASCENDING, *FILENAME_ORDERS)
+"""Les modes qui donnent les sonores dans un ordre, et non au hasard."""
 
 
 @dataclass(frozen=True)
@@ -173,6 +179,8 @@ def _playable_list(
 	candidates = _candidates(connection, bank, history)
 	if mode in FILENAME_ORDERS:
 		candidates = by_file_name(candidates, descending=FILENAME_ORDERS[mode])
+	if mode == TABLE_ASCENDING:
+		candidates.reverse()
 	sounds = []
 	for c in candidates:
 		sounds.append(c.sound)
@@ -219,7 +227,7 @@ def choose_sound(
 	order, playable_list = _playable_list(connection, bank, instant, history, mode)
 	playable_list -= excluded_list
 	played_list = history.played_via_bank(connection, bank)
-	if (mode == "sequential") or (mode in FILENAME_ORDERS):
+	if mode in ORDERED_MODES:
 		last_played = None
 		if played_list:
 			last_played = played_list[0]

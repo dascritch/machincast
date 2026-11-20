@@ -1489,8 +1489,12 @@ msgid " A folder is dropped on the indexed directories."
 msgstr " Un dossier se dépose sur les répertoires indexés."
 
 #: machincast/interface/bank_card.py
-msgid "Sequential"
-msgstr "Séquentielle"
+msgid "Descending order of the sounds table"
+msgstr "Ordre descendant du tableau des sonores"
+
+#: machincast/interface/bank_card.py
+msgid "Ascending order of the sounds table"
+msgstr "Ordre ascendant du tableau des sonores"
 
 #: machincast/interface/bank_card.py
 msgid "Random"
@@ -4286,8 +4290,12 @@ msgid "background programming"
 msgstr "fil musical"
 
 #: machincast/interface/lists.py
-msgid "sequential"
-msgstr "séquentielle"
+msgid "descending order of the sounds table"
+msgstr "ordre descendant du tableau des sonores"
+
+#: machincast/interface/lists.py
+msgid "ascending order of the sounds table"
+msgstr "ordre ascendant du tableau des sonores"
 
 #: machincast/interface/lists.py
 msgid "random"

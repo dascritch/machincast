@@ -47,6 +47,7 @@ scenarios("bank_card.feature")
 HIDINGS = {"hérité du sonore": None, "masqués": True, "affichés": False}
 MODES = {
 	"séquentielle": "sequential",
+	"Ordre ascendant du tableau des sonores": "sequential_ascending",
 	"aléatoire": "random",
 	"A→Z du nom de fichier": "filename_ascending",
 	"Z→A du nom de fichier": "filename_descending",
@@ -371,7 +372,7 @@ def reorderable(interface: Context, verdict: str) -> None:
 @then(
 	parsers.re(
 		r"la banque « (?P<name>[^»]+) » est en base : (?:nom public « (?P<public_name>[^»]+) »|sans nom public),"
-		r" (?P<mode>séquentielle|aléatoire|A→Z du nom de fichier|Z→A du nom de fichier), masquage « (?P<hiding>[^»]+) »,"
+		r" (?P<mode>séquentielle|aléatoire|Ordre ascendant du tableau des sonores|A→Z du nom de fichier|Z→A du nom de fichier), masquage « (?P<hiding>[^»]+) »,"
 		r" (?P<repeat>avec|sans) « ne pas répéter »"
 	)
 )

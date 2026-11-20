@@ -432,3 +432,9 @@ def note_fingerprint(empty_database: Connection, fingerprints: list[str]) -> Non
 @then(parsers.re(r"l'empreinte de la grille (?P<verdict>n'a pas changé|a changé)"))
 def compared_fingerprint(empty_database: Connection, fingerprints: list[str], verdict: str) -> None:
 	assert (fingerprint(empty_database) == fingerprints[0]) == (verdict == "n'a pas changé")
+
+
+@then(parsers.parse("« Début » et « Fin » de la fiche de l'événement montrent « {start} » et « {end} »"))
+def shown_bounds(interface: Context, start: str, end: str) -> None:
+	ui = card(interface).ui
+	assert (ui.start.text(), ui.end.text()) == (start, end)

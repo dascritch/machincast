@@ -170,7 +170,7 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 | --- | --- |
 | `id`, `internal_name` | Identification. |
 | `public_name` | Affiché à la place de l'artiste et du titre masqués, après ceux de l'événement et de la séquence ([§ 4.8](#48-métadonnées-publiques-et-masquage), [#99](https://github.com/dascritch/machincast/issues/99)). Vide = aucun. |
-| `mode` | `sequential`, `random`, `filename_ascending` ou `filename_descending` ([#454](https://github.com/dascritch/machincast/issues/454), migration `0003.bank-filename-modes`). |
+| `mode` | `sequential`, `sequential_ascending`, `random`, `filename_ascending` ou `filename_descending` ([#454](https://github.com/dascritch/machincast/issues/454), migration `0003.bank-filename-modes` ; [#535](https://github.com/dascritch/machincast/issues/535), migration `0004.bank-table-ascending`). |
 | `hide_metadata` | Masquage au niveau de la banque. Vide = hérite. |
 | `no_repeat` | La banque ne peut pas passer deux fois de suite, même d'un événement à l'autre (voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque), [#63](https://github.com/dascritch/machincast/issues/63)). Faux par défaut. |
 | `crossfade_start_rule`, `crossfade_start`, `crossfade_end_rule`, `crossfade_end` | Crossfades des sonores joués via la banque, chaque côté avec sa règle (type `crossfade_rule`) : `sonore` garde celui du sonore (par défaut), `default` donne celui de la banque au sonore qui n'en a pas (0 seconde), `forced` le donne à tout sonore ([#143](https://github.com/dascritch/machincast/issues/143)). |
@@ -414,7 +414,8 @@ Quand l'interface supprime un élément, les références dans `airplay` et `log
 
 ### 4.4 Choix d'un sonore dans une banque
 
-- **Séquentiel** : le sonore qui suit, dans l'ordre de `position`, le dernier joué via cette banque.
+- **Séquentiel**, l'ordre descendant du tableau des sonores : le sonore qui suit, dans l'ordre de `position`, le dernier joué via cette banque.
+- **Ordre ascendant du tableau des sonores** ([#535](https://github.com/dascritch/machincast/issues/535), `sequential_ascending`) : comme le séquentiel, en remontant les positions, du dernier sonore au premier, puis de nouveau depuis le dernier.
 - **A→Z** et **Z→A du nom de fichier** ([#454](https://github.com/dascritch/machincast/issues/454), `filename_ascending`, `filename_descending`) : comme le séquentiel, dans l'ordre croissant ou décroissant du nom de fichier des sonores, sans son répertoire (le stream, par son adresse), au lieu de l'ordre de `position` ; à nom égal, l'ordre de `position`.
 	Les noms se comparent tels quels, caractère par caractère, sans tenir compte des accents ni d'un nombre : un préfixe numérique de même longueur (« 01- », « 02- »…) donne l'ordre de rotation.
 	L'ordre se recalcule à chaque choix (`banks.by_file_name`) : un fichier ajouté ou renommé prend aussitôt sa place.
@@ -1355,7 +1356,7 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 
 - Édition du nom interne et du nom public ([#99](https://github.com/dascritch/machincast/issues/99)).
 - Masquage de l'artiste et du titre.
-- Mode séquentiel, aléatoire, ou dans l'ordre du nom de fichier, A→Z ou Z→A ([#454](https://github.com/dascritch/machincast/issues/454)) ; seul le séquentiel se réordonne à la main, les autres se trient par colonne.
+- Mode « Ordre descendant du tableau des sonores » (séquentiel), « Ordre ascendant du tableau des sonores » ([#535](https://github.com/dascritch/machincast/issues/535)), aléatoire, ou dans l'ordre du nom de fichier, A→Z ou Z→A ([#454](https://github.com/dascritch/machincast/issues/454)) ; seuls les deux ordres du tableau se réordonnent à la main (`bank_card.TABLE_ORDERS`), les autres se trient par colonne.
 - Case « ne pas répéter » : la banque ne passe jamais deux fois de suite ([#63](https://github.com/dascritch/machincast/issues/63)).
 - Case « détection de silence », décochée pour une nouvelle banque : ses sonores sont joués sans leurs silences détectés ([#146](https://github.com/dascritch/machincast/issues/146)).
 - Durées minimale et maximale des sonores ([#147](https://github.com/dascritch/machincast/issues/147)), facultatives : un sonore qui en sort est marqué dans la liste de la fiche, d'après ses durées, avant même l'enregistrement, avec une infobulle (« 3:20 : plus court que le minimum de la banque, 3:30. »).
@@ -1363,7 +1364,7 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 	La prochaine indexation le retire de la banque ([#195](https://github.com/dascritch/machincast/issues/195)).
 - Crossfades de début et de fin ([#143](https://github.com/dascritch/machincast/issues/143)) : pour chacun, une règle, « Garder ceux des sonores », « Appliquer si le sonore n'en a pas » ou « Imposer à tous les sonores », et une durée, qui ne se modifie pas tant que la banque garde ceux des sonores.
 - Liste des répertoires indexés : ajout et retrait.
-- Liste des sonores liés, réordonnable par glisser-déposer en mode séquentiel.
+- Liste des sonores liés, réordonnable par glisser-déposer dans l'ordre du tableau, descendant ou ascendant.
 	Ajout de sonores, y compris hors des répertoires de la banque.
 - Lecture par pages ([#383](https://github.com/dascritch/machincast/issues/383)) : la liste des sonores lit d'abord les `interface.table_rows` premiers (1 000 par défaut), dans l'ordre de la banque (`bank_card.PAGE`, par position, `LIMIT` d'une ligne de plus pour savoir s'il en reste) ; arriver au bas de la liste lit la page suivante (`BankCard._scrolled`, `load_more`), sans modifier la fiche.
 	Tant qu'il en reste, le titre du groupe dit « Sonores : N montrés sur T, la suite se charge en descendant », et l'avertissement en haut de la fiche compte aussi les états des sonores pas encore lus (`queries.banks.TAIL_STATES`).
@@ -1376,10 +1377,10 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 	Une ligne ajoutée ou déposée est filtrée aussi.
 	Tant qu'un filtre est rempli, l'ordre ne se change pas : glisser-déposer, « ↥ Monter » et « ↧ Descendre » sont inactifs, un déplacement entre lignes cachées étant ambigu.
 	Le tri par colonne (`SoundLine`, la durée par secondes, les autres colonnes par leur texte sans accents) n'existe qu'en mode aléatoire, où l'ordre ne compte pas ; il lit aussi toutes les pages.
-	Chaque ligne porte son rang dans la banque (rôle `ORDER`), renuméroté à l'entrée en mode aléatoire ; le passage en mode séquentiel désactive le tri et, si une colonne était triée, remet les lignes dans ce rang (`_restore_order`) : un ordre trié n'est jamais enregistré.
+	Chaque ligne porte son rang dans la banque (rôle `ORDER`), renuméroté à l'entrée en mode aléatoire ; le passage à l'ordre du tableau, descendant ou ascendant, désactive le tri et, si une colonne était triée, remet les lignes dans ce rang (`_restore_order`) : un ordre trié n'est jamais enregistré.
 - Sélection multiple des sonores liés ([#114](https://github.com/dascritch/machincast/issues/114)) : une colonne État ; le clic droit sur plusieurs sonores les active ou les désactive, à l'enregistrement de la fiche (« Annuler » l'oublie ; un sonore en aperçu reste en aperçu) ; « ➖ Retirer le sonore » les retire tous, avec un seul avertissement pour ceux des répertoires de la banque ; « Monter » et « Descendre » ne servent qu'à un sonore seul.
 - Copier-coller des sonores ([#129](https://github.com/dascritch/machincast/issues/129), `BankCard.copy_sounds`, `paste_sounds`, `machincast.interface.clipboard`) : le même presse-papiers que les éléments d'un événement ou d'une séquence, dans les deux sens.
-	Les sonores collés sont relus en base, et ajoutés une fois chacun : après la ligne courante en mode séquentiel sans filtre, en fin de liste ou à leur place dans le tri sinon.
+	Les sonores collés sont relus en base, et ajoutés une fois chacun : après la ligne courante dans l'ordre du tableau, sans filtre, en fin de liste ou à leur place dans le tri sinon.
 	Une banque ou une séquence copiée est laissée de côté (« Laissé de côté, une banque ne contient que des sonores : … »), comme un stream pas encore créé ; un sonore déjà dans la banque n'est pas collé (« Déjà dans la banque, pas collé une seconde fois : … »).
 	Un fichier pas encore en base est collé comme un fichier déposé, au crible du service.
 
@@ -1403,7 +1404,7 @@ Mise en œuvre ([#31](https://github.com/dascritch/machincast/issues/31), `machi
 	Le message au pied de la fiche ne dit plus que ce qui informe : fichiers ignorés d'un dépôt, élément supprimé, copie dont l'original a disparu.
 - **Masquage** : « Hérité du sonore » (NULL), « Masqués » (vrai), « Affichés » (faux).
 - **Répertoires** : enregistrés sous leur forme normale (`os.path.normpath`), sans doublon, rangés dans l'ordre de leurs caractères.
-- **Sonores** : réordonnables par glisser-déposer ou par « ↥ Monter » et « ↧ Descendre », en mode séquentiel seulement ; une ligne ne se dépose pas dans une autre.
+- **Sonores** : réordonnables par glisser-déposer ou par « ↥ Monter » et « ↧ Descendre », dans l'ordre du tableau seulement, descendant ou ascendant ; une ligne ne se dépose pas dans une autre.
 	« ↥ Monter » et « ↧ Descendre » bougent ensemble tous les sonores choisis, d'un rang, en gardant leur ordre ([#527](https://github.com/dascritch/machincast/issues/527)).
 	Les boutons d'une ligne ne servent qu'à une ligne choisie.
 	L'ajout se fait parmi les sonores déjà en base (`Choice`, la liste filtrable des sonores à sélection multiple), ou par dépôt de fichiers (ci-dessous) ; l'ajout de fichiers depuis la liste des sonores est décrit au [§ 8.8](#88-ajout-dun-sonore).
@@ -1446,6 +1447,7 @@ Mise en œuvre ([#32](https://github.com/dascritch/machincast/issues/32), `machi
 - **Onglet** : « Événement : <nom interne> », depuis la liste des événements ; « Nouvel événement » ouvre une fiche vide, de priorité `show`, au masquage hérité.
 - **Champs** : noms enregistrés sans les espaces qui les entourent, un nom public vide comme NULL, un nom interne unique ; priorité ; masquage « Selon la séquence, la banque ou le sonore » (NULL), « Masqués » (vrai), « Affichés » (faux).
 - **Grille** : début et fin de la première occurrence, chacun à cocher, et sept cases de jours.
+	Un jour coché, « Début » et « Fin » ne montrent que l'heure de chaque occurrence ([#535](https://github.com/dascritch/machincast/issues/535), `EventCard._hour_only`) ; leur date reste en base, inchangée.
 	Un début coché part de l'heure de l'horloge, à la minute ; une fin cochée qui ne suit pas le début, d'une heure après lui.
 	Sans début, la fin et les jours se décochent et ne se saisissent pas ; la priorité `fallback` décoche le début.
 	Refusés : une émission ou un spécial sans début, une fin qui ne suit pas le début, un chevauchement ([§ 4.1](#41-choix-de-lévénement-actif)), nommé avec le premier instant commun, et un changement de priorité d'un événement de secours qu'un stream désigne, que la base refuserait aussi.

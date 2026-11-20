@@ -23,7 +23,7 @@ La fiche d'un événement s'ouvre dans un onglet nommé « Événement : » suiv
 | Priorité | De la plus basse à la plus haute : `Secours`, qui ne joue qu'à la place d'un stream tombé ([Streams](antenne.md#streams)), puis `Fil musical`, `Émission` et `Spécial` ([Quel événement est à l'antenne](antenne.md#quel-événement-est-à-lantenne)). Au-dessus, l'`Imprévu`, pour une situation qu'on ne programme pas, comme une alerte de la sécurité civile ([#402](https://github.com/dascritch/machincast/issues/402)), ne se choisit pas : la fiche d'un imprévu le montre grisé, et refuse un jour coché, puisqu'il ne se répète pas. |
 | Artiste et titre | `Masqué par le nom public de l'événement` ou `Affichés` sur la page publique, pour tout ce que l'événement fait jouer ; `Selon la séquence, la banque ou le sonore` laisse décider ceux-ci. |
 
-**Grille** : le **Début** et la **Fin** de la première occurrence, chacun à cocher, puis les **jours** où elle revient chaque semaine, à la même heure. Aucun jour coché : une seule occurrence.
+**Grille** : le **Début** et la **Fin** de la première occurrence, chacun à cocher, puis les **jours** où elle revient chaque semaine, à la même heure. Aucun jour coché : une seule occurrence. Dès qu'un jour est coché, **Début** et **Fin** ne montrent plus que l'heure de chaque occurrence ([#535](https://github.com/dascritch/machincast/issues/535)) ; la date de la première occurrence est gardée.
 
 - Un début coché part de l'heure du moment, à la minute ; une fin cochée, d'une heure après le début.
 - Un fil musical sans début est permanent, et sert de fond. Décocher le début décoche aussi la fin et les jours.

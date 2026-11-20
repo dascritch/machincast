@@ -245,9 +245,14 @@ def save_empty(context: Context, table: str) -> None:
 
 @when("j'annule la dernière migration")
 def cancel_last() -> None:
+	cancel_lasts(1)
+
+
+@when(parsers.parse("j'annule les {count:d} dernières migrations"))
+def cancel_lasts(count: int) -> None:
 	"""La base de test reçoit de nouveau ses migrations au scénario suivant (purge_database)."""
 	with get_backend(url_yoyo(*sample_database_parameters())) as backend, backend.lock():
-		backend.rollback_migrations(backend.to_rollback(read_migrations(str(MIGRATION_DIRECTORY)))[:1])
+		backend.rollback_migrations(backend.to_rollback(read_migrations(str(MIGRATION_DIRECTORY)))[:count])
 
 
 @then(parsers.re(r"les banques (?P<names>«.+») sont en modes (?P<modes>«.+»)"))

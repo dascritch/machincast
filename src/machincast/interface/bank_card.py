@@ -18,8 +18,8 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
   n'est pas enregistrée.
 - Ouvrir un sonore, par un double-clic ou Entrée, ouvre sa fiche (https://github.com/dascritch/machincast/issues/115) ;
   la banque reste telle quelle, modifications comprises. Un fichier déposé n'a de fiche qu'une fois enregistré.
-- Les sonores se réordonnent par glisser-déposer, ou par les boutons « Monter » et « Descendre », en mode séquentiel
-  seulement. Ils s'ajoutent parmi les sonores déjà en base (machincast.interface.choice), y compris hors des
+- Les sonores se réordonnent par glisser-déposer, ou par les boutons « Monter » et « Descendre », dans l'ordre du
+  tableau seulement, descendant ou ascendant (https://github.com/dascritch/machincast/issues/535). Ils s'ajoutent parmi les sonores déjà en base (machincast.interface.choice), y compris hors des
   répertoires de la banque.
 - Des dossiers déposés depuis le navigateur de fichiers s'ajoutent aux répertoires, des fichiers sonores aux sonores
   (machincast.interface.drop), toujours comme une copie. Un fichier pas encore en base devient un sonore à l'état
@@ -41,12 +41,12 @@ une nouvelle banque. Enregistrement, annulation et fermeture : machincast.interf
   ceux dont une colonne contient le texte tapé, sans tenir compte des majuscules ni des accents, comme celui de l'onglet
   Incidents ; il lit d'abord tous les sonores de la banque. Pendant un filtre, l'ordre ne se change pas : ni glisser,
   ni « Monter », ni « Descendre ». En mode aléatoire seulement, un clic sur un titre de colonne trie les sonores
-  (SoundLine : la durée dans l'ordre des durées, le reste par son texte), après avoir lu toute la banque ; en mode
-  séquentiel, l'ordre est celui de passage, et ne se trie pas : passer en séquentiel rend l'ordre d'avant le tri
+  (SoundLine : la durée dans l'ordre des durées, le reste par son texte), après avoir lu toute la banque ; dans l'ordre
+  du tableau, l'ordre est celui de passage, et ne se trie pas : y passer rend l'ordre d'avant le tri
   (ORDER), pour ne jamais enregistrer un ordre trié.
 - Copier-coller (https://github.com/dascritch/machincast/issues/129, machincast.interface.clipboard) : Ctrl+C, ou
   « Copier » au clic droit, copie les sonores choisis, dans leur ordre ; Ctrl+V, ou « Coller », colle des sonores
-  copiés d'une banque, d'un événement ou d'une séquence. En mode séquentiel, sans filtre, ils vont après la ligne
+  copiés d'une banque, d'un événement ou d'une séquence. Dans l'ordre du tableau, sans filtre, ils vont après la ligne
   courante ; sinon, en fin de liste, ou à leur place dans le tri. Ils restent choisis. Une banque ne contient que des
   sonores, chacun une fois : une banque ou une séquence copiée est laissée de côté, comme un stream pas encore créé,
   et un sonore déjà dans la banque n'est pas collé une seconde fois ; la fiche le dit. Un sonore effacé de la base
@@ -94,12 +94,16 @@ from machincast.interface.queries import banks
 from machincast.interface.ui.bank_card import Ui_BankCard
 
 MODES = (
-	("sequential", _("Sequential")),
+	# L'ordre du tableau des sonores, en le descendant ou en le remontant (https://github.com/dascritch/machincast/issues/535).
+	("sequential", _("Descending order of the sounds table")),
+	("sequential_ascending", _("Ascending order of the sounds table")),
 	("random", _("Random")),
 	# https://github.com/dascritch/machincast/issues/454
 	("filename_ascending", _("A→Z of the file name")),
 	("filename_descending", _("Z→A of the file name")),
 )
+TABLE_ORDERS = ("sequential", "sequential_ascending")
+"""Les modes qui suivent l'ordre du tableau des sonores : lui seul se change, et ne se trie pas."""
 CROSSFADE_RULES = (
 	("sound", _("Keep the sounds' own")),
 	("default", _("Apply if the sound has none")),
@@ -538,7 +542,7 @@ class BankCard(Card):
 		lines, aside, already = self._pasted_lines(copied_list)
 		tree = self.ui.sounds
 		current = tree.currentItem()
-		in_order = (self.ui.mode.currentData() == "sequential") and (self.ui.sound_filter.text() == "")
+		in_order = (self.ui.mode.currentData() in TABLE_ORDERS) and (self.ui.sound_filter.text() == "")
 		if (in_order) and (current is not None):
 			tree.insertTopLevelItems(tree.indexOfTopLevelItem(current) + 1, lines)
 		else:
@@ -807,9 +811,9 @@ class BankCard(Card):
 
 	def _refresh_buttons(self) -> None:
 		"""Les boutons d'une ligne ne servent qu'à une ligne choisie. L'ordre des sonores ne compte, et ne se change,
-		qu'en mode séquentiel : « Monter » et « Descendre » ne servent pas en tête et en fin de liste."""
+		que dans l'ordre du tableau, descendant ou ascendant : « Monter » et « Descendre » ne servent pas en tête et en fin de liste."""
 		self.ui.remove_directory.setEnabled(self.ui.directories.currentItem() is not None)
-		sequential = self.ui.mode.currentData() == "sequential"
+		sequential = self.ui.mode.currentData() in TABLE_ORDERS
 		self._follow_mode(sequential=sequential)
 		filtered = self.ui.sound_filter.text() != ""
 		# Pendant un filtre, l'ordre ne se change pas : des lignes cachées sépareraient les lignes montrées.

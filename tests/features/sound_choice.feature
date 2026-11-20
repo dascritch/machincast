@@ -39,6 +39,20 @@ Fonctionnalité: Choix d'un sonore dans une banque
 		Quand je joue 3 sonores de la banque « Jingles »
 		Alors les sonores joués sont « a », « c », « a »
 
+	Scénario: Une banque dans l'ordre ascendant du tableau donne ses sonores du dernier au premier, puis reprend à la fin
+		https://github.com/dascritch/machincast/issues/535 : la banque séquentielle descend le tableau de ses sonores ;
+		celle-ci le remonte.
+
+		Étant donné une banque dans l'ordre ascendant du tableau « Jingles » contenant « a », « b », « c »
+		Quand je joue 4 sonores de la banque « Jingles »
+		Alors les sonores joués sont « c », « b », « a », « c »
+
+	Scénario: Une banque dans l'ordre ascendant du tableau saute les sonores qui ne sont pas jouables
+		Étant donné une banque dans l'ordre ascendant du tableau « Jingles » contenant « a », « b », « c »
+		Et le sonore « b » est à l'état « disabled »
+		Quand je joue 3 sonores de la banque « Jingles »
+		Alors les sonores joués sont « c », « a », « c »
+
 	# ─── Ordre du nom de fichier (https://github.com/dascritch/machincast/issues/454) ───
 	# A→Z ou Z→A du nom de fichier : comme une banque séquentielle, dans l'ordre du nom de fichier des sonores, sans
 	# son répertoire, recalculé à chaque choix. Les noms se comparent tels quels, caractère par caractère : un préfixe

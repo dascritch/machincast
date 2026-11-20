@@ -83,7 +83,9 @@ WITHOUT_DAY = "~"
 """Le tri de la colonne « Priorité » : du plus important au moins important, jamais par ordre alphabétique
 (https://github.com/dascritch/machincast/issues/272)."""
 MODES = {
-	"sequential": _("sequential"),
+	# https://github.com/dascritch/machincast/issues/535
+	"sequential": _("descending order of the sounds table"),
+	"sequential_ascending": _("ascending order of the sounds table"),
 	"random": _("random"),
 	"filename_ascending": _("A→Z of the file name"),
 	"filename_descending": _("Z→A of the file name"),
