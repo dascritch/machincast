@@ -6,6 +6,14 @@ from psycopg.rows import TupleRow
 Connection = psycopg.Connection[TupleRow]
 
 
+def named(connection: Connection) -> list[TupleRow]:
+	"""Les séquences en base, non supprimées, par nom : identifiant et nom
+	(https://github.com/dascritch/machincast/issues/530)."""
+	return connection.execute(
+		"SELECT id, internal_name FROM sequences WHERE deleted_at IS NULL ORDER BY lower(internal_name), id"
+	).fetchall()
+
+
 def read_sequence(connection: Connection, sequence: int) -> TupleRow | None:
 	"""Nom interne, nom public et masquage de la séquence ; None si elle est absente."""
 	return connection.execute(

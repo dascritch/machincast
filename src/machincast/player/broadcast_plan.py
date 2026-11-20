@@ -13,7 +13,7 @@ from machincast.player.engine import (
 	overlay,
 	sequencing,
 )
-from machincast.player.rundown import OUTSIDE_LIST, Choice, Cutoff
+from machincast.player.rundown import INSERTED, OUTSIDE_LIST, Choice, Cutoff
 from machincast.player.saving import Play
 from machincast.shared.grid import Occurrence
 
@@ -28,8 +28,9 @@ def _lender_id(choice: Choice) -> int | None:
 
 
 def _play_item(choice: Choice) -> int | None:
-	"""L'élément de liste qui a fait jouer le sonore ; aucun pour le stream d'un feed qui coupe l'antenne."""
-	if choice.item.id == OUTSIDE_LIST:
+	"""L'élément de liste qui a fait jouer le sonore ; aucun pour le stream d'un feed qui coupe l'antenne, ni pour un
+	sonore inséré à la main (https://github.com/dascritch/machincast/issues/530)."""
+	if choice.item.id in (OUTSIDE_LIST, INSERTED):
 		return None
 	return choice.item.id
 

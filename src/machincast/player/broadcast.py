@@ -142,6 +142,7 @@ from machincast.player.state import (
 	ADVANCE,
 	CUT_BY_FALLBACK,
 	CUT_BY_FEED,
+	INSERT,
 	MINIMAL_PUBLICATION,
 	REREAD_GRID,
 	BusyStateSocket,
@@ -322,7 +323,10 @@ class Broadcast:
 							if asks.command == CUT_BY_FEED:
 								self.interruptions.cut_by_feed(asks.feed)
 							else:
-								self.interruptions.interrupt(asks.item)
+								if asks.command == INSERT:
+									self.interruptions.insert(asks.sequence, asks.bank)
+								else:
+									self.interruptions.interrupt(asks.item)
 		current = self.current
 		if current is not None:
 			decision = self._decide(instant, current.ongoing)

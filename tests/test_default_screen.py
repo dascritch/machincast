@@ -41,6 +41,7 @@ from tests.categories import AIRPLAY_KEYS as KEYS
 from tests.categories import HATCHINGS, SCENARIO
 from tests.database_fixtures import CONFIGURATION_TEST, sample_database_parameters
 from tests.interface_steps import open_in
+from tests.menu_entries import find_entry, submenu_of
 from tests.sounds import SOUND_FILES
 from tests.stream import StreamServer
 from tests.waiting import quiet, settle
@@ -1488,13 +1489,9 @@ def _table_menu(context: Context, table: str, title: str) -> QMenu | None:
 
 
 def _choose(menu: QMenu | None, entry: str) -> None:
+	"""Une entrée d'un sous-menu s'écrit « sous-menu › entrée » (https://github.com/dascritch/machincast/issues/530)."""
 	assert menu is not None
-	action_list = []
-	for candidate in menu.actions():
-		if candidate.text() == entry:
-			action_list.append(candidate)
-	(action,) = action_list
-	action.trigger()
+	find_entry(menu, entry).trigger()
 
 
 @given(
@@ -1550,9 +1547,21 @@ def no_block_menu(context: Context) -> None:
 @then("le clic droit sur le sonore en cours propose :")
 def ongoing_menu_offers(context: Context, datatable: list[list[str]]) -> None:
 	"""Un séparateur s'écrit « — »."""
-	_headers, *rows = datatable
 	menu = screen(context).ongoing_menu()
 	assert menu is not None
+	_offers(menu, datatable)
+
+
+@then(parsers.parse("le sous-menu « {title} » du clic droit sur le sonore en cours propose :"))
+def ongoing_submenu_offers(context: Context, title: str, datatable: list[list[str]]) -> None:
+	"""https://github.com/dascritch/machincast/issues/530"""
+	menu = screen(context).ongoing_menu()
+	assert menu is not None
+	_offers(submenu_of(menu, title), datatable)
+
+
+def _offers(menu: QMenu, datatable: list[list[str]]) -> None:
+	_headers, *rows = datatable
 	obtained = []
 	for action in menu.actions():
 		if action.isSeparator():

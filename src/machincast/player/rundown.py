@@ -90,7 +90,7 @@ from machincast.i18n import N_, _
 from machincast.player.banks import choose_sound, has_no_repeat, playable_sound
 from machincast.player.history import IN_DATABASE, History, HistoryInPlayback, LastPlay, PlannedHistory
 from machincast.player.saving import Play
-from machincast.player.sequences import SequenceItem, items_after, read_sequence
+from machincast.player.sequences import SequenceItem, items_after, read_sequence, sequence_of_item
 from machincast.randomness import Randomness
 from machincast.shared.grid import (
 	Event,
@@ -108,6 +108,9 @@ NOT_FOUND_FILE_RETRY = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
 OUTSIDE_LIST = 0
 """Identifiant de l'élément d'un passage qui ne vient d'aucune liste : le stream d'un feed qui coupe l'antenne."""
+INSERTED = -1
+"""Identifiant de l'élément d'un passage inséré à la main après un sonore : une séquence, ou un sonore d'une banque
+(https://github.com/dascritch/machincast/issues/530). Son passage n'a pas d'élément d'événement dans l'airplay."""
 END_REPLAY = "replay"
 END_TO_FALLBACK = "fallback"
 END_LEND_NAME = "lend_name"
@@ -191,6 +194,16 @@ class Repetition:
 	play: uuid.UUID
 	bank: int
 	name: str
+
+
+@dataclass(frozen=True)
+class Insertion:
+	"""Ce qui joue après le passage after, à la place de la suite de la liste : une séquence, jusqu'au bout, ou un
+	sonore d'une banque (https://github.com/dascritch/machincast/issues/530)."""
+
+	after: uuid.UUID
+	sequence: int | None = None
+	bank: int | None = None
 
 
 @dataclass(frozen=True)
@@ -440,6 +453,9 @@ class Scheduler:
 		"""Les occurrences recommencées à la main, et l'instant de leur recommencement
 		(https://github.com/dascritch/machincast/issues/366) : leur liste se compte depuis là. Retenues en mémoire
 		seulement, comme une occurrence terminée plus tôt."""
+		self.insertion: Insertion | None = None
+		"""La séquence ou la banque à jouer après le passage en cours, demandée à la main
+		(https://github.com/dascritch/machincast/issues/530) ; retenue en mémoire seulement."""
 		self.advanced: Occurrence | None = None
 		"""L'occurrence avancée à la demande (https://github.com/dascritch/machincast/issues/257) : active dès la
 		demande, jusqu'à son début prévu, où la grille la retrouve. Retenue en mémoire seulement, comme une occurrence
@@ -661,6 +677,25 @@ class Scheduler:
 		self.finished_list.discard(occurrence.key)
 		self.restarts[occurrence.key] = instant
 
+	def restart_sequence(self, choice: Choice, instant: datetime) -> Choice | None:
+		"""Le premier sonore jouable de la séquence de ce choix, pour la recommencer
+		(https://github.com/dascritch/machincast/issues/530) ; None si elle n'a plus rien de jouable."""
+		with self.connection.transaction():
+			return in_sequence(
+				self.connection,
+				choice.occurrence,
+				choice.item,
+				None,
+				instant,
+				self.randomness,
+				self._excluded_list(instant),
+				self.history,
+			)
+
+	def insert(self, insertion: Insertion) -> None:
+		"""Après le passage nommé, la séquence ou un sonore de la banque passent avant la suite de la liste."""
+		self.insertion = insertion
+
 	def abandon_sequence(self, play: uuid.UUID) -> None:
 		"""La séquence du passage est interrompue : la liste de son événement reprend à l'élément qui la suit."""
 		self.abandoned_sequence = play
@@ -865,6 +900,9 @@ class Scheduler:
 			# Le stream d'un feed qui coupe l'antenne (https://github.com/dascritch/machincast/issues/323) ; sinon,
 			# d'abord la suite de la séquence en cours, s'il en reste ; sinon, l'élément suivant de l'événement actif.
 			choice = self._by_feed(instant, active)
+			# Ce qui est inséré à la main passe d'abord (https://github.com/dascritch/machincast/issues/530).
+			if choice is None:
+				choice = self._inserted(instant, active, last, forbidden, skipped_list)
 			if choice is None:
 				choice = self._remainder(instant, active, last, forbidden, skipped_list)
 			if (choice is None) and (active is not None):
@@ -960,6 +998,66 @@ class Scheduler:
 			instant,
 			self.randomness,
 			self._excluded_list(instant),
+			self.history,
+			forbidden,
+			skipped_list,
+		)
+
+	def _inserted(
+		self,
+		instant: datetime,
+		active: Occurrence | None,
+		last: LastPlay | None,
+		forbidden: int | None,
+		skipped_list: list[Skip],
+	) -> Choice | None:
+		"""Ce qui est inséré à la main (https://github.com/dascritch/machincast/issues/530), au nom de l'occurrence
+		active : juste après le passage nommé, le premier sonore de la séquence, ou un sonore de la banque ; puis la
+		suite de la séquence insérée, tant que son occurrence reste active. Une séquence interrompue ne continue pas."""
+		if (active is None) or (last is None) or (self.suspension is not None):
+			return None
+		insertion = self.insertion
+		excluded_list = self._excluded_list(instant)
+		if (insertion is not None) and (last.id == insertion.after):
+			if insertion.sequence is not None:
+				item = Item(INSERTED, 0, None, None, insertion.sequence)
+				return in_sequence(
+					self.connection,
+					active,
+					item,
+					None,
+					instant,
+					self.randomness,
+					excluded_list,
+					self.history,
+					forbidden,
+					skipped_list,
+				)
+			sound = _provide(
+				self.connection, None, insertion.bank, instant, self.randomness, excluded_list, self.history
+			)
+			if sound is None:
+				return None
+			return Choice(sound, Item(INSERTED, 0, None, insertion.bank), insertion.bank, active)
+		# Un passage inséré d'une séquence n'a pas d'élément d'événement, mais un élément de séquence.
+		if (
+			(last.item is not None)
+			or (last.item_sequence is None)
+			or (last.event != active.event.id)
+			or (last.id == self.abandoned_sequence)
+		):
+			return None
+		sequence = sequence_of_item(self.connection, last.item_sequence)
+		if sequence is None:
+			return None
+		return in_sequence(
+			self.connection,
+			active,
+			Item(INSERTED, 0, None, None, sequence),
+			last.item_sequence,
+			instant,
+			self.randomness,
+			excluded_list,
 			self.history,
 			forbidden,
 			skipped_list,

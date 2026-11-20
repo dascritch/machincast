@@ -9,7 +9,8 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 	dossier pour une banque, une montre pour un événement, un calendrier pour la grille, une boule de divination pour la
 	simulation. Elle prend la couleur du texte du thème, clair ou sombre. Elle désigne le genre dans les onglets (listes,
 	fiches, grille, simulation), le menu « Affichage », la colonne « Type » de la recherche et les relations de la fiche
-	d'un sonore, et les boutons « Fiche… » de l'onglet Antenne. Les onglets Antenne, Incidents, Recherche et Feeds n'en ont pas.
+	d'un sonore, et les boutons « Fiche… » de l'onglet Antenne. Les onglets Antenne, Incidents et Recherche n'en ont pas ; les feeds ont un poste de radio
+	(https://github.com/dascritch/machincast/issues/530), comme les entrées qui pilotent ou modifient l'antenne.
 
 	Contexte:
 		Étant donné l'horloge de l'interface au « 2026-10-21 09:00:00 »
@@ -27,11 +28,18 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| simulation | #2a2a2a |
 			| pré-écoute | #2a2a2a |
 			| airplay    | #2a2a2a |
+			| feed       | #2a2a2a |
+			| start      | #2a2a2a |
+			| stop       | #2a2a2a |
+			| restart    | #2a2a2a |
+			| skip       | #2a2a2a |
+			| insert     | #2a2a2a |
+			| cut        | #2a2a2a |
 			| sonore     | #f0f0f0 |
 			| simulation | #f0f0f0 |
 
-	Scénario: Les huit icônes sont différentes les unes des autres
-		Alors les icônes « sonore », « séquence », « banque », « événement », « grille », « simulation », « pré-écoute » et « airplay » sont toutes différentes
+	Scénario: Les quinze icônes sont différentes les unes des autres
+		Alors les icônes « sonore », « séquence », « banque », « événement », « grille », « simulation », « pré-écoute », « airplay », « feed », « start », « stop », « restart », « skip », « insert » et « cut » sont toutes différentes
 
 	Scénario: L'icône suit la couleur du texte du thème de l'application
 		Quand le thème de l'application écrit en #f0f0f0
@@ -61,7 +69,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| onglet                   | icône      |
 			| Antenne                  | aucune     |
 			| Sonores                  | sonore     |
-			| Feeds                    | aucune     |
+			| Feeds                    | feed       |
 			| Sonore : Café à minuit   | sonore     |
 			| Calendrier               | grille     |
 			| Simulation               | simulation |
@@ -128,7 +136,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Rafraîchir les onglets          | aucune     |
 			| Rechercher…                     | aucune     |
 			| Ouvrir l'onglet Sonores         | sonore     |
-			| Ouvrir l'onglet Feeds   | aucune     |
+			| Ouvrir l'onglet Feeds   | feed       |
 			| Ouvrir l'onglet Grille horaire  | grille     |
 			| Ouvrir l'onglet Simulation      | simulation |
 			| Ouvrir l'onglet Airplay         | airplay    |

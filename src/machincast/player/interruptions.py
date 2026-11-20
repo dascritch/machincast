@@ -4,7 +4,8 @@ Interruptions traite ce que l'interface demande sur la socket d'état, au début
 l'événement suivant (https://github.com/dascritch/machincast/issues/257), interrompre le sonore, la séquence ou
 l'événement en cours (https://github.com/dascritch/machincast/issues/104,
 https://github.com/dascritch/machincast/issues/228), couper l'antenne par un secours ou par un feed
-(https://github.com/dascritch/machincast/issues/323). Elle agit sur la diffusion qui la crée (broadcast), dont elle
+(https://github.com/dascritch/machincast/issues/323), recommencer la séquence en cours, ou insérer une séquence ou un
+sonore d'une banque après le sonore en cours (https://github.com/dascritch/machincast/issues/530). Elle agit sur la diffusion qui la crée (broadcast), dont elle
 partage l'état : le sonore en cours, ceux prévus, l'ordonnanceur et l'historique.
 """
 
@@ -20,7 +21,7 @@ from machincast.player.broadcast_types import (
 	Planned,
 	Playback,
 )
-from machincast.player.rundown import Choice
+from machincast.player.rundown import Choice, Insertion
 from machincast.shared.fades import NO_CROSSFADE
 from machincast.shared.grid import Event, Occurrence, Priority, read_event, wall_hour
 
@@ -34,6 +35,9 @@ IGNORED = N_("{manual_interruption} ignored").format(manual_interruption=MANUAL_
 ADVANCED_EVENT = N_("advanced event")
 """Nature de la ligne du log d'une avance de l'événement suivant (https://github.com/dascritch/machincast/issues/257)."""
 IGNORED_ADVANCE = N_("advance ignored")
+MANUAL_INSERTION = N_("manual insertion")
+"""Nature de la ligne du log d'une insertion après le sonore en cours (https://github.com/dascritch/machincast/issues/530)."""
+IGNORED_INSERTION = N_("insertion ignored")
 FOLLOWING_EVENT_SEARCH = timedelta(minutes=1)
 """L'événement suivant publié se cherche de nouveau au plus tard après ce délai, même si rien n'a changé."""
 
@@ -132,7 +136,7 @@ class Interruptions:
 		choice = current.choice
 		# L'événement à l'antenne : celui qui prête son nom, s'il y en a un (https://github.com/dascritch/machincast/issues/399).
 		event = ((choice.lender) or (choice.occurrence)).event
-		if (item == "sequence") and (choice.line is None):
+		if (item in ("sequence", "restart_sequence")) and (choice.line is None):
 			log.warning(_("{ignored}: no sequence on air").format(ignored=logged(IGNORED)))
 			return False
 		if (item == "event") and (event.priority is Priority.BACKGROUND_PROGRAMMING):
@@ -154,7 +158,7 @@ class Interruptions:
 		)
 		if self.broadcast.outputs is not None:
 			self.broadcast.outputs.announce(MANUAL_INTERRUPTION, message)
-		if item not in ("sound", "restart_sound"):
+		if item not in ("sound", "restart_sound", "restart_sequence"):
 			self.broadcast.scheduler.abandon_sequence(current.play.id)
 		following = None
 		match item:
@@ -164,6 +168,10 @@ class Interruptions:
 			case "restart_sound":
 				# Le même sonore, du même élément : les sonores à venir le suivent toujours.
 				following = choice
+			case "restart_sequence":
+				# Le premier sonore jouable de la séquence ; la suite de la séquence vient après lui.
+				following = self.broadcast.scheduler.restart_sequence(choice, instant)
+				self.broadcast.upcoming = []
 			case "restart_event":
 				self.broadcast.scheduler.restart((choice.lender) or (choice.occurrence), instant)
 				self.broadcast.upcoming = []
@@ -191,7 +199,68 @@ class Interruptions:
 				)
 			case "restart_event":
 				return N_("back to the start of the event “{name}”").format(name=event.name)
+			case "restart_sequence":
+				return N_("back to the start of the sequence {on_air_sequence}").format(
+					on_air_sequence=self.broadcast._on_air_sequence
+				)
 		return N_("of the sound “{sound_name}”").format(sound_name=self._sound_name(choice.sound))
+
+	def insert(self, sequence: int | None, bank: int | None) -> bool:
+		"""Après le sonore en cours, la séquence, jusqu'au bout, ou un sonore de la banque, passent avant la suite de la
+		liste (https://github.com/dascritch/machincast/issues/530). Le sonore en cours n'est pas interrompu ; le
+		prochain sonore et ceux à venir sont choisis de nouveau. False si la demande est ignorée : rien à l'antenne, ou
+		une séquence ou une banque qui n'est pas en base."""
+		instant = self.broadcast.clock.now()
+		current = self.broadcast.current
+		if current is None:
+			log.warning(_("{ignored}: nothing on air").format(ignored=logged(IGNORED_INSERTION)))
+			return False
+		name = self._inserted_name(sequence, bank)
+		if name is None:
+			log.warning(
+				_("{ignored}: sequence {sequence} or bank {bank} unknown").format(
+					ignored=logged(IGNORED_INSERTION), sequence=sequence, bank=bank
+				)
+			)
+			return False
+		self.broadcast.scheduler.insert(Insertion(current.play.id, sequence, bank))
+		if sequence is not None:
+			message = N_("of the sequence “{name}” after the sound “{sound_name}”")
+		else:
+			message = N_("of a sound from the bank “{name}” after the sound “{sound_name}”")
+		message = message.format(name=name, sound_name=self._sound_name(current.choice.sound))
+		self.broadcast.history.record(
+			self.broadcast.connection,
+			"info",
+			MANUAL_INSERTION,
+			message,
+			instant,
+			sound=current.choice.sound,
+			event=current.choice.occurrence.event.id,
+		)
+		if self.broadcast.outputs is not None:
+			self.broadcast.outputs.announce(MANUAL_INSERTION, message)
+		# Le prochain sonore et ceux à venir changent : ils se choisissent de nouveau, comme au début d'un sonore.
+		self.broadcast._expected = None
+		self.broadcast.upcoming = []
+		self.broadcast._reserve(instant)
+		self.broadcast._publish(instant)
+		return True
+
+	def _inserted_name(self, sequence: int | None, bank: int | None) -> str | None:
+		"""Le nom de la séquence ou de la banque à insérer ; None si elle n'est pas en base, ou supprimée."""
+		with self.broadcast.connection.transaction():
+			if sequence is not None:
+				line = self.broadcast.connection.execute(
+					"SELECT internal_name FROM sequences WHERE id = %s AND deleted_at IS NULL", (sequence,)
+				).fetchone()
+			else:
+				line = self.broadcast.connection.execute(
+					"SELECT internal_name FROM banks WHERE id = %s AND deleted_at IS NULL", (bank,)
+				).fetchone()
+		if line is None:
+			return None
+		return str(line[0])
 
 	def cut_by_fallback(self, event: int | None) -> bool:
 		"""Coupe l'antenne par cet événement de secours (https://github.com/dascritch/machincast/issues/323) ; False si

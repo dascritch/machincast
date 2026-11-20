@@ -56,6 +56,14 @@ def read_sequence(connection: psycopg.Connection[TupleRow], identifier: int) -> 
 	return Sequence(identifier, str(line[0]), items)
 
 
+def sequence_of_item(connection: psycopg.Connection[TupleRow], item: int) -> int | None:
+	"""La séquence de cet élément de séquence ; None s'il n'est plus en base."""
+	line = connection.execute("SELECT sequence_id FROM sequence_items WHERE id = %s", (item,)).fetchone()
+	if line is None:
+		return None
+	return int(str(line[0]))
+
+
 def items_after(sequence: Sequence, last: int | None) -> list[SequenceItem]:
 	"""Éléments qui restent à jouer après le dernier joué ; tous si dernier est None. Un dernier élément supprimé
 	depuis termine la séquence : on ne sait plus où la reprendre."""

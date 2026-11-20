@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+	<title>Insérer : trois lignes, et une flèche qui entre entre les deux premières</title>
+	<rect x="9" y="4" width="12" height="2.4" rx="1" fill="currentColor"/>
+	<rect x="9" y="17.6" width="12" height="2.4" rx="1" fill="currentColor"/>
+	<rect x="12" y="10.8" width="9" height="2.4" rx="1" fill="currentColor"/>
+	<path fill="currentColor" d="M2.5 10.8 H6.5 V8 L10.5 12 L6.5 16 V13.2 H2.5 Z"/>
+</svg>

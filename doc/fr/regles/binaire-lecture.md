@@ -164,3 +164,5 @@ Aucune écriture en base, aucune sortie sonore, état tenu en mémoire, graine r
 
 - **Découpage de `Broadcast`** ([#440](https://github.com/dascritch/machincast/issues/440)) : `player/broadcast.py` garde la machine à états ; les types (`Parameters`, `Playback`, `Planned`…, `crossfade`) sont à `broadcast_types.py`, les textes annoncés à `broadcast_text.py`, le calcul du plan et des horizons à `broadcast_plan.py`, et les interruptions (avancer, interrompre, couper par secours ou par feed) à `interruptions.py` (`Broadcast.interruptions`).
 	Un comportement neuf va dans le module de sa responsabilité.
+- Une insertion à la main ([#530](https://github.com/dascritch/machincast/issues/530)) ne coupe pas le sonore en cours : `Scheduler.insertion` nomme le passage après lequel elle joue, et ses passages n'ont pas d'élément d'événement (`rundown.INSERTED`, `event_item_id` vide).
+	La suite de la liste se lit par `History.last_item`, qui ignore ces passages ; une séquence insérée se poursuit par `Scheduler._inserted`, d'après son dernier élément de séquence.
