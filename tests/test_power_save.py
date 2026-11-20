@@ -13,18 +13,17 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from PySide6.QtWidgets import QCheckBox, QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast import power_save, service
-from machincast.configuration import PROJECT_DIRECTORY
+from machincast.configuration import PROJECT_DIRECTORY, Crossfades
+from machincast.interface.preferences import INTERFACE, SERVICE, PreferencesWindow, Settings
 from tests.database_fixtures import configuration_test
-from tests.interface_steps import Context, actions
-from tests.test_control import announces_soon
 
 scenarios("power_save.feature")
 
-then(parsers.parse("la barre d'état annonce bientôt « {text} »"))(announces_soon)
 
 HDA = Path("sys/module/snd_hda_intel/parameters/power_save")
 
@@ -200,30 +199,71 @@ def sh_removes() -> None:
 	assert "executer sudo udevadm control --reload" in body, body
 
 
-def _entry(interface: Context, text: str, menu: str) -> object:
-	found = []
-	for action in actions(interface, menu):
-		if action.text() == text:
-			found.append(action)
-	assert len(found) == 1, found
-	return found[0]
+@pytest.fixture
+def settings_window(qtbot: QtBot) -> dict[str, PreferencesWindow]:
+	return {}
+
+
+def _open(qtbot: QtBot, opened: dict[str, PreferencesWindow], kind: str) -> PreferencesWindow:
+	window = PreferencesWindow(Settings(Crossfades(), None, None), "dummy", None, kind=kind)
+	qtbot.addWidget(window)
+	opened["window"] = window
+	return window
+
+
+@when("j'ouvre les paramètres du service")
+def open_service_settings(qtbot: QtBot, settings_window: dict[str, PreferencesWindow]) -> None:
+	"""https://github.com/dascritch/machincast/issues/532"""
+	_open(qtbot, settings_window, SERVICE)
+
+
+@when("j'ouvre les préférences de l'interface")
+def open_interface_preferences(qtbot: QtBot, settings_window: dict[str, PreferencesWindow]) -> None:
+	_open(qtbot, settings_window, INTERFACE)
+
+
+def _box(settings_window: dict[str, PreferencesWindow]) -> QCheckBox:
+	box = settings_window["window"].findChild(QCheckBox, "power_save")
+	assert isinstance(box, QCheckBox)
+	return box
+
+
+@when("je clique sur la case « Cartes son toujours éveillées »")
+def click_box(settings_window: dict[str, PreferencesWindow]) -> None:
+	_box(settings_window).click()
 
 
 @then(
 	parsers.re(
-		r"l'entrée « (?P<text>[^»]+) » du menu « (?P<menu>[^»]+) » est (?P<state>active|inactive), "
+		r"la case « Cartes son toujours éveillées » de la page « Audio » est (?P<state>active|inactive), "
 		r"(?P<checked>cochée|décochée)(?:, avec l'infobulle « (?P<tooltip>[^»]+) »)?$"
 	)
 )
-def entry(
-	interface: Context, qtbot: QtBot, text: str, menu: str, state: str, checked: str, tooltip: str | None
+def box_state(
+	settings_window: dict[str, PreferencesWindow], qtbot: QtBot, state: str, checked: str, tooltip: str | None
 ) -> None:
-	action = _entry(interface, text, menu)
-	assert action.isCheckable()  # type: ignore[attr-defined]
-	qtbot.waitUntil(lambda: action.isChecked() == (checked == "cochée"), timeout=5000)  # type: ignore[attr-defined]
-	assert action.isEnabled() == (state == "active")  # type: ignore[attr-defined]
+	box = _box(settings_window)
+	assert box.text() == "Cartes son toujours éveillées"
+	ui = settings_window["window"].ui
+	assert ui.device_group.isAncestorOf(box)
+	assert ui.pages.tabText(ui.pages.indexOf(ui.page_audio)) == "Audio"
+	qtbot.waitUntil(lambda: box.isChecked() == (checked == "cochée"), timeout=5000)
+	assert box.isEnabled() == (state == "active")
 	if tooltip is not None:
-		assert action.toolTip() == tooltip  # type: ignore[attr-defined]
+		assert box.toolTip() == tooltip
+
+
+@then(parsers.parse("les paramètres du service disent bientôt « {text} »"))
+def said_in_settings(settings_window: dict[str, PreferencesWindow], qtbot: QtBot, text: str) -> None:
+	said = settings_window["window"].findChild(QLabel, "power_save_result")
+	assert isinstance(said, QLabel)
+	qtbot.waitUntil(lambda: said.text() == text, timeout=5000)
+	assert not said.isHidden()
+
+
+@then("la page « Audio » n'a pas de case « Cartes son toujours éveillées »")
+def without_box(settings_window: dict[str, PreferencesWindow]) -> None:
+	assert settings_window["window"].findChild(QCheckBox, "power_save") is None
 
 
 @then(parsers.parse("pkexec a lancé « python -m machincast.power_save {action} »"))

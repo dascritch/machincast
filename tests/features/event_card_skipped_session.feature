@@ -119,7 +119,7 @@ Fonctionnalité: La fiche d'un événement annonce sa prochaine session sautée,
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et la session du 2026-10-22 de « Matinale » est rétablie en base
-		Et je choisis « Rafraîchir les onglets » dans le menu « Affichage »
+		Et j'appuie sur « F5 »
 		Alors la fiche n'annonce aucune session sautée
 
 	Scénario: La copie d'un événement n'annonce pas les sessions sautées de l'original

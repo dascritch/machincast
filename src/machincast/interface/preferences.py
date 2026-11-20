@@ -39,7 +39,7 @@ from typing import Literal
 import tomlkit
 from PySide6.QtCore import QLocale, QTime
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QLabel, QVBoxLayout, QWidget
 
 from machincast import notes as notes_module
 from machincast import service as service_module
@@ -57,6 +57,7 @@ from machincast.configuration import (
 )
 from machincast.i18n import _
 from machincast.interface.application import ICON, readable
+from machincast.interface.power_save_switch import PowerSaveSwitch
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.timeline import Plan, Timeline, demonstration_shape
 from machincast.interface.ui.preferences import Ui_PreferencesWindow
@@ -448,7 +449,25 @@ class PreferencesWindow(QDialog):
 		self._demonstrate()
 		ui.buttons.accepted.connect(self.accept)
 		ui.buttons.rejected.connect(self.reject)
+		self.power_save: PowerSaveSwitch | None = None
+		if kind == SERVICE:
+			self._offer_power_save()
 		self._keep_only(kind)
+
+	def _offer_power_save(self) -> None:
+		"""« Cartes son toujours éveillées », page « Audio », sous les cartes son : elle agit aussitôt, sans attendre
+		« OK », et dit sous elle ce qu'il en est (https://github.com/dascritch/machincast/issues/532)."""
+		box = QCheckBox(self.ui.device_group)
+		box.setObjectName("power_save")
+		self.ui.device_layout.addWidget(box)
+		said = QLabel(self.ui.device_group)
+		said.setObjectName("power_save_result")
+		said.setWordWrap(True)
+		said.setVisible(False)
+		self.ui.device_layout.addWidget(said)
+		self.power_save = PowerSaveSwitch(box, self)
+		self.power_save.announced.connect(said.setText)
+		self.power_save.announced.connect(lambda _text: said.setVisible(True))
 
 	def _show_daily(self, daily: time, *, timers: bool | None) -> None:
 		"""L'heure de la tâche quotidienne, réglable si install.sh --service a installé les minuteurs des tâches ; sinon

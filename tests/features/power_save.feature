@@ -60,31 +60,35 @@ Fonctionnalité: Les cartes son du poste d'antenne ne s'endorment jamais
 		Alors install.sh, en installant le service, lance « machincast.power_save wake » après les deux réglages
 		Et install.sh, en retirant le service, recharge les règles de udev
 
-	# ─── Le menu « Maintenance », sans service ─────────────────
+	# ─── Les paramètres du service, page « Audio » (https://github.com/dascritch/machincast/issues/532) ───
 
 	Scénario: Sans service, « Cartes son toujours éveillées » les active, puis les désactive, avec un administrateur
 		Étant donné la racine du scénario pour les réglages des cartes son
-		Quand la fenêtre de l'interface s'ouvre
-		Alors l'entrée « Cartes son toujours éveillées » du menu « Maintenance » est active, décochée
-		Quand je choisis « Cartes son toujours éveillées » dans le menu « Maintenance »
-		Alors la barre d'état annonce bientôt « Cartes son toujours éveillées : elles ne passent plus en économie d'énergie. »
+		Quand j'ouvre les paramètres du service
+		Alors la case « Cartes son toujours éveillées » de la page « Audio » est active, décochée
+		Quand je clique sur la case « Cartes son toujours éveillées »
+		Alors les paramètres du service disent bientôt « Cartes son toujours éveillées : elles ne passent plus en économie d'énergie. »
 		Et pkexec a lancé « python -m machincast.power_save enable »
-		Et l'entrée « Cartes son toujours éveillées » du menu « Maintenance » est active, cochée
-		Quand je choisis « Cartes son toujours éveillées » dans le menu « Maintenance »
-		Alors la barre d'état annonce bientôt « Cartes son de nouveau en économie d'énergie, au prochain redémarrage. »
-		Et l'entrée « Cartes son toujours éveillées » du menu « Maintenance » est active, décochée
+		Et la case « Cartes son toujours éveillées » de la page « Audio » est active, cochée
+		Quand je clique sur la case « Cartes son toujours éveillées »
+		Alors les paramètres du service disent bientôt « Cartes son de nouveau en économie d'énergie, au prochain redémarrage. »
+		Et la case « Cartes son toujours éveillées » de la page « Audio » est active, décochée
 
 	Scénario: Une authentification refusée ne change rien, et le dit
 		Étant donné la racine du scénario pour les réglages des cartes son
 		Et pkexec qui refuse l'authentification
-		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Cartes son toujours éveillées » dans le menu « Maintenance »
-		Alors la barre d'état annonce bientôt « Cartes son non réglées : authentification refusée. »
-		Et l'entrée « Cartes son toujours éveillées » du menu « Maintenance » est active, décochée
+		Quand j'ouvre les paramètres du service
+		Et je clique sur la case « Cartes son toujours éveillées »
+		Alors les paramètres du service disent bientôt « Cartes son non réglées : authentification refusée. »
+		Et la case « Cartes son toujours éveillées » de la page « Audio » est active, décochée
 
-	Scénario: Avec le service de diffusion, l'entrée est inactive : install.sh --service tient les réglages
+	Scénario: Avec le service de diffusion, la case est inactive : install.sh --service tient les réglages
 		Étant donné la racine du scénario pour les réglages des cartes son
 		Et les cartes son tenues éveillées dans la racine du scénario
 		Et le compte du service « root »
-		Quand la fenêtre de l'interface s'ouvre
-		Alors l'entrée « Cartes son toujours éveillées » du menu « Maintenance » est inactive, cochée, avec l'infobulle « Réglé par install.sh --service, avec le service de diffusion. »
+		Quand j'ouvre les paramètres du service
+		Alors la case « Cartes son toujours éveillées » de la page « Audio » est inactive, cochée, avec l'infobulle « Réglé par install.sh --service, avec le service de diffusion. »
+
+	Scénario: Les préférences de l'interface n'ont pas cette case
+		Quand j'ouvre les préférences de l'interface
+		Alors la page « Audio » n'a pas de case « Cartes son toujours éveillées »
