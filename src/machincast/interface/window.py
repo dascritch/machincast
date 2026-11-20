@@ -87,6 +87,7 @@ from machincast.interface import (
 	preferences,
 	service_access,
 	suggestions,
+	table_menu,
 	version,
 )
 from machincast.interface.adding import add_files
@@ -433,6 +434,8 @@ class MainWindow(QMainWindow):
 		# https://github.com/dascritch/machincast/issues/398 : relu à chaque ouverture.
 		self.tabs_menu = self.menuBar().addMenu(_("&Tabs"))
 		self.tabs_menu.aboutToShow.connect(lambda: self.tab_manager.list_tabs(self.tabs_menu))
+		# https://github.com/dascritch/machincast/issues/528 : le tableau de l'onglet affiché.
+		self.table_menu = table_menu.TableMenu(self.menuBar().addMenu(_("Ta&ble")), self.ui.tabs)
 		self.broadcast_menu = self.menuBar().addMenu(_("&Broadcast"))
 		self.broadcast_menu.aboutToShow.connect(self.broadcast.reread_service)
 		# L'écoute de l'antenne, lancée aussitôt, en tête du menu (https://github.com/dascritch/machincast/issues/245) ;

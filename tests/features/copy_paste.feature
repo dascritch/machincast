@@ -16,6 +16,11 @@ Fonctionnalité: Copier et coller les éléments ou les sonores d'une liste, d'u
 	collée dans une banque est laissée de côté, un sonore déjà dans la banque n'est pas collé une seconde fois, et la
 	fiche le dit. En mode séquentiel, les sonores collés vont après la ligne courante ; en aléatoire, en fin de liste.
 
+	https://github.com/dascritch/machincast/issues/528 : une liste éditable se coupe aussi, par Ctrl+X ou « Couper » au clic
+	droit, qui copie puis retire les lignes choisies, et « Tout sélectionner » choisit toutes ses lignes. Le menu
+	« Tableau » de la fenêtre, après « Onglets », agit sur le tableau de l'onglet affiché : copier, couper, coller ses
+	lignes, les exporter, rétablir ses colonnes.
+
 	Les résultats de la recherche (Ctrl+F) se copient aussi, quel que soit leur genre : chaque liste ne colle que ce
 	qu'elle peut contenir, parmi les résultats choisis, et dit ce qu'elle laisse de côté.
 
@@ -214,3 +219,65 @@ Fonctionnalité: Copier et coller les éléments ou les sonores d'une liste, d'u
 		Et je colle les éléments
 		Alors la liste de la fiche montre les éléments « Jingle fin », « Avant midi », « Midi pile »
 		Et la fiche dit « Laissé de côté, un événement n'est pas un élément d'une liste de lecture : Midi. »
+
+	# ─── Couper, tout sélectionner, menu Tableau (https://github.com/dascritch/machincast/issues/528) ───
+
+	Scénario: « Couper » au clic droit copie les lignes choisies et les retire, prêtes à être collées ailleurs
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je choisis les éléments n° 2 à 3 de la liste
+		Et je choisis « Couper » au clic droit sur l'élément n° 2 de la liste
+		Alors la liste de la fiche montre les éléments « Habillage », « Publicité »
+		Quand j'ouvre la fiche de l'événement « Midi »
+		Et je colle les éléments
+		Alors la liste de la fiche montre les éléments « Jingle fin », « Passage pub », « Les Gaufres – Spot »
+
+	Scénario: Ctrl+X coupe les sonores choisis d'une banque
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Habillage »
+		Et je choisis les éléments n° 1 à 1 de la liste
+		Et j'appuie sur Ctrl+X dans la liste
+		Alors la liste de la fiche montre les éléments « Jingle fin »
+		Quand j'ouvre la fiche de la séquence « Passage pub »
+		Et je colle les éléments
+		Alors la liste de la fiche montre les éléments « Jingle début », « Publicité », « Jingle fin », « Jingle début »
+
+	Scénario: « Tout sélectionner » au clic droit choisit toutes les lignes de la liste
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et je choisis « Tout sélectionner » au clic droit sur l'élément n° 1 de la liste
+		Alors les lignes choisies de la liste sont « Habillage », « Passage pub », « Les Gaufres – Spot », « Publicité »
+
+	Scénario: Le clic droit d'une liste éditable propose Couper, Copier, Coller, puis Tout sélectionner
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Alors le clic droit hors des lignes de la liste propose « Couper », « Copier », « Coller », « — », « Tout sélectionner », « — », « Exporter ce tableau… »
+
+	Scénario: Le menu « Tableau » agit sur la liste de la fiche affichée
+		Étant donné un presse-papiers vide
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et j'ouvre le menu « Tableau »
+		Alors le menu « Tableau » a les entrées :
+			| entrée                 | état     | raccourci | infobulle |
+			| Copier des lignes      | inactive | Ctrl+C    |           |
+			| Couper des lignes      | inactive | Ctrl+X    |           |
+			| Coller des lignes      | inactive | Ctrl+V    |           |
+			| —                      |          |           |           |
+			| Exporter des lignes…   | active   |           |           |
+			| Rétablir les colonnes  | active   |           |           |
+		Quand je choisis les éléments n° 1 à 2 de la liste
+		Et j'ouvre le menu « Tableau »
+		Et je choisis « Couper des lignes » dans le menu « Tableau »
+		Alors la liste de la fiche montre les éléments « Les Gaufres – Spot », « Publicité »
+		Quand je choisis les éléments n° 2 à 2 de la liste
+		Et j'ouvre le menu « Tableau »
+		Et je choisis « Coller des lignes » dans le menu « Tableau »
+		Alors la liste de la fiche montre les éléments « Les Gaufres – Spot », « Publicité », « Habillage », « Passage pub »
+
+	Scénario: Sur un onglet sans tableau, le menu « Tableau » ne propose rien
+		Étant donné un presse-papiers vide
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Calendrier »
+		Et j'ouvre le menu « Tableau »
+		Alors le menu « Tableau » ne propose plus rien

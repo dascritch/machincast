@@ -119,7 +119,7 @@ def paste(interface: Context) -> None:
 	items(interface).paste()
 
 
-@when(parsers.re(r"j'appuie sur Ctrl\+(?P<key>[CV]) dans la liste"))
+@when(parsers.re(r"j'appuie sur Ctrl\+(?P<key>[CVX]) dans la liste"))
 def keys(interface: Context, qtbot: QtBot, key: str) -> None:
 	view = list_(interface)
 	with qtbot.waitActive(window(interface)):
@@ -210,3 +210,16 @@ def offered(interface: Context, copy: str, paste: str) -> None:
 @then("le presse-papiers contient le texte :")
 def clipboard_text(docstring: str) -> None:
 	assert QGuiApplication.clipboard().text() == docstring + "\n"
+
+
+@then(parsers.re(r"le clic droit hors des lignes de la liste propose (?P<entries>«.+»)$"))
+def offered_entries(interface: Context, entries: str) -> None:
+	view = list_(interface)
+	menu = columns(interface).table_menu(QPoint(5, view.viewport().height() - 2))
+	text_list = []
+	for action in menu.actions():
+		if action.isSeparator():
+			text_list.append("—")
+		else:
+			text_list.append(action.text())
+	assert text_list == NAME.findall(entries)

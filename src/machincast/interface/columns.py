@@ -22,12 +22,16 @@ Chaque tableau, QTableView ou QTreeView, est une vue, nommée par sa clé : « l
   tableau tel qu'il est affiché, en CSV (in_csv) : les colonnes montrées, dans leur ordre, et les lignes que garde le
   filtre, dans l'ordre du tri. La barre d'état de la fenêtre dit où il est enregistré, ou pourquoi il ne l'est pas. Un
   export ne remplace jamais un fichier sonore (https://github.com/dascritch/machincast/issues/96).
+
+Chaque tableau est retenu (of_widget), avec le dernier qui a eu le focus : le menu « Tableau » de la fenêtre agit sur
+celui de l'onglet affiché (https://github.com/dascritch/machincast/issues/528).
 """
 
 import csv
 import io
 import logging
 import os
+import weakref
 from collections.abc import Callable
 from pathlib import Path
 
@@ -59,6 +63,9 @@ EXPORT = _("Export this table…")
 CSV_FILTER = _("CSV spreadsheet (*.csv)")
 SEPARATOR = ";"
 """Séparateur du CSV, comme ceux de la diffusion et de l'airplay."""
+_REGISTERED: "weakref.WeakSet[Columns]" = weakref.WeakSet()
+_FOCUSED: "dict[str, weakref.ref[Columns]]" = {}
+"""Le dernier tableau qui a eu le focus, sous la clé « last »."""
 ANNOUNCEMENT_DURATION = 10000
 """Millisecondes pendant lesquelles la barre d'état dit ce que l'export a donné."""
 
@@ -135,6 +142,9 @@ class Columns(QObject):
 		self._titles = self.header.viewport()
 		self._titles.installEventFilter(self)
 		self._adjust_soon.start()
+		_REGISTERED.add(self)
+		# Le tableau détruit, sa vue n'est plus à proposer au menu « Tableau ».
+		view.destroyed.connect(lambda *_: _REGISTERED.discard(self))
 
 	def eventFilter(self, object_: QObject, event: QEvent) -> bool:
 		"""Un tableau qui se montre, ou change de taille, a de nouvelles lignes visibles à mesurer."""
@@ -147,6 +157,8 @@ class Columns(QObject):
 			return False
 		if event.type() in (QEvent.Type.Show, QEvent.Type.Resize):
 			self._adjust_soon.start()
+		if event.type() == QEvent.Type.FocusIn:
+			_note_focus(self)
 		return False
 
 	def titles(self) -> list[str]:
@@ -340,3 +352,30 @@ def _list(value: object) -> list[str]:
 	if value is None:
 		return []
 	return [str(value)]
+
+
+def _note_focus(columns: Columns) -> None:
+	_FOCUSED["last"] = weakref.ref(columns)
+
+
+def of_widget(container: QWidget | None) -> Columns | None:
+	"""Le tableau de cet écran sur lequel agit le menu « Tableau » : celui qui a le focus, sinon le dernier qui l'a
+	eu, sinon le premier montré ; None pour un écran sans tableau
+	(https://github.com/dascritch/machincast/issues/528)."""
+	if container is None:
+		return None
+	inside_list = []
+	for columns in list(_REGISTERED):
+		if (container.isAncestorOf(columns.view)) and (columns.view.isVisible()):
+			inside_list.append(columns)
+	if inside_list == []:
+		return None
+	for columns in inside_list:
+		if columns.view.hasFocus():
+			return columns
+	last = None
+	if "last" in _FOCUSED:
+		last = _FOCUSED["last"]()
+	if last in inside_list:
+		return last
+	return inside_list[0]

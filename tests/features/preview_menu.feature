@@ -69,7 +69,7 @@ Fonctionnalité: Pré-écoute d'un sonore depuis le menu contextuel de sa ligne
 		Et j'ouvre la fiche de la séquence « Ouverture »
 		Et j'ouvre le menu contextuel de la ligne « Habillage » des éléments
 		Alors le menu contextuel ne propose pas « Pré-écoute… »
-		Et le menu contextuel commence par « Copier »
+		Et le menu contextuel commence par « Couper »
 		Quand j'ouvre le menu contextuel de la ligne « Café à minuit » des éléments
 		Alors le menu contextuel commence par « Pré-écoute… »
 		Quand je choisis « Pré-écoute… » dans le menu contextuel
