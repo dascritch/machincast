@@ -482,6 +482,27 @@ def tmpfiles() -> str:
 	return "\n".join(lines) + "\n"
 
 
+PROFILE = Path("/etc/profile.d/machincast.sh")
+"""Le script que lit chaque nouveau shell de connexion, quand le service est installé
+(https://github.com/dascritch/machincast/issues/517) : le même chemin dans install.sh (FICHIER_PROFIL)."""
+
+
+def profile() -> str:
+	"""Le script de session : dans un shell interactif, sur un terminal, la bannière de Machin banner, qui dit aussi si
+	Machin player tourne. Statique : le numéro de version, lui, vient de Machin banner, pas du fichier, que install.sh
+	ne réécrit donc pas à chaque version."""
+	return f"""# Banner of MachinCast at each new shell (https://github.com/dascritch/machincast/issues/517).
+{HEADER}
+case "$-" in
+	*i*)
+		if [ -t 1 ] && command -v Machin >/dev/null 2>&1; then
+			Machin banner
+		fi
+		;;
+esac
+"""
+
+
 def logrotate() -> str:
 	"""La rotation des logs de /var/log/machincast : chaque semaine, huit semaines gardées. Les binaires du service et
 	du bureau y écrivent ensemble : la copie, puis la troncature, laisse leurs fichiers ouverts valables."""
@@ -752,6 +773,11 @@ def _tmpfiles(_configuration: Configuration) -> int:
 	return 0
 
 
+def _profile(_configuration: Configuration) -> int:
+	sys.stdout.write(profile())
+	return 0
+
+
 def _logrotate(_configuration: Configuration) -> int:
 	sys.stdout.write(logrotate())
 	return 0
@@ -926,6 +952,7 @@ ACTIONS = {
 	"on-air": _on_air,
 	"pipewire-unit": _pipewire_unit,
 	"power-save": _power_save,
+	"profile": _profile,
 	"rule": _rule,
 	"shortcut": _shortcut,
 	"system-conf": _system_conf,

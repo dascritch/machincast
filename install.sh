@@ -2,7 +2,8 @@
 # Installation de MachinCast sur un poste Ubuntu LTS (https://github.com/dascritch/machincast/issues/40).
 #
 #   ./install.sh               installe, ou met à jour une installation existante : le script est relançable
-#   ./install.sh --simulation  affiche les commandes sans rien exécuter
+#   ./install.sh --simulation  affiche les commandes sans rien exécuter, avec toutes les informations
+#   ./install.sh --verbose     affiche aussi les lignes techniques, cachées sinon (https://github.com/dascritch/machincast/issues/517)
 #   ./install.sh --dev         installe aussi les outils du poste de développement
 #                              (https://github.com/dascritch/machincast/issues/77)
 #   ./install.sh --service     installe aussi le service de diffusion : pour un ordinateur dédié à l'antenne
@@ -84,6 +85,9 @@ FICHIER_UNITE_PIPEWIRE="/etc/systemd/system/${UNITE_PIPEWIRE}"
 FICHIER_UNITE_WIREPLUMBER="/etc/systemd/system/${UNITE_WIREPLUMBER}"
 FICHIER_TMPFILES="/etc/tmpfiles.d/machincast.conf"
 FICHIER_LOGROTATE="/etc/logrotate.d/machincast"
+# La bannière de chaque nouveau shell, quand le service est installé (https://github.com/dascritch/machincast/issues/517) :
+# le même chemin dans machincast.installation.
+FICHIER_PROFIL="/etc/profile.d/machincast.sh"
 DOSSIER_WIREPLUMBER_SERVICE="/etc/machincast"
 FICHIER_WIREPLUMBER_SERVICE="${DOSSIER_WIREPLUMBER_SERVICE}/wireplumber/wireplumber.conf.d/50-machincast.conf"
 # Le répertoire d'accueil des sonores (machincast.access.WELCOME) : les répertoires personnels restent fermés au
@@ -119,6 +123,9 @@ PAQUETS=(
 PAQUETS_DEV=(bats shellcheck desktop-file-utils pipewire wireplumber)
 
 SIMULATION=false
+# Toutes les informations, y compris les lignes techniques (https://github.com/dascritch/machincast/issues/517) : sans
+# --verbose, ni --simulation, les lignes « info » sont cachées.
+VERBEUX=false
 DEV=false
 SERVICE=false
 RETIRER_SERVICE=false
@@ -152,9 +159,23 @@ ADRESSES_DU_RESEAU=(
 DELAI_DU_RESEAU=10
 RESEAU=true
 UTILISATEUR="$(id -un)"
+# Couleurs (https://github.com/dascritch/machincast/issues/517) : sur un terminal seulement, jamais avec NO_COLOR ;
+# FORCE_COLOR les impose, pour les tests. Un avertissement a son texte en jaune, un échec est en jaune vif sur un fond
+# rouge sombre, une question en blanc et en gras.
+choisir_couleurs() {
+	JAUNE=""
+	GRAS=""
+	FIN_DE_COULEUR=""
+	if [[ -z "${NO_COLOR:-}" ]] && { [[ -t 1 ]] || [[ -n "${FORCE_COLOR:-}" ]]; }; then
+		JAUNE=$'\e[33m'
+		GRAS=$'\e[1;97m'
+		FIN_DE_COULEUR=$'\e[0m'
+	fi
+}
+choisir_couleurs
 
 aide() {
-	tf 'Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] [--no-timers] | --remove-service] [--desktop | --no-desktop]
+	tf 'Usage: ./install.sh [--simulation] [--verbose] [--dev] [--service [--dedicated] [--no-timers] | --remove-service] [--desktop | --no-desktop]
                     [--stop-programs | --leave-programs] [--restore FILE | --no-restore]
 
 Installs MachinCast in place, from this directory (%s), after checking the network access, without
@@ -205,7 +226,9 @@ Can be run again: each step already done is left as is.
 To run with your own account, not with sudo: the script asks for sudo when needed.
 
 Options:
-  --simulation  shows the commands without running anything
+  --simulation  shows the commands without running anything, with all the information
+  --verbose     shows all the information, the technical lines too (links, SQL operations, files already up
+                to date); without it, nor --simulation, only the steps, the warnings and what must be read
   --dev         also installs the tools of the development computer
   --service     also installs the broadcast service (computer dedicated to the on-air output only)
   --no-timers   with --service, installs neither timer of the tasks, and removes those installed before:
@@ -236,22 +259,39 @@ etape() {
 	printf '\n'
 }
 
+# Une information technique, cachée sans --verbose ni --simulation : ce qui est déjà fait, un lien, une requête.
 info() {
+	if ! "${VERBEUX}" && ! "${SIMULATION}"; then
+		return 0
+	fi
+	annonce "$@"
+}
+
+# Une information que le technicien doit lire, toujours montrée.
+annonce() {
 	printf '    '
 	tf "$@"
 	printf '\n'
 }
 
-# Un avertissement : ce qui va changer, ou ce qui ne marchera pas.
+# Un avertissement : ce qui va changer, ou ce qui ne marchera pas, en jaune.
 avertissement() {
-	printf '  ! '
+	printf '%s  ! ' "${JAUNE}"
 	tf "$@"
-	printf '\n'
+	printf '%s\n' "${FIN_DE_COULEUR}"
 }
 
+# Un échec : toute sa ligne en jaune vif sur un fond rouge sombre, sur la sortie d'erreur.
 echec() {
+	local debut="" fin=""
+	if [[ -z "${NO_COLOR:-}" ]] && { [[ -t 2 ]] || [[ -n "${FORCE_COLOR:-}" ]]; }; then
+		debut=$'\e[1;93;48;5;88m'
+		fin=$'\e[0m'
+	fi
 	{
-		tf 'install.sh: %s\n' "$(tf "$@")"
+		printf '%s' "${debut}"
+		tf 'install.sh: %s' "$(tf "$@")"
+		printf '%s\n' "${fin}"
 	} >&2
 	exit 1
 }
@@ -298,7 +338,7 @@ verifier_reseau() {
 		echec 'no network access: a first installation needs it, for the system packages and the Python dependencies'
 	fi
 	RESEAU=false
-	info 'no network access: the system packages and the Python dependencies will not be updated; the installation goes on'
+	avertissement 'no network access: the system packages and the Python dependencies will not be updated; the installation goes on'
 }
 
 verifier_systeme() {
@@ -313,7 +353,7 @@ verifier_systeme() {
 		"${SIMULATION}" || echec 'Ubuntu LTS required (target: 26.04 LTS), found: %s %s' "${id}" "${version}"
 		info 'unsupported system (%s %s), ignored in simulation' "${id}" "${version}"
 	elif [[ "${version}" != 26.04 ]]; then
-		info 'Ubuntu %s LTS: the target is 26.04 LTS, the installation goes on' "${version}"
+		avertissement 'Ubuntu %s LTS: the target is 26.04 LTS, the installation goes on' "${version}"
 	else
 		info 'Ubuntu %s LTS' "${version}"
 	fi
@@ -326,7 +366,6 @@ programmes() {
 }
 
 vouloir_arreter() {
-	local reponse
 	case "${ARRETER}" in
 		oui) return 0 ;;
 		non) return 1 ;;
@@ -335,13 +374,11 @@ vouloir_arreter() {
 		info '[simulation] question: stop them during the installation?'
 		return 0
 	fi
-	if [[ ! -t 0 ]]; then
-		info 'no question without a terminal: ./install.sh --stop-programs stops them'
+	if ! peut_demander; then
+		annonce 'no question without a terminal: ./install.sh --stop-programs stops them'
 		return 1
 	fi
-	read -r -p "    $(t 'Stop them during the installation, then relaunch them? [y/N] ')" reponse
-	# Oui : « o » en français, « y » en anglais.
-	[[ "${reponse}" =~ ^[oOyY] ]]
+	interroger "$(t 'Stop them during the installation, then relaunch them? [y/N] ')" n
 }
 
 # Attend la fin des processus, puis force celle des retardataires ; ceux d'un autre compte, par sudo.
@@ -359,7 +396,7 @@ attendre_l_arret() {
 		du_compte="${pid#*:}"
 		pid="${pid%:*}"
 		[[ -e "/proc/${pid}" ]] || continue
-		info 'pid %s still there after %s s: forced stop' "${pid}" "${DELAI_D_ARRET}"
+		avertissement 'pid %s still there after %s s: forced stop' "${pid}" "${DELAI_D_ARRET}"
 		if [[ "${du_compte}" == yes ]]; then
 			kill -KILL "${pid}" 2>/dev/null || true
 		else
@@ -373,21 +410,21 @@ arreter_les_programmes() {
 	ETAT_DES_PROGRAMMES="$(mktemp --tmpdir machincast-programmes.XXXXXX.json)"
 	local liste
 	if ! liste="$(programmes list --state "${ETAT_DES_PROGRAMMES}")"; then
-		info 'running programs unreadable: the installation goes on without stopping them'
+		avertissement 'running programs unreadable: the installation goes on without stopping them'
 		return
 	fi
 	if [[ -z "${liste}" ]]; then
-		info 'none'
+		annonce 'none'
 		return
 	fi
 	local pid du_compte service libelle
 	while IFS=$'\t' read -r pid du_compte service libelle; do
-		info '%s, pid %s' "${libelle}" "${pid}"
+		annonce '%s, pid %s' "${libelle}" "${pid}"
 	done <<<"${liste}"
-	info 'an update, and its database migrations, must not happen under them'
-	info 'stopped, the broadcast goes silent until the end of the installation; the interface loses its unsaved cards'
+	annonce 'an update, and its database migrations, must not happen under them'
+	annonce 'stopped, the broadcast goes silent until the end of the installation; the interface loses its unsaved cards'
 	if ! vouloir_arreter; then
-		info 'they go on: the database may change under them, relaunch them after the installation'
+		avertissement 'they go on: the database may change under them, relaunch them after the installation'
 		return
 	fi
 	PROGRAMMES_ARRETES=true
@@ -410,7 +447,7 @@ arreter_les_programmes() {
 	if ! "${SIMULATION}" && ((${#arretes[@]} > 0)); then
 		attendre_l_arret "${arretes[@]}"
 	fi
-	info 'stopped: relaunched at the end of the installation'
+	annonce 'stopped: relaunched at the end of the installation'
 }
 
 # À la fin, ou à la sortie d'install.sh après un échec : une seule fois.
@@ -420,7 +457,7 @@ relancer_les_programmes() {
 	etape 'Relaunch of the MachinCast programs'
 	if "${SERVICE_ARRETE}"; then
 		if "${RETIRER_SERVICE}"; then
-			info 'broadcast service removed: not relaunched'
+			annonce 'broadcast service removed: not relaunched'
 		else
 			executer sudo systemctl start "${UNITE}" || info 'broadcast service not relaunched: Machin logs tells why'
 		fi
@@ -428,7 +465,7 @@ relancer_les_programmes() {
 	local options=() ligne
 	"${SIMULATION}" && options+=(--simulation)
 	while IFS= read -r ligne; do
-		info '%s' "${ligne}"
+		annonce '%s' "${ligne}"
 	done < <(programmes restart --state "${ETAT_DES_PROGRAMMES}" "${options[@]}")
 	rm --force "${ETAT_DES_PROGRAMMES}" # fichier de MachinCast : état des programmes arrêtés, temporaire
 }
@@ -436,7 +473,7 @@ relancer_les_programmes() {
 installer_paquets() {
 	etape 'System packages'
 	if ! "${RESEAU}"; then
-		info 'not updated: no network access'
+		avertissement 'not updated: no network access'
 		return
 	fi
 	executer sudo apt-get update
@@ -454,7 +491,7 @@ installer_venv() {
 		executer python3 -m venv "${VENV}"
 	fi
 	if ! "${RESEAU}"; then
-		info 'Python dependencies not updated: no network access'
+		avertissement 'Python dependencies not updated: no network access'
 		return
 	fi
 	executer "${VENV}/bin/pip" install --upgrade pip
@@ -472,7 +509,7 @@ preparer_configuration() {
 		info '%s already exists: kept' "${CONFIGURATION}"
 	else
 		executer cp "${RACINE}/machincast.exemple.toml" "${CONFIGURATION}"
-		info 'to adapt: audio output, devices, outputs (see doc/fr/spec.md § 9)'
+		annonce 'to adapt: audio output, devices, outputs (see doc/fr/spec.md § 9)'
 	fi
 }
 
@@ -570,8 +607,8 @@ preparer_postgresql() {
 	# voulue ne donne au compte aucun droit particulier (doc/fr/spec.md § 3.2). install.sh ne retire pas ce droit, qui peut
 	# servir à autre chose sur le poste : il le signale.
 	if existe_en_base "SELECT 1 FROM pg_roles WHERE rolname = :'nom' AND rolsuper" "${UTILISATEUR}"; then
-		info 'warning: %s is a PostgreSQL superuser, which MachinCast does not require; to' "${UTILISATEUR}"
-		info 'remove it: sudo -u postgres psql -c %s' "'ALTER ROLE \"${UTILISATEUR}\" NOSUPERUSER'"
+		avertissement 'warning: %s is a PostgreSQL superuser, which MachinCast does not require; to' "${UTILISATEUR}"
+		avertissement 'remove it: sudo -u postgres psql -c %s' "'ALTER ROLE \"${UTILISATEUR}\" NOSUPERUSER'"
 	fi
 }
 
@@ -582,7 +619,7 @@ autoriser_journal() {
 	else
 		# systemd-journal, jamais adm : la lecture du journal sans droits d'administration.
 		executer sudo usermod --append --groups systemd-journal "${UTILISATEUR}"
-		info 'effective after the computer restarts'
+		annonce 'effective after the computer restarts'
 	fi
 }
 
@@ -671,7 +708,7 @@ dossier_du_bureau() {
 
 # Vrai si le raccourci va sur le bureau : déjà là, demandé par --desktop, ou accepté à la question.
 vouloir_le_bureau() {
-	local raccourci="$1" reponse
+	local raccourci="$1"
 	case "${BUREAU}" in
 		oui) return 0 ;;
 		non) return 1 ;;
@@ -681,12 +718,11 @@ vouloir_le_bureau() {
 		info '[simulation] question: also put the shortcut on the desktop?'
 		return 0
 	fi
-	if [[ ! -t 0 ]]; then
-		info 'no question without a terminal: ./install.sh --desktop puts it on the desktop'
+	if ! peut_demander; then
+		annonce 'no question without a terminal: ./install.sh --desktop puts it on the desktop'
 		return 1
 	fi
-	read -r -p "    $(t 'Also put the MachinCast shortcut on the desktop? [Y/n] ')" reponse
-	[[ ! "${reponse}" =~ ^[nN] ]]
+	interroger "$(t 'Also put the MachinCast shortcut on the desktop? [Y/n] ')" o
 }
 
 # Installe pour le compte, sans sudo, l'icône de MachinCast dans son thème d'icônes, si elle diffère de celle en place.
@@ -710,7 +746,7 @@ installer_raccourci() {
 	local bureau
 	bureau="$(dossier_du_bureau)"
 	if [[ -z "${bureau}" ]]; then
-		info 'no desktop folder for %s: shortcut in the applications menu only' "${UTILISATEUR}"
+		annonce 'no desktop folder for %s: shortcut in the applications menu only' "${UTILISATEUR}"
 		return
 	fi
 	if vouloir_le_bureau "${bureau}/${RACCOURCI}"; then
@@ -719,7 +755,7 @@ installer_raccourci() {
 	elif [[ -e "${bureau}/${RACCOURCI}" ]]; then
 		info '%s/%s left as is' "${bureau}" "${RACCOURCI}"
 	else
-		info 'no shortcut on the desktop; ./install.sh --desktop puts it there'
+		annonce 'no shortcut on the desktop; ./install.sh --desktop puts it there'
 	fi
 }
 
@@ -746,7 +782,7 @@ fichiers_du_service_perimes() {
 	for paire in "unit:${FICHIER_UNITE}" "pipewire-unit:${FICHIER_UNITE_PIPEWIRE}" \
 		"wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" "wireplumber-service:${FICHIER_WIREPLUMBER_SERVICE}" \
 		"wireplumber-desktop:${FICHIER_WIREPLUMBER_BUREAU}" "tmpfiles:${FICHIER_TMPFILES}" \
-		"logrotate:${FICHIER_LOGROTATE}" \
+		"logrotate:${FICHIER_LOGROTATE}" "profile:${FICHIER_PROFIL}" \
 		"rule:${FICHIER_REGLE}" "logind:${FICHIER_LOGIND}" "system-conf:${FICHIER_SYSTEME}" \
 		"power-save:${FICHIER_MODPROBE}" "usb-power:${FICHIER_USB}"; do
 		fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
@@ -766,24 +802,22 @@ fichiers_du_service_perimes() {
 }
 
 vouloir_mettre_a_jour_le_service() {
-	local reponse
 	if "${SIMULATION}"; then
 		info '[simulation] question: update the broadcast service?'
 		return 0
 	fi
-	if [[ ! -t 0 ]]; then
-		info 'no question without a terminal: ./install.sh --service updates it'
+	if ! peut_demander; then
+		annonce 'no question without a terminal: ./install.sh --service updates it'
 		return 1
 	fi
-	read -r -p "    $(t 'Update the broadcast service? It restarts if it is running. [Y/n] ')" reponse
-	[[ ! "${reponse}" =~ ^[nN] ]]
+	interroger "$(t 'Update the broadcast service? It restarts if it is running. [Y/n] ')" o
 }
 
 # Sans --service, le service déjà installé est vérifié : pas à jour, la question est posée de le mettre à jour.
 verifier_le_service_installe() {
 	if [[ ! -e "${FICHIER_UNITE}" ]]; then
-		info 'not installed: the broadcast is launched by hand, with Machin player'
-		info 'on a computer dedicated to the on-air output: ./install.sh --service'
+		annonce 'not installed: the broadcast is launched by hand, with Machin player'
+		annonce 'on a computer dedicated to the on-air output: ./install.sh --service'
 		return
 	fi
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
@@ -796,11 +830,11 @@ verifier_le_service_installe() {
 		info 'installed and up to date'
 		return
 	fi
-	info 'installed, but not up to date for this version of MachinCast, it may no longer start: %s' "${perimes//$'\n'/, }"
+	avertissement 'installed, but not up to date for this version of MachinCast, it may no longer start: %s' "${perimes//$'\n'/, }"
 	if vouloir_mettre_a_jour_le_service; then
 		METTRE_A_JOUR_LE_SERVICE=true
 	else
-		info 'left as is; ./install.sh --service updates it'
+		annonce 'left as is; ./install.sh --service updates it'
 	fi
 }
 
@@ -816,7 +850,7 @@ creer_le_compte_du_service() {
 		info '%s already belongs to the %s group' "${UTILISATEUR}" "${COMPTE_SERVICE}"
 	else
 		executer sudo usermod --append --groups "${COMPTE_SERVICE}" "${UTILISATEUR}"
-		info 'effective after the computer restarts'
+		annonce 'effective after the computer restarts'
 	fi
 }
 
@@ -854,10 +888,47 @@ dans_un_repertoire_personnel() {
 	return 1
 }
 
+# Un poste graphique, local, où kdialog pose les questions dans une fenêtre ; sinon, sans doute par ssh, elles se
+# posent dans le terminal (https://github.com/dascritch/machincast/issues/347, https://github.com/dascritch/machincast/issues/517).
+graphique() {
+	[[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && [[ -z "${SSH_CONNECTION:-}" ]] && command -v kdialog >/dev/null
+}
+
+# Vrai s'il y a un moyen de poser une question : une fenêtre, ou un terminal.
+peut_demander() {
+	graphique || en_terminal
+}
+
+# Pose une question en oui ou non ; vrai pour oui. $1 : la question, déjà traduite ; $2 : o ou n, la réponse d'une
+# réponse vide ; $3 et $4 : les libellés des boutons de la fenêtre, facultatifs. Dans une fenêtre kdialog, ou dans le
+# terminal, la question en blanc et en gras.
+interroger() {
+	local question="$1" defaut="$2" reponse
+	if graphique; then
+		if (($# > 3)); then
+			kdialog --title MachinCast --yesno "${question%%[[:space:]]\[*}" --yes-label "$3" --no-label "$4"
+		else
+			kdialog --title MachinCast --yesno "${question%%[[:space:]]\[*}"
+		fi
+		return
+	fi
+	if [[ "${question}" != *'['* ]]; then
+		question="${question} $(t '[y/N]')"
+	fi
+	printf '    %s%s%s ' "${GRAS}" "${question}" "${FIN_DE_COULEUR}"
+	read -r reponse
+	# Oui : « o » en français, « y » en anglais.
+	if [[ "${defaut}" == o ]]; then
+		[[ ! "${reponse}" =~ ^[nN] ]]
+	else
+		[[ "${reponse}" =~ ^[oOyY] ]]
+	fi
+}
+
 # Une question en oui ou non ; vrai pour oui. En simulation, elle est seulement dite ; sans terminal, la réponse est
 # non, sauf avec --dedicated.
 demander_oui() {
-	local question="$1" reponse
+	local question="$1"
 	if "${DEDIE}"; then
 		return 0
 	fi
@@ -865,18 +936,11 @@ demander_oui() {
 		info '[simulation] question: %s' "$(t "${question}")"
 		return 0
 	fi
-	if [[ ! -t 0 ]]; then
-		info 'no question without a terminal: ./install.sh --service --dedicated accepts'
+	if ! peut_demander; then
+		annonce 'no question without a terminal: ./install.sh --service --dedicated accepts'
 		return 1
 	fi
-	read -r -p "    $(t "${question}") " reponse
-	[[ "${reponse}" =~ ^[oOyY] ]]
-}
-
-# Un poste graphique, où kdialog pose les questions de la réimportation ; sinon, sans doute par ssh, elles se posent dans
-# le terminal (https://github.com/dascritch/machincast/issues/347).
-graphique() {
-	[[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v kdialog >/dev/null
+	interroger "$(t "${question}")" n
 }
 
 en_terminal() {
@@ -885,15 +949,8 @@ en_terminal() {
 
 # Faut-il réimporter une sauvegarde ? Vrai pour oui.
 demander_reimportation() {
-	local question reponse
-	question="$(t 'You seem to be making a new installation of MachinCast. Had you already run it on this computer or on another one? Should its database be recovered?')"
-	if graphique; then
-		kdialog --title MachinCast --yesno "${question}" \
-			--yes-label "$(t 'Yes, restore a backup')" --no-label "$(t 'No, start from scratch')"
-		return
-	fi
-	read -r -p "    ${question} $(t '[y/N]') " reponse
-	[[ "${reponse}" =~ ^[oOyY] ]]
+	interroger "$(t 'You seem to be making a new installation of MachinCast. Had you already run it on this computer or on another one? Should its database be recovered?')" n \
+		"$(t 'Yes, restore a backup')" "$(t 'No, start from scratch')"
 }
 
 # Le fichier de la sauvegarde, cherché à partir du répertoire personnel ; rien s'il n'est pas choisi.
@@ -930,18 +987,18 @@ reimporter_une_sauvegarde() {
 		return 0
 	fi
 	if ! graphique && ! en_terminal; then
-		info 'new database, no backup restored: ./install.sh --restore FILE restores one'
+		annonce 'new database, no backup restored: ./install.sh --restore FILE restores one'
 		return 0
 	fi
 	while demander_reimportation; do
 		fichier="$(choisir_sauvegarde)"
 		if [[ -n "${fichier}" ]] && restaurer "${fichier}"; then
-			info 'backup %s restored' "${fichier}"
+			annonce 'backup %s restored' "${fichier}"
 			return 0
 		fi
 		avertissement 'backup not restored: choose another one, or start from scratch'
 	done
-	info 'new database: starting from scratch'
+	annonce 'new database: starting from scratch'
 }
 
 # Le poste devient celui de l'antenne : l'administrateur le sait, et l'accepte, avant que rien ne change.
@@ -1022,15 +1079,21 @@ traiter_les_sonores_personnels() {
 		info '[simulation] question: move them to %s, remove them from the database, or leave them?' "${ACCUEIL}"
 		return
 	fi
-	if [[ ! -t 0 ]]; then
-		info 'left in place, not played on air: ./install.sh --service, in a terminal, moves them'
+	if ! peut_demander; then
+		avertissement 'left in place, not played on air: ./install.sh --service, in a terminal, moves them'
 		return
 	fi
-	read -r -p "    $(tf 'Move them to %s [m], remove them from the database [r], or leave them, not played [l]? ' "${ACCUEIL}")" reponse
+	if graphique; then
+		reponse="$(kdialog --title MachinCast --menu "$(t 'These bank directories and added files are in a personal directory, which the broadcast service never reads:')" \
+			m "$(tf 'Move them to %s' "${ACCUEIL}")" r "$(t 'Remove them from the database')" l "$(t 'Leave them, not played')")" || reponse=l
+	else
+		printf '    %s%s%s ' "${GRAS}" "$(tf 'Move them to %s [m], remove them from the database [r], or leave them, not played [l]?' "${ACCUEIL}")" "${FIN_DE_COULEUR}"
+		read -r reponse
+	fi
 	case "${reponse}" in
 		[mMdD]*) installation move-personal-sounds || avertissement 'some sound files are not moved: see above' ;;
 		[rR]*) installation forget-personal-sounds ;;
-		*) info 'left in place, not played on air' ;;
+		*) annonce 'left in place, not played on air' ;;
 	esac
 }
 
@@ -1107,20 +1170,21 @@ installer_service() {
 	else
 		installation on-air || echec 'broadcast service not installed: the on-air output does not suit it'
 	fi
-	info 'for a computer dedicated to the on-air output: Machin player starts with the computer, as %s' "${COMPTE_SERVICE}"
+	annonce 'for a computer dedicated to the on-air output: Machin player starts with the computer, as %s' "${COMPTE_SERVICE}"
 	creer_le_compte_du_service
 	autoriser_le_service_en_base
 	creer_l_accueil
 	traiter_les_sonores_personnels
 	# Le service ne dépend plus de la session du compte (https://github.com/dascritch/machincast/issues/381).
 	if [[ "$(loginctl show-user "${UTILISATEUR}" --property=Linger --value 2>/dev/null)" == yes ]]; then
-		info 'the session of %s no longer needs to stay active at startup: sudo loginctl disable-linger %s' \
+		annonce 'the session of %s no longer needs to stay active at startup: sudo loginctl disable-linger %s' \
 			"${UTILISATEUR}" "${UTILISATEUR}"
 	fi
 	# Les répertoires d'exécution, des logs et des rapports de crash, au groupe du service.
 	installer_fichier tmpfiles "${FICHIER_TMPFILES}" || true
 	executer sudo systemd-tmpfiles --create "${FICHIER_TMPFILES}"
 	installer_fichier logrotate "${FICHIER_LOGROTATE}" || true
+	installer_fichier profile "${FICHIER_PROFIL}" || true
 	local unites_changees=false service_change=false
 	if installer_fichier wireplumber-service "${FICHIER_WIREPLUMBER_SERVICE}"; then
 		service_change=true
@@ -1158,7 +1222,7 @@ installer_service() {
 	else
 		retirer_minuteurs
 	fi
-	info 'follow the broadcast: Machin logs'
+	annonce 'follow the broadcast: Machin logs'
 }
 
 # Les minuteurs des tâches (https://github.com/dascritch/machincast/issues/455), sous le compte de MachinCast :
@@ -1182,7 +1246,7 @@ installer_minuteurs() {
 		executer sudo systemctl daemon-reload
 	fi
 	executer sudo systemctl enable --now "${MINUTEUR_TACHES}" "${MINUTEUR_INDEXATION}"
-	info 'the tasks: journalctl --unit=%s --unit=%s; the hour of the daily task: schedule.daily' \
+	annonce 'the tasks: journalctl --unit=%s --unit=%s; the hour of the daily task: schedule.daily' \
 		"${UNITE_INDEXATION}" "${UNITE_TACHES}"
 }
 
@@ -1276,7 +1340,7 @@ retirer_service() {
 	local fichier
 	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
 		"${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
-		"${FICHIER_LOGROTATE}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}" \
+		"${FICHIER_LOGROTATE}" "${FICHIER_PROFIL}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}" \
 		"${FICHIER_MODPROBE}" "${FICHIER_USB}"; do
 		retirer_fichier "${fichier}" || true
 	done
@@ -1284,7 +1348,7 @@ retirer_service() {
 	# Les cartes son retrouvent leur économie d'énergie au prochain redémarrage
 	# (https://github.com/dascritch/machincast/issues/499).
 	executer sudo udevadm control --reload
-	info 'the sound cards go back to power saving at the next restart'
+	annonce 'the sound cards go back to power saving at the next restart'
 	# La politique d'Ubuntu revient (https://github.com/dascritch/machincast/issues/448) : extinction, redémarrage et
 	# veille sans mot de passe, touches, capot et Ctrl+Alt+Suppr actifs.
 	if [[ "$(systemctl is-enabled ctrl-alt-del.target 2>/dev/null || true)" == "masked" ]]; then
@@ -1317,18 +1381,18 @@ retirer_service() {
 		info 'account %s missing' "${COMPTE_SERVICE}"
 	fi
 	# fichier de MachinCast : seulement une commande à lancer, si l'administrateur le veut
-	info 'the logs stay in %s: sudo rm -r %s removes them' "${DOSSIER_DES_LOGS}" "${DOSSIER_DES_LOGS}"
-	info 'the sound files stay in %s' "${ACCUEIL}"
-	info 'the broadcast is launched by hand again, with Machin player; the database purge, with Machin purge'
+	annonce 'the logs stay in %s: sudo rm -r %s removes them' "${DOSSIER_DES_LOGS}" "${DOSSIER_DES_LOGS}"
+	annonce 'the sound files stay in %s' "${ACCUEIL}"
+	annonce 'the broadcast is launched by hand again, with Machin player; the database purge, with Machin purge'
 }
 
 conclure() {
 	etape 'Installation finished'
-	info 'Help: Machin --help'
-	info 'Interface: MachinCast, in the applications menu, or Machin interface'
-	info 'First indexing: Machin indexer, then Machin indexer --full-audit'
+	annonce 'Help: Machin --help'
+	annonce 'Interface: MachinCast, in the applications menu, or Machin interface'
+	annonce 'First indexing: Machin indexer, then Machin indexer --full-audit'
 	if "${DEV}"; then
-		info 'Development computer: Machin dev opens a shell, venv activated; Machin dev-test runs the checks'
+		annonce 'Development computer: Machin dev opens a shell, venv activated; Machin dev-test runs the checks'
 	fi
 }
 
@@ -1351,6 +1415,7 @@ principal() {
 				shift
 				;;
 			--no-restore) REIMPORTER=non ;;
+			--verbose) VERBEUX=true ;;
 			--stop-programs)
 				ARRETER=oui
 				ARRETER_DEMANDE=$((ARRETER_DEMANDE + 1))
@@ -1377,6 +1442,7 @@ principal() {
 		echec '--stop-programs and --leave-programs do not go together'
 	fi
 	cd "${RACINE}"
+	"${RACINE}/bin/Machin" banner
 	if "${SERVICE}"; then
 		confirmer_le_poste_dedie
 		relocaliser_machincast

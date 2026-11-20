@@ -968,6 +968,8 @@ Machin -h | --help | --binaries
 	Code 0 quand le service lit tout, 1 sinon ou sans compte du service.
 	`--keep-open`, pour le terminal qu'ouvre l'interface.
 	Rien d'autre ne change : ni propriétaire, ni droits du groupe et des autres, ni contenu ([#96](https://github.com/dascritch/machincast/issues/96)).
+- `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) affiche la bannière de MachinCast : le logo en ASCII, son losange en orange, à droite le numéro de version, puis, si le service de diffusion est installé, « Machin player : en marche » ou « Machin player : arrêté ».
+	Les couleurs ne viennent que sur un terminal, jamais avec `NO_COLOR` ; `install.sh --service` installe `/etc/profile.d/machincast.sh` (`machincast.installation profile`), qui le lance à chaque nouveau shell interactif sur un terminal, et `--remove-service` le retire.
 - `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518), `machincast.status`) répond par une ligne sur la sortie standard, pour un script, une barre d'état ou une supervision.
 	`Machin status`, seul, ou `Machin status player`, dit l'état de Machin player : « running » quand une diffusion tourne, sous un compte quelconque, « stopped » sinon ; une simulation n'est pas une diffusion.
 	Le code de sortie est 0 s'il tourne, 1 sinon.
@@ -1770,7 +1772,11 @@ Mise en œuvre (`Card.copy`, `machincast.interface.card.copy_name`, `MainWindow.
 - Livraison : archives `.tar.gz` publiées en releases sur le dépôt git (sur le repository <https://github.com/dascritch/machincast>).
 - Chaque archive contient un `install.sh` ([#40](https://github.com/dascritch/machincast/issues/40)), à lancer depuis le répertoire de MachinCast (release décompressée ou dépôt git) avec son propre compte, jamais avec sudo : il demande sudo pour les seules étapes qui l'exigent.
 	Relançable, il laisse en place chaque étape déjà faite.
-	`./install.sh --simulation` affiche les commandes sans rien exécuter ; `./install.sh --dev` installe en plus les outils du poste de développement (paquets `bats`, `shellcheck`, `desktop-file-utils`, `pipewire` et `wireplumber`, extra `[dev]` de pip, [#77](https://github.com/dascritch/machincast/issues/77)).
+	Il ouvre sur la bannière de `Machin banner` : le logo de MachinCast en ASCII, son losange en orange, et à droite le numéro de version ([#517](https://github.com/dascritch/machincast/issues/517)).
+	Sans `--verbose` ni `--simulation`, il cache ses lignes techniques (`info` : liens, opérations SQL, fichiers déjà à jour) et ne montre que les étapes, les annonces (`annonce`, ce qu'il faut lire), les avertissements (`avertissement`, texte en jaune) et les échecs (`echec`, jaune vif sur fond rouge sombre, sur la sortie d'erreur).
+	Les couleurs (`choisir_couleurs`) ne viennent que sur un terminal, jamais avec `NO_COLOR`, et `FORCE_COLOR` les impose.
+	Une question (`interroger`) s'affiche en blanc et en gras dans le terminal, ou dans une fenêtre `kdialog` quand une session graphique est là, kdialog installé, hors d'une connexion ssh (`graphique`).
+	`./install.sh --simulation` affiche les commandes sans rien exécuter, avec toutes les informations ; `./install.sh --verbose` les montre aussi en installant ; `./install.sh --dev` installe en plus les outils du poste de développement (paquets `bats`, `shellcheck`, `desktop-file-utils`, `pipewire` et `wireplumber`, extra `[dev]` de pip, [#77](https://github.com/dascritch/machincast/issues/77)).
 	Il :
 	- vérifie le système : Ubuntu LTS, la cible étant 26.04 ;
 	- vérifie l'accès au réseau ([#376](https://github.com/dascritch/machincast/issues/376)) : une seule des adresses `https://dascritch.net/machincast_test_its_connection`, `https://cpu.pm/machincast_test_its_connection` et `https://google.com` qui répond suffit (`curl --head`, ou le `python3` du système sans curl).

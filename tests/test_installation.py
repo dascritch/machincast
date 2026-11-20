@@ -2,6 +2,7 @@
 
 import grp
 import os
+import pty
 import pwd
 import re
 import shutil
@@ -938,11 +939,15 @@ def _protection() -> str:
 # ─── Réimportation d'une sauvegarde à la création de la base (https://github.com/dascritch/machincast/issues/347) ───
 
 REIMPORT_FUNCTIONS = (
+	"choisir_couleurs",
 	"info",
+	"annonce",
 	"avertissement",
 	"echec",
 	"executer",
 	"graphique",
+	"peut_demander",
+	"interroger",
 	"en_terminal",
 	"demander_reimportation",
 	"choisir_sauvegarde",
@@ -1029,6 +1034,7 @@ def _propose(reimport: SimpleNamespace) -> None:
 		f'. "{PROJECT_DIRECTORY / "bin" / "i18n.bash"}"',
 		f'charger_messages "{PROJECT_DIRECTORY}"',
 		"SIMULATION=false",
+		"VERBEUX=false",
 		f'VENV="{reimport.venv}"',
 		f'CONFIGURATION="{reimport.tmp / "machincast.toml"}"',
 	]
@@ -1036,6 +1042,7 @@ def _propose(reimport: SimpleNamespace) -> None:
 		lines.append(f'{name}="{value}"')
 	for function in REIMPORT_FUNCTIONS:
 		lines.append(_function(install, function) + "\n}")
+	lines.append("choisir_couleurs")
 	lines.append(f"en_terminal() {{ {reimport.terminal}; }}")
 	lines.append("reimporter_une_sauvegarde")
 	reimport.result = subprocess.run(
@@ -1133,3 +1140,197 @@ def sh_reimport_place() -> None:
 	analysis = _function(install, "principal")
 	assert "--restore)" in analysis
 	assert "--no-restore) REIMPORTER=non ;;" in analysis
+
+
+def _run_shell(reimport: SimpleNamespace, *calls: str) -> None:
+	"""Les fonctions d'install.sh, lancées seules, avec les variables et l'environnement du scénario."""
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	lines = [
+		"set -uo pipefail",
+		f'. "{PROJECT_DIRECTORY / "bin" / "i18n.bash"}"',
+		f'charger_messages "{PROJECT_DIRECTORY}"',
+		"SIMULATION=false",
+		"VERBEUX=false",
+	]
+	for name, value in reimport.variables.items():
+		lines.append(f'{name}="{value}"')
+	for function in REIMPORT_FUNCTIONS:
+		lines.append(_function(install, function) + "\n}")
+	lines.append("choisir_couleurs")
+	lines.append(f"en_terminal() {{ {reimport.terminal}; }}")
+	lines.extend(calls)
+	reimport.result = subprocess.run(
+		["bash", "-c", "\n".join(lines)],
+		input=reimport.answers,
+		capture_output=True,
+		text=True,
+		timeout=10,
+		env=reimport.environment,
+		check=False,
+	)
+
+
+@given(parsers.parse("install.sh avec VERBEUX={verbose} et SIMULATION={simulation}"))
+def with_verbosity(reimport: SimpleNamespace, verbose: str, simulation: str) -> None:
+	reimport.variables["VERBEUX"] = verbose
+	reimport.variables["SIMULATION"] = simulation
+
+
+@given("install.sh avec les couleurs forcées")
+def forced_colors(reimport: SimpleNamespace) -> None:
+	reimport.environment["FORCE_COLOR"] = "1"
+
+
+@given("install.sh sans terminal")
+def without_terminal(reimport: SimpleNamespace) -> None:
+	reimport.environment.pop("FORCE_COLOR", None)
+
+
+@given("install.sh avec NO_COLOR et les couleurs forcées")
+def no_color(reimport: SimpleNamespace) -> None:
+	reimport.environment["FORCE_COLOR"] = "1"
+	reimport.environment["NO_COLOR"] = "1"
+
+
+@given("une connexion ssh")
+def over_ssh(reimport: SimpleNamespace) -> None:
+	reimport.environment["SSH_CONNECTION"] = "192.0.2.1 50000 192.0.2.2 22"
+
+
+@when("install.sh écrit une information technique, une annonce et un avertissement")
+def writes_levels(reimport: SimpleNamespace) -> None:
+	_run_shell(reimport, "info 'technical line'", "annonce 'plain line'", "avertissement 'warning line'")
+
+
+@when(parsers.parse("install.sh échoue avec « {text} »"))
+def fails_with(reimport: SimpleNamespace, text: str) -> None:
+	previous = reimport.result
+	_run_shell(reimport, f"echec '{text}'")
+	if previous is not None:
+		reimport.result = subprocess.CompletedProcess(
+			reimport.result.args,
+			reimport.result.returncode,
+			previous.stdout + reimport.result.stdout,
+			previous.stderr + reimport.result.stderr,
+		)
+
+
+@when(parsers.re(r"install.sh pose la question « (?P<question>[^»]+) », et que je réponds « (?P<answer>[^»]*) »$"))
+def asks_answered(reimport: SimpleNamespace, question: str, answer: str) -> None:
+	reimport.answers = answer + "\n"
+	_run_shell(reimport, f"if interroger '{question}' n; then echo oui; else echo non; fi")
+
+
+@when(parsers.re(r"install.sh pose la question « (?P<question>[^»]+) »$"))
+def asks(reimport: SimpleNamespace, question: str) -> None:
+	_run_shell(reimport, f"if interroger '{question}' n; then echo oui; else echo non; fi")
+
+
+@then(parsers.parse("install.sh montre {shown}"))
+def shows(reimport: SimpleNamespace, shown: str) -> None:
+	output = reimport.result.stdout
+	assert "plain line" in output, output
+	assert "warning line" in output, output
+	assert ("technical line" in output) == (not shown.endswith("sans l'information")), output
+
+
+def _line_with(reimport: SimpleNamespace, text: str) -> str:
+	for line in reimport.result.stdout.splitlines():
+		if text in line:
+			return line
+	raise AssertionError(reimport.result.stdout)
+
+
+@then(parsers.parse("la ligne d'avertissement d'install.sh est entourée du code de couleur « {code} »"))
+def warning_colored(reimport: SimpleNamespace, code: str) -> None:
+	assert _line_with(reimport, "warning line") == f"\x1b[{code}m  ! warning line\x1b[0m"
+
+
+@then("la ligne d'annonce d'install.sh n'a aucune couleur")
+def announcement_plain(reimport: SimpleNamespace) -> None:
+	assert _line_with(reimport, "plain line") == "    plain line"
+
+
+@then(parsers.parse("la ligne d'échec d'install.sh est entourée du code de couleur « {code} »"))
+def failure_colored(reimport: SimpleNamespace, code: str) -> None:
+	assert reimport.result.returncode == 1
+	assert reimport.result.stderr == f"\x1b[{code}minstall.sh : disque plein\x1b[0m\n", reimport.result.stderr
+
+
+@then("install.sh n'a écrit aucune couleur")
+def no_colors_written(reimport: SimpleNamespace) -> None:
+	assert "\x1b" not in reimport.result.stdout + reimport.result.stderr, reimport.result
+
+
+@then("la question d'install.sh est en blanc et en gras, et sa réponse est oui")
+def question_bold(reimport: SimpleNamespace) -> None:
+	assert reimport.result.stdout == "    \x1b[1;97mArrêter ? [y/N]\x1b[0m oui\n", reimport.result.stdout
+
+
+@then(parsers.parse("kdialog a demandé « {question} » sans ses crochets"))
+def kdialog_asked_plain(reimport: SimpleNamespace, question: str) -> None:
+	(asked, *_others) = _calls(reimport, "kdialog")
+	assert asked == f"--title MachinCast --yesno {question}", asked
+
+
+@then("install.sh lance « Machin banner » avant toute étape, et reconnaît --verbose")
+def sh_banner_first() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	body = _function(install, "principal")
+	assert body.index('"${RACINE}/bin/Machin" banner') < body.index("confirmer_le_poste_dedie"), body
+	assert "--verbose) VERBEUX=true ;;" in body
+
+
+@pytest.fixture
+def session(tmp_path: Path) -> SimpleNamespace:
+	"""Le script de session, écrit tel que le rédige machincast.installation, et un Machin qui dit son appel."""
+	bin_ = tmp_path / "bin"
+	bin_.mkdir()
+	machin = bin_ / "Machin"
+	machin.write_text('#!/bin/bash\necho "appel: Machin $*"\n', encoding="utf-8")
+	machin.chmod(0o755)
+	script = tmp_path / "machincast.sh"
+	script.write_text(installation.profile(), encoding="utf-8")
+	return SimpleNamespace(script=script, environment={"PATH": f"{bin_}:/usr/bin:/bin"}, shown="")
+
+
+@when("un shell non interactif lit le script de session")
+def non_interactive_session(session: SimpleNamespace) -> None:
+	result = subprocess.run(
+		["bash", "--norc", "--noprofile", "-c", f'. "{session.script}"'],
+		capture_output=True,
+		text=True,
+		timeout=10,
+		env=session.environment,
+		check=False,
+	)
+	session.shown = result.stdout
+
+
+@when("un shell interactif sur un terminal lit le script de session")
+def interactive_session(session: SimpleNamespace) -> None:
+	master, slave = pty.openpty()
+	try:
+		subprocess.run(
+			["bash", "--norc", "--noprofile", "-i", "-c", f'. "{session.script}"'],
+			stdin=subprocess.DEVNULL,
+			stdout=slave,
+			stderr=subprocess.DEVNULL,
+			timeout=10,
+			env=session.environment,
+			check=False,
+		)
+		os.close(slave)
+		session.shown = os.read(master, 4096).decode()
+	finally:
+		os.close(master)
+
+
+@then("le script de session n'a rien montré")
+def session_silent(session: SimpleNamespace) -> None:
+	assert session.shown == ""
+
+
+@then(parsers.parse("le script de session a lancé « {command} »"))
+def session_launched(session: SimpleNamespace, command: str) -> None:
+	assert session.shown.strip() == f"appel: {command}", session.shown

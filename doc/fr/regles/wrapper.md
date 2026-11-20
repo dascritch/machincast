@@ -21,6 +21,8 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 - `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518)) est un binaire comme les autres, `Machin_status` : le wrapper ne fait que l'appeler.
 	Ses réponses vont sur la sortie standard, une ligne chacune, pour qu'un script les lise : tout autre message passe par le journal.
 	Une nouvelle réponse s'ajoute à `machincast.status`, avec ses scénarios (`status.feature`), sans toucher au wrapper.
+- `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) est écrit en bash dans le wrapper, sans Python ni base : il est lancé à chaque nouveau shell du service et doit rester instantané.
+	Le script de session `/etc/profile.d/machincast.sh` est statique (`machincast.installation.profile`) : le numéro de version vient de `pyproject.toml` à l'exécution, pour que `install.sh` n'ait pas à le réécrire à chaque version.
 - Le binaire est cherché d'abord dans le venv du projet (`<projet>/.venv/bin`, le projet étant le parent du `bin/` du wrapper, liens symboliques résolus), puis dans le `PATH`.
 	Le venv n'a pas besoin d'être activé.
 - Le wrapper n'est pas installé dans le venv : en développement, `bin/Machin` ; en production, `install.sh` le rend accessible à tout le système.
@@ -50,6 +52,10 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 	Toute commande qui modifie le système passe par `executer`, pour que `--simulation` l'affiche sans l'exécuter.
 - `install.sh` n'appelle que des commandes système : shellcheck le vérifie, et `installation.feature` relit son texte (ce qu'il installe et retire pour le service, ses questions, l'absence de `setfacl`, `chmod` et `chown`).
 	Ce qui se teste en l'exécutant passe par `machincast.installation` (lecture de la configuration, schéma, greffons GStreamer), et par `machincast.programs` pour les programmes en cours ([#254](https://github.com/dascritch/machincast/issues/254)) : ce dernier n'emploie que la bibliothèque standard, car `install.sh` le lance avec le `python3` du système, avant de toucher au venv.
+- Les messages d'`install.sh` ont quatre niveaux ([#517](https://github.com/dascritch/machincast/issues/517)) : `info`, caché sans `--verbose` ni `--simulation`, pour ce qui est technique ou déjà fait ; `annonce`, toujours montré, pour ce que le technicien doit lire ; `avertissement`, en jaune ; `echec`, en jaune vif sur fond rouge sombre, sur la sortie d'erreur.
+	Une nouvelle ligne est une `info`, sauf si un technicien doit la lire : l'oublier n'avertit de rien, la montrer à tort noie l'essentiel.
+	Les couleurs passent par `choisir_couleurs` (terminal seulement, `NO_COLOR` les coupe, `FORCE_COLOR` les impose pour les tests).
+	Une question passe par `interroger` : en blanc et en gras, ou dans une fenêtre `kdialog` sur un poste graphique local (`graphique`), jamais par un `read -p`.
 - La liste des paquets apt d'`install.sh` est celle des prérequis de `CLAUDE.md`, sans les outils de développement, que `--dev` ajoute (`PAQUETS_DEV`).
 - [`INSTALL.md`](../../../INSTALL.fr.md) documente `install.sh` pour l'administrateur, étape par étape, avec les commandes équivalentes à la main ([#71](https://github.com/dascritch/machincast/issues/71)).
 	Toute modification d'`install.sh`, du wrapper ou de `machincast.installation` le met à jour dans le même commit.

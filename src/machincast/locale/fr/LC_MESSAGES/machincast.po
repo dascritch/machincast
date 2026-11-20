@@ -8322,11 +8322,11 @@ msgstr "&Ne plus proposer au lancement"
 #: bin/Machin
 msgid ""
 "Usage: Machin [--config FILE] BINARY [OPTIONS…]  or  Machin "
-"logs|tasks|dev|dev-test|dev-screenshots\n"
+"logs|tasks|banner|dev|dev-test|dev-screenshots\n"
 "Binaries: %s. Full help: Machin --help\n"
 msgstr ""
 "Usage : Machin [--config FICHIER] BINAIRE [OPTIONS…]  ou  Machin "
-"logs|tasks|dev|dev-test|dev-screenshots\n"
+"logs|tasks|banner|dev|dev-test|dev-screenshots\n"
 "Binaires : %s. Aide complète : Machin --help\n"
 
 #: bin/Machin
@@ -8337,6 +8337,7 @@ msgid ""
 "  Machin [--config FILE] BINARY [OPTIONS…]\n"
 "  Machin logs [journalctl OPTIONS…]\n"
 "  Machin [--config FILE] tasks\n"
+"  Machin banner\n"
 "  Machin dev | dev-test [--coverage] [--scenarios NAME…] | dev-screenshots "
 "[DIRECTORY]\n"
 "  Machin -h | --help | --binaries\n"
@@ -8398,6 +8399,13 @@ msgid ""
 "from\n"
 "               the set hour (schedule.daily), purge then indexer "
 "--full-audit\n"
+"\n"
+"Banner (https://github.com/dascritch/machincast/issues/517):\n"
+"  banner       shows the MachinCast banner, its version, and whether the "
+"broadcast\n"
+"               service is running, if it is installed; install.sh --service "
+"has\n"
+"               every new shell do the same\n"
 "\n"
 "Development (computer installed by ./install.sh --dev):\n"
 "  dev          opens a subshell in the MachinCast directory, venv "
@@ -8468,6 +8476,7 @@ msgstr ""
 "  Machin [--config FICHIER] BINAIRE [OPTIONS…]\n"
 "  Machin logs [OPTIONS DE journalctl…]\n"
 "  Machin [--config FICHIER] tasks\n"
+"  Machin banner\n"
 "  Machin dev | dev-test [--coverage] [--scenarios NOM…] | dev-screenshots "
 "[REPERTOIRE]\n"
 "  Machin -h | --help | --binaries\n"
@@ -8534,6 +8543,13 @@ msgstr ""
 "jour à\n"
 "               partir de l'heure réglée (schedule.daily), purge puis "
 "indexer --full-audit\n"
+"\n"
+"Bannière (https://github.com/dascritch/machincast/issues/517) :\n"
+"  banner       affiche la bannière de MachinCast, sa version, et si le "
+"service de\n"
+"               diffusion tourne, quand il est installé ; install.sh "
+"--service en\n"
+"               fait autant à chaque nouveau shell\n"
 "\n"
 "Développement (poste installé par ./install.sh --dev) :\n"
 "  dev          ouvre un sous-shell dans le répertoire de MachinCast, venv "
@@ -8619,6 +8635,14 @@ msgstr "Machin : venv introuvable : %s\\n"
 #: bin/Machin
 msgid "         Install the development computer: ./install.sh --dev\\n"
 msgstr "         Installer le poste de développement : ./install.sh --dev\\n"
+
+#: bin/Machin
+msgid "Machin player: running\\n"
+msgstr "Machin player : en marche\\n"
+
+#: bin/Machin
+msgid "Machin player: stopped\\n"
+msgstr "Machin player : arrêté\\n"
 
 #: bin/Machin
 msgid ""
@@ -8721,8 +8745,8 @@ msgstr "binaire inconnu : %s"
 
 #: install.sh
 msgid ""
-"Usage: ./install.sh [--simulation] [--dev] [--service [--dedicated] "
-"[--no-timers] | --remove-service] [--desktop | --no-desktop]\n"
+"Usage: ./install.sh [--simulation] [--verbose] [--dev] [--service "
+"[--dedicated] [--no-timers] | --remove-service] [--desktop | --no-desktop]\n"
 "                    [--stop-programs | --leave-programs] [--restore FILE | "
 "--no-restore]\n"
 "\n"
@@ -8808,7 +8832,12 @@ msgid ""
 "needed.\n"
 "\n"
 "Options:\n"
-"  --simulation  shows the commands without running anything\n"
+"  --simulation  shows the commands without running anything, with all the "
+"information\n"
+"  --verbose     shows all the information, the technical lines too (links, "
+"SQL operations, files already up\n"
+"                to date); without it, nor --simulation, only the steps, the "
+"warnings and what must be read\n"
 "  --dev         also installs the tools of the development computer\n"
 "  --service     also installs the broadcast service (computer dedicated to "
 "the on-air output only)\n"
@@ -8836,8 +8865,8 @@ msgid ""
 "  --no-restore  does not offer to restore a backup\n"
 "  -h, --help    this help\n"
 msgstr ""
-"Usage : ./install.sh [--simulation] [--dev] [--service [--dedicated] "
-"[--no-timers] | --remove-service] [--desktop | --no-desktop]\n"
+"Usage : ./install.sh [--simulation] [--verbose] [--dev] [--service "
+"[--dedicated] [--no-timers] | --remove-service] [--desktop | --no-desktop]\n"
 "                    [--stop-programs | --leave-programs] [--restore FICHIER "
 "| --no-restore]\n"
 "\n"
@@ -8927,7 +8956,12 @@ msgstr ""
 "quand il le faut.\n"
 "\n"
 "Options :\n"
-"  --simulation  affiche les commandes sans rien exécuter\n"
+"  --simulation  affiche les commandes sans rien exécuter, avec toutes les "
+"informations\n"
+"  --verbose     affiche toutes les informations, les lignes techniques "
+"aussi (liens, opérations SQL, fichiers déjà à jour) ;\n"
+"                sans lui, ni --simulation, seulement les étapes, les "
+"avertissements et ce qu'il faut lire\n"
 "  --dev         installe aussi les outils du poste de développement\n"
 "  --service     installe aussi le service de diffusion (ordinateur dédié à "
 "l'antenne seulement)\n"
@@ -8958,8 +8992,8 @@ msgstr ""
 "  -h, --help    cette aide\n"
 
 #: install.sh
-msgid "install.sh: %s\\n"
-msgstr "install.sh : %s\\n"
+msgid "install.sh: %s"
+msgstr "install.sh : %s"
 
 #: install.sh
 msgid "Network access"
@@ -9363,6 +9397,10 @@ msgid "%s can assume the role machincast_player"
 msgstr "%s peut endosser le rôle machincast_player"
 
 #: install.sh
+msgid "[y/N]"
+msgstr "[o/N]"
+
+#: install.sh
 msgid "[simulation] question: %s"
 msgstr "[simulation] question : %s"
 
@@ -9388,10 +9426,6 @@ msgstr "Oui, importer une sauvegarde"
 #: install.sh
 msgid "No, start from scratch"
 msgstr "Non, on repart de zéro"
-
-#: install.sh
-msgid "[y/N]"
-msgstr "[o/N]"
 
 #: install.sh
 msgid "MachinCast backups (*.dump)"
@@ -9567,12 +9601,24 @@ msgstr ""
 "terminal, les déplace"
 
 #: install.sh
+msgid "Move them to %s"
+msgstr "Les déplacer vers %s"
+
+#: install.sh
+msgid "Remove them from the database"
+msgstr "Les retirer de la base"
+
+#: install.sh
+msgid "Leave them, not played"
+msgstr "Les laisser, sans les jouer"
+
+#: install.sh
 msgid ""
 "Move them to %s [m], remove them from the database [r], or leave them, not "
-"played [l]? "
+"played [l]?"
 msgstr ""
-"Les déplacer dans %s [d], les retirer de la base [r], ou les laisser, sans "
-"passer à l'antenne [l] ? "
+"Les déplacer vers %s [d], les retirer de la base [r], ou les laisser, sans "
+"les jouer [l] ?"
 
 #: install.sh
 msgid "some sound files are not moved: see above"
