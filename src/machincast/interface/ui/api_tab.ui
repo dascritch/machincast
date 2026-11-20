@@ -109,6 +109,84 @@
      </item>
     </layout>
    </item>
+   <item>
+    <widget class="QLabel" name="sessions_label">
+     <property name="text">
+      <string>Sessions of the chosen user: waiting for validation at the desk, valid until their limit, or invalid.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTreeWidget" name="sessions">
+     <property name="editTriggers">
+      <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="rootIsDecorated">
+      <bool>false</bool>
+     </property>
+     <column>
+      <property name="text">
+       <string>State</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Origin</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Opened</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Limit</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Address</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Browser</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="session_actions">
+     <item>
+      <widget class="QPushButton" name="new_session">
+       <property name="text">
+        <string>➕ New API session…</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="invalidate_session">
+       <property name="text">
+        <string>Invalidate the session</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="session_space">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
   </layout>
  </widget>
  <resources/>

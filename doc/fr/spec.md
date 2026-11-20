@@ -308,6 +308,22 @@ Les comptes de l'intranet et de l'API ([#537](https://github.com/dascritch/machi
 | `role` | `consult` (l'intranet et l'API en lecture) ou `actions` (de même, et les actions de l'API à venir), type `api_role`. |
 | `disabled_at` | Renseigné, le compte est désactivé : il ne se connecte plus. |
 
+#### `api_sessions`
+
+Les sessions de l'intranet et de l'API ([#539](https://github.com/dascritch/machincast/issues/539), [§ 13.2](#132-connexion-validée-au-pupitre)).
+
+| Champ | Description |
+| --- | --- |
+| `id`, `user_id` | Le compte ; ses sessions disparaissent avec lui. |
+| `token_hash` | Empreinte SHA-256 du jeton du cookie, unique ; jamais le jeton lui-même. |
+| `origin` | `intranet` (la mire de connexion) ou `interface` (générée au pupitre, pour l'API), type `api_session_origin`. |
+| `state` | `pending` (à valider), `valid` ou `invalid`, type `api_session_state`. |
+| `code`, `attempts` | Le code à 6 chiffres à donner au poste distant, tant que la session est à valider ; les codes faux saisis. |
+| `user_agent`, `source_ip` | Le navigateur et l'adresse du poste distant. |
+| `created_at`, `validate_before`, `validated_at`, `expires_at`, `ended_at` | L'ouverture, la limite de validation, la validation, la limite de la session valide, sa fin. |
+
+Une session à valider a son code et sa limite de validation, une session valide sa limite et plus de code (`CHECK`).
+
 #### Choix de modélisation
 
 Le schéma, les rôles et les droits sont créés par une seule migration, `src/machincast/migrations/0001.initial-schema.sql`, fusion de toutes les migrations écrites avant que le projet serve réellement ([PR #70](https://github.com/dascritch/machincast/pull/70), [PR #90](https://github.com/dascritch/machincast/pull/90), [PR #100](https://github.com/dascritch/machincast/pull/100), puis [#314](https://github.com/dascritch/machincast/issues/314) pour les quatorze suivantes), réécrite avec des noms anglais ([#358](https://github.com/dascritch/machincast/issues/358)).
@@ -361,6 +377,7 @@ Ils sont créés par la migration `0001.initial-schema` ([#4](https://github.com
 | `airplay` | lire, insérer | — | lire | — |
 | `log` | insérer (sans `RETURNING`) ; retrouver son démarrage précédent par `machincast_previous_start`, sans lire ([#342](https://github.com/dascritch/machincast/issues/342)) | insérer (sans `RETURNING`, [#341](https://github.com/dascritch/machincast/issues/341)) | lire | — |
 | `api_users` | — | — | lire, insérer, modifier, supprimer | lire |
+| `api_sessions` | — | — | lire, insérer, modifier | lire, insérer, modifier |
 
 L'indexation ne supprime aucun sonore : un fichier disparu fait passer son sonore à l'état `missing`.
 Elle ne supprime que des lignes de `bank_sounds`, pour retirer d'une banque les sonores hors de ses durées ([#195](https://github.com/dascritch/machincast/issues/195), [§ 6.2](#62-indexation-des-répertoires-de-banques)).
@@ -1773,6 +1790,8 @@ L'onglet porte la clé, `icons/api.svg`, se ferme, et se rouvre au lancement sui
 - Le compte choisi : « Rôle » le change aussitôt ; « Changer le mot de passe… » rouvre la même fenêtre, sans le nom ni le rôle ; « Désactiver » le désactive, et devient « Réactiver » ; « ❌ Supprimer… » le supprime, après confirmation.
 	Chaque action le dit dans la barre d'état.
 - Le mot de passe n'est jamais gardé : seule son empreinte scrypt salée, calculée par la bibliothèque standard (`machincast.shared.passwords`), va en base, et se vérifie en temps constant.
+- Sous les comptes, les sessions du compte choisi ([#539](https://github.com/dascritch/machincast/issues/539), vue `api-sessions`) : leur état (`à valider`, `valide`, `invalide`), leur origine (`intranet` ou `pupitre`), leur ouverture, leur limite, l'adresse et le navigateur du poste distant, la plus récente en tête.
+	« Invalider la session » coupe la session choisie, déjà invalide grisée ; « ➕ Nouvelle session API… » en génère une, valide aussitôt pour `intranet.session` heures, et montre son jeton une seule fois (`api_tab.show_token`) : la base n'en garde que l'empreinte.
 
 ## 9. Configuration
 
@@ -1952,3 +1971,21 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 - **Paramètres du service**, page « Intranet » (`preferences.ui`, `PreferencesWindow._show_intranet`) : « Allumer le serveur intranet, en HTTPS seulement », le port et le délai de validation, grisés serveur éteint, et l'adresse à donner aux autres postes.
 	« OK » écrit `enabled`, `port` et `validation` (`preferences._write_intranet` ; une section absente ne reçoit pas les valeurs par défaut) ; l'adresse d'écoute et le certificat restent ceux du fichier.
 	Un réglage changé redémarre l'unité, ou l'arrête, l'intranet éteint (`machincast.interface.intranet_switch`) ; la barre d'état dit l'adresse, ou la réponse de systemctl, ou, sans le service, qu'il faut lancer `Machin intranet` à la main.
+
+### 13.2 Connexion validée au pupitre
+
+([#539](https://github.com/dascritch/machincast/issues/539), `machincast.intranet.portal`, `machincast.intranet.sessions`)
+
+1. **Mire** (`GET /login`) : nom d'utilisateur et mot de passe, sans récupération de mot de passe.
+	`POST /login` vérifie un compte actif ; un nom inconnu, un compte désactivé ou un mot de passe faux donnent la même réponse, 401, dans le même temps (une empreinte leurre est vérifiée pour un nom inconnu).
+	Cinq échecs d'une même adresse en un quart d'heure la font attendre un quart d'heure, 429 (`portal.Throttle`, en mémoire).
+2. **Session à valider** : des identifiants valides ouvrent une session `pending`, un jeton aléatoire de 32 octets dans le cookie `machincast_session` (`Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`), dont la base ne garde que l'empreinte SHA-256, et un code à 6 chiffres ; la réponse mène à `/validation`, qui dit qu'une action doit être faite au pupitre.
+3. **Au pupitre** : l'interface relit toutes les 3 secondes les connexions à valider (`machincast.interface.remote_connections`) ; un bandeau orange, au-dessus des onglets, nomme le compte, l'adresse IP source, le navigateur, l'heure limite, et le code à donner, en deux groupes de trois chiffres.
+	« Refuser » rend la session invalide.
+	Le délai est `intranet.validation` minutes, 30 par défaut.
+4. **Code** (`POST /validation`) : le code exact, espaces ignorées, rend la session valide pour `intranet.session` heures, 12 par défaut, et mène à l'accueil ; un code faux le redemande, 400 ; au cinquième (`sessions.ATTEMPTS`), comme le délai passé, la session est invalide, 401, et il faut se reconnecter.
+5. **Session valide** : le même jeton sert l'intranet et l'API, en cookie ou en `Authorization: Bearer` (`portal.bearer`) ; un compte désactivé perd ses sessions.
+	`POST /logout` rend la session invalide et efface le cookie.
+- Un formulaire envoyé d'une autre origine (en-tête `Origin` d'un autre hôte) est refusé, 403 ; un corps de plus de 64 Kio, 413.
+- Les heures sont celles de la base (`clock_timestamp()`) ; chaque lecture rend d'abord invalides les sessions dont le délai est passé.
+- Le serveur lit la base de production au rôle `machincast_intranet`, une connexion par requête, hors de la boucle du serveur (`asyncio.to_thread`).

@@ -61,6 +61,7 @@ from machincast.clock import Clock
 from machincast.configuration import (
 	DAILY,
 	RETENTION,
+	SESSION,
 	Audio,
 	Crossfades,
 	DeadAirSettings,
@@ -115,6 +116,7 @@ from machincast.interface.intranet_switch import IntranetSwitch
 from machincast.interface.lists import BANKS, EVENTS, FEEDS, SEQUENCES, SOUNDS, List, Source
 from machincast.interface.preview import PreviewWindow
 from machincast.interface.queries import cards as cards_queries
+from machincast.interface.remote_connections import RemoteConnections
 from machincast.interface.screen_saver import ScreenSaver
 from machincast.interface.search import SearchScreen
 from machincast.interface.sequence_card import SequenceCard
@@ -266,6 +268,10 @@ class MainWindow(QMainWindow):
 		self.key_hints = key_hints.KeyHints(self)
 		self.intranet_switch = IntranetSwitch(self)
 		self.intranet_switch.announced.connect(self.ui.state_bar.showMessage)
+		# Les connexions à distance à valider au pupitre (https://github.com/dascritch/machincast/issues/539).
+		self.remote_connections = RemoteConnections(connection, self)
+		self.remote_connections.refused.connect(self.ui.state_bar.showMessage)
+		self.ui.arrangement.insertWidget(0, self.remote_connections)
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
 		self.home.show_clipping(poster=self.clipping)
 		# Le moniteur de l'antenne n'a ni lecture ni pause : il écoute aussitôt (https://github.com/dascritch/machincast/issues/531).
@@ -906,7 +912,11 @@ class MainWindow(QMainWindow):
 			if isinstance(screen, ApiScreen):
 				api = screen
 		if api is None:
-			api = ApiScreen(self.connection)
+			hours = SESSION
+			if self.configuration is not None:
+				hours = preferences.intranet(self.configuration).session
+			api = ApiScreen(self.connection, hours)
+			self.remote_connections.refused.connect(lambda _said: api.refresh_sessions())
 			api.announces.connect(self.ui.state_bar.showMessage)
 			self.tab_manager.add_tab(api, _("API"))
 		tabs.setCurrentWidget(api)

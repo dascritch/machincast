@@ -36,6 +36,7 @@ TABLES: tuple[str, ...] = (
 	"airplay",
 	"log",
 	"api_users",
+	"api_sessions",
 )
 """Tables créées par les migrations, dans l'ordre de doc/fr/spec.md § 3.1 ; api_users depuis
 https://github.com/dascritch/machincast/issues/537."""
@@ -51,6 +52,8 @@ TYPES: tuple[str, ...] = (
 	"crossfade_rule",
 	"end_of_list",
 	"api_role",
+	"api_session_state",
+	"api_session_origin",
 )
 """Types énumérés créés par la migration ; end_of_list depuis https://github.com/dascritch/machincast/issues/350."""
 

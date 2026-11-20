@@ -1501,6 +1501,26 @@ msgid "API actions"
 msgstr "actions API"
 
 #: machincast/interface/api_tab.py
+msgid "to validate"
+msgstr "à valider"
+
+#: machincast/interface/api_tab.py
+msgid "valid"
+msgstr "valide"
+
+#: machincast/interface/api_tab.py
+msgid "invalid"
+msgstr "invalide"
+
+#: machincast/interface/api_tab.py
+msgid "intranet"
+msgstr "intranet"
+
+#: machincast/interface/api_tab.py
+msgid "desk"
+msgstr "pupitre"
+
+#: machincast/interface/api_tab.py
 #: machincast/interface/feed_card.py
 msgid "The name is required."
 msgstr "Le nom est obligatoire."
@@ -1522,6 +1542,16 @@ msgid "The password and its confirmation differ."
 msgstr "Le mot de passe et sa confirmation diffèrent."
 
 #: machincast/interface/api_tab.py
+msgid ""
+"Give this token to the tool that uses the API, in the header "
+"“Authorization: Bearer …”. It is shown only this once: MachinCast keeps "
+"only its fingerprint."
+msgstr ""
+"Donnez ce jeton à l'outil qui utilise l'API, dans l'en-tête « "
+"Authorization: Bearer … ». Il n'est montré que cette fois : MachinCast n'en "
+"garde que l'empreinte."
+
+#: machincast/interface/api_tab.py
 #, python-brace-format
 msgid "{name} enabled again."
 msgstr "{name} réactivé."
@@ -1538,6 +1568,11 @@ msgstr "Le mot de passe demande au moins {count} caractères."
 
 #: machincast/interface/api_tab.py
 #, python-brace-format
+msgid "API session of {name}"
+msgstr "Session API de {name}"
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
 msgid ""
 "Delete the intranet user {name}? It will no longer be able to connect, and "
 "its sessions will end."
@@ -1548,6 +1583,16 @@ msgstr ""
 #: machincast/interface/api_tab.py
 msgid "Delete a user"
 msgstr "Supprimer un compte"
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "API session of {name} created, valid {hours} hours."
+msgstr "Session API de {name} créée, valable {hours} heures."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "Session of {name} invalidated."
+msgstr "Session de {name} invalidée."
 
 #: machincast/interface/api_tab.py
 #, python-brace-format
@@ -4606,6 +4651,7 @@ msgstr[0] "{count} événement"
 msgstr[1] "{count} événements"
 
 #: machincast/interface/lists.py
+#: machincast/interface/ui/api_tab.ui
 msgid "Address"
 msgstr "Adresse"
 
@@ -4992,6 +5038,29 @@ msgstr "Sortie de pré-écoute non enregistrée dans {configuration} : {error}"
 #, python-brace-format
 msgid "{channels} channels"
 msgstr "{channels} canaux"
+
+#: machincast/interface/remote_connections.py
+msgid "Refuse"
+msgstr "Refuser"
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
+msgid ""
+"Remote connection to validate: <b>{user}</b>, from {address}, {browser}, "
+"until {limit}. Code to give: <b>{code}</b>"
+msgstr ""
+"Connexion à distance à valider : <b>{user}</b>, depuis {address}, "
+"{browser}, jusqu'à {limit}. Code à donner : <b>{code}</b>"
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
+msgid "Remote connection of {user} refused."
+msgstr "Connexion à distance de {user} refusée."
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
+msgid "remote connections unreadable: {error}"
+msgstr "connexions à distance illisibles : {error}"
 
 #: machincast/interface/search.py
 msgid "Search"
@@ -6353,11 +6422,6 @@ msgid "no TLS certificate for the intranet: {error}"
 msgstr "aucun certificat TLS pour l'intranet : {error}"
 
 #: machincast/intranet/app.py
-#: machincast/interface/ui/preferences.ui
-msgid "Home"
-msgstr "Accueil"
-
-#: machincast/intranet/app.py
 msgid "Not found."
 msgstr "Introuvable."
 
@@ -6366,8 +6430,12 @@ msgid "Method not allowed."
 msgstr "Méthode non permise."
 
 #: machincast/intranet/app.py
-msgid "The intranet of MachinCast is running."
-msgstr "L'intranet de MachinCast fonctionne."
+msgid "Request too large."
+msgstr "Requête trop grosse."
+
+#: machincast/intranet/app.py
+msgid "Form sent from another site."
+msgstr "Formulaire envoyé d'un autre site."
 
 #: machincast/intranet/app.py
 msgid "Internal error."
@@ -6387,6 +6455,79 @@ msgstr "certificat de l'intranet généré : {path}"
 #, python-brace-format
 msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
 msgstr "adresses du poste illisibles par iproute2, devinées : {error}"
+
+#: machincast/intranet/portal.py
+msgid "Connection"
+msgstr "Connexion"
+
+#: machincast/intranet/portal.py
+msgid "Validation at the desk"
+msgstr "Validation au pupitre"
+
+#: machincast/intranet/portal.py
+msgid "A valid session is required."
+msgstr "Une session valide est nécessaire."
+
+#: machincast/intranet/portal.py
+#: machincast/interface/ui/preferences.ui
+msgid "Home"
+msgstr "Accueil"
+
+#: machincast/intranet/portal.py
+msgid ""
+"Connection not validated in time, or too many wrong codes: connect again."
+msgstr ""
+"Connexion non validée à temps, ou trop de codes faux : reconnectez-vous."
+
+#: machincast/intranet/portal.py
+msgid "Too many failed attempts: wait a quarter of an hour."
+msgstr "Trop d'essais refusés : attendez un quart d'heure."
+
+#: machincast/intranet/portal.py
+msgid "Unknown user, disabled account or wrong password."
+msgstr "Nom inconnu, compte désactivé ou mot de passe faux."
+
+#: machincast/intranet/portal.py
+msgid "Wrong code: ask again at the desk."
+msgstr "Code faux : redemandez-le au pupitre."
+
+#: machincast/intranet/portal.py
+msgid "User name"
+msgstr "Nom d'utilisateur"
+
+#: machincast/intranet/portal.py
+msgid "Password"
+msgstr "Mot de passe"
+
+#: machincast/intranet/portal.py
+msgid "Connect"
+msgstr "Se connecter"
+
+#: machincast/intranet/portal.py
+msgid ""
+"An action must be done at the studio desk: MachinCast shows there your "
+"name, your browser, your address and a 6-digit code. Enter this code here."
+msgstr ""
+"Une action doit être faite au pupitre : MachinCast y montre votre nom, "
+"votre navigateur, votre adresse et un code à 6 chiffres. Saisissez ce code "
+"ici."
+
+#: machincast/intranet/portal.py
+msgid "6-digit code"
+msgstr "Code à 6 chiffres"
+
+#: machincast/intranet/portal.py
+msgid "Validate"
+msgstr "Valider"
+
+#: machincast/intranet/portal.py
+msgid "Disconnect"
+msgstr "Se déconnecter"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid "Connected as {name}."
+msgstr "Connecté en tant que {name}."
 
 #: machincast/maintenance.py
 msgid "Backs up, checks and optimises the MachinCast database."
@@ -7661,6 +7802,38 @@ msgstr "Changer le mot de passe…"
 #: machincast/interface/ui/sound_card.ui
 msgid "❌ Delete…"
 msgstr "❌ Supprimer…"
+
+#: machincast/interface/ui/api_tab.ui
+msgid ""
+"Sessions of the chosen user: waiting for validation at the desk, valid "
+"until their limit, or invalid."
+msgstr ""
+"Sessions du compte choisi : à valider au pupitre, valides jusqu'à leur "
+"limite, ou invalides."
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Origin"
+msgstr "Origine"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Opened"
+msgstr "Ouverte le"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Limit"
+msgstr "Limite"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Browser"
+msgstr "Navigateur"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "➕ New API session…"
+msgstr "➕ Nouvelle session API…"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Invalidate the session"
+msgstr "Invalider la session"
 
 #: machincast/interface/ui/api_user.ui
 msgid "Intranet user"

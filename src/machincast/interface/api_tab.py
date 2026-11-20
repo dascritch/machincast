@@ -15,14 +15,16 @@ from dataclasses import dataclass
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QDialog, QDialogButtonBox, QTreeWidgetItem, QWidget
+from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTreeWidgetItem, QWidget
 
+from machincast.configuration import SESSION
 from machincast.i18n import _
 from machincast.interface import dialogs, display
 from machincast.interface.columns import Columns
 from machincast.interface.queries import api_users as queries
 from machincast.interface.ui.api_tab import Ui_ApiScreen
 from machincast.interface.ui.api_user import Ui_ApiUserDialog
+from machincast.intranet import sessions
 from machincast.shared import passwords
 
 log = logging.getLogger(__name__)
@@ -31,6 +33,11 @@ NAME = re.compile(r"[A-Za-z0-9._-]+")
 """Un nom de compte : ce que permet la contrainte de api_users.name."""
 ROLE_NAMES = {"consult": _("consult"), "actions": _("API actions")}
 """Les rôles d'un compte, tels que l'onglet les nomme."""
+SESSION_STATES = {"pending": _("to validate"), "valid": _("valid"), "invalid": _("invalid")}
+"""L'état d'une session (https://github.com/dascritch/machincast/issues/539)."""
+ORIGINS = {"intranet": _("intranet"), "interface": _("desk")}
+"""D'où vient une session : la mire de connexion, ou une génération au pupitre, pour l'API."""
+SESSIONS_VIEW = "api-sessions"
 ACTIVE = _("active")
 DISABLED = _("disabled")
 DISABLE = _("Disable")
@@ -103,6 +110,22 @@ class ApiUserDialog(QDialog):
 		self.accept()
 
 
+def show_token(parent: QWidget, name: str, value: str) -> None:
+	"""Le jeton d'une session générée, montré une seule fois : la base n'en garde que l'empreinte."""
+	window = QMessageBox(parent)
+	window.setIcon(QMessageBox.Icon.Information)
+	window.setWindowTitle(_("API session of {name}").format(name=name))
+	window.setText(
+		_(
+			"Give this token to the tool that uses the API, in the header “Authorization: Bearer …”. It is shown only "
+			"this once: MachinCast keeps only its fingerprint."
+		)
+	)
+	window.setInformativeText(value)
+	window.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+	window.exec()
+
+
 def ask_account(parent: QWidget, connection: psycopg.Connection[TupleRow], name: str | None) -> Account | None:
 	"""Le compte saisi, ou le nouveau mot de passe du compte nommé ; None, la fenêtre annulée."""
 	window = ApiUserDialog(parent, connection, name)
@@ -117,9 +140,12 @@ class ApiScreen(QWidget):
 	announces = Signal(str)
 	"""Ce que vient de faire l'onglet, pour la barre d'état."""
 
-	def __init__(self, connection: psycopg.Connection[TupleRow], parent: QWidget | None = None) -> None:
+	def __init__(
+		self, connection: psycopg.Connection[TupleRow], session_hours: int = SESSION, parent: QWidget | None = None
+	) -> None:
 		super().__init__(parent)
 		self.connection = connection
+		self.session_hours = session_hours
 		self.ui = Ui_ApiScreen()
 		self.ui.setupUi(self)
 		for role in queries.ROLES:
@@ -132,6 +158,10 @@ class ApiScreen(QWidget):
 		self.ui.disable.clicked.connect(self.toggle_disabled)
 		self.ui.delete.clicked.connect(self.delete_user)
 		self.ui.role.activated.connect(self._change_role)
+		self.session_columns = Columns(self.ui.sessions, SESSIONS_VIEW)
+		self.ui.sessions.currentItemChanged.connect(self._follow_session)
+		self.ui.new_session.clicked.connect(self.new_session)
+		self.ui.invalidate_session.clicked.connect(self.invalidate_session)
 		self.refresh()
 
 	def refresh(self) -> None:
@@ -175,14 +205,73 @@ class ApiScreen(QWidget):
 	def _follow(self) -> None:
 		"""Les actions sur un compte ne servent qu'un compte choisi ; « Désactiver » devient « Réactiver »."""
 		line = self.ui.users.currentItem()
-		for widget in (self.ui.role, self.ui.change_password, self.ui.disable, self.ui.delete):
+		for widget in (self.ui.role, self.ui.change_password, self.ui.disable, self.ui.delete, self.ui.new_session):
 			widget.setEnabled(line is not None)
+		self.refresh_sessions()
 		if line is None:
 			return
 		self.ui.role.setCurrentIndex(self.ui.role.findData(line.data(1, IDENTIFIER)))
 		self.ui.disable.setText(DISABLE)
 		if line.data(2, IDENTIFIER):
 			self.ui.disable.setText(ENABLE)
+
+	def refresh_sessions(self) -> None:
+		"""Les sessions du compte choisi, la plus récente en tête (https://github.com/dascritch/machincast/issues/539)."""
+		tree = self.ui.sessions
+		tree.clear()
+		identifier = self.chosen()
+		if identifier is not None:
+			with self.connection.transaction():
+				found = queries.sessions_of(self.connection, identifier)
+			for opened in found:
+				limit = ""
+				if opened.limit is not None:
+					limit = display.date(opened.limit)
+				line = QTreeWidgetItem(
+					[
+						SESSION_STATES[opened.state],
+						ORIGINS[opened.origin],
+						display.date(opened.created_at),
+						limit,
+						opened.address,
+						opened.user_agent,
+					]
+				)
+				line.setData(0, IDENTIFIER, opened.identifier)
+				line.setData(1, IDENTIFIER, opened.state)
+				tree.addTopLevelItem(line)
+		self._follow_session()
+
+	def _follow_session(self) -> None:
+		"""« Invalider la session » ne sert qu'une session qui n'est pas déjà invalide."""
+		line = self.ui.sessions.currentItem()
+		self.ui.invalidate_session.setEnabled((line is not None) and (line.data(1, IDENTIFIER) != "invalid"))
+
+	def new_session(self) -> None:
+		"""Une session valide aussitôt, pour l'API ; son jeton, montré une fois."""
+		identifier = self.chosen()
+		if identifier is None:
+			return
+		name = self._chosen_name()
+		value = sessions.token()
+		with self.connection.transaction():
+			queries.create_session(self.connection, identifier, sessions.fingerprint(value), self.session_hours)
+		self.refresh_sessions()
+		self.announces.emit(
+			_("API session of {name} created, valid {hours} hours.").format(name=name, hours=self.session_hours)
+		)
+		show_token(self, name, value)
+
+	def invalidate_session(self) -> None:
+		line = self.ui.sessions.currentItem()
+		if line is None:
+			return
+		session = line.data(0, IDENTIFIER)
+		assert isinstance(session, int)
+		with self.connection.transaction():
+			queries.invalidate(self.connection, session)
+		self.refresh_sessions()
+		self.announces.emit(_("Session of {name} invalidated.").format(name=self._chosen_name()))
 
 	def _write(self, done: str) -> None:
 		"""Relit l'onglet, et dit ce qui vient d'être fait."""

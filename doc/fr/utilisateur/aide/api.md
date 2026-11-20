@@ -10,6 +10,11 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 3. **Rôle** (`role`) : `consulter` donne l'intranet et l'API en lecture ; `actions API` de même, et les actions à venir ; le changement vaut aussitôt.
 4. **Changer le mot de passe…** (`change_password`) : un nouveau mot de passe, confirmé ; l'ancien n'est pas demandé, et il n'y a pas d'autre récupération.
 5. **Désactiver** (`disable`) : le compte ne se connecte plus ; le bouton devient **Réactiver**.
-6. **❌ Supprimer…** (`delete`) : supprime le compte, après confirmation.
+6. **❌ Supprimer…** (`delete`) : supprime le compte, après confirmation ; ses sessions prennent fin.
+7. **Sessions** (`sessions`) : celles du compte choisi, la plus récente en tête : `à valider` au pupitre, `valide` jusqu'à sa limite, ou `invalide` ; ouverte par la mire de l'`intranet`, ou générée au `pupitre` ; avec l'adresse et le navigateur du poste distant ([#539](https://github.com/dascritch/machincast/issues/539)).
+8. **➕ Nouvelle session API…** (`new_session`) : une session valide aussitôt, pour un outil qui lit l'API ; son jeton n'est montré qu'une fois.
+9. **Invalider la session** (`invalidate_session`) : la session choisie ne sert plus.
+
+Une connexion à distance à valider s'annonce au-dessus des onglets, dans un bandeau orange : le compte, l'adresse, le navigateur, l'heure limite et le code à 6 chiffres à donner ; **Refuser** la ferme.
 
 Pour aller plus loin : [Comptes de l'intranet](../../administration/configuration.md#comptes-de-lintranet).

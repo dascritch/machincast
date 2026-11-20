@@ -81,6 +81,39 @@ class Ui_ApiScreen(object):
 
         self.arrangement.addLayout(self.actions)
 
+        self.sessions_label = QLabel(ApiScreen)
+        self.sessions_label.setObjectName(u"sessions_label")
+        self.sessions_label.setWordWrap(True)
+
+        self.arrangement.addWidget(self.sessions_label)
+
+        self.sessions = QTreeWidget(ApiScreen)
+        self.sessions.setObjectName(u"sessions")
+        self.sessions.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.sessions.setAlternatingRowColors(True)
+        self.sessions.setRootIsDecorated(False)
+
+        self.arrangement.addWidget(self.sessions)
+
+        self.session_actions = QHBoxLayout()
+        self.session_actions.setObjectName(u"session_actions")
+        self.new_session = QPushButton(ApiScreen)
+        self.new_session.setObjectName(u"new_session")
+
+        self.session_actions.addWidget(self.new_session)
+
+        self.invalidate_session = QPushButton(ApiScreen)
+        self.invalidate_session.setObjectName(u"invalidate_session")
+
+        self.session_actions.addWidget(self.invalidate_session)
+
+        self.session_space = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.session_actions.addItem(self.session_space)
+
+
+        self.arrangement.addLayout(self.session_actions)
+
 #if QT_CONFIG(shortcut)
         self.role_label.setBuddy(self.role)
 #endif // QT_CONFIG(shortcut)
@@ -102,6 +135,16 @@ class Ui_ApiScreen(object):
         self.change_password.setText(QCoreApplication.translate("ApiScreen", u"Change the password\u2026", None))
         self.disable.setText(QCoreApplication.translate("ApiScreen", u"Disable", None))
         self.delete.setText(QCoreApplication.translate("ApiScreen", u"\u274c Delete\u2026", None))
+        self.sessions_label.setText(QCoreApplication.translate("ApiScreen", u"Sessions of the chosen user: waiting for validation at the desk, valid until their limit, or invalid.", None))
+        ___qtreewidgetitem1 = self.sessions.headerItem()
+        ___qtreewidgetitem1.setText(5, QCoreApplication.translate("ApiScreen", u"Browser", None))
+        ___qtreewidgetitem1.setText(4, QCoreApplication.translate("ApiScreen", u"Address", None))
+        ___qtreewidgetitem1.setText(3, QCoreApplication.translate("ApiScreen", u"Limit", None))
+        ___qtreewidgetitem1.setText(2, QCoreApplication.translate("ApiScreen", u"Opened", None))
+        ___qtreewidgetitem1.setText(1, QCoreApplication.translate("ApiScreen", u"Origin", None))
+        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("ApiScreen", u"State", None))
+        self.new_session.setText(QCoreApplication.translate("ApiScreen", u"\u2795 New API session\u2026", None))
+        self.invalidate_session.setText(QCoreApplication.translate("ApiScreen", u"Invalidate the session", None))
         pass
     # retranslateUi
 

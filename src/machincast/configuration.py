@@ -264,6 +264,10 @@ INTRANET_PORTS = (1024, 65535)
 """Un port que le compte du service ouvre sans droit particulier."""
 VALIDATION = 30
 VALIDATIONS = (1, 1440)
+SESSION = 12
+SESSIONS = (1, 720)
+"""Heures de validité d'une session validée, d'une heure à trente jours
+(https://github.com/dascritch/machincast/issues/539)."""
 """Minutes laissées pour valider au pupitre une connexion à l'intranet, d'une minute à un jour."""
 
 
@@ -278,6 +282,8 @@ class Intranet:
 	port: int = INTRANET_PORT
 	validation: int = VALIDATION
 	"""Minutes pour valider au pupitre une connexion (https://github.com/dascritch/machincast/issues/539)."""
+	session: int = SESSION
+	"""Heures de validité d'une session validée."""
 	certificate: Path | None = None
 	"""Le certificat TLS, au format PEM ; sans lui, Machin intranet en génère un auto-signé
 	(machincast.intranet.certificate)."""
@@ -320,7 +326,7 @@ KEYS: dict[str, frozenset[str]] = {
 	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows", "notes", "team_link"}),
 	"schedule": frozenset({"daily"}),
 	"backup": frozenset({"directory"}),
-	"intranet": frozenset({"enabled", "address", "port", "validation", "certificate", "key"}),
+	"intranet": frozenset({"enabled", "address", "port", "validation", "session", "certificate", "key"}),
 }
 
 
@@ -633,6 +639,7 @@ class _Player:
 			address=address,
 			port=self.whole("intranet", "port", INTRANET_PORT, INTRANET_PORTS),
 			validation=self.whole("intranet", "validation", VALIDATION, VALIDATIONS),
+			session=self.whole("intranet", "session", SESSION, SESSIONS),
 			certificate=certificate,
 			key=key,
 		)

@@ -28,6 +28,7 @@ Fonctionnalité: Schéma de la base de données
 			| airplay          |
 			| log              |
 			| api_users        |
+			| api_sessions     |
 
 	Scénario: La purge entre deux scénarios vide chaque table, et remet les identifiants à 1
 		https://github.com/dascritch/machincast/issues/280 : la purge vide table par table (tests.database_fixtures.PURGE_ORDER),
@@ -60,22 +61,22 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 5 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users »
+		Alors 6 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions »
 
 	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
 		https://github.com/dascritch/machincast/issues/454
 		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
 		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
-		Et j'annule les 3 dernières migrations
+		Et j'annule les 4 dernières migrations
 		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	Scénario: Annuler l'ordre ascendant du tableau ramène ces banques à l'ordre descendant, le mode séquentiel
 		https://github.com/dascritch/machincast/issues/535
 		Quand j'enregistre dans "banks" : internal_name = 'Jingles', mode = 'sequential_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
-		Et j'annule les 2 dernières migrations
+		Et j'annule les 3 dernières migrations
 		Alors les banques « Jingles », « Chroniques » sont en modes « sequential », « filename_ascending »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
@@ -182,6 +183,28 @@ Fonctionnalité: Schéma de la base de données
 			| name = 'regie', password_hash = 'scrypt$2'                 |
 			| name = 'technique', password_hash = 'tisane-au-micro'      |
 			| name = 'technique', password_hash = 'scrypt$1', role = 'admin' |
+
+	Plan du scénario: Une session de l'intranet incohérente est refusée
+		https://github.com/dascritch/machincast/issues/539 : l'empreinte du jeton, unique, un code à 6 chiffres pour la
+		session à valider, son délai, et une limite pour la session valide, sans code.
+
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
+		Et j'enregistre dans "api_sessions" : user_id = 1, token_hash = repeat('a', 64), code = '123456', validate_before = now()
+		Et j'enregistre dans "api_sessions" : <valeurs>
+		Alors la base refuse l'enregistrement
+
+		Exemples:
+			| valeurs                                                                                         |
+			| user_id = 1, token_hash = repeat('a', 64), code = '654321', validate_before = now()             |
+			| user_id = 1, token_hash = 'jeton-en-clair', code = '654321', validate_before = now()            |
+			| user_id = 1, token_hash = repeat('b', 64), code = '12345', validate_before = now()              |
+			| user_id = 1, token_hash = repeat('b', 64), code = '12a456', validate_before = now()             |
+			| user_id = 1, token_hash = repeat('b', 64), validate_before = now()                              |
+			| user_id = 1, token_hash = repeat('b', 64), code = '123456'                                      |
+			| user_id = 1, token_hash = repeat('b', 64), state = 'valid', code = '123456', expires_at = now() |
+			| user_id = 1, token_hash = repeat('b', 64), state = 'valid'                                      |
+			| user_id = 2, token_hash = repeat('b', 64), code = '123456', validate_before = now()             |
 
 	# ─── Banques ───────────────────────────────────────────
 
