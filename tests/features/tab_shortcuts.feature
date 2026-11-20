@@ -15,6 +15,11 @@ Fonctionnalité: Raccourcis des onglets
 	Un onglet s'ouvre à droite de l'onglet ouvert, une fiche à droite de sa liste, après celles déjà ouvertes depuis elle
 	(https://github.com/dascritch/machincast/issues/405, movable_tabs.feature).
 
+	https://github.com/dascritch/machincast/issues/529 : Ctrl+Échap (Ctrl+Esc) ferme la fiche ouverte sans rien enregistrer
+	ni rien demander. Maintenir Ctrl ou Alt une seconde montre en surimpression les raccourcis qui commencent par cette
+	touche : sur les boutons visibles, comme Ctrl+S et Ctrl+Entrée sur « Enregistrer », et ceux des menus dans un encart.
+	Les scénarios raccourcissent l'attente.
+
 	Contexte:
 		Étant donné le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-10-21 09:00:00 »
@@ -237,3 +242,43 @@ Fonctionnalité: Raccourcis des onglets
 		Quand je choisis « Feeds » dans le sous-menu « Onglets fermés récemment » du menu « Affichage »
 		Alors l'onglet ouvert est « Feeds »
 		Et le sous-menu « Onglets fermés récemment » du menu « Affichage » propose « Séquence : Cinq », « Séquence : Quatre », « Séquence : Trois », « Séquence : Deux »
+
+	# ─── Ctrl+Échap et raccourcis en surimpression (https://github.com/dascritch/machincast/issues/529) ───
+
+	Scénario: Ctrl+Échap ferme la fiche modifiée sans l'enregistrer ni rien demander
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je saisis le nom interne « Un bis »
+		Et j'appuie sur « Ctrl+Esc »
+		Alors aucune question n'a été posée
+		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »
+		Quand j'ouvre la fiche de la séquence « Un »
+		Alors l'onglet ouvert est « Séquence : Un »
+
+	Scénario: Ctrl+Échap ne ferme pas un onglet fixe
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'appuie sur « Shift+F4 »
+		Et j'appuie sur « Ctrl+Esc »
+		Alors l'onglet ouvert est « Séquences »
+
+	Scénario: Ctrl tenue montre les raccourcis des boutons de la fiche et ceux des menus
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je tiens la touche Ctrl
+		Alors les raccourcis en surimpression comptent « Ctrl+S · Ctrl+Return » sur « Enregistrer »
+		Et les raccourcis en surimpression comptent « Ctrl+Esc » sur « Annuler »
+		Et les raccourcis en surimpression comptent « Ctrl+F » pour « Rechercher… »
+		Et les raccourcis en surimpression ne comptent aucun raccourci d'Alt
+		Quand je relâche la touche Ctrl
+		Alors aucun raccourci n'est en surimpression
+
+	Scénario: Alt tenue montre les raccourcis d'Alt, pas ceux de Ctrl
+		Quand la fenêtre de l'interface s'ouvre
+		Et je tiens la touche Alt
+		Alors les raccourcis en surimpression comptent « Alt+Q » pour « Quitter »
+		Et les raccourcis en surimpression ne comptent aucun raccourci de Ctrl
+
+	Scénario: Une autre touche pressée avant la fin de l'attente ne montre rien
+		Quand la fenêtre de l'interface s'ouvre
+		Et je presse Ctrl puis F avant la fin de l'attente
+		Alors aucun raccourci n'est en surimpression

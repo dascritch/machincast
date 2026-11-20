@@ -19,7 +19,7 @@ from PySide6.QtGui import QAction, QKeyEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QMainWindow, QMenu, QTabBar, QTabWidget, QWidget
 
 from machincast.i18n import _
-from machincast.interface import columns, icons
+from machincast.interface import columns, icons, key_hints
 from machincast.interface.airplay_tab import AirplayScreen
 from machincast.interface.calendar import Calendar
 from machincast.interface.card import Card
@@ -125,8 +125,8 @@ def _shortcut_texts(shortcuts: tuple[str, ...]) -> frozenset[str]:
 TAB_KEYS = _shortcut_texts((LEFT_TAB, RIGHT_TAB, FIRST_TAB, LAST_TAB))
 
 
-CLOSE_TAB, SAVE_TAB, REOPEN_TAB = "Ctrl+W", "Ctrl+S", "Ctrl+Shift+T"
-SAVE_AND_CLOSE_TAB = ("Ctrl+Return", "Ctrl+Enter")
+CLOSE_TAB, SAVE_TAB, REOPEN_TAB = "Ctrl+W", key_hints.SAVE, "Ctrl+Shift+T"
+SAVE_AND_CLOSE_TAB = (key_hints.SAVE_AND_CLOSE, "Ctrl+Enter")
 """Les raccourcis qui ferment l'onglet ouvert, l'enregistrent, l'enregistrent puis le ferment (les deux touches
 Entrée, du clavier principal et du pavé numérique), et rouvrent le dernier fermé
 (https://github.com/dascritch/machincast/issues/428)."""
@@ -447,6 +447,10 @@ class TabManager:
 		QShortcut(QKeySequence(SAVE_TAB), self.window).activated.connect(self.save_current)
 		for keys in SAVE_AND_CLOSE_TAB:
 			QShortcut(QKeySequence(keys), self.window).activated.connect(self.save_and_close_current)
+		# https://github.com/dascritch/machincast/issues/529
+		QShortcut(QKeySequence(key_hints.CANCEL_AND_CLOSE), self.window).activated.connect(
+			self.cancel_and_close_current
+		)
 		application = QApplication.instance()
 		if application is not None:
 			application.installEventFilter(TabKey(self.window))
@@ -471,6 +475,13 @@ class TabManager:
 		if not isinstance(screen, Card):
 			return
 		if (not screen.button_save.isEnabled()) or (screen.save()):
+			self.remove_card(screen)
+
+	def cancel_and_close_current(self) -> None:
+		"""Ctrl+Échap : ferme la fiche ouverte sans rien enregistrer ni rien demander, ses modifications perdues
+		(https://github.com/dascritch/machincast/issues/529). Sur un autre onglet, rien."""
+		screen = self.tabs.currentWidget()
+		if isinstance(screen, Card):
 			self.remove_card(screen)
 
 	def add_reopening(self, menu: QMenu) -> None:
