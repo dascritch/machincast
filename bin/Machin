@@ -64,9 +64,11 @@ taken from the .venv venv of the project, without it being activated, or else fr
                files: the bank directories and the added files, or the paths
                given (https://github.com/dascritch/machincast/issues/381)
   status       tells the state of the station, one line for a script: Machin status
-               server (service or test), radio (the name of the radio), event --now
-               or event --next (“start → end : private name”; no line and exit code 1
-               without an event) (https://github.com/dascritch/machincast/issues/518)
+               alone, or player (running or stopped, exit code 1 if stopped), server
+               (service or test), radio (the name of the radio), event, or event --now
+               (the current event), event --next (“start → end : private name”; for the
+               music feed, when it took the air and when it will be interrupted; no line
+               and exit code 1 without an event) (https://github.com/dascritch/machincast/issues/518)
 
   Help of a binary: Machin BINARY --help
 

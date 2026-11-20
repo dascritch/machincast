@@ -14,7 +14,7 @@ import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import service, status
+from machincast import programs, service, status
 from machincast.cli import create_analyser
 from machincast.clock import FixedClock
 from machincast.configuration import Configuration
@@ -76,6 +76,27 @@ def _moment(text: str) -> datetime | None:
 	if text == "":
 		return None
 	return datetime.fromisoformat(text).replace(tzinfo=PARIS)
+
+
+def _program(name: str, arguments: tuple[str, ...]) -> programs.Program:
+	return programs.Program(
+		pid=4242, account="radio", name=name, arguments=arguments, service=False, directory="/home/radio/machincast"
+	)
+
+
+@given("Machin player qui diffuse")
+def player_broadcasting(monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(programs, "ongoing", lambda: [_program("player", ())])
+
+
+@given("Machin player en simulation")
+def player_simulating(monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(programs, "ongoing", lambda: [_program("player", ("--simulation", "09:00", "10:00"))])
+
+
+@given("aucun Machin player ne tourne")
+def no_player(monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(programs, "ongoing", lambda: [_program("indexer", ())])
 
 
 @given("les événements en base :")
