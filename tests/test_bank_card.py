@@ -819,8 +819,23 @@ def offered_modes(interface: Context, texts: str) -> None:
 
 @then(parsers.re(r"« Enregistrer » de la fiche (?P<has>a un|n'a pas de) liseré vert"))
 def save_outline(interface: Context, has: str) -> None:
-	"""Le liseré vert n'est que celui d'« Enregistrer » actif : la feuille de style ne le pose qu'à :enabled."""
-	button = card(interface).button_save
-	assert card_module.GREEN in button.styleSheet()
-	assert ":enabled" in button.styleSheet()
+	"""Le liseré vert n'est que celui d'« Enregistrer » actif ; inactif, il est transparent, de même épaisseur."""
+	opened = card(interface)
+	button = opened.button_save
+	assert button.parentWidget() is opened.save_outline
+	assert (card_module.GREEN in opened.save_outline.styleSheet()) == (has == "a un")
+	# Le liseré se voit vraiment : le bord gauche du cadre, à mi-hauteur, est vert, ou ne l'est pas.
+	outline = opened.save_outline
+	outline.ensurePolished()
+	edge = outline.grab().toImage().pixelColor(0, outline.height() // 2)
+	assert (edge.name() == card_module.GREEN) == (has == "a un"), edge.name()
 	assert button.isEnabled() == (has == "a un")
+
+
+@then("« Enregistrer » de la fiche montre son texte en entier, sans changer de taille")
+def save_text_shown(interface: Context) -> None:
+	"""https://github.com/dascritch/machincast/issues/527 : le liseré ne doit pas manger le mot."""
+	button = card(interface).button_save
+	button.ensurePolished()
+	assert button.width() >= button.sizeHint().width()
+	assert button.sizeHint().width() > button.fontMetrics().horizontalAdvance(button.text())

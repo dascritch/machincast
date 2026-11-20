@@ -50,7 +50,7 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QEvent, QObject, Signal
 from PySide6.QtWidgets import (
 	QAbstractButton,
 	QAbstractItemView,
@@ -59,7 +59,9 @@ from PySide6.QtWidgets import (
 	QBoxLayout,
 	QComboBox,
 	QFormLayout,
+	QFrame,
 	QGroupBox,
+	QHBoxLayout,
 	QLabel,
 	QLineEdit,
 	QPlainTextEdit,
@@ -100,8 +102,10 @@ ORANGE = "#ef6c00"
 WARNING_OUTLINE = f"QLabel#avertissement_de_la_fiche {{ border: 4px solid {ORANGE}; padding: 6px; }}"
 GREEN = "#2e7d32"
 """Vert du liseré d'« Enregistrer » actif : lisible sur un fond clair comme sur un fond sombre."""
-SAVE_OUTLINE = "QPushButton:enabled { border: 2px solid " + GREEN + "; border-radius: 4px; padding: 4px 12px; }"
-"""Le liseré d'« Enregistrer », quand il y a quelque chose à enregistrer (https://github.com/dascritch/machincast/issues/527)."""
+OUTLINE_WIDTH = 2
+SAVE_OUTLINE = "QFrame#save_outline {{ border: {width}px solid {colour}; border-radius: 4px; }}"
+"""Le liseré d'« Enregistrer », quand il y a quelque chose à enregistrer (https://github.com/dascritch/machincast/issues/527) :
+autour du bouton, qui garde son dessin et sa taille, et transparent quand il est inactif, pour que rien ne bouge."""
 WARNED = "⚠️ "
 """Ce qui précède l'avertissement en haut de la fiche (https://github.com/dascritch/machincast/issues/328)."""
 
@@ -147,6 +151,44 @@ def copy_name(connection: Connection, table: str, name: str) -> str:
 		if not queries.name_in_use(connection, table, candidate):
 			return candidate
 		number += 1
+
+
+class SaveOutline(QFrame):
+	"""Le cadre du bouton « Enregistrer », qui porte son liseré vert tant qu'il est actif. Le bouton y garde le dessin
+	du thème et sa taille : une feuille de style sur le bouton lui-même le redessinerait sans recalculer sa largeur,
+	et son texte serait mangé."""
+
+	def __init__(self, save: QPushButton) -> None:
+		super().__init__(save.parentWidget())
+		self.setObjectName("save_outline")
+		self.save = save
+		self._place(save)
+		save.installEventFilter(self)
+		self.follow()
+
+	def _place(self, save: QPushButton) -> None:
+		"""Le cadre prend la place du bouton dans son layout, et le bouton se met dedans."""
+		owner = save.parentWidget()
+		if owner is not None:
+			replaced = owner.layout()
+			if replaced is not None:
+				replaced.replaceWidget(save, self)
+		layout = QHBoxLayout(self)
+		layout.setContentsMargins(OUTLINE_WIDTH, OUTLINE_WIDTH, OUTLINE_WIDTH, OUTLINE_WIDTH)
+		layout.addWidget(save)
+
+	def follow(self) -> None:
+		"""Vert, le bouton actif ; transparent, inactif."""
+		colour = "transparent"
+		if self.save.isEnabled():
+			colour = GREEN
+		self.setStyleSheet(SAVE_OUTLINE.format(width=OUTLINE_WIDTH, colour=colour))
+
+	def eventFilter(self, object_: QObject, event: QEvent) -> bool:
+		"""Le bouton qui devient actif ou inactif change la couleur du liseré."""
+		if event.type() == QEvent.Type.EnabledChange:
+			self.follow()
+		return False
 
 
 class Refreshed(Enum):
@@ -228,7 +270,7 @@ class Card(QWidget):
 	) -> None:
 		"""Les boutons et le message de la fiche ; à appeler une fois son écran construit, avant charger()."""
 		self.button_save = save
-		self.button_save.setStyleSheet(SAVE_OUTLINE)
+		self.save_outline = SaveOutline(save)
 		# Montrés en surimpression, Ctrl tenue (https://github.com/dascritch/machincast/issues/529).
 		key_hints.attach(save, key_hints.SAVE, key_hints.SAVE_AND_CLOSE)
 		key_hints.attach(cancel, key_hints.CANCEL_AND_CLOSE)

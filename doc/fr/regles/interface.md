@@ -34,7 +34,7 @@
 	Les fichiers sonores d'un dépôt se trient par `card.sound_files`, et un fichier pas encore en base devient un sonore `preview` par `Card.save_file`, dans la transaction d'« Enregistrer » seulement.
 - Une liste à l'ordre réglable (banque séquentielle, séquence) se réordonne par glisser-déposer **et** par des boutons « ↥ Monter » et « ↧ Descendre », pour le clavier.
 	Ces boutons bougent ensemble toutes les lignes choisies, d'un rang, en gardant leur ordre, par `machincast.interface.reorder` ([#527](https://github.com/dascritch/machincast/issues/527)) ; ils sont inactifs quand l'une d'elles est déjà au bord.
-	« Enregistrer » d'une fiche a un liseré vert quand il est actif (`card.SAVE_OUTLINE`).
+	« Enregistrer » d'une fiche a un liseré vert quand il est actif (`card.SAVE_OUTLINE`), posé sur un cadre autour du bouton (`card.SaveOutline`) : une feuille de style sur le bouton lui-même le redessine sans recalculer sa largeur, et son texte est mangé.
 	Ses lignes ne se déposent pas les unes dans les autres.
 	Les boutons qui agissent sur une ligne ne servent qu'à une ligne choisie.
 - Les écrans se dessinent avec Qt Widgets Designer et se compilent par `pyside6-uic` ([CONTRIBUTING.md](../../../CONTRIBUTING.fr.md)).

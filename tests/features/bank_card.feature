@@ -687,11 +687,14 @@ Fonctionnalité: Fiche d'une banque
 		Alors les sonores de la banque « Tubes » sont, dans l'ordre, « Café à minuit », « Spot », « Matin clair », « Jingle »
 
 	Scénario: « Enregistrer » a un liseré vert, une fois actif
+		Le liseré entoure le bouton, qui garde le dessin du thème et sa taille : le mot n'est pas mangé.
+
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Alors « Enregistrer » de la fiche n'a pas de liseré vert
 		Quand je décoche « ne pas répéter »
 		Alors « Enregistrer » de la fiche a un liseré vert
+		Et « Enregistrer » de la fiche montre son texte en entier, sans changer de taille
 
 	Scénario: Les boutons d'une ligne ne servent qu'à une ligne choisie, et « ↥ Monter » et « ↧ Descendre » pas aux extrémités
 		Étant donné la banque « Tubes », séquentielle, sans nom public, avec « Café à minuit », « Matin clair », « Jingle »
