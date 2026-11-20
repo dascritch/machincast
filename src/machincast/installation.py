@@ -11,6 +11,7 @@
 	python -m machincast.installation logind, system-conf                      touches d'alimentation, Ctrl+Alt+Suppr
 	python -m machincast.installation tasks-unit, tasks-timer                 tâches régulières : Machin tasks
 	python -m machincast.installation indexing-unit, indexing-timer           indexation rapide, toutes les heures
+	python -m machincast.installation intranet-unit                           serveur intranet, éteint par défaut
 	python -m machincast.installation shortcut    --config machincast.toml   raccourci de l'interface (.desktop)
 	python -m machincast.installation devices     --config machincast.toml   périphériques de sortie du poste
 	python -m machincast.installation on-air      --config machincast.toml   antenne utilisable par le service
@@ -628,6 +629,49 @@ SyslogIdentifier=machincast-indexing
 """
 
 
+INTRANET_STATE = "machincast-intranet"
+"""Le répertoire d'état du serveur intranet, /var/lib/machincast-intranet : son certificat généré."""
+INTRANET_DISABLED = 4
+"""Le code de Machin intranet éteint (machincast.intranet.__main__.DISABLED_CODE)."""
+
+
+def intranet_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
+	"""L'unité du serveur intranet (https://github.com/dascritch/machincast/issues/538), sous le compte de MachinCast,
+	qui endosse le rôle machincast_intranet. Elle démarre avec le poste ; Machin intranet s'arrête aussitôt, code 4,
+	tant que intranet.enabled n'est pas vrai, sans que systemd le relance. La page « Intranet » des paramètres du
+	service la redémarre ou l'arrête, ce que permet la règle polkit. Son répertoire d'état garde le certificat
+	généré."""
+	return f"""# MachinCast intranet server (https://github.com/dascritch/machincast/issues/538).
+# Installed by install.sh --service; do not edit here, run install.sh --service again. It is switched on by
+# intranet.enabled in machincast.toml, or in the interface: this unit does not change.
+
+[Unit]
+Description=MachinCast: intranet server, HTTPS only (Machin intranet)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User={account.name}
+Group={account.group}
+WorkingDirectory={directory}
+StateDirectory={INTRANET_STATE}
+StateDirectoryMode=0700
+ExecStart={directory}/bin/Machin intranet
+SuccessExitStatus={INTRANET_DISABLED}
+RestartPreventExitStatus={INTRANET_DISABLED}
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+SyslogIdentifier=machincast-intranet
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+
 def indexing_timer() -> str:
 	"""Le minuteur de l'indexation rapide : toutes les heures ; une heure manquée, poste éteint, passe à son démarrage."""
 	return f"""# MachinCast quick indexing, every hour (https://github.com/dascritch/machincast/issues/455).
@@ -670,7 +714,8 @@ d'antenne, elles demandent l'authentification d'un administrateur (https://githu
 
 def polkit_rule(account: Account) -> str:
 	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec
-	l'authentification d'un administrateur ; rien d'autre, ni sur une autre unité. Elle protège aussi le poste :
+	l'authentification d'un administrateur, et de même le serveur intranet
+	(https://github.com/dascritch/machincast/issues/538) ; rien d'autre, ni sur une autre unité. Elle protège aussi le poste :
 	l'éteindre, le redémarrer ou le mettre en veille demande l'authentification d'un administrateur, à tout compte
 	(https://github.com/dascritch/machincast/issues/448). Elle est en ES5, comme Duktape, le moteur de polkitd."""
 	quoted = []
@@ -680,7 +725,8 @@ def polkit_rule(account: Account) -> str:
 	return f"""// Control of the MachinCast broadcast service (https://github.com/dascritch/machincast/issues/22).
 // Installed by install.sh --service; do not edit here, run install.sh --service again.
 polkit.addRule(function (action, subject) {{
-	if ((action.id == "org.freedesktop.systemd1.manage-units") && (action.lookup("unit") == "{UNIT}")
+	if ((action.id == "org.freedesktop.systemd1.manage-units")
+		&& (["{UNIT}", "{service.INTRANET_UNIT}"].indexOf(action.lookup("unit")) >= 0)
 		&& (["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0) && (subject.user == "{account.name}")) {{
 		return polkit.Result.AUTH_ADMIN;
 	}}
@@ -805,6 +851,11 @@ def _tasks_timer(_configuration: Configuration) -> int:
 
 def _indexing_unit(_configuration: Configuration) -> int:
 	sys.stdout.write(indexing_unit(Account.current()))
+	return 0
+
+
+def _intranet_unit(_configuration: Configuration) -> int:
+	sys.stdout.write(intranet_unit(Account.current()))
 	return 0
 
 
@@ -943,6 +994,7 @@ ACTIONS = {
 	"devices": _devices,
 	"indexing-timer": _indexing_timer,
 	"indexing-unit": _indexing_unit,
+	"intranet-unit": _intranet_unit,
 	"logind": _logind,
 	"logrotate": _logrotate,
 	"migrate": _migrate,

@@ -293,7 +293,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
 
 		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde », « Intranet »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
 		Quand j'y choisis la granularité « À la seconde »
@@ -414,7 +414,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde », « Intranet »
 		Et le choix de l'antenne propose :
 			| sortie         | état     |
 			| Carte 1        | active   |
@@ -625,9 +625,29 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Exemples:
 			| fenêtre                    | titre                       | pages                                       | montrés                                                        | cachés                                                                 |
 			| préférences de l'interface | Préférences de l'interface  | Crossfades et silences, Interface, Audio, Base | la granularité, le seuil de silence, la pré-écoute              | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie |
-			| paramètres du service      | Paramètres du service       | Crossfades, Audio, Tâches, Sauvegarde       | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
+			| paramètres du service      | Paramètres du service       | Crossfades, Audio, Tâches, Sauvegarde, Intranet | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
 
 	Scénario: Les paramètres du service rendent tels quels les réglages de l'interface qu'ils ne montrent pas
 		Quand j'ouvre la fenêtre des paramètres du service, sur une granularité « second », un seuil de silence de -55 dB et la pré-écoute « casque-usb »
 		Et je clique sur « OK » des préférences ouvertes
 		Alors les réglages rendus gardent la granularité « second », le seuil de silence de -55 dB et la pré-écoute « casque-usb »
+
+	# ─── Intranet (https://github.com/dascritch/machincast/issues/538) ───
+
+	Scénario: La page « Intranet » des paramètres du service allume le serveur, et dit l'adresse à donner
+		Étant donné le poste à l'adresse « 10.0.0.12 », sans nom de domaine interne
+		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet éteint
+		Alors le port et le délai de validation de l'intranet sont grisés, et aucune adresse n'est donnée
+		Quand j'allume l'intranet sur le port 9443, avec 15 minutes pour valider une connexion
+		Alors la page « Intranet » dit « Adresse à donner aux autres postes : https://10.0.0.12:9443/ »
+		Et la fenêtre donne l'intranet allumé, sur le port 9443, avec 15 minutes pour valider une connexion
+
+	Scénario: Les réglages de l'intranet s'écrivent dans machincast.toml, l'adresse d'écoute et le certificat gardés
+		Étant donné un fichier de configuration dont l'intranet écoute « 10.0.0.12 », avec un certificat donné
+		Quand j'enregistre l'intranet allumé, sur le port 9443, avec 15 minutes pour valider une connexion
+		Alors le fichier allume l'intranet sur « 10.0.0.12 », port 9443, 15 minutes pour valider, avec le même certificat
+
+	Scénario: L'intranet éteint, par défaut, ne s'écrit pas dans un fichier qui n'a pas de section [intranet]
+		Étant donné un fichier de configuration sans section [intranet]
+		Quand j'enregistre l'intranet par défaut
+		Alors le fichier n'a toujours pas de section [intranet]

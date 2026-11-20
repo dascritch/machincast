@@ -3,6 +3,7 @@
 Le modèle documenté clé par clé est `machincast.exemple.toml`, à la racine du dépôt.
 """
 
+import ipaddress
 import logging
 import os
 import re
@@ -258,6 +259,32 @@ class Backup:
 	compte, par défaut."""
 
 
+INTRANET_PORT = 8443
+INTRANET_PORTS = (1024, 65535)
+"""Un port que le compte du service ouvre sans droit particulier."""
+VALIDATION = 30
+VALIDATIONS = (1, 1440)
+"""Minutes laissées pour valider au pupitre une connexion à l'intranet, d'une minute à un jour."""
+
+
+@dataclass(frozen=True)
+class Intranet:
+	"""Le serveur intranet et son API, section [intranet] (https://github.com/dascritch/machincast/issues/538) : éteint
+	par défaut, il n'écoute qu'en HTTPS."""
+
+	enabled: bool = False
+	address: str = "0.0.0.0"
+	"""L'adresse d'écoute : 0.0.0.0, toutes les adresses IPv4 du poste."""
+	port: int = INTRANET_PORT
+	validation: int = VALIDATION
+	"""Minutes pour valider au pupitre une connexion (https://github.com/dascritch/machincast/issues/539)."""
+	certificate: Path | None = None
+	"""Le certificat TLS, au format PEM ; sans lui, Machin intranet en génère un auto-signé
+	(machincast.intranet.certificate)."""
+	key: Path | None = None
+	"""La clé privée du certificat donné, au format PEM."""
+
+
 ICON_EXTENSIONS = frozenset({".svg", ".png", ".jpg", ".jpeg"})
 """Les images acceptées pour icône, quelle que soit la casse de l'extension."""
 
@@ -276,6 +303,7 @@ class Configuration:
 	interface: Interface = field(default_factory=Interface)
 	schedule: Schedule = field(default_factory=Schedule)
 	backup: Backup = field(default_factory=Backup)
+	intranet: Intranet = field(default_factory=Intranet)
 
 
 # Clés connues, par section, en anglais (https://github.com/dascritch/machincast/issues/357). Toute autre clé est
@@ -292,6 +320,7 @@ KEYS: dict[str, frozenset[str]] = {
 	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows", "notes", "team_link"}),
 	"schedule": frozenset({"daily"}),
 	"backup": frozenset({"directory"}),
+	"intranet": frozenset({"enabled", "address", "port", "validation", "certificate", "key"}),
 }
 
 
@@ -571,6 +600,43 @@ class _Player:
 				)
 		return DeadAirSettings(duration, threshold, self.optional_boolean("dead_air", "fallback", default=False))
 
+	def whole(self, section: str, key: str, default: int, bounds: tuple[int, int]) -> int:
+		"""Un nombre entier entre deux bornes comprises ; defaut sans la clé."""
+		value = self.document.get(section, {}).get(key, default)
+		minimum, maximum = bounds
+		if (isinstance(value, bool)) or (not isinstance(value, int)) or (not (minimum <= value <= maximum)):
+			raise self.error(
+				_(
+					"key {section}.{key}: a whole number from {minimum} to {maximum} is expected, “{value}” found"
+				).format(section=section, key=key, minimum=minimum, maximum=maximum, value=value)
+			)
+		return value
+
+	def intranet(self) -> Intranet:
+		"""La section [intranet], facultative, comme ses clés (https://github.com/dascritch/machincast/issues/538). Un
+		certificat donné vient avec sa clé."""
+		certificate = self.optional_path("intranet", "certificate")
+		key = self.optional_path("intranet", "key")
+		if (certificate is None) != (key is None):
+			raise self.error(_("key intranet.certificate: a certificate is given with its key, intranet.key"))
+		address = (self.optional_text("intranet", "address")) or (Intranet.address)
+		try:
+			ipaddress.ip_address(address)
+		except ValueError:
+			raise self.error(
+				_("key intranet.address: an IP address of the computer is expected, “{address}” found").format(
+					address=address
+				)
+			) from None
+		return Intranet(
+			enabled=self.optional_boolean("intranet", "enabled", default=False),
+			address=address,
+			port=self.whole("intranet", "port", INTRANET_PORT, INTRANET_PORTS),
+			validation=self.whole("intranet", "validation", VALIDATION, VALIDATIONS),
+			certificate=certificate,
+			key=key,
+		)
+
 	def file_path(self, section: str, key: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
 		path = Path(self.text(section, key)).expanduser()
@@ -679,4 +745,5 @@ def load(path: Path | None = None) -> Configuration:
 		),
 		schedule=Schedule(daily=reader.hour("schedule", "daily", DAILY)),
 		backup=Backup(directory=(reader.optional_path("backup", "directory")) or (Path.home())),
+		intranet=reader.intranet(),
 	)

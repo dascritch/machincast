@@ -16,11 +16,13 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast.configuration import PROJECT_DIRECTORY, load
+from machincast.configuration import PROJECT_DIRECTORY, Intranet, load
 from machincast.installation import systemd_unit
-from machincast.interface import broadcast_status, control
+from machincast.interface import broadcast_status, control, intranet_switch
 from machincast.interface.control import service_configuration
+from machincast.service import INTRANET_UNIT
 from tests.interface_steps import Context, configuration_file, window
+from tests.waiting import quiet
 
 scenarios("control.feature")
 
@@ -491,3 +493,42 @@ def export_launched(interface: Context, station: Station) -> None:
 	directory = load(configuration_file(interface).resolve()).backup.directory.absolute()
 	arguments = (station.commands.parent / "export.log").read_text(encoding="utf-8").splitlines()
 	assert arguments == ["--config", str(configuration_file(interface)), "backup-db", "--backups", str(directory)]
+
+
+# ─── Serveur intranet (https://github.com/dascritch/machincast/issues/538) ───
+
+
+@given(parsers.re(r"l'unité du serveur intranet (?P<state>installée|non installée)"))
+def intranet_unit(station: Station, monkeypatch: pytest.MonkeyPatch, state: str) -> None:
+	unit = station.commands.parent / INTRANET_UNIT
+	if state == "installée":
+		unit.write_text("[Unit]\n", encoding="utf-8")
+	monkeypatch.setattr(intranet_switch, "UNIT_FILE", unit)
+
+
+@given(parsers.re(r"les paramètres du service allumeront l'intranet sur « (?P<address>[^»]+) », port (?P<port>\d+)"))
+def switch_on(interface: Context, address: str, port: str) -> None:
+	interface.adjusted_intranet = Intranet(enabled=True, address=address, port=int(port))
+
+
+@given("les paramètres du service éteindront l'intranet")
+def switch_off(interface: Context) -> None:
+	interface.adjusted_intranet = Intranet(enabled=False)
+
+
+@given("le fichier de configuration de l'interface allume l'intranet")
+def configured_on(interface: Context) -> None:
+	path = configuration_file(interface)
+	path.write_text(path.read_text(encoding="utf-8") + "\n[intranet]\nenabled = true\n", encoding="utf-8")
+
+
+@then(parsers.parse("le fichier de configuration allume l'intranet, sur le port {port:d}"))
+def configured_intranet(interface: Context, port: int) -> None:
+	intranet = load(configuration_file(interface)).intranet
+	assert (intranet.enabled, intranet.port) == (True, port)
+
+
+@then(parsers.parse("systemctl n'a pas reçu « {call} »"))
+def not_received(station: Station, qtbot: QtBot, call: str) -> None:
+	quiet(qtbot, 200, reason="systemctl, que lancerait l'interrupteur de l'intranet")
+	assert call not in station.calls()

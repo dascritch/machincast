@@ -22,7 +22,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast import shortcut
-from machincast.configuration import Crossfades, DeadAirSettings, load
+from machincast.configuration import Crossfades, DeadAirSettings, Intranet, load
 from machincast.interface import __main__ as module_interface
 from machincast.interface import application as module_application
 from machincast.interface import dialogs, preferences
@@ -31,6 +31,7 @@ from machincast.interface.preferences import PreferencesWindow, Settings
 from machincast.interface.sound_card import SoundCard
 from machincast.interface.suggestions import Response
 from machincast.interface.window import MainWindow
+from machincast.intranet import network
 from machincast.shortcut import ICON
 from tests.database_fixtures import configuration_test
 from tests.interface_steps import NAME, Connection, Context, configuration_file, open_window, window
@@ -1294,3 +1295,110 @@ def kept_settings(kinds: dict[str, object], granularity: str, threshold: float, 
 		threshold,
 		preview,
 	)
+
+
+# ─── Intranet (https://github.com/dascritch/machincast/issues/538) ───
+
+
+@given(parsers.parse("le poste à l'adresse « {address} », sans nom de domaine interne"))
+def computer_address(monkeypatch: pytest.MonkeyPatch, address: str) -> None:
+	monkeypatch.setattr(network, "addresses", lambda: [address, network.LOOPBACK])
+	monkeypatch.setattr(network, "names", lambda: ["studio", "localhost"])
+
+
+@when("la fenêtre des paramètres du service s'ouvre sur l'intranet éteint")
+def open_on_intranet(opened: Opened, parent: QWidget) -> None:
+	opened.window = PreferencesWindow(Settings(Crossfades(), None, TEST_PREVIEW), "dummy", parent, timers=True)
+
+
+@then("le port et le délai de validation de l'intranet sont grisés, et aucune adresse n'est donnée")
+def intranet_greyed(opened: Opened) -> None:
+	ui = the_window(opened).ui
+	assert not ui.intranet_enabled.isChecked()
+	assert not ui.intranet_port.isEnabled()
+	assert not ui.intranet_validation.isEnabled()
+	assert ui.intranet_addresses.isHidden()
+
+
+@when(parsers.parse("j'allume l'intranet sur le port {port:d}, avec {minutes:d} minutes pour valider une connexion"))
+def switch_intranet_on(opened: Opened, port: int, minutes: int) -> None:
+	ui = the_window(opened).ui
+	ui.intranet_enabled.setChecked(True)
+	ui.intranet_port.setValue(port)
+	ui.intranet_validation.setValue(minutes)
+
+
+@then(parsers.parse("la page « Intranet » dit « {text} »"))
+def intranet_says(opened: Opened, text: str) -> None:
+	window_ = the_window(opened)
+	assert not window_.ui.intranet_addresses.isHidden()
+	assert window_.ui.intranet_addresses.text() == text
+
+
+@then(
+	parsers.parse(
+		"la fenêtre donne l'intranet allumé, sur le port {port:d}, avec {minutes:d} minutes pour valider une connexion"
+	)
+)
+def intranet_given(opened: Opened, port: int, minutes: int) -> None:
+	intranet = the_window(opened).settings().intranet
+	assert (intranet.enabled, intranet.port, intranet.validation) == (True, port, minutes)
+
+
+@given(
+	parsers.parse("un fichier de configuration dont l'intranet écoute « {address} », avec un certificat donné"),
+	target_fixture="intranet_file",
+)
+def intranet_file(tmp_path: Path, address: str) -> Path:
+	path = tmp_path / "machincast.toml"
+	text = configuration_test().path.read_text(encoding="utf-8")
+	path.write_text(
+		f'{text}\n[intranet]\naddress = "{address}"\ncertificate = "tls/cert.pem"\nkey = "tls/cle.pem"\n',
+		encoding="utf-8",
+	)
+	return path
+
+
+@given("un fichier de configuration sans section [intranet]", target_fixture="intranet_file")
+def file_without_intranet(tmp_path: Path) -> Path:
+	path = tmp_path / "machincast.toml"
+	path.write_text(configuration_test().path.read_text(encoding="utf-8"), encoding="utf-8")
+	return path
+
+
+def _write_intranet(path: Path, intranet: Intranet) -> None:
+	shown = Settings(Crossfades(), None, TEST_PREVIEW, intranet=preferences.intranet(path))
+	preferences.write(path, dataclasses.replace(shown, intranet=intranet))
+
+
+@when(
+	parsers.parse(
+		"j'enregistre l'intranet allumé, sur le port {port:d}, avec {minutes:d} minutes pour valider une connexion"
+	)
+)
+def write_intranet(intranet_file: Path, port: int, minutes: int) -> None:
+	kept = preferences.intranet(intranet_file)
+	_write_intranet(intranet_file, dataclasses.replace(kept, enabled=True, port=port, validation=minutes))
+
+
+@when("j'enregistre l'intranet par défaut")
+def write_default_intranet(intranet_file: Path) -> None:
+	_write_intranet(intranet_file, Intranet())
+
+
+@then(
+	parsers.parse(
+		"le fichier allume l'intranet sur « {address} », port {port:d}, {minutes:d} minutes pour valider, avec le même"
+		" certificat"
+	)
+)
+def written_intranet(intranet_file: Path, address: str, port: int, minutes: int) -> None:
+	intranet = load(intranet_file).intranet
+	assert (intranet.enabled, intranet.address, intranet.port, intranet.validation) == (True, address, port, minutes)
+	assert intranet.certificate == intranet_file.parent / "tls" / "cert.pem"
+	assert intranet.key == intranet_file.parent / "tls" / "cle.pem"
+
+
+@then("le fichier n'a toujours pas de section [intranet]")
+def still_no_intranet(intranet_file: Path) -> None:
+	assert "intranet" not in tomllib.loads(intranet_file.read_text(encoding="utf-8"))

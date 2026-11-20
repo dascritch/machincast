@@ -392,3 +392,43 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Alors la fenêtre ouverte est celle des préférences de l'interface
 		Et systemctl n'a reçu que des demandes d'état
 		Et le fichier de configuration donne la pré-écoute « casque-usb »
+
+	# ─── Serveur intranet (https://github.com/dascritch/machincast/issues/538) ───
+
+	Scénario: Allumer l'intranet dans les paramètres du service redémarre son unité, et donne l'adresse à donner
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors systemctl a reçu bientôt « restart machincast-intranet.service »
+		Et la barre d'état annonce bientôt « Serveur intranet allumé : https://127.0.0.1:9443/ »
+		Et le fichier de configuration allume l'intranet, sur le port 9443
+
+	Scénario: Éteindre l'intranet arrête son unité
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et le fichier de configuration de l'interface allume l'intranet
+		Et les paramètres du service éteindront l'intranet
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors systemctl a reçu bientôt « stop machincast-intranet.service »
+		Et la barre d'état annonce bientôt « Serveur intranet éteint. »
+
+	Scénario: Sans le service installé, l'intranet allumé se lance à la main
+		Étant donné le service de diffusion non installé
+		Et l'unité du serveur intranet non installée
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Intranet allumé dans machincast.toml : sans le service de diffusion, lancez-le par Machin intranet. »
+		Et systemctl n'a pas reçu « restart machincast-intranet.service »
+
+	Scénario: Un redémarrage refusé de l'intranet le dit, avec la réponse de systemctl
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et systemctl refuse en disant « Interactive authentication required. »
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Serveur intranet inchangé : systemctl a dit « Interactive authentication required. ». »

@@ -22,7 +22,7 @@ REPERTOIRE_DU_WRAPPER="${WRAPPER%/*}"
 charger_messages "${REPERTOIRE_DU_WRAPPER}/.."
 
 # Binaires connus, dans l'ordre de l'aide. Un test vérifie qu'ils correspondent à [project.scripts] de pyproject.toml.
-BINAIRES=(player indexer interface maintenance-db backup-db restore-db purge grant-read status)
+BINAIRES=(player indexer interface maintenance-db backup-db restore-db purge grant-read status intranet)
 UNITE_LECTURE="machincast.service"
 
 CODE_USAGE=2

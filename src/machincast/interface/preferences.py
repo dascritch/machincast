@@ -54,6 +54,9 @@ from machincast.configuration import (
 	Crossfades,
 	DeadAirSettings,
 	Granularity,
+	Intranet,
+	InvalidConfiguration,
+	load,
 )
 from machincast.i18n import _
 from machincast.interface.application import ICON, readable
@@ -61,6 +64,7 @@ from machincast.interface.power_save_switch import PowerSaveSwitch
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.timeline import Plan, Timeline, demonstration_shape
 from machincast.interface.ui.preferences import Ui_PreferencesWindow
+from machincast.intranet import network
 from machincast.protection import check_writing
 from machincast.service import ABSENT, ServiceState
 from machincast.shared.fades import LABELS, POSITIONS, Position
@@ -149,6 +153,9 @@ class Settings:
 	(https://github.com/dascritch/machincast/issues/451)."""
 	team_link: str | None = None
 	"""interface.team_link : l'adresse web de l'équipe ; None : aucune."""
+	intranet: Intranet = Intranet()
+	"""La section [intranet] : le serveur intranet, éteint par défaut
+	(https://github.com/dascritch/machincast/issues/538)."""
 	"""backup.directory : où l'export et la maintenance écrivent leur sauvegarde
 	(https://github.com/dascritch/machincast/issues/347)."""
 
@@ -257,6 +264,44 @@ def _write_daily(document: tomlkit.TOMLDocument, daily: time) -> None:
 	section["daily"] = daily.isoformat(timespec="minutes")
 
 
+def _write_intranet(document: tomlkit.TOMLDocument, intranet: Intranet) -> None:
+	"""intranet.enabled, port et validation (https://github.com/dascritch/machincast/issues/538) : les valeurs par
+	défaut ne s'écrivent pas dans un fichier qui n'a pas la section ; l'adresse d'écoute et le certificat restent
+	ceux du fichier."""
+	section = document.get("intranet")
+	default = Intranet()
+	if (section is None) and (
+		(intranet.enabled, intranet.port, intranet.validation)
+		== (
+			default.enabled,
+			default.port,
+			default.validation,
+		)
+	):
+		return
+	if section is None:
+		document.add("intranet", tomlkit.table())
+		section = document["intranet"]
+	assert isinstance(section, tomlkit.items.Table)
+	section["enabled"] = intranet.enabled
+	section["port"] = intranet.port
+	section["validation"] = intranet.validation
+
+
+def intranet(path: Path) -> Intranet:
+	"""La section [intranet] du fichier ; celle par défaut, s'il ne se lit pas."""
+	try:
+		return load(path).intranet
+	except InvalidConfiguration:
+		return Intranet()
+
+
+def intranet_changed(before: Settings, after: Settings) -> bool:
+	"""Le serveur intranet est à rallumer ou à éteindre : allumé, éteint, port ou durée de validation changés."""
+	first, second = before.intranet, after.intranet
+	return (first.enabled, first.port, first.validation) != (second.enabled, second.port, second.validation)
+
+
 def _write_backup(document: tomlkit.TOMLDocument, directory: Path) -> None:
 	"""backup.directory : le répertoire personnel, par défaut, ne s'écrit pas dans un fichier qui ne donne pas la clé
 	(https://github.com/dascritch/machincast/issues/347)."""
@@ -318,6 +363,7 @@ def write(path: Path, settings: Settings) -> None:
 		database["retention"] = settings.retention
 	_write_daily(document, settings.daily)
 	_write_backup(document, settings.backup_directory)
+	_write_intranet(document, settings.intranet)
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
 	section = document["crossfades"]
@@ -449,10 +495,31 @@ class PreferencesWindow(QDialog):
 		self._demonstrate()
 		ui.buttons.accepted.connect(self.accept)
 		ui.buttons.rejected.connect(self.reject)
+		self.intranet = all_.intranet
+		ui.intranet_enabled.setChecked(all_.intranet.enabled)
+		ui.intranet_port.setValue(all_.intranet.port)
+		ui.intranet_validation.setValue(all_.intranet.validation)
+		ui.intranet_enabled.toggled.connect(self._show_intranet)
+		ui.intranet_port.valueChanged.connect(self._show_intranet)
+		self._show_intranet()
 		self.power_save: PowerSaveSwitch | None = None
 		if kind == SERVICE:
 			self._offer_power_save()
 		self._keep_only(kind)
+
+	def _show_intranet(self) -> None:
+		"""Port et durée de validation ne servent qu'au serveur allumé ; allumé, les adresses à donner aux postes
+		distants (https://github.com/dascritch/machincast/issues/538)."""
+		ui = self.ui
+		enabled = ui.intranet_enabled.isChecked()
+		for widget in (ui.intranet_port, ui.intranet_validation):
+			widget.setEnabled(enabled)
+		ui.intranet_addresses.setVisible(enabled)
+		if enabled:
+			addresses = network.to_give(self.intranet.address, ui.intranet_port.value())
+			ui.intranet_addresses.setText(
+				_("Address to give to the other computers: {addresses}").format(addresses=", ".join(addresses))
+			)
 
 	def _offer_power_save(self) -> None:
 		"""« Cartes son toujours éveillées », page « Audio », sous les cartes son : elle agit aussitôt, sans attendre
@@ -546,7 +613,7 @@ class PreferencesWindow(QDialog):
 			ui.explanation.setText(SERVICE_EXPLANATION)
 			self.cards.keep_rows(on_air=True, preview=False)
 			return
-		for page in (ui.tasks_page, ui.backup_page):
+		for page in (ui.tasks_page, ui.backup_page, ui.intranet_page):
 			ui.pages.removeTab(ui.pages.indexOf(page))
 		for row in (1, 2, 3):
 			ui.crossfades_form.setRowVisible(row, False)
@@ -683,6 +750,12 @@ class PreferencesWindow(QDialog):
 			Path(ui.backup_directory.text().strip()).expanduser(),
 			self._notes(),
 			self._team_link(),
+			dataclasses.replace(
+				self.intranet,
+				enabled=ui.intranet_enabled.isChecked(),
+				port=ui.intranet_port.value(),
+				validation=ui.intranet_validation.value(),
+			),
 		)
 
 	def _notes(self) -> Path | None:

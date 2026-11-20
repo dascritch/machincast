@@ -96,3 +96,4 @@ L'[aide de l'onglet](../utilisateur/aide/api.md) décrit chacun de ses élément
 	Un compte désactivé ou supprimé ne se connecte plus.
 - Il n'y a pas de récupération de mot de passe : un mot de passe oublié se change ici.
 - MachinCast ne garde jamais un mot de passe, seulement son empreinte scrypt salée : même la base ne permet pas de le retrouver.
+- Les comptes ne servent qu'une fois le serveur intranet allumé ([#538](https://github.com/dascritch/machincast/issues/538)) : voir [Serveur intranet](commandes.md#serveur-intranet--machin-intranet).

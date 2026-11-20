@@ -28,6 +28,8 @@ TASKS_TIMER = "machincast-tasks.timer"
 TASKS_TIMER_FILE = Path("/etc/systemd/system") / TASKS_TIMER
 """Le minuteur des tâches régulières, installé par install.sh --service, sauf avec --no-timers."""
 INDEXING_UNIT = "machincast-indexing.service"
+INTRANET_UNIT = "machincast-intranet.service"
+"""Le serveur intranet (https://github.com/dascritch/machincast/issues/538) : le même nom dans install.sh."""
 """L'unité de l'indexation rapide, toutes les heures (https://github.com/dascritch/machincast/issues/455)."""
 INDEXING_TIMER = "machincast-indexing.timer"
 DELAY = 5
