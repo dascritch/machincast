@@ -57,22 +57,36 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="playback_state">
-       <property name="toolTip">
-        <string>State of Machin player</string>
-       </property>
-       <property name="font">
-        <font>
-         <pointsize>12</pointsize><bold>true</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>Stopped</string>
-       </property>
-       <property name="textInteractionFlags">
-        <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
-       </property>
-      </widget>
+      <layout class="QVBoxLayout" name="state_column">
+       <item>
+        <widget class="QLabel" name="playback_state">
+         <property name="toolTip">
+          <string>State of Machin player</string>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>12</pointsize><bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Stopped</string>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="monitor">
+         <property name="toolTip">
+          <string>Listen to the on-air output on the pre-listen output, at once</string>
+         </property>
+         <property name="text">
+          <string>On-air monitor</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>

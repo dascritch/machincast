@@ -5731,16 +5731,18 @@ msgid "Feeds"
 msgstr "Feeds"
 
 #: machincast/interface/window.py
-msgid "On-air pre-listen"
-msgstr "Pré-écoute de l'antenne"
+#: machincast/interface/ui/default_screen.ui
+msgid "On-air monitor"
+msgstr "Moniteur de l'antenne"
 
 #: machincast/interface/window.py
+#: machincast/interface/ui/default_screen.ui
 msgid "Listen to the on-air output on the pre-listen output, at once"
 msgstr "Écouter l'antenne sur la sortie de pré-écoute, aussitôt"
 
 #: machincast/interface/window.py
-msgid "Stop the on-air pre-listen"
-msgstr "Arrêter la pré-écoute de l'antenne"
+msgid "Stop the on-air monitor"
+msgstr "Arrêter le moniteur de l'antenne"
 
 #: machincast/interface/window.py
 msgid "Stop listening to the on-air output on the pre-listen output"

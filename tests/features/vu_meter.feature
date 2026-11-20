@@ -210,17 +210,19 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 
 	# ─── Écouter l'antenne ─────────────────────────────────────
 
-	Scénario: Un clic sur le VU-mètre écoute l'antenne dans la fenêtre de pré-écoute
+	Scénario: Un clic sur le VU-mètre écoute aussitôt l'antenne dans le moniteur, sans lecture, pause ni temps
+		https://github.com/dascritch/machincast/issues/531 : le moniteur de l'antenne écoute dès qu'il s'ouvre ; ses
+		boutons de lecture et son temps, inutiles pour le direct, sont cachés, et sa frise est la forme d'onde du direct.
+
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
 		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
-		Et la pré-écoute montre la source « Antenne : sortie factice, signal de test »
-		Et les commandes de la pré-écoute sont : lecture active, arrêt inactif, position inactive
-		Quand je lance la pré-écoute
-		Alors la pré-écoute est bientôt « En lecture »
+		Et la pré-écoute montre la source « — »
+		Et la pré-écoute est bientôt « En lecture »
 		Et le VU-mètre de la pré-écoute montre bientôt du son
-		Et les commandes de la pré-écoute sont : pause active, arrêt actif, position inactive
+		Et le moniteur de l'antenne cache la lecture, la pause et le temps
+		Et la forme d'onde du direct avance bientôt, à la place de la frise
 
 	Scénario: L'écoute de l'antenne a pour titre le texte public du sonore en cours, et le suit
 		https://github.com/dascritch/machincast/issues/223 : le texte public est ce que la page publique affiche.
@@ -231,8 +233,10 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
 		Alors la fenêtre de pré-écoute est bientôt titrée « en cours : Les Gaufres – Café à minuit »
+		Et la pré-écoute montre la source « Les Gaufres – Café à minuit »
 		Quand Machin player diffuse un sonore au texte public « Radio Thune, la radio »
 		Alors la fenêtre de pré-écoute est bientôt titrée « en cours : Radio Thune, la radio »
+		Et la pré-écoute montre la source « Radio Thune, la radio »
 
 	Scénario: Un sonore pré-écouté ne prend pas le titre de l'antenne
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
@@ -247,28 +251,41 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et Machin player diffuse un sonore au texte public « Radio Thune, la radio »
 		Alors la fenêtre de pré-écoute reste titrée « Pré-écoute : Jingle »
 
-	Scénario: « Pré-écoute de l'antenne », en tête du menu « Diffusion », écoute l'antenne aussitôt
+	Scénario: « Moniteur de l'antenne », en tête du menu « Diffusion », écoute l'antenne aussitôt
 		https://github.com/dascritch/machincast/issues/245 : l'entrée remplace le bouton du bas de la fenêtre.
 
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la fenêtre n'a pas de bouton « Pré-écoute » sous ses onglets
-		Quand je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
+		Quand je choisis « Moniteur de l'antenne » dans le menu « Diffusion »
 		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
-		Et la pré-écoute montre la source « Antenne : sortie factice, signal de test »
+		Et la pré-écoute montre la source « — »
 		Et la pré-écoute est bientôt « En lecture »
 
-	Scénario: Pendant l'écoute de l'antenne, l'entrée du menu devient « Arrêter la pré-écoute de l'antenne », qui l'arrête
+	Scénario: Le bouton « Moniteur de l'antenne », sous le voyant de la diffusion, écoute l'antenne, puis l'arrête
+		https://github.com/dascritch/machincast/issues/531 : comme l'entrée du menu « Diffusion », avec le casque.
+
+		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le bouton sous le voyant de la diffusion est « Moniteur de l'antenne », avec le casque
+		Quand je clique sur le bouton sous le voyant de la diffusion
+		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
+		Et la pré-écoute est bientôt « En lecture »
+		Et le bouton sous le voyant de la diffusion est bientôt « Arrêter le moniteur de l'antenne »
+		Quand je clique sur le bouton sous le voyant de la diffusion
+		Alors la pré-écoute est bientôt « À l'arrêt »
+
+	Scénario: Pendant l'écoute de l'antenne, l'entrée du menu devient « Arrêter le moniteur de l'antenne », qui l'arrête
 		https://github.com/dascritch/machincast/issues/256
 
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
+		Et je choisis « Moniteur de l'antenne » dans le menu « Diffusion »
 		Et la pré-écoute est bientôt « En lecture »
-		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Arrêter la pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Arrêter l'écoute de l'antenne sur la sortie de pré-écoute »
-		Quand je choisis « Arrêter la pré-écoute de l'antenne » dans le menu « Diffusion »
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Arrêter le moniteur de l'antenne », raccourci « Alt+P », infobulle « Arrêter l'écoute de l'antenne sur la sortie de pré-écoute »
+		Quand je choisis « Arrêter le moniteur de l'antenne » dans le menu « Diffusion »
 		Alors la pré-écoute est « À l'arrêt »
-		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Moniteur de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
 
 	Scénario: Alt+P lance l'écoute de l'antenne, puis l'arrête, même depuis la fiche d'un événement
 		https://github.com/dascritch/machincast/issues/256 : « Nom public », dans les fiches, se saisit par Alt+U, pour
@@ -285,40 +302,39 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et la pré-écoute est bientôt « En lecture »
 		Quand j'appuie sur « Alt+P »
 		Alors la pré-écoute est « À l'arrêt »
-		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Moniteur de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
 		Et le nom public de la fiche se saisit par « Alt+U »
 
-	Scénario: Arrêter l'écoute depuis la fenêtre de pré-écoute, ou la fermer, rend l'entrée « Pré-écoute de l'antenne »
+	Scénario: Arrêter l'écoute depuis la fenêtre de pré-écoute, ou la fermer, rend l'entrée « Moniteur de l'antenne »
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
-		Et je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
+		Et je choisis « Moniteur de l'antenne » dans le menu « Diffusion »
 		Et la pré-écoute est bientôt « En lecture »
 		Et j'arrête la pré-écoute
-		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
-		Quand je choisis « Pré-écoute de l'antenne » dans le menu « Diffusion »
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Moniteur de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Quand je choisis « Moniteur de l'antenne » dans le menu « Diffusion »
 		Et la pré-écoute est bientôt « En lecture »
 		Et je ferme la fenêtre de pré-écoute
-		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Moniteur de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
 
-	Scénario: Un sonore en pré-écoute n'est pas l'antenne : l'entrée reste « Pré-écoute de l'antenne », et passe à l'antenne
+	Scénario: Un sonore en pré-écoute n'est pas l'antenne : l'entrée reste « Moniteur de l'antenne », et passe à l'antenne
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Et le sonore « Jingle », pour une copie du fichier de test « sain.flac »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je demande la pré-écoute du sonore « Jingle »
 		Et je lance la pré-écoute
 		Et la pré-écoute est bientôt « En lecture »
-		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Alors l'entrée d'écoute de l'antenne du menu « Diffusion » est « Moniteur de l'antenne », raccourci « Alt+P », infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
 		Quand j'appuie sur « Alt+P »
 		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
 		Et la pré-écoute est bientôt « En lecture »
-		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Arrêter la pré-écoute de l'antenne », raccourci « Alt+P », infobulle « Arrêter l'écoute de l'antenne sur la sortie de pré-écoute »
+		Et l'entrée d'écoute de l'antenne du menu « Diffusion » est « Arrêter le moniteur de l'antenne », raccourci « Alt+P », infobulle « Arrêter l'écoute de l'antenne sur la sortie de pré-écoute »
 
 	Scénario: Une antenne devenue indisponible ne se pré-écoute pas
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
-		Et je clique sur le VU-mètre de l'antenne
 		Et le signal de test « introuvable » remplace celui de l'antenne factice
-		Et je lance la pré-écoute
+		Et je clique sur le VU-mètre de l'antenne
 		Alors la pré-écoute signale bientôt « Lecture impossible : Indisponible : »
 		Et la pré-écoute est « À l'arrêt »
 
@@ -327,7 +343,6 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL, antenne-ua22:monitor_FR, casque-usb:monitor_FL, casque-usb:monitor_FR » et d'entrée « casque-usb:playback_FR, casque-usb:playback_FL, antenne-ua22:playback_FL, antenne-ua22:playback_FR »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Et je lance la pré-écoute
 		Alors la pré-écoute est bientôt « En lecture »
 		Et PipeWire relie « antenne-ua22:monitor_FL » à « casque-usb:playback_FL », et « antenne-ua22:monitor_FR » à « casque-usb:playback_FR »
 		Et le VU-mètre de la pré-écoute montre bientôt du son
@@ -343,7 +358,6 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL, antenne-ua22:monitor_FR » et d'entrée « enceintes:playback_FL, casque-mono:playback_MONO, enceintes:playback_FR »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Et je lance la pré-écoute
 		Alors PipeWire relie « antenne-ua22:monitor_FL » à « casque-mono:playback_MONO », et « antenne-ua22:monitor_FR » à « casque-mono:playback_MONO »
 
 	Scénario: Fermer la pré-écoute, sous PipeWire, défait ses liens
@@ -351,7 +365,6 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et PipeWire simulé, avec les ports de sortie « antenne-ua22:monitor_FL, antenne-ua22:monitor_FR » et d'entrée « casque-usb:playback_FL, casque-usb:playback_FR »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Et je lance la pré-écoute
 		Et la pré-écoute est bientôt « En lecture »
 		Et je ferme la fenêtre de pré-écoute
 		Alors PipeWire ne relie plus rien
@@ -361,7 +374,6 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et PipeWire simulé, avec les ports de sortie « <sorties> » et d'entrée « <entrees> »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Et je lance la pré-écoute
 		Alors la pré-écoute signale « Lecture impossible : PipeWire n'a pas de port de monitoring pour antenne-ua22, ou pas d'entrée pour casque-usb. »
 		Et la pré-écoute est « À l'arrêt »
 		Et PipeWire ne relie plus rien
@@ -377,7 +389,6 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et PipeWire simulé refuse de relier : « failed to link ports: Operation not permitted »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Et je lance la pré-écoute
 		Alors la pré-écoute signale « Lecture impossible : pw-link antenne-ua22:monitor_FL casque-usb:playback_FL : failed to link ports: Operation not permitted »
 		Et la pré-écoute est « À l'arrêt »
 
@@ -387,7 +398,6 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et PipeWire simulé refuse de relier : « failed to link ports: File exists »
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Et je lance la pré-écoute
 		Alors la pré-écoute est bientôt « En lecture »
 
 	Plan du scénario: L'écoute de l'antenne joue sur la pré-écoute avec PulseAudio, et ne fait que mesurer sous PipeWire
@@ -404,7 +414,6 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et PipeWire simulé, sans pw-link
 		Quand la fenêtre de l'interface s'ouvre
 		Et je clique sur le VU-mètre de l'antenne
-		Et je lance la pré-écoute
 		Alors la pré-écoute signale « Lecture impossible : pw-link introuvable ; installer pipewire-bin. »
 
 	Scénario: Un VU-mètre indisponible n'écoute rien

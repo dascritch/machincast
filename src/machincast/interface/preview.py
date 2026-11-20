@@ -58,6 +58,7 @@ from machincast.audio import PLAYER, PREVIEW, create_output  # noqa: E402
 from machincast.configuration import Audio, AudioOutput, Crossfades  # noqa: E402
 from machincast.i18n import _, decimal  # noqa: E402
 from machincast.interface import binding, display, preferences, states  # noqa: E402
+from machincast.interface.live_wave import LiveWave  # noqa: E402
 from machincast.interface.monitor import Unavailable, monitor_source, port_name  # noqa: E402
 from machincast.interface.queries import sounds as queries  # noqa: E402
 from machincast.interface.timeline import Plan, Timeline, WaveShape, sound_plan  # noqa: E402
@@ -567,6 +568,11 @@ class PreviewWindow(QWidget):
 		timeline_layout = QVBoxLayout(self.ui.timeline_place)
 		timeline_layout.setContentsMargins(0, 0, 0, 0)
 		timeline_layout.addWidget(self.timeline)
+		# La forme d'onde du direct, à la place de la frise, dans le moniteur de l'antenne
+		# (https://github.com/dascritch/machincast/issues/531).
+		self.live_wave = LiveWave(self.ui.timeline_place)
+		timeline_layout.addWidget(self.live_wave)
+		self.live_wave.hide()
 		self.shape: WaveShape | None = None
 		"""La forme d'onde du fichier, calculée en tâche de fond (https://github.com/dascritch/machincast/issues/224)."""
 		self.player = Player(audio.output, audio.preview)
@@ -621,22 +627,33 @@ class PreviewWindow(QWidget):
 		self._show_timeline(source)
 		self.on_air = True
 		self.follow_on_air(public_text)
-		self.ui.source.setText(_("On air: {name}").format(name=name))
 		self.ui.message.clear()
 		if launch:
 			self._play_or_pause()
 		self._refresh()
 
 	def follow_on_air(self, public_text: str | None) -> None:
-		"""Le texte public du sonore en cours a changé : le titre le suit, tant que la fenêtre écoute l'antenne."""
+		"""Le texte public du sonore en cours a changé : le titre, et la ligne « Antenne » à la place des informations
+		techniques (https://github.com/dascritch/machincast/issues/531), le suivent, tant que la fenêtre écoute
+		l'antenne."""
 		if self.on_air:
 			self.setWindowTitle(f"{ONGOING}{(public_text) or (display.EMPTY)}")
+			self.ui.source.setText((public_text) or (display.EMPTY))
 
 	def _show_timeline(self, source: Source | None) -> None:
-		"""La frise d'un fichier, et le calcul de sa forme d'onde, lancé en tâche de fond ; rien pour un stream."""
+		"""La frise d'un fichier, et le calcul de sa forme d'onde, lancé en tâche de fond ; rien pour un stream. Pour
+		l'antenne, la forme d'onde du direct, sans lecture, pause ni temps, qui n'ont pas de sens pour elle
+		(https://github.com/dascritch/machincast/issues/531)."""
 		self._halt_shape()
 		file = (source is not None) and (not source.stream)
-		self.ui.timeline_area.setVisible(file)
+		on_air = (source is not None) and (source.on_air is not None)
+		self.ui.timeline_area.setVisible((file) or (on_air))
+		self.timeline.setVisible(not on_air)
+		self.live_wave.setVisible(on_air)
+		self.live_wave.clear()
+		self.ui.playback.setVisible(not on_air)
+		self.ui.stop.setVisible(not on_air)
+		self.ui.time.setVisible(not on_air)
 		plan = None
 		duration = None
 		if (source is not None) and (file):
@@ -780,6 +797,8 @@ class PreviewWindow(QWidget):
 		if (self.shape is not None) and (self.shape.read_off()):
 			self.timeline.update()
 		self.vu_meter.display(player.levels)
+		if (self.on_air) and (player.active()):
+			self.live_wave.add(player.levels)
 		ui.format.setText((player.codec) or (display.EMPTY))
 		ui.bitrate.setText((player.bitrate_in_kbits()) or (display.EMPTY))
 		ui.sampling.setText(display.EMPTY)
