@@ -52,6 +52,8 @@ VIEWS = {
 	"fiche-evenement-elements",
 	"fiche-sonore-relations",
 	"fiche-sonore-passages",
+	"espace-disque-montages",
+	"espace-disque-repertoires",
 }
 """Les vues de l'interface, une par tableau."""
 

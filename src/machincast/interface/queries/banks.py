@@ -33,6 +33,15 @@ def named(connection: Connection) -> list[TupleRow]:
 	).fetchall()
 
 
+def all_directories(connection: Connection) -> list[TupleRow]:
+	"""Chaque répertoire indexé par une banque non supprimée, avec le nom de la banque, par répertoire
+	(https://github.com/dascritch/machincast/issues/533)."""
+	return connection.execute(
+		"SELECT d.directory, b.internal_name FROM bank_directories d JOIN banks b ON b.id = d.bank_id"
+		" WHERE b.deleted_at IS NULL ORDER BY d.directory, lower(b.internal_name)"
+	).fetchall()
+
+
 def read_bank(connection: Connection, bank: int) -> TupleRow | None:
 	"""Les champs de la banque, dans l'ordre de la fiche ; None si elle est absente."""
 	return connection.execute(
