@@ -47,6 +47,7 @@ from machincast.installation import (
 	tasks_unit,
 )
 from machincast.interface.application import application
+from machincast.intranet import __main__ as intranet_server
 from machincast.protection import SOUND_EXTENSIONS
 from tests.database_fixtures import (
 	configuration_test,
@@ -362,7 +363,7 @@ def unit_section(command: subprocess.CompletedProcess[str], name: str, datatable
 	assert _section(command.stdout, name) == _expected(rows, replacements), command.stdout
 
 
-@then(parsers.re(r"« systemd-analyze verify » accepte ensemble (?P<names>« [^»]+ »(?:, « [^»]+ »)* et « [^»]+ »)"))
+@then(parsers.re(r"« systemd-analyze verify » accepte (?:ensemble )?(?P<names>« [^»]+ »(?:(?:, | et )« [^»]+ »)*)"))
 def accepted_units(tmp_path: Path, names: str) -> None:
 	"""Des unités qui se nomment l'une l'autre se vérifient ensemble."""
 	files = []
@@ -510,6 +511,21 @@ def sh_task_names() -> None:
 		assert expected in install, expected
 
 
+@then("install.sh installe l'unité du serveur intranet, l'active, et la retire avec le service")
+def sh_intranet() -> None:
+	"""https://github.com/dascritch/machincast/issues/538 : l'unité tient Machin intranet éteint pour un arrêt voulu."""
+	assert installation.INTRANET_DISABLED == intranet_server.DISABLED_CODE
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	for expected in (
+		f'UNITE_INTRANET="{service.INTRANET_UNIT}"',
+		'"intranet-unit:${FICHIER_UNITE_INTRANET}"',
+		'executer sudo systemctl enable "${UNITE_INTRANET}"',
+		'for unite in "${UNITE_INTRANET}" "${UNITE}"',
+		'"${FICHIER_UNITE}" "${FICHIER_UNITE_INTRANET}"',
+	):
+		assert expected in install, expected
+
+
 @then("install.sh, avec --no-timers, n'installe aucun minuteur et retire ceux d'avant")
 def sh_no_timers() -> None:
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
@@ -544,6 +560,12 @@ def sh_old_purge() -> None:
 	assert 'executer sudo systemctl disable --now "${ANCIEN_MINUTEUR_PURGE}"' in old, old
 	assert "retirer_ancienne_purge" in _function(install, "installer_service")
 	assert "retirer_ancienne_purge" in _function(install, "retirer_service")
+
+
+@then(parsers.parse("l'unité de la commande a, dans la section « {name} », entre autres :"))
+def command_section(command: subprocess.CompletedProcess[str], name: str, datatable: list[list[str]]) -> None:
+	_headers, *rows = datatable
+	_among(_section(command.stdout, name), _expected(rows))
 
 
 @then(parsers.parse("l'unité a, dans la section « {name} », entre autres :"))

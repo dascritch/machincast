@@ -142,3 +142,20 @@ fallback = false
 # interface, Fichier → Paramètres du service…, « Sauvegarde » page.
 # directory = "~/sauvegardes"
 
+
+[intranet]
+# The intranet server and its API (https://github.com/dascritch/machincast/issues/538). Optional section, like its keys.
+# Off by default: Machin intranet refuses to start until enabled is true. Also set in Machin interface, Fichier →
+# Paramètres du service…, « Intranet » page, which restarts or stops machincast-intranet.service. HTTPS only, even on
+# a simple IP address of the local network: without a certificate given here, Machin intranet generates a
+# self-signed one, for the name and each IP address of the computer, and makes it again when an address changes.
+# enabled = false
+# Listening address: 0.0.0.0, all the IPv4 addresses of the computer, by default.
+# address = "0.0.0.0"
+# port = 8443
+# Minutes left to validate a connection at the studio desk, with its 6-digit code, from 1 to 1440; 30 by default.
+# validation = 30
+# A certificate of the internal certification authority, and its private key, in PEM; a relative path starts from
+# this file. Both, or none.
+# certificate = "tls/intranet.pem"
+# key = "tls/intranet-key.pem"

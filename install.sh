@@ -64,6 +64,10 @@ MINUTEUR_TACHES="machincast-tasks.timer"
 UNITE_INDEXATION="machincast-indexing.service"
 MINUTEUR_INDEXATION="machincast-indexing.timer"
 FICHIER_UNITE_TACHES="/etc/systemd/system/${UNITE_TACHES}"
+# Le serveur intranet (https://github.com/dascritch/machincast/issues/538), éteint tant que intranet.enabled n'est pas
+# vrai ; le même nom dans machincast.service.
+UNITE_INTRANET="machincast-intranet.service"
+FICHIER_UNITE_INTRANET="/etc/systemd/system/${UNITE_INTRANET}"
 FICHIER_MINUTEUR_TACHES="/etc/systemd/system/machincast-tasks.timer"
 FICHIER_UNITE_INDEXATION="/etc/systemd/system/${UNITE_INDEXATION}"
 FICHIER_MINUTEUR_INDEXATION="/etc/systemd/system/${MINUTEUR_INDEXATION}"
@@ -779,7 +783,7 @@ fichier_a_jour() {
 # à jour, l'unité d'avant peut appeler un programme qui n'existe plus (https://github.com/dascritch/machincast/issues/376).
 fichiers_du_service_perimes() {
 	local paire
-	for paire in "unit:${FICHIER_UNITE}" "pipewire-unit:${FICHIER_UNITE_PIPEWIRE}" \
+	for paire in "unit:${FICHIER_UNITE}" "intranet-unit:${FICHIER_UNITE_INTRANET}" "pipewire-unit:${FICHIER_UNITE_PIPEWIRE}" \
 		"wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" "wireplumber-service:${FICHIER_WIREPLUMBER_SERVICE}" \
 		"wireplumber-desktop:${FICHIER_WIREPLUMBER_BUREAU}" "tmpfiles:${FICHIER_TMPFILES}" \
 		"logrotate:${FICHIER_LOGROTATE}" "profile:${FICHIER_PROFIL}" \
@@ -1195,7 +1199,7 @@ installer_service() {
 	fi
 	local paire
 	for paire in "pipewire-unit:${FICHIER_UNITE_PIPEWIRE}" "wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" \
-		"unit:${FICHIER_UNITE}"; do
+		"unit:${FICHIER_UNITE}" "intranet-unit:${FICHIER_UNITE_INTRANET}"; do
 		if installer_fichier "${paire%%:*}" "${paire#*:}"; then
 			unites_changees=true
 		fi
@@ -1207,9 +1211,11 @@ installer_service() {
 	proteger_le_poste
 	garder_les_cartes_eveillees
 	executer sudo systemctl enable --now "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
+	# Le serveur intranet démarre avec le poste, et s'arrête aussitôt tant qu'il est éteint dans machincast.toml.
+	executer sudo systemctl enable "${UNITE_INTRANET}"
 	if "${unites_changees}" || "${service_change}"; then
 		# Une unité ou une configuration modifiée ne vaut qu'au redémarrage du service, s'il tournait déjà.
-		executer sudo systemctl try-restart "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
+		executer sudo systemctl try-restart "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}" "${UNITE_INTRANET}"
 	fi
 	# Les tâches du service (https://github.com/dascritch/machincast/issues/455) : sans --service, une mise à jour garde
 	# les minuteurs s'ils sont installés, l'ancien de la purge compris, et n'en ajoute pas sinon.
@@ -1332,13 +1338,13 @@ retirer_service() {
 	local unite
 	retirer_minuteurs
 	retirer_ancienne_purge
-	for unite in "${UNITE}" "${UNITE_WIREPLUMBER}" "${UNITE_PIPEWIRE}"; do
+	for unite in "${UNITE_INTRANET}" "${UNITE}" "${UNITE_WIREPLUMBER}" "${UNITE_PIPEWIRE}"; do
 		if [[ -e "/etc/systemd/system/${unite}" ]]; then
 			executer sudo systemctl disable --now "${unite}"
 		fi
 	done
 	local fichier
-	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
+	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_INTRANET}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
 		"${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
 		"${FICHIER_LOGROTATE}" "${FICHIER_PROFIL}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}" \
 		"${FICHIER_MODPROBE}" "${FICHIER_USB}"; do

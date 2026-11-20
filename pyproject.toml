@@ -17,6 +17,9 @@ dependencies = [
 	"yoyo-migrations>=9.0",
 	"python-magic>=0.4.27",  # type des fichiers, par libmagic (paquet libmagic1t64)
 	"tomlkit>=0.12",  # préférences écrites dans machincast.toml, commentaires gardés
+	# Serveur HTTPS de l'intranet (https://github.com/dascritch/machincast/issues/538), et HTTP/2 du scénario « release »
+	# des flux (https://github.com/dascritch/machincast/issues/278).
+	"hypercorn>=0.17",
 ]
 
 [project.optional-dependencies]
@@ -28,8 +31,6 @@ dev = [
 	"coverage>=7.10",  # patch = ["subprocess"] : le code lancé en sous-processus est mesuré
 	"mypy>=1.11",
 	"pygobject-stubs>=2.11",
-	# Serveur HTTP/2 du scénario « release » des flux (https://github.com/dascritch/machincast/issues/278).
-	"hypercorn>=0.17",
 	# La règle polkit s'exécute avec Duktape, le moteur de polkitd (https://github.com/dascritch/machincast/issues/470) ;
 	# dukpy 0.6 est passé à QuickJS.
 	"dukpy>=0.5.1,<0.6",
@@ -49,6 +50,7 @@ Machin_restore-db = "machincast.backup:restore_main"
 Machin_purge = "machincast.purge:main"
 Machin_grant-read = "machincast.access:main"
 Machin_status = "machincast.status:main"
+Machin_intranet = "machincast.intranet.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

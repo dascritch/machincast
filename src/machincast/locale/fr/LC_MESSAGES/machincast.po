@@ -299,6 +299,12 @@ msgstr ""
 "l'antenne"
 
 #: machincast/configuration.py
+msgid ""
+"key intranet.certificate: a certificate is given with its key, intranet.key"
+msgstr ""
+"clé intranet.certificate : un certificat se donne avec sa clé, intranet.key"
+
+#: machincast/configuration.py
 #, python-brace-format
 msgid "{path}: {message}"
 msgstr "{path} : {message}"
@@ -403,6 +409,15 @@ msgstr ""
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid ""
+"key {section}.{key}: a whole number from {minimum} to {maximum} is "
+"expected, “{value}” found"
+msgstr ""
+"clé {section}.{key} : un nombre entier de {minimum} à {maximum} est "
+"attendu, « {value} » trouvé"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid "{path}: configuration file not found"
 msgstr "{path} : fichier de configuration introuvable"
 
@@ -481,6 +496,15 @@ msgid ""
 msgstr ""
 "clé dead_air.threshold : un nombre de dB de {minimum_silence_threshold:g} "
 "dB compris à 0 dB exclu est attendu, {threshold:g} trouvé"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid ""
+"key intranet.address: an IP address of the computer is expected, "
+"“{address}” found"
+msgstr ""
+"clé intranet.address : une adresse IP du poste est attendue, « {address} » "
+"trouvé"
 
 #: machincast/configuration.py
 #, python-brace-format
@@ -4266,6 +4290,35 @@ msgstr "stream du feed {feed} illisible : {error}"
 msgid "unreadable {category} list: {error}"
 msgstr "liste {category} illisible : {error}"
 
+#: machincast/interface/intranet_switch.py
+#, python-brace-format
+msgid "Intranet server switched on: {addresses}"
+msgstr "Serveur intranet allumé : {addresses}"
+
+#: machincast/interface/intranet_switch.py
+msgid "Intranet server switched off."
+msgstr "Serveur intranet éteint."
+
+#: machincast/interface/intranet_switch.py
+#, python-brace-format
+msgid "Intranet server unchanged: systemctl said “{said}”."
+msgstr "Serveur intranet inchangé : systemctl a dit « {said} »."
+
+#: machincast/interface/intranet_switch.py
+msgid ""
+"Intranet switched on in machincast.toml: without the broadcast service, "
+"launch it with Machin intranet."
+msgstr ""
+"Intranet allumé dans machincast.toml : sans le service de diffusion, "
+"lancez-le par Machin intranet."
+
+#: machincast/interface/intranet_switch.py
+msgid ""
+"Intranet switched off in machincast.toml: stop Machin intranet if it is "
+"running."
+msgstr ""
+"Intranet éteint dans machincast.toml : arrêtez Machin intranet s'il tourne."
+
 #: machincast/interface/items.py
 #, python-brace-format
 msgid "Set aside, a sequence does not contain a sequence: {list}."
@@ -4813,6 +4866,11 @@ msgid ""
 "Demonstration: a sound of 30 s, with silences of 3 s and 4 s. {summary}"
 msgstr ""
 "Démonstration : un sonore de 30 s, aux silences de 3 s et 4 s. {summary}"
+
+#: machincast/interface/preferences.py
+#, python-brace-format
+msgid "Address to give to the other computers: {addresses}"
+msgstr "Adresse à donner aux autres postes : {addresses}"
 
 #: machincast/interface/preferences.py
 #, python-brace-format
@@ -6268,6 +6326,67 @@ msgid ""
 "database"
 msgstr ""
 "fiche {card_type} {identifier} oubliée : l'élément n'est plus en base"
+
+#: machincast/intranet/__main__.py
+msgid ""
+"Serves the intranet and its API of MachinCast, in HTTPS only, when it is "
+"switched on."
+msgstr ""
+"Sert l'intranet et l'API de MachinCast, en HTTPS seulement, une fois allumé."
+
+#: machincast/intranet/__main__.py
+msgid ""
+"the intranet is switched off: intranet.enabled, or the « Intranet » page of "
+"the service settings"
+msgstr ""
+"l'intranet est éteint : intranet.enabled, ou la page « Intranet » des "
+"paramètres du service"
+
+#: machincast/intranet/__main__.py
+#, python-brace-format
+msgid "intranet on {addresses}, certificate {fingerprint}"
+msgstr "intranet sur {addresses}, certificat {fingerprint}"
+
+#: machincast/intranet/__main__.py
+#, python-brace-format
+msgid "no TLS certificate for the intranet: {error}"
+msgstr "aucun certificat TLS pour l'intranet : {error}"
+
+#: machincast/intranet/app.py
+#: machincast/interface/ui/preferences.ui
+msgid "Home"
+msgstr "Accueil"
+
+#: machincast/intranet/app.py
+msgid "Not found."
+msgstr "Introuvable."
+
+#: machincast/intranet/app.py
+msgid "Method not allowed."
+msgstr "Méthode non permise."
+
+#: machincast/intranet/app.py
+msgid "The intranet of MachinCast is running."
+msgstr "L'intranet de MachinCast fonctionne."
+
+#: machincast/intranet/app.py
+msgid "Internal error."
+msgstr "Erreur interne."
+
+#: machincast/intranet/app.py
+#, python-brace-format
+msgid "intranet: request {path} failed"
+msgstr "intranet : la requête {path} a échoué"
+
+#: machincast/intranet/certificate.py
+#, python-brace-format
+msgid "intranet certificate generated: {path}"
+msgstr "certificat de l'intranet généré : {path}"
+
+#: machincast/intranet/network.py
+#, python-brace-format
+msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
+msgstr "adresses du poste illisibles par iproute2, devinées : {error}"
 
 #: machincast/maintenance.py
 msgid "Backs up, checks and optimises the MachinCast database."
@@ -8130,10 +8249,6 @@ msgid "Interface"
 msgstr "Interface"
 
 #: machincast/interface/ui/preferences.ui
-msgid "Home"
-msgstr "Accueil"
-
-#: machincast/interface/ui/preferences.ui
 msgid "Show the clipping light of the On air tab"
 msgstr "Afficher le voyant de saturation de l'onglet Antenne"
 
@@ -8375,6 +8490,41 @@ msgstr ""
 "Le fichier de configuration, copié ailleurs, par exemple sur une clé USB, "
 "sous un nom daté comme les sauvegardes : avec une sauvegarde de la base, "
 "c'est tout ce qu'il faut à un poste neuf pour repartir."
+
+#: machincast/interface/ui/preferences.ui
+msgid "Intranet"
+msgstr "Intranet"
+
+#: machincast/interface/ui/preferences.ui
+msgid "Switch on the &intranet server, in HTTPS only"
+msgstr "Allumer le serveur &intranet, en HTTPS seulement"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Port"
+msgstr "&Port"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Validation of a connection within"
+msgstr "&Validation d'une connexion sous"
+
+#: machincast/interface/ui/preferences.ui
+msgid " min"
+msgstr " min"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"Off by default. Switched on, Machin intranet serves the intranet and its "
+"API to the other computers of the network, in HTTPS only, even on a simple "
+"IP address; without a certificate given in machincast.toml, it generates a "
+"self-signed one. Only the accounts of the API tab connect, and each "
+"connection is validated at the studio desk with a 6-digit code, within the "
+"time set here."
+msgstr ""
+"Éteint par défaut. Allumé, Machin intranet sert l'intranet et son API aux "
+"autres postes du réseau, en HTTPS seulement, même sur une simple adresse IP "
+"; sans certificat donné dans machincast.toml, il en génère un auto-signé. "
+"Seuls les comptes de l'onglet API se connectent, et chaque connexion se "
+"valide au pupitre par un code à 6 chiffres, dans le délai réglé ici."
 
 #: machincast/interface/ui/preview.ui
 msgctxt "preview"

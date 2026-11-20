@@ -111,6 +111,7 @@ from machincast.interface.event_card import EventCard
 from machincast.interface.feed_card import FeedCard
 from machincast.interface.incidents import IncidentScreen
 from machincast.interface.indexer import FINISHED, LAUNCHED, TITLES
+from machincast.interface.intranet_switch import IntranetSwitch
 from machincast.interface.lists import BANKS, EVENTS, FEEDS, SEQUENCES, SOUNDS, List, Source
 from machincast.interface.preview import PreviewWindow
 from machincast.interface.queries import cards as cards_queries
@@ -122,6 +123,7 @@ from machincast.interface.sound_card import SoundCard
 from machincast.interface.state import STOP, PlaybackState
 from machincast.interface.tab_manager import ON_AIR, ON_DEMAND, TabManager
 from machincast.interface.ui.main_window import Ui_MainWindow
+from machincast.intranet import network
 
 log = logging.getLogger(__name__)
 
@@ -262,6 +264,8 @@ class MainWindow(QMainWindow):
 		self.tab_manager = TabManager(self, self.ui.tabs, self._reopen, self._close, self._remove)
 		# Ctrl ou Alt tenue une seconde : les raccourcis en surimpression (https://github.com/dascritch/machincast/issues/529).
 		self.key_hints = key_hints.KeyHints(self)
+		self.intranet_switch = IntranetSwitch(self)
+		self.intranet_switch.announced.connect(self.ui.state_bar.showMessage)
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
 		self.home.show_clipping(poster=self.clipping)
 		# Le moniteur de l'antenne n'a ni lecture ni pause : il écoute aussitôt (https://github.com/dascritch/machincast/issues/531).
@@ -1196,6 +1200,7 @@ class MainWindow(QMainWindow):
 			backup_directory=control.maintenance_backups(self.configuration),
 			notes=installation_notes.settings(self.configuration).notes,
 			team_link=installation_notes.settings(self.configuration).team_link,
+			intranet=preferences.intranet(self.configuration),
 		)
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
@@ -1216,6 +1221,10 @@ class MainWindow(QMainWindow):
 			)
 			return
 		text = self.apply_preferences(settings)
+		if preferences.intranet_changed(shown_list, settings):
+			# Le serveur intranet prend ses réglages (https://github.com/dascritch/machincast/issues/538).
+			chosen = settings.intranet
+			self.intranet_switch.apply(enabled=chosen.enabled, addresses=network.to_give(chosen.address, chosen.port))
 		if not preferences.service_changed(shown_list, settings):
 			self.statusBar().showMessage(text)
 			return

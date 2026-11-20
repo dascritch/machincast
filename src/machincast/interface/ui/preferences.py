@@ -510,6 +510,62 @@ class Ui_PreferencesWindow(object):
         self.backup_layout.addItem(self.backup_space)
 
         self.pages.addTab(self.backup_page, "")
+        self.intranet_page = QWidget()
+        self.intranet_page.setObjectName(u"intranet_page")
+        self.intranet_layout = QVBoxLayout(self.intranet_page)
+        self.intranet_layout.setObjectName(u"intranet_layout")
+        self.intranet_enabled = QCheckBox(self.intranet_page)
+        self.intranet_enabled.setObjectName(u"intranet_enabled")
+
+        self.intranet_layout.addWidget(self.intranet_enabled)
+
+        self.intranet_form = QFormLayout()
+        self.intranet_form.setObjectName(u"intranet_form")
+        self.intranet_port_caption = QLabel(self.intranet_page)
+        self.intranet_port_caption.setObjectName(u"intranet_port_caption")
+
+        self.intranet_form.setWidget(0, QFormLayout.ItemRole.LabelRole, self.intranet_port_caption)
+
+        self.intranet_port = QSpinBox(self.intranet_page)
+        self.intranet_port.setObjectName(u"intranet_port")
+        self.intranet_port.setMinimum(1024)
+        self.intranet_port.setMaximum(65535)
+
+        self.intranet_form.setWidget(0, QFormLayout.ItemRole.FieldRole, self.intranet_port)
+
+        self.intranet_validation_caption = QLabel(self.intranet_page)
+        self.intranet_validation_caption.setObjectName(u"intranet_validation_caption")
+
+        self.intranet_form.setWidget(1, QFormLayout.ItemRole.LabelRole, self.intranet_validation_caption)
+
+        self.intranet_validation = QSpinBox(self.intranet_page)
+        self.intranet_validation.setObjectName(u"intranet_validation")
+        self.intranet_validation.setMinimum(1)
+        self.intranet_validation.setMaximum(1440)
+
+        self.intranet_form.setWidget(1, QFormLayout.ItemRole.FieldRole, self.intranet_validation)
+
+
+        self.intranet_layout.addLayout(self.intranet_form)
+
+        self.intranet_explanation = QLabel(self.intranet_page)
+        self.intranet_explanation.setObjectName(u"intranet_explanation")
+        self.intranet_explanation.setWordWrap(True)
+
+        self.intranet_layout.addWidget(self.intranet_explanation)
+
+        self.intranet_addresses = QLabel(self.intranet_page)
+        self.intranet_addresses.setObjectName(u"intranet_addresses")
+        self.intranet_addresses.setWordWrap(True)
+        self.intranet_addresses.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        self.intranet_layout.addWidget(self.intranet_addresses)
+
+        self.intranet_space = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.intranet_layout.addItem(self.intranet_space)
+
+        self.pages.addTab(self.intranet_page, "")
 
         self.arrangement.addWidget(self.pages)
 
@@ -533,6 +589,8 @@ class Ui_PreferencesWindow(object):
         self.retention_caption.setBuddy(self.retention)
         self.daily_caption.setBuddy(self.daily)
         self.backup_directory_caption.setBuddy(self.backup_directory)
+        self.intranet_port_caption.setBuddy(self.intranet_port)
+        self.intranet_validation_caption.setBuddy(self.intranet_validation)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(PreferencesWindow)
@@ -637,5 +695,11 @@ class Ui_PreferencesWindow(object):
         self.copy_configuration.setText(QCoreApplication.translate("PreferencesWindow", u"Copy machincast.toml\u2026", None))
         self.copy_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"The configuration file, copied elsewhere, for instance on a USB key, under a name dated like the backups: with a backup of the database, it is all that a new computer needs to start again.", None))
         self.pages.setTabText(self.pages.indexOf(self.backup_page), QCoreApplication.translate("PreferencesWindow", u"Backup", None))
+        self.intranet_enabled.setText(QCoreApplication.translate("PreferencesWindow", u"Switch on the &intranet server, in HTTPS only", None))
+        self.intranet_port_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Port", None))
+        self.intranet_validation_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Validation of a connection within", None))
+        self.intranet_validation.setSuffix(QCoreApplication.translate("PreferencesWindow", u" min", None))
+        self.intranet_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is validated at the studio desk with a 6-digit code, within the time set here.", None))
+        self.pages.setTabText(self.pages.indexOf(self.intranet_page), QCoreApplication.translate("PreferencesWindow", u"Intranet", None))
     # retranslateUi
 

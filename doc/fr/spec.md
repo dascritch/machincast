@@ -20,6 +20,7 @@ Il fonctionne sous Linux (Ubuntu LTS).
 10. [Installation et déploiement](#10-installation-et-déploiement)
 11. [Développements ultérieurs](#11-développements-ultérieurs)
 12. [Points à confirmer](#12-points-à-confirmer)
+13. [Intranet et API](#13-intranet-et-api)
 
 ---
 
@@ -49,6 +50,7 @@ Il fonctionne sous Linux (Ubuntu LTS).
 | Maintenance de la base | `Machin_maintenance-db` | Sauvegarde, vérifie le schéma et les rôles, et optimise la base de production ([#127](https://github.com/dascritch/machincast/issues/127)). |
 | Export et réimportation de la base | `Machin_backup-db`, `Machin_restore-db` | Sauvegarde la base de production ; réimporte une sauvegarde dans une base neuve, vide ([#347](https://github.com/dascritch/machincast/issues/347)). |
 | Purge de la base | `Machin_purge` | Efface de la base de production ce qui dépasse la durée de péremption ([#268](https://github.com/dascritch/machincast/issues/268)) ; chaque jour à l'heure de `schedule.daily` avec le service ([#455](https://github.com/dascritch/machincast/issues/455)). |
+| Serveur intranet | `Machin_intranet` | Sert l'intranet et son API, en HTTPS seulement, une fois allumé ([#524](https://github.com/dascritch/machincast/issues/524), [§ 13](#13-intranet-et-api)). |
 | État de la station | `Machin_status` | Dit en une ligne, pour un script, l'état du serveur, le nom de la radio, l'événement actuel et le suivant ([#518](https://github.com/dascritch/machincast/issues/518)). |
 
 Tous les exécutables commencent par `Machin_`.
@@ -1589,6 +1591,7 @@ Mise en œuvre du menu ([#117](https://github.com/dascritch/machincast/issues/11
 - **Fichier** : « Préférences de l'interface… » et « Paramètres du service… » ([#145](https://github.com/dascritch/machincast/issues/145), [#389](https://github.com/dascritch/machincast/issues/389), `machincast.interface.preferences`) : la même fenêtre, `PreferencesWindow`, réduite à ce que règle chacune (`kind`).
 	Les préférences de l'interface, qui valent aussitôt et ne touchent pas la diffusion : la granularité des crossfades et le seuil de silence (page « Crossfades et silences »), la carte de pré-écoute (page « Audio »), la page « Base » et la page « Interface ».
 	Les paramètres du service, que Machin player ne prend qu'à son redémarrage : le maximum et les durées par défaut des crossfades, la position des fondus et leur frise (page « Crossfades »), le type de sortie, la carte de l'antenne et son niveau, le blanc dans un sonore (page « Audio »).
+	Les paramètres du service ont aussi la page « Intranet », la dernière ([#538](https://github.com/dascritch/machincast/issues/538), [§ 13.1](#131-serveur-https)).
 	Les paramètres du service ont aussi la page « Sauvegarde » ([#347](https://github.com/dascritch/machincast/issues/347)) : le répertoire des sauvegardes, saisi ou choisi par « Choisir… », enregistré dans `backup.directory` (la section `[backup]` ne le reçoit que s'il diffère du répertoire personnel ou y figurait déjà), et « Copier machincast.toml… », qui copie le fichier de configuration dans un répertoire choisi, sous le nom `machincast-AAAA-MM-JJTHH-MM-SS.toml`, jamais par-dessus un autre fichier (`preferences.copy_configuration`), et dit sur la page où, ou pourquoi elle n'a pas pu ; grisé sans fichier de configuration.
 	Chaque fenêtre rend tels quels les réglages qu'elle cache.
 	Un paramètre du service changé (`preferences.service_changed`), service de diffusion en marche, s'enregistre puis lance `systemctl restart machincast.service`, qui demande le mot de passe d'un administrateur (règle polkit) ; refusé ou en échec, le fichier de configuration d'avant est réécrit, les réglages d'avant reviennent dans l'interface, et la barre d'état le dit (`MainWindow._restarted`).
@@ -1784,6 +1787,7 @@ L'onglet porte la clé, `icons/api.svg`, se ferme, et se rouvre au lancement sui
 	Une clé obligatoire manquante, un type invalide ou une valeur hors des choix possibles arrête le binaire avec le code 2 et un message qui nomme le fichier et la clé.
 - De nouvelles clés s'ajouteront au fil du projet ; chacune est documentée dans le modèle.
 - Sections, clés et valeurs sont en anglais ([#357](https://github.com/dascritch/machincast/issues/357)), comme les commentaires du modèle.
+- La section `[intranet]`, facultative ([#538](https://github.com/dascritch/machincast/issues/538)) : `enabled` (faux par défaut), `address` (adresse IP d'écoute, `0.0.0.0` par défaut), `port` (de 1024 à 65535, 8443 par défaut), `validation` (minutes pour valider une connexion au pupitre, de 1 à 1440, 30 par défaut), `certificate` et `key` (un certificat et sa clé, en PEM, l'un avec l'autre) ; voir [§ 13](#13-intranet-et-api).
 	Une ancienne section française (`[base]`, `[sorties]`, `[metadonnees]`, `[lecture]`, `[blanc_antenne]`, `[blancs]`, `configuration.OLD_SECTIONS`) est refusée, et le message nomme son nom anglais : pas de compatibilité, les installations se refont de zéro.
 	Depuis le passage du code à l'anglais ([#359](https://github.com/dascritch/machincast/issues/359)), le code emploie ces mêmes valeurs : aucune correspondance n'est faite, à la lecture comme à l'écriture des préférences, des suggestions et de la pré-écoute (`preferences.write_audio`).
 
@@ -1923,3 +1927,28 @@ Aucun point en attente.
 - **Indexation rapide** : par défaut, l'indexeur ne décode que les nouveaux fichiers, à l'état `preview`, et ceux dont la date ou la taille a changé ([#10](https://github.com/dascritch/machincast/issues/10)), et repère les fichiers disparus ; l'audit complet (`--full-audit`) décode ce qui n'a pas encore été audité à ce seuil de silence, ou a changé depuis, et `--force` tout ([#69](https://github.com/dascritch/machincast/issues/69), [#206](https://github.com/dascritch/machincast/issues/206), voir [§ 6.0](#60-modes-dindexation)).
 - **Détection de silence** : mesurée par l'audit complet seulement, au seuil `silences.threshold` (-40 dB par défaut) ; la fin détectée se compte depuis la fin du fichier ; appliquée à un sonore qui l'active ou fourni par une banque qui l'active, jamais par défaut ; un sonore sans silence détecté est joué en entier ([#146](https://github.com/dascritch/machincast/issues/146), voir [§ 5.1](#51-lecture-audio) et [§ 6.1](#61-vérification-des-sonores-existants-hors-streams)).
 - **Environnement virtuel** : isolé des paquets système, toutes les dépendances Python passent par pip ([#51](https://github.com/dascritch/machincast/issues/51), voir [§ 10](#10-installation-et-déploiement)).
+
+## 13. Intranet et API
+
+MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à la demande ([#524](https://github.com/dascritch/machincast/issues/524)), découpé en tickets enfants.
+
+### 13.1 Serveur HTTPS
+
+`Machin_intranet` ([#538](https://github.com/dascritch/machincast/issues/538), `machincast.intranet`) sert une application ASGI, sans framework (`machincast.intranet.app`), par Hypercorn, dépendance d'exécution.
+
+- **Éteint par défaut**, pour d'évidentes raisons de sécurité : tant que `intranet.enabled` n'est pas vrai, il refuse de démarrer, code 4 (`DISABLED_CODE`), qui n'est pas celui d'une configuration invalide, 2.
+- **HTTPS seulement**, même joint par une simple adresse IP de sous-réseau : Hypercorn n'a aucune adresse en clair, et une connexion en clair n'obtient aucune réponse HTTP.
+	Chaque réponse porte `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, une `Content-Security-Policy` qui n'accepte que l'intranet lui-même, et `Cache-Control: no-store` ; aucun en-tête `Server`.
+	Un autre chemin donne 404, une autre méthode que GET et HEAD 405.
+- **Certificat** (`machincast.intranet.certificate`) : un certificat donné, `intranet.certificate` et `intranet.key`, n'est jamais touché.
+	Sans lui, Machin intranet en génère un auto-signé, par la commande `openssl` du système : clé EC P-256, lisible du seul compte, valable 825 jours, certificat de serveur (`CA:FALSE`, `serverAuth`), au nom du poste, de son nom de domaine interne s'il en a un, de `localhost`, et de chacune de ses adresses IP (`machincast.intranet.network`, par `ip -json address`, ou devinées sans iproute2).
+	Il le refait quand il ne couvre plus une adresse du poste, après un changement d'adresse en DHCP, ou à moins de 30 jours de son expiration.
+	Il le garde dans son répertoire d'état : `STATE_DIRECTORY` sous systemd, `/var/lib/machincast-intranet`, ou `~/.local/state/machincast/intranet`.
+	Son journal donne, au démarrage, l'adresse à donner et l'empreinte SHA-256 du certificat, à comparer à celle qu'affiche le navigateur à la première connexion.
+- **Adresse à donner** (`network.to_give`) : celle d'écoute ; sur toutes les adresses, `0.0.0.0`, le nom de domaine interne du poste, s'il en a un, puis chacune de ses adresses IP, `https://10.0.0.12:8443/` par exemple.
+- **Service** : `install.sh --service` installe et active l'unité `machincast-intranet.service` (`installation.intranet_unit`), sous le compte de MachinCast, qui endosse le rôle `machincast_intranet` ; elle démarre avec le poste et s'arrête aussitôt tant que l'intranet est éteint, sans que systemd la relance (`SuccessExitStatus` et `RestartPreventExitStatus` 4).
+	La règle polkit permet à ce compte de la démarrer, l'arrêter et la redémarrer, avec le mot de passe d'un administrateur, comme le service de diffusion ; `install.sh --remove-service` la retire.
+	Sans le service, `Machin intranet` se lance à la main.
+- **Paramètres du service**, page « Intranet » (`preferences.ui`, `PreferencesWindow._show_intranet`) : « Allumer le serveur intranet, en HTTPS seulement », le port et le délai de validation, grisés serveur éteint, et l'adresse à donner aux autres postes.
+	« OK » écrit `enabled`, `port` et `validation` (`preferences._write_intranet` ; une section absente ne reçoit pas les valeurs par défaut) ; l'adresse d'écoute et le certificat restent ceux du fichier.
+	Un réglage changé redémarre l'unité, ou l'arrête, l'intranet éteint (`machincast.interface.intranet_switch`) ; la barre d'état dit l'adresse, ou la réponse de systemctl, ou, sans le service, qu'il faut lancer `Machin intranet` à la main.

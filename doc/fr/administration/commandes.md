@@ -206,6 +206,16 @@ Un fil musical permanent n'a ni début ni fin : `Machin status event` donne l'he
 Machin status && echo "à l'antenne : $(Machin status event)"
 ```
 
+## Serveur intranet : Machin intranet
+
+`Machin intranet` ([#538](https://github.com/dascritch/machincast/issues/538)) sert l'intranet et son API aux autres postes du réseau, **en HTTPS seulement**. Il est **éteint par défaut** : tant que la section `[intranet]` de `machincast.toml` n'a pas `enabled = true`, il refuse de démarrer et le dit, code 4. Le plus simple est de l'allumer dans l'interface, **Fichier → Paramètres du service…**, page **Intranet**, qui donne aussi le port, le délai pour valider une connexion au pupitre, et l'adresse à donner aux autres postes.
+
+- **Avec le service de diffusion** (`./install.sh --service`), l'unité `machincast-intranet.service` démarre avec le poste ; la page **Intranet** la redémarre ou l'arrête, ce qui demande le mot de passe d'un administrateur. Son journal : `journalctl -u machincast-intranet`.
+- **Sans le service**, `Machin intranet` se lance à la main, dans un terminal, et s'arrête par <kbd>Ctrl</kbd>+<kbd>C</kbd>.
+- **Certificat** : sans certificat donné (`intranet.certificate` et `intranet.key`, par exemple ceux de l'autorité de certification de la radio), Machin intranet en génère un auto-signé, au nom du poste et de chacune de ses adresses IP, et le refait quand une adresse change. Le navigateur d'un autre poste avertit à la première connexion : l'empreinte du certificat, que le journal donne au démarrage (`intranet sur https://10.0.0.12:8443/, certificat 9B:21:…`), doit être celle qu'il affiche.
+- **Adresse** : sans nom de domaine interne, même en DHCP, l'intranet se joint par l'adresse IP du poste sur le réseau local, comme `https://10.0.0.12:8443/`. Une adresse fixe, réservée dans le DHCP, évite d'avoir à la redonner.
+- Le pare-feu du poste, s'il y en a un, doit laisser entrer le port choisi (8443 par défaut) depuis le réseau local seulement : l'intranet n'a pas à être joignable d'Internet.
+
 ## Bannière : Machin banner
 
 `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) affiche le logo de MachinCast, son losange en orange. À sa droite : le numéro de version, puis, d'après [`Machin status summary`](#état-de-la-station--machin-status), la radio et le serveur (`Radio FMR · service`), `Machin player : en marche` ou `Machin player : arrêté` et, quand il diffuse, `En cours : …` et `Suivant : …`. Sans le venv de MachinCast, seule la version est à droite, et l'état du service de diffusion, s'il est installé, s'écrit sous le logo. Il ne prend aucun argument (code 2 sinon) et rend le code 0.

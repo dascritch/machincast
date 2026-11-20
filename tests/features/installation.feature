@@ -237,6 +237,32 @@ Fonctionnalité: Vérifications de l'installation
 		Et j'enregistre sa sortie en « machincast-wireplumber.service »
 		Alors « systemd-analyze verify » accepte ensemble « machincast.service », « machincast-pipewire.service » et « machincast-wireplumber.service »
 
+	Scénario: Le serveur intranet démarre avec le poste, et s'arrête aussitôt tant qu'il est éteint
+		https://github.com/dascritch/machincast/issues/538 : sous le compte de MachinCast, qui endosse le rôle
+		machincast_intranet ; Machin intranet éteint s'arrête, code 4, sans que systemd le relance.
+
+		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité de la commande a, dans la section « Service », entre autres :
+			| clé                      | valeur              |
+			| Type                     | exec                |
+			| StateDirectory           | machincast-intranet |
+			| StateDirectoryMode       | 0700                |
+			| SuccessExitStatus        | 4                   |
+			| RestartPreventExitStatus | 4                   |
+			| Restart                  | on-failure          |
+			| NoNewPrivileges          | yes                 |
+		Et l'unité a, dans la section « Install » :
+			| clé      | valeur            |
+			| WantedBy | multi-user.target |
+		Et install.sh installe l'unité du serveur intranet, l'active, et la retire avec le service
+
+	Scénario: systemd accepte l'unité du serveur intranet
+		Étant donné l'outil « systemd-analyze » du poste
+		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
+		Et j'enregistre sa sortie en « machincast-intranet.service »
+		Alors « systemd-analyze verify » accepte « machincast-intranet.service »
+
 	Scénario: Les répertoires du service sont recréés à chaque démarrage du poste, au groupe du service
 		Quand je lance « python -m machincast.installation tmpfiles » avec la configuration de test
 		Alors la commande se termine sans erreur
@@ -284,7 +310,7 @@ Fonctionnalité: Vérifications de l'installation
 		Et sa sortie annonce « monitor.v4l2 = disabled »
 		Et sa sortie annonce « monitor.libcamera = disabled »
 
-	Plan du scénario: La règle polkit n'autorise que démarrer, arrêter et redémarrer le service, par un administrateur, au compte de MachinCast
+	Plan du scénario: La règle polkit n'autorise que démarrer, arrêter et redémarrer le service et le serveur intranet, par un administrateur, au compte de MachinCast
 		Quand je lance « python -m machincast.installation rule » avec la configuration de test
 		Alors la règle polkit répond <reponse> à l'action « <action> » sur « <unite> », verbe « <verbe> », pour <qui>
 
@@ -297,6 +323,10 @@ Fonctionnalité: Vérifications de l'installation
 			| org.freedesktop.systemd1.manage-units  | ssh.service        | stop    | le compte            | rien            |
 			| org.freedesktop.systemd1.manage-units  | machincast.service | stop    | un autre compte      | rien            |
 			| org.freedesktop.systemd1.manage-unit-files | machincast.service | stop | le compte          | rien            |
+			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | start   | le compte | « auth_admin » |
+			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | stop    | le compte | « auth_admin » |
+			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | restart | le compte | « auth_admin » |
+			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | enable  | le compte | rien           |
 
 	Plan du scénario: La règle polkit demande le mot de passe d'un administrateur pour éteindre, redémarrer ou mettre en veille le poste, à tout compte, écran de connexion compris
 		https://github.com/dascritch/machincast/issues/448 : sur un poste d'antenne, une extinction, un redémarrage ou une

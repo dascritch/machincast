@@ -47,7 +47,7 @@ from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.clock import FixedClock
-from machincast.configuration import RETENTION, AudioOutput, Crossfades, DeadAirSettings, Interface, load
+from machincast.configuration import RETENTION, AudioOutput, Crossfades, DeadAirSettings, Interface, Intranet, load
 from machincast.database import Role, open_connection
 from machincast.interface import dialogs, indexer, version
 from machincast.interface.card import DELETE, REPORTED, Card
@@ -176,6 +176,7 @@ class Context:
 	shown_dailies: list[time] = field(default_factory=list)
 	adjusted_backups: Path | None = None
 	adjusted_notes: tuple[Path | None, str | None] | None = None
+	adjusted_intranet: Intranet | None = None  # https://github.com/dascritch/machincast/issues/538
 	"""Le document et le lien de l'équipe que règlent les préférences (https://github.com/dascritch/machincast/issues/451)."""
 	"""Le répertoire des sauvegardes que règlent les préférences (https://github.com/dascritch/machincast/issues/347)."""
 	shown_backups: list[Path] = field(default_factory=list)
@@ -407,6 +408,7 @@ def _replace_choices(interface: Context) -> None:
 			and (interface.adjusted_table_rows is None)
 			and (interface.adjusted_clipping is None)
 			and (interface.adjusted_icon is None)
+			and (interface.adjusted_intranet is None)
 		):
 			return None
 		on_air, preview, output = (interface.audio_settings) or ((shown_list.on_air, shown_list.preview, None))
@@ -437,6 +439,7 @@ def _replace_choices(interface: Context) -> None:
 			(interface.adjusted_daily) or (shown_list.daily),
 			(interface.adjusted_backups) or (shown_list.backup_directory),
 			*((interface.adjusted_notes) or ((shown_list.notes, shown_list.team_link))),
+			(interface.adjusted_intranet) or (shown_list.intranet),
 		)
 
 	monkeypatch.setattr(dialogs, "set_preferences", preferences)
