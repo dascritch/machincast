@@ -9,6 +9,8 @@
 - [Purge de la base : Machin purge](#purge-de-la-base--machin-purge)
 - [Tâches régulières : Machin tasks](#tâches-régulières--machin-tasks)
 - [Lecture par le service de diffusion : Machin grant-read](#lecture-par-le-service-de-diffusion--machin-grant-read)
+- [État de la station : Machin status](#état-de-la-station--machin-status)
+- [Bannière : Machin banner](#bannière--machin-banner)
 - [Suivre le journal : Machin logs](#suivre-le-journal--machin-logs)
 - [Messages et codes de sortie](#messages-et-codes-de-sortie)
 - [Démarrages et fins dans le log](#démarrages-et-fins-dans-le-log)
@@ -34,6 +36,8 @@ Machin --help                         # aide complète
 | `Machin restore-db FICHIER` | [Réimportation d'une sauvegarde](#export-et-réimportation-de-la-base--machin-backup-db-machin-restore-db) dans une base neuve, vide. |
 | `Machin purge` | [Purge de la base de production](#purge-de-la-base--machin-purge) : efface ce qui dépasse la durée de péremption, jamais un fichier. |
 | `Machin grant-read` | [Lecture des sonores par le service de diffusion](#lecture-par-le-service-de-diffusion--machin-grant-read), qui tourne sous son propre compte. |
+| `Machin status` | [État de la station](#état-de-la-station--machin-status) en une ligne, pour un script : Machin player, serveur, radio, événement actuel et suivant. |
+| `Machin banner` | [Bannière de MachinCast](#bannière--machin-banner), avec à sa droite la version et l'état de la station. |
 | `Machin logs` | Suivi en direct du journal du service de diffusion. |
 | `Machin tasks` | [Tâches régulières](#tâches-régulières--machin-tasks) : ce qui est dû, lancé tous les quarts d'heure par le minuteur du service. |
 
@@ -182,6 +186,31 @@ un administrateur peut lancer : sudo setfacl --modify=u:machincast:x /data/parta
 ```
 
 Code 0 quand le service lit tout ; 1 sinon, ou sans compte `machincast` : le service n'est pas installé, et `Machin player` lit avec le compte qui le lance. Depuis l'interface, **Maintenance → Faire lire les fichiers sonores au service de diffusion…** le lance dans un terminal, sur la base de l'interface ; l'ajout d'un répertoire à une banque, ou de fichiers, accepte toujours ce que le service lit déjà, refuse ce qu'il ne lit pas dans un répertoire personnel, vérifie que le service lit les autres, et propose sinon de les lui faire lire. Pendant la diffusion, un fichier que le service ne lit pas n'est pas joué : le log de la base le dit en alerte, `fichier illisible`, avec son chemin.
+
+## État de la station : Machin status
+
+`Machin status` ([#518](https://github.com/dascritch/machincast/issues/518)) répond par une ligne sur la sortie standard, pour un script, une barre d'état ou une supervision. Il ne fait que lire : la configuration, les programmes en cours et la grille de la base de production.
+
+| Commande | Réponse | Code |
+| --- | --- | --- |
+| `Machin status`, ou `Machin status player` | `running` quand Machin player diffuse, sous n'importe quel compte, service de diffusion ou lancement à la main ; `stopped` sinon. Une simulation n'est pas une diffusion. | 0 s'il diffuse, 1 sinon |
+| `Machin status server` | `service` quand le service de diffusion est installé, `test` sinon. | 0 |
+| `Machin status radio` | Le nom de la radio, `metadata.public_text` de la configuration. | 0 |
+| `Machin status event`, ou `Machin status event --now` | L'événement actuel, `09:00 → 11:00 : Matinale` : ses heures, à celles du poste, et son nom privé. | 0 ; 1 sans événement, sans rien écrire ; 3 si la base est injoignable |
+| `Machin status event --next` | L'événement suivant, dans le même format. | De même |
+| `Machin status summary` | Toutes ces réponses, une ligne `clé`, tabulation, `valeur` chacune : `server`, `radio`, `player` et, quand Machin player diffuse, `now` et `next`. C'est ce que lit [`Machin banner`](#bannière--machin-banner). Une base injoignable n'enlève que `now` et `next`. | 0 |
+
+Un fil musical permanent n'a ni début ni fin : `Machin status event` donne l'heure où il a pris l'antenne, à la fin de l'événement d'avant, et celle où il sera interrompu, au début du suivant, par exemple `10:00 → 12:00 : Fil musical`. Ces heures se cherchent dans la semaine d'avant et la semaine d'après ; `--:--` dit celle qui n'y est pas. Les événements sont ceux de la grille : une session sautée l'est aussi ici, mais un événement avancé ou terminé à la main depuis l'antenne, que seul Machin player connaît, ne l'est pas. Un appel incorrect, comme `Machin status event --soon`, rend le code 2.
+
+```bash
+Machin status && echo "à l'antenne : $(Machin status event)"
+```
+
+## Bannière : Machin banner
+
+`Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) affiche le logo de MachinCast, son losange en orange. À sa droite : le numéro de version, puis, d'après [`Machin status summary`](#état-de-la-station--machin-status), la radio et le serveur (`Radio FMR · service`), `Machin player : en marche` ou `Machin player : arrêté` et, quand il diffuse, `En cours : …` et `Suivant : …`. Sans le venv de MachinCast, seule la version est à droite, et l'état du service de diffusion, s'il est installé, s'écrit sous le logo. Il ne prend aucun argument (code 2 sinon) et rend le code 0.
+
+`./install.sh` commence par elle. **Avec le service de diffusion** (`./install.sh --service`), `/etc/profile.d/machincast.sh` la lance à chaque nouveau shell interactif, sur un terminal, pour tous les comptes du poste ; `./install.sh --remove-service` le retire ([Service de diffusion](../../../INSTALL.fr.md#service-de-diffusion)). Les couleurs ne viennent que sur un terminal, jamais avec la variable `NO_COLOR`.
 
 ## Suivre le journal : Machin logs
 
