@@ -71,7 +71,7 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Et j'ouvre l'onglet « Banques »
 		Alors la liste montre :
 			| ⚠️ | Nom     | Nom public  | Mode         | Ne pas répéter | Répertoire           |
-			|    | Jingles | Radio Thune | séquentielle | oui            | /srv/jingles/automne |
+			|    | Jingles | Radio Thune | ordre descendant du tableau des sonores | oui            | /srv/jingles/automne |
 			|    | Tubes   |             | aléatoire    | non            |                      |
 		Et le compte de la liste est « 2 banques »
 

@@ -7,7 +7,7 @@ The numbers refer to the picture; **Help → Contextual help**, or <kbd>F1</kbd>
 
 1. **Internal name** (`internal_name`) : required, and unique to the bank.
 2. **Public name** (`public_name`) : optional; shown on the public page instead of the hidden artist and title.
-3. **Mode** (`mode`) : the order in which the bank provides its sounds: that of the list, that of the file names, or at random.
+3. **Mode** (`mode`) : the order in which the bank provides its sounds: going down or up the sounds table, in the order of the file names, or at random.
 4. **Artist and title** (`hiding`) : hidden by the public name of the bank, shown, or left to the choice of the sound.
 5. **Do not repeat** (`no_repeat`) : the bank never plays twice in a row.
 6. **Silence detection** (`detection_silences`) : the sounds played by the bank are played without their silences at the start and at the end.

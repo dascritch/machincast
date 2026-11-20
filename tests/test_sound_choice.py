@@ -23,6 +23,7 @@ ITEM = re.compile(r"« ([^»]+) »")
 MODES = {
 	"séquentielle": "sequential",
 	"aléatoire": "random",
+	"dans l'ordre ascendant du tableau": "sequential_ascending",
 	"A→Z du nom de fichier": "filename_ascending",
 	"Z→A du nom de fichier": "filename_descending",
 }
@@ -132,7 +133,8 @@ def clock(context: Context, text: str) -> None:
 
 @given(
 	parsers.re(
-		r"une banque (?P<mode>séquentielle|aléatoire|A→Z du nom de fichier|Z→A du nom de fichier) « (?P<name>[^»]+) »"
+		r"une banque (?P<mode>séquentielle|aléatoire|dans l'ordre ascendant du tableau|A→Z du nom de fichier|Z→A du nom de fichier)"
+		r" « (?P<name>[^»]+) »"
 		r" contenant (?P<files>les fichiers )?(?P<list_>.+)"
 	)
 )

@@ -194,7 +194,7 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 		Alors le fichier « banques.csv » contient, en UTF-8 avec BOM :
 			"""
 			⚠️;Nom;Nom public;Mode;Ne pas répéter;Répertoire
-			⚠️;Nuit;;séquentielle;non;
+			⚠️;Nuit;;ordre descendant du tableau des sonores;non;
 			"""
 
 	Scénario: Le clic droit sur une ligne propose ses entrées, puis « Exporter ce tableau… »

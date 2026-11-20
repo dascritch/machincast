@@ -7,7 +7,7 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 
 1. **Nom interne** (`internal_name`) : obligatoire, et propre à la banque.
 2. **Nom public** (`public_name`) : facultatif ; affiché sur la page publique à la place de l'artiste et du titre masqués.
-3. **Mode** (`mode`) : l'ordre dans lequel la banque fournit ses sonores : celui de la liste, celui du nom des fichiers, ou au hasard.
+3. **Mode** (`mode`) : l'ordre dans lequel la banque fournit ses sonores : en descendant ou en remontant le tableau des sonores, dans l'ordre du nom des fichiers, ou au hasard.
 4. **Artiste et titre** (`hiding`) : masqués par le nom public de la banque, affichés, ou laissés au choix du sonore.
 5. **Ne pas répéter** (`no_repeat`) : la banque ne passe jamais deux fois de suite.
 6. **Détection de silence** (`detection_silences`) : les sonores joués par la banque le sont sans leurs silences du début et de la fin.

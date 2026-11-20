@@ -44,12 +44,12 @@ Fonctionnalité: Fiche d'un événement
 			| Nom public       | Le réveil                                |
 			| Priorité         | émission                                 |
 			| Artiste et titre | selon la séquence, la banque ou le sonore |
-			| Début            | 19/10/2026 07:00                         |
-			| Fin              | 19/10/2026 09:00                         |
+			| Début            | 07:00                                    |
+			| Fin              | 09:00                                    |
 			| Jours            | lundi, mardi, mercredi, jeudi, vendredi  |
 		Et la fiche de l'événement montre les éléments :
 			| Genre    | Élément            | Détail              |
-			| banque   | Habillage          | séquentielle        |
+			| banque   | Habillage          | ordre descendant du tableau des sonores |
 			| séquence | Passage pub        | 3 éléments          |
 			| sonore   | Les Gaufres – Spot | /srv/pubs/spot.flac |
 		Et la fiche de l'événement n'avertit de rien
@@ -725,6 +725,25 @@ Fonctionnalité: Fiche d'un événement
 		Alors la fiche de l'événement montre les éléments aucun
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
 
+	Scénario: Un jour de récurrence coché, « Début » et « Fin » ne montrent que l'heure
+		https://github.com/dascritch/machincast/issues/535 : la date ne compte que pour l'occurrence unique ; celle d'un
+		événement qui revient reste en base, telle quelle.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Alors « Début » et « Fin » de la fiche de l'événement montrent « 07:00 » et « 09:00 »
+		Quand je saisis dans la fiche de l'événement :
+			| champ | valeur |
+			| Jours |        |
+		Alors « Début » et « Fin » de la fiche de l'événement montrent « 19/10/2026 07:00 » et « 19/10/2026 09:00 »
+		Quand je coche « samedi » dans la fiche de l'événement
+		Alors « Début » et « Fin » de la fiche de l'événement montrent « 07:00 » et « 09:00 »
+
+	Scénario: Une occurrence unique montre la date et l'heure de son début et de sa fin
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Alors « Début » et « Fin » de la fiche de l'événement montrent « 21/10/2026 09:00 » et « 21/10/2026 09:30 »
+
 	Plan du scénario: Toute modification rend « Enregistrer » et « Annuler » actifs
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
@@ -750,7 +769,7 @@ Fonctionnalité: Fiche d'un événement
 		Et j'ajoute les séquences « Générique », « Passage pub »
 		Alors la fiche de l'événement montre les éléments :
 			| Genre    | Élément     | Détail       |
-			| banque   | Habillage   | séquentielle |
+			| banque   | Habillage   | ordre descendant du tableau des sonores |
 			| séquence | Générique   | 1 élément    |
 			| séquence | Passage pub | 3 éléments   |
 

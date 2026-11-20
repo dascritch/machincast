@@ -29,7 +29,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre l'onglet « Banques »
 		Et j'ouvre la ligne « Jingles »
 		Alors l'onglet ouvert est « Banque : Jingles »
-		Et la fiche montre le nom interne « Jingles », le nom public « Radio Thune », le mode « séquentielle », le masquage « hérité du sonore » et « ne pas répéter » coché
+		Et la fiche montre le nom interne « Jingles », le nom public « Radio Thune », le mode « ordre descendant du tableau des sonores », le masquage « hérité du sonore » et « ne pas répéter » coché
 		Et la fiche montre les répertoires « /srv/jingles/hiver »
 		Et la fiche montre les sonores :
 			| Sonore                      | Durée | État  | Emplacement                   |
@@ -525,7 +525,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ajoute le répertoire « /srv/jingles/automne »
 		Et je descends le sonore « Café à minuit »
 		Et j'annule les modifications de la fiche
-		Alors la fiche montre le nom interne « Jingles », le nom public « Radio Thune », le mode « séquentielle », le masquage « hérité du sonore » et « ne pas répéter » coché
+		Alors la fiche montre le nom interne « Jingles », le nom public « Radio Thune », le mode « ordre descendant du tableau des sonores », le masquage « hérité du sonore » et « ne pas répéter » coché
 		Et la fiche montre les répertoires « /srv/jingles/hiver »
 		Et la fiche montre les sonores « Les Gaufres – Café à minuit », « Aube – Matin clair »
 		Quand je ferme l'onglet « Banque : Jingles »
@@ -600,7 +600,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre l'onglet « Banques »
 		Et je clique sur « Nouvelle banque »
 		Alors l'onglet ouvert est « Nouvelle banque »
-		Et la fiche montre le nom interne «  », le nom public «  », le mode « séquentielle », le masquage « hérité du sonore » et « ne pas répéter » décoché
+		Et la fiche montre le nom interne «  », le nom public «  », le mode « ordre descendant du tableau des sonores », le masquage « hérité du sonore » et « ne pas répéter » décoché
 		Quand je saisis le nom interne « Habillage »
 		Et j'ajoute le répertoire « /srv/habillage/ »
 		Et j'enregistre la fiche
@@ -610,8 +610,8 @@ Fonctionnalité: Fiche d'une banque
 		Quand j'ouvre l'onglet « Banques »
 		Alors la liste montre :
 			| ⚠️ | Nom       | Nom public  | Mode         | Ne pas répéter | Répertoire         |
-			| ⚠️ | Habillage |             | séquentielle | non            | /srv/habillage     |
-			|    | Jingles   | Radio Thune | séquentielle | oui            | /srv/jingles/hiver |
+			| ⚠️ | Habillage |             | ordre descendant du tableau des sonores | non            | /srv/habillage     |
+			|    | Jingles   | Radio Thune | ordre descendant du tableau des sonores | oui            | /srv/jingles/hiver |
 		Quand j'ouvre la ligne « Habillage »
 		Alors l'onglet ouvert est « Banque : Habillage »
 		Et la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Banque : Habillage », « Incidents »
@@ -721,7 +721,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Jingles »
 		Alors aucune ligne de sonore de la fiche n'accepte qu'on y dépose une autre
 
-	Plan du scénario: Le glisser-déposer et les boutons pour réordonner ne servent qu'en mode séquentiel
+	Plan du scénario: Le glisser-déposer et les boutons pour réordonner ne servent que dans l'ordre du tableau
 		Étant donné la banque « Tubes », <mode depart>, sans nom public, avec « Spot », « Jingle », « Café à minuit »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Tubes »
@@ -733,26 +733,29 @@ Fonctionnalité: Fiche d'une banque
 		Et les répertoires et les sonores de la fiche acceptent les dépôts
 
 		Exemples:
-			| mode depart  | verdict depart | mode                  | verdict        |
-			| séquentielle | peuvent        | aléatoire             | ne peuvent pas |
-			| aléatoire    | ne peuvent pas | séquentielle          | peuvent        |
-			| séquentielle | peuvent        | A→Z du nom de fichier | ne peuvent pas |
-			| séquentielle | peuvent        | Z→A du nom de fichier | ne peuvent pas |
+			| mode depart  | verdict depart | mode                                   | verdict        |
+			| séquentielle | peuvent        | aléatoire                              | ne peuvent pas |
+			| aléatoire    | ne peuvent pas | Ordre descendant du tableau des sonores | peuvent        |
+			| aléatoire    | ne peuvent pas | Ordre ascendant du tableau des sonores  | peuvent        |
+			| séquentielle | peuvent        | A→Z du nom de fichier                  | ne peuvent pas |
+			| séquentielle | peuvent        | Z→A du nom de fichier                  | ne peuvent pas |
 
-	Plan du scénario: Le mode d'une banque peut suivre l'ordre du nom de fichier de ses sonores
-		https://github.com/dascritch/machincast/issues/454 : la rotation se prépare en nommant les fichiers.
+	Plan du scénario: Le mode d'une banque peut remonter le tableau de ses sonores, ou suivre l'ordre de leur nom de fichier
+		https://github.com/dascritch/machincast/issues/454 : la rotation se prépare en nommant les fichiers ;
+		https://github.com/dascritch/machincast/issues/535 : ou en remontant le tableau, du dernier sonore au premier.
 
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
-		Alors le choix du mode propose « Séquentielle », « Aléatoire », « A→Z du nom de fichier », « Z→A du nom de fichier »
+		Alors le choix du mode propose « Ordre descendant du tableau des sonores », « Ordre ascendant du tableau des sonores », « Aléatoire », « A→Z du nom de fichier », « Z→A du nom de fichier »
 		Quand je choisis le mode « <mode> »
 		Et j'enregistre la fiche, puis je la rouvre
 		Alors la banque « Jingles » est en base : nom public « Radio Thune », <mode>, masquage « hérité du sonore », avec « ne pas répéter »
 
 		Exemples:
-			| mode                  |
-			| A→Z du nom de fichier |
-			| Z→A du nom de fichier |
+			| mode                                   |
+			| Ordre ascendant du tableau des sonores |
+			| A→Z du nom de fichier                  |
+			| Z→A du nom de fichier                  |
 
 	Scénario: Des sonores déjà en base s'ajoutent, y compris hors des répertoires de la banque
 		Quand la fenêtre de l'interface s'ouvre
@@ -1041,7 +1044,7 @@ Fonctionnalité: Fiche d'une banque
 		Et j'ouvre la fiche de la banque « Habillages »
 		Et je clique sur le titre « Sonore » des sonores de la fiche
 		Alors la fiche montre les sonores « Jingle », « Les Gaufres – Café à minuit », « Spot »
-		Quand je choisis le mode « séquentielle »
+		Quand je choisis le mode « Ordre descendant du tableau des sonores »
 		Alors la fiche montre les sonores « Spot », « Les Gaufres – Café à minuit », « Jingle »
 		Quand je clique sur le titre « Sonore » des sonores de la fiche
 		Alors la fiche montre les sonores « Spot », « Les Gaufres – Café à minuit », « Jingle »

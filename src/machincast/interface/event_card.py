@@ -73,6 +73,9 @@ HIDINGS: tuple[tuple[bool | None, str], ...] = (
 """Valeurs de events.hide_metadata, dans l'ordre du choix de la fiche."""
 REPETITION = _("A sound, a bank or a sequence may come back several times in an event.")
 """Remarque des choix d'éléments."""
+DATE_AND_HOUR = "dd/MM/yyyy HH:mm"
+HOUR_ONLY = "HH:mm"
+"""Le format de « Début » et « Fin » d'un événement qui revient (https://github.com/dascritch/machincast/issues/535)."""
 END_OF_LIST: tuple[tuple[str, str], ...] = (
 	("replay", _("Replay the list")),
 	("background_programming", _("Switch to the background programming")),
@@ -170,6 +173,7 @@ class EventCard(Card):
 			field.dateTimeChanged.connect(self._modify)
 		for day in self.days:
 			day.toggled.connect(self._modify)
+			day.toggled.connect(self._hour_only)
 		self.load()
 
 	def title(self) -> str:
@@ -372,6 +376,16 @@ class EventCard(Card):
 		ui.end.setEnabled(ui.has_end.isChecked())
 		for day in self.days:
 			day.setEnabled(with_start)
+
+	def _hour_only(self) -> None:
+		"""Un jour de récurrence coché : « Début » et « Fin » ne montrent que l'heure, celle de chaque occurrence
+		(https://github.com/dascritch/machincast/issues/535) ; sans jour, la date et l'heure de l'occurrence unique."""
+		shown = DATE_AND_HOUR
+		for day in self.days:
+			if day.isChecked():
+				shown = HOUR_ONLY
+		for field in (self.ui.start, self.ui.end):
+			field.setDisplayFormat(shown)
 
 	# ─── Fin de liste et secours (https://github.com/dascritch/machincast/issues/350) ───
 
