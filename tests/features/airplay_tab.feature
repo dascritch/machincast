@@ -73,7 +73,7 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et le passage de « Jingle » commence dans l'airplay à 20:00:30
-		Et je choisis « Rafraîchir les onglets » dans le menu « Affichage »
+		Et j'appuie sur « F5 »
 		Alors la table de l'onglet Airplay a 4 lignes
 
 	Scénario: L'onglet Airplay se relit quand l'onglet Antenne voit un nouveau sonore

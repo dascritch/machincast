@@ -21,24 +21,24 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 
 	Scénario: Le menu « Maintenance » lance l'indexation rapide ou l'audit complet
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… », « Cartes son toujours éveillées »
+		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… »
 
 	Plan du scénario: Machin indexer est lancé dans son propre processus, avec sa fenêtre
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « <mode> » dans le menu « Maintenance »
 		Alors Machin indexer a été lancé avec <options>
 		Et la barre d'état annonce « <lancement> »
-		Et le menu « Maintenance » propose « <autre> », « Statut des indexations… », « Exporter la base… », « Cartes son toujours éveillées »
+		Et le menu « Maintenance » propose « <autre> », « Statut des indexations… », « Exporter la base… »
 		Quand l'interface a regardé plusieurs fois si le Machin indexer factice tourne
-		Alors le menu « Maintenance » propose « <autre> », « Statut des indexations… », « Exporter la base… », « Cartes son toujours éveillées »
+		Alors le menu « Maintenance » propose « <autre> », « Statut des indexations… », « Exporter la base… »
 		Quand le Machin indexer factice se termine
-		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… », « Cartes son toujours éveillées »
+		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… »
 		Et la barre d'état annonce « <fin> »
 
 		Exemples:
 			| mode              | autre             | options                         | lancement                                          | fin                                                                                    |
-			| Indexation rapide | Audit complet     | « --window »                   | Indexation rapide lancée, dans sa propre fenêtre.  | Indexation rapide terminée ; « Rafraîchir les onglets » (F5) montre ses changements.   |
-			| Audit complet     | Indexation rapide | « --window », « --full-audit » | Audit complet lancé, dans sa propre fenêtre.    | Audit complet terminé ; « Rafraîchir les onglets » (F5) montre ses changements.        |
+			| Indexation rapide | Audit complet     | « --window »                   | Indexation rapide lancée, dans sa propre fenêtre.  | Indexation rapide terminée ; F5 rafraîchit les onglets et montre ses changements.   |
+			| Audit complet     | Indexation rapide | « --window », « --full-audit » | Audit complet lancé, dans sa propre fenêtre.    | Audit complet terminé ; F5 rafraîchit les onglets et montre ses changements.        |
 
 	Scénario: Un audit complet se lance pendant une indexation rapide, et la maintenance de la base attend les deux
 		Quand la fenêtre de l'interface s'ouvre
@@ -46,9 +46,9 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 		Et je choisis « Audit complet » dans le menu « Maintenance »
 		Alors Machin indexer a été lancé avec « --window », « --full-audit »
 		Et 2 Machin indexer factices tournent
-		Et le menu « Maintenance » ne propose plus que « Statut des indexations… », « Exporter la base… », « Cartes son toujours éveillées », qui suit les deux indexations
+		Et le menu « Maintenance » ne propose plus que « Statut des indexations… », « Exporter la base… », qui suit les deux indexations
 		Quand le Machin indexer factice se termine
-		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… », « Cartes son toujours éveillées »
+		Alors le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… »
 
 	Scénario: Fermer l'interface n'attend pas l'indexation, et ne l'arrête pas
 		Quand la fenêtre de l'interface s'ouvre
@@ -62,7 +62,7 @@ Fonctionnalité: Lancer l'indexation depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Indexation rapide » dans le menu « Maintenance »
 		Alors la barre d'état annonce « Indexation impossible : Machin indexer n'a pas pu être lancé. »
-		Et le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… », « Cartes son toujours éveillées »
+		Et le menu « Maintenance » propose « Indexation rapide », « Audit complet », « Statut des indexations… », « Maintenance de la base de données… », « Exporter la base… »
 
 	Plan du scénario: Machin indexer reçoit la configuration de l'interface
 		Alors la commande d'indexation, pour la configuration <configuration>, est « <commande> »

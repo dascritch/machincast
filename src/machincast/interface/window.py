@@ -53,7 +53,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget
 
 from machincast import crash, shortcut
@@ -84,7 +84,6 @@ from machincast.interface import (
 	installation_notes,
 	interruption,
 	key_hints,
-	power_save_switch,
 	preferences,
 	service_access,
 	suggestions,
@@ -110,7 +109,6 @@ from machincast.interface.feed_card import FeedCard
 from machincast.interface.incidents import IncidentScreen
 from machincast.interface.indexer import FINISHED, LAUNCHED, TITLES
 from machincast.interface.lists import BANKS, EVENTS, FEEDS, SEQUENCES, SOUNDS, List, Source
-from machincast.interface.power_save_switch import PowerSaveSwitch
 from machincast.interface.preview import PreviewWindow
 from machincast.interface.queries import cards as cards_queries
 from machincast.interface.screen_saver import ScreenSaver
@@ -438,9 +436,8 @@ class MainWindow(QMainWindow):
 		# Les onglets fermés, à rouvrir (https://github.com/dascritch/machincast/issues/428).
 		self.tab_manager.add_reopening(display_menu)
 		# En bas du menu (https://github.com/dascritch/machincast/issues/322).
-		refresh = display_menu.addAction(_("Refresh the tabs"))
-		refresh.setShortcut(QKeySequence("F5"))
-		refresh.triggered.connect(self.refresh)
+		# F5 relit les onglets, sans entrée de menu (https://github.com/dascritch/machincast/issues/532).
+		QShortcut(QKeySequence("F5"), self).activated.connect(self.refresh)
 		# https://github.com/dascritch/machincast/issues/398 : relu à chaque ouverture.
 		self.tabs_menu = self.menuBar().addMenu(_("&Tabs"))
 		self.tabs_menu.aboutToShow.connect(lambda: self.tab_manager.list_tabs(self.tabs_menu))
@@ -505,9 +502,6 @@ class MainWindow(QMainWindow):
 		maintenance.aboutToShow.connect(self.broadcast.reread_grant_read)
 		self.broadcast.reread_grant_read()
 		# Les cartes son toujours éveillées, en essai (https://github.com/dascritch/machincast/issues/499).
-		self.power_save = PowerSaveSwitch(maintenance.addAction(power_save_switch.ENTRY), self)
-		self.power_save.announced.connect(self.ui.state_bar.showMessage)
-		maintenance.aboutToShow.connect(self.power_save.reread)
 		help_ = self.menuBar().addMenu(_("&Help"))
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
 		# Le document de l'équipe et son lien (https://github.com/dascritch/machincast/issues/451).
@@ -1066,7 +1060,7 @@ class MainWindow(QMainWindow):
 			del self.launched_indexings[full_audit]
 			self.indexings[full_audit].setEnabled(True)
 			self.ui.state_bar.showMessage(
-				_("{title} {finished}; “Refresh the tabs” (F5) shows its changes.").format(
+				_("{title} {finished}; F5 refreshes the tabs and shows its changes.").format(
 					title=TITLES[full_audit], finished=FINISHED[full_audit]
 				)
 			)

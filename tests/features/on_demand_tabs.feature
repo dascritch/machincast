@@ -36,7 +36,6 @@ Fonctionnalité: Onglets ouverts à la demande
 			| —                              |          |              |           |
 			| Rouvrir l'onglet fermé         | inactive | Ctrl+Shift+T |           |
 			| Onglets fermés récemment       | inactive |              |           |
-			| Rafraîchir les onglets         | active   | F5           |           |
 
 	Scénario: Les onglets demandés s'ouvrent à droite de l'onglet ouvert, et se ferment
 		https://github.com/dascritch/machincast/issues/405

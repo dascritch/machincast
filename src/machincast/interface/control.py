@@ -60,7 +60,7 @@ MACHIN = PROJECT_DIRECTORY / "bin" / "Machin"
 """Le wrapper que l'export lance ; les scénarios en donnent un imité."""
 TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\S+ ")
 """L'horodatage qui ouvre chaque ligne du journal d'un binaire (machincast.log)."""
-GRANT_READ = _("Let the broadcast service read the sound files…")
+GRANT_READ = _("Give the broadcast service the right to read the sound files…")
 """L'entrée du menu « Maintenance » (https://github.com/dascritch/machincast/issues/381)."""
 LAUNCHED_GRANT_READ = _("Machin grant-read launched in a terminal: the bank directories and the added files.")
 WITHOUT_TERMINAL_FOR_GRANT_READ = _("No terminal found (konsole, x-terminal-emulator): run Machin grant-read by hand.")

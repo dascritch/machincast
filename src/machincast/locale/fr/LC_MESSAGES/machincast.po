@@ -2198,8 +2198,9 @@ msgid "Database export impossible: {error}"
 msgstr "Export de la base impossible : {error}"
 
 #: machincast/interface/control.py
-msgid "Let the broadcast service read the sound files…"
-msgstr "Faire lire les fichiers sonores au service de diffusion…"
+msgid "Give the broadcast service the right to read the sound files…"
+msgstr ""
+"Donner les droits de lecture des fichiers sonores au service de diffusion…"
 
 #: machincast/interface/control.py
 msgid ""
@@ -5802,10 +5803,6 @@ msgid "Open the Airplay tab"
 msgstr "Ouvrir l'onglet Airplay"
 
 #: machincast/interface/window.py
-msgid "Refresh the tabs"
-msgstr "Rafraîchir les onglets"
-
-#: machincast/interface/window.py
 msgid "&Tabs"
 msgstr "&Onglets"
 
@@ -5969,9 +5966,9 @@ msgstr "indexation impossible à lancer : {list}"
 
 #: machincast/interface/window.py
 #, python-brace-format
-msgid "{title} {finished}; “Refresh the tabs” (F5) shows its changes."
+msgid "{title} {finished}; F5 refreshes the tabs and shows its changes."
 msgstr ""
-"{title} {finished} ; « Rafraîchir les onglets » (F5) montre ses changements."
+"{title} {finished} ; F5 rafraîchit les onglets et montre ses changements."
 
 #: machincast/interface/window.py
 #, python-brace-format

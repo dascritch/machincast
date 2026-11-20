@@ -1,8 +1,9 @@
-"""Maintenance → « Cartes son toujours éveillées » (https://github.com/dascritch/machincast/issues/499).
+"""« Cartes son toujours éveillées » (https://github.com/dascritch/machincast/issues/499), dans les paramètres du
+service, page « Audio » (https://github.com/dascritch/machincast/issues/532).
 
-Sans service de diffusion, en essai, l'entrée active ou désactive les réglages de machincast.power_save, lancé par
-pkexec, avec l'authentification d'un administrateur, que demande l'agent polkit de la session. Avec le service,
-install.sh --service les tient : l'entrée est inactive, et montre s'ils sont installés.
+Sans service de diffusion, en essai, la case active ou désactive les réglages de machincast.power_save, aussitôt, lancé
+par pkexec, avec l'authentification d'un administrateur, que demande l'agent polkit de la session. Avec le service,
+install.sh --service les tient : la case est inactive, et montre s'ils sont installés.
 """
 
 import shutil
@@ -10,7 +11,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QProcess, Signal
-from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QCheckBox
 
 from machincast import access, power_save
 from machincast.i18n import _
@@ -27,15 +28,15 @@ REFUSED_CODES = (126, 127)
 
 
 class PowerSaveSwitch(QObject):
-	"""L'entrée cochable du menu, et la commande pkexec qu'elle lance."""
+	"""La case des paramètres du service, et la commande pkexec qu'elle lance."""
 
 	announced = Signal(str)
 
-	def __init__(self, action: QAction, parent: QObject | None = None) -> None:
+	def __init__(self, action: QCheckBox, parent: QObject | None = None) -> None:
 		super().__init__(parent)
 		self.action = action
-		self.action.setCheckable(True)
-		self.action.triggered.connect(self.switch)
+		self.action.setText(ENTRY)
+		self.action.clicked.connect(self.switch)
 		self.process: QProcess | None = None
 		self._verb = ""
 		self.reread()
@@ -49,7 +50,7 @@ class PowerSaveSwitch(QObject):
 		if by_service:
 			self.action.setToolTip(BY_SERVICE)
 
-	def switch(self, checked: bool) -> None:  # noqa: FBT001 (signal triggered de Qt)
+	def switch(self, checked: bool) -> None:  # noqa: FBT001 (signal clicked de Qt)
 		"""Active ou désactive les réglages par pkexec, l'entrée inactive le temps de la commande ; sans pkexec, le
 		dit."""
 		self._verb = "disable"

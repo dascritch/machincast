@@ -133,7 +133,6 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Alors les entrées du menu « Affichage » portent les icônes :
 			| entrée                          | icône      |
-			| Rafraîchir les onglets          | aucune     |
 			| Rechercher…                     | aucune     |
 			| Ouvrir l'onglet Sonores         | sonore     |
 			| Ouvrir l'onglet Feeds   | feed       |

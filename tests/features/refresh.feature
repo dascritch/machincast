@@ -4,8 +4,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 	je veux rafraîchir les informations de tous les onglets,
 	afin d'avoir à jour ce que d'autres postes, l'indexation et la diffusion ont changé en base.
 
-	https://github.com/dascritch/machincast/issues/148, spec § 8.11. « Rafraîchir les onglets », dans le menu
-	« Affichage » ou par F5, relit l'onglet ouvert, l'airplay de l'onglet Antenne et toutes les fiches ouvertes ; les autres
+	https://github.com/dascritch/machincast/issues/148, spec § 8.11. F5 relit l'onglet ouvert, l'airplay de l'onglet Antenne et toutes les fiches ouvertes ; les autres
 	listes se relisent déjà à l'ouverture de leur onglet. Une fiche modifiée demande d'abord quoi faire de ses
 	modifications, comme à sa fermeture. Passer à un onglet le relit aussi, s'il n'est pas en cours d'édition
 	(https://github.com/dascritch/machincast/issues/241) : une fiche modifiée, ou pas encore enregistrée, reste telle
@@ -22,7 +21,8 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 			| Les Gaufres | Café à minuit | file | active | 180      | /musique/cafe.flac |
 		Et la banque « Jingles », séquentielle, sans nom public, avec « Café à minuit »
 
-	Scénario: « Rafraîchir les onglets » est en bas du menu « Affichage », avec le raccourci F5
+	Scénario: Le menu « Affichage » n'a plus « Rafraîchir les onglets » : F5 suffit
+		https://github.com/dascritch/machincast/issues/532
 		Quand la fenêtre de l'interface s'ouvre
 		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Tableau », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Affichage » a les entrées :
@@ -37,7 +37,6 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 			| —                              |          |              |           |
 			| Rouvrir l'onglet fermé         | inactive | Ctrl+Shift+T |           |
 			| Onglets fermés récemment       | inactive |              |           |
-			| Rafraîchir les onglets         | active   | F5           |           |
 
 	Scénario: La liste ouverte se relit
 		Quand la fenêtre de l'interface s'ouvre
@@ -52,7 +51,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Et la diffusion note dans l'airplay le passage de « Café à minuit » à 21:40
 		Alors l'airplay de l'onglet Antenne ne montre rien
-		Quand je choisis « Rafraîchir les onglets » dans le menu « Affichage »
+		Quand j'appuie sur « F5 »
 		Alors l'airplay de l'onglet Antenne montre « Café à minuit »
 
 	Scénario: Un double-clic dans l'airplay relu ouvre la fiche du sonore

@@ -182,7 +182,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et je choisis « Préférences de l'interface… » dans le menu « Fichier »
 		Alors Machin indexer a été lancé une fois, avec « --window », « --full-audit »
 		Et la barre d'état annonce « Préférences enregistrées dans …/machincast.toml ; Machin player prendra les crossfades par défaut à son prochain démarrage. Seuil de silence changé : audit complet lancé, dans sa propre fenêtre. »
-		Et le menu « Maintenance » propose « Indexation rapide », « Statut des indexations… », « Exporter la base… », « Cartes son toujours éveillées »
+		Et le menu « Maintenance » propose « Indexation rapide », « Statut des indexations… », « Exporter la base… »
 
 	Scénario: Garder le seuil de silence ne relance pas d'audit complet
 		Étant donné le fichier de configuration de l'interface, avec :
