@@ -115,8 +115,8 @@ def redirect(location: str, headers: list[tuple[str, str]] | None = None) -> Res
 
 
 class Intranet:
-	"""L'application ASGI : chaque route par sa méthode et son chemin ; HEAD comme GET ; 404 pour un autre chemin,
-	405 pour une autre méthode."""
+	"""L'application ASGI : chaque route par sa méthode et son chemin, ou un préfixe terminé par « * » ; HEAD comme
+	GET ; 404 pour un autre chemin, 405 pour une autre méthode."""
 
 	def __init__(self, routes: dict[tuple[str, str], Route] | None = None) -> None:
 		self.routes: dict[tuple[str, str], Route] = {}
@@ -133,12 +133,28 @@ class Intranet:
 		response = await self.respond(request)
 		await self._send(send, response, head=request.method == "HEAD")
 
+	def _key(self, route_path: str, path: str) -> bool:
+		"""Le chemin d'une route : exact, ou, terminé par « * », tout ce qui commence comme lui."""
+		if route_path.endswith("*"):
+			return path.startswith(route_path[:-1])
+		return route_path == path
+
 	def methods(self, path: str) -> list[str]:
 		found = []
 		for method, route_path in self.routes:
-			if route_path == path:
+			if (self._key(route_path, path)) and (method not in found):
 				found.append(method)
 		return found
+
+	def route(self, method: str, path: str) -> Route:
+		"""La route exacte d'abord, puis celle d'un préfixe."""
+		exact = self.routes.get((method, path))
+		if exact is not None:
+			return exact
+		for (route_method, route_path), route in self.routes.items():
+			if (route_method == method) and (self._key(route_path, path)):
+				return route
+		raise KeyError(path)
 
 	async def respond(self, request: Request) -> Response:
 		"""La réponse à une requête ; une route qui plante donne 500, et le note."""
@@ -157,7 +173,7 @@ class Intranet:
 		if (method != "GET") and (not request.same_origin()):
 			return text(403, _("Form sent from another site."))
 		try:
-			return await self.routes[(method, request.path)](request)
+			return await self.route(method, request.path)(request)
 		except Exception:
 			log.exception(_("intranet: request {path} failed").format(path=request.path))
 			return text(500, _("Internal error."))

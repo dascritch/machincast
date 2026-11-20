@@ -350,7 +350,7 @@ Les migrations `0002` à `0007` l'ont rejointe, MachinCast étant encore en alph
 
 ### 3.2 Rôles et droits
 
-Un rôle PostgreSQL par binaire : `machincast_player`, `machincast_indexer`, `machincast_interface`, et `machincast_intranet` pour le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)).
+Un rôle PostgreSQL par binaire : `machincast_player`, `machincast_indexer`, `machincast_interface`, et `machincast_intranet` pour le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)), qui lit la programmation, l'airplay et le log pour son API ([#540](https://github.com/dascritch/machincast/issues/540), migration `0007.intranet-reading`).
 Ils sont créés par la migration `0001.initial-schema` ([#4](https://github.com/dascritch/machincast/issues/4)), `machincast_intranet` par `0005.api-users`, et partagés par la base de production et la base de test.
 
 - Ce sont des **rôles de groupe**, sans connexion.
@@ -364,18 +364,18 @@ Ils sont créés par la migration `0001.initial-schema` ([#4](https://github.com
 
 | Table | Lecture (`Machin_player`) | Indexation (`Machin_indexer`) | Interface (`Machin_interface`) | Intranet |
 | --- | --- | --- | --- | --- |
-| `sounds` | lire ; modifier la seule colonne `state` | lire, insérer, modifier | lire, insérer, modifier, supprimer | — |
-| `feeds` | lire | — | lire, insérer, modifier, supprimer | — |
-| `banks` | lire | lire | lire, insérer, modifier, supprimer | — |
-| `bank_directories` | — | lire ; modifier `scanned_at` | lire, insérer, modifier, supprimer | — |
-| `bank_sounds` | lire | lire, insérer, supprimer ([#195](https://github.com/dascritch/machincast/issues/195)) | lire, insérer, modifier, supprimer | — |
-| `events` | lire | — | lire, insérer, modifier, supprimer | — |
-| `event_items` | lire | — | lire, insérer, modifier, supprimer | — |
-| `event_skips` | lire | — | lire, insérer, supprimer | — |
-| `sequences` | lire | — | lire, insérer, modifier, supprimer | — |
-| `sequence_items` | lire | — | lire, insérer, modifier, supprimer | — |
-| `airplay` | lire, insérer | — | lire | — |
-| `log` | insérer (sans `RETURNING`) ; retrouver son démarrage précédent par `machincast_previous_start`, sans lire ([#342](https://github.com/dascritch/machincast/issues/342)) | insérer (sans `RETURNING`, [#341](https://github.com/dascritch/machincast/issues/341)) | lire | — |
+| `sounds` | lire ; modifier la seule colonne `state` | lire, insérer, modifier | lire, insérer, modifier, supprimer | lire |
+| `feeds` | lire | — | lire, insérer, modifier, supprimer | lire |
+| `banks` | lire | lire | lire, insérer, modifier, supprimer | lire |
+| `bank_directories` | — | lire ; modifier `scanned_at` | lire, insérer, modifier, supprimer | lire |
+| `bank_sounds` | lire | lire, insérer, supprimer ([#195](https://github.com/dascritch/machincast/issues/195)) | lire, insérer, modifier, supprimer | lire |
+| `events` | lire | — | lire, insérer, modifier, supprimer | lire |
+| `event_items` | lire | — | lire, insérer, modifier, supprimer | lire |
+| `event_skips` | lire | — | lire, insérer, supprimer | lire |
+| `sequences` | lire | — | lire, insérer, modifier, supprimer | lire |
+| `sequence_items` | lire | — | lire, insérer, modifier, supprimer | lire |
+| `airplay` | lire, insérer | — | lire | lire |
+| `log` | insérer (sans `RETURNING`) ; retrouver son démarrage précédent par `machincast_previous_start`, sans lire ([#342](https://github.com/dascritch/machincast/issues/342)) | insérer (sans `RETURNING`, [#341](https://github.com/dascritch/machincast/issues/341)) | lire | lire |
 | `api_users` | — | — | lire, insérer, modifier, supprimer | lire |
 | `api_sessions` | — | — | lire, insérer, modifier | lire, insérer, modifier |
 
@@ -1989,3 +1989,23 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 - Un formulaire envoyé d'une autre origine (en-tête `Origin` d'un autre hôte) est refusé, 403 ; un corps de plus de 64 Kio, 413.
 - Les heures sont celles de la base (`clock_timestamp()`) ; chaque lecture rend d'abord invalides les sessions dont le délai est passé.
 - Le serveur lit la base de production au rôle `machincast_intranet`, une connexion par requête, hors de la boucle du serveur (`asyncio.to_thread`).
+
+### 13.3 API REST v1
+
+([#540](https://github.com/dascritch/machincast/issues/540), `machincast.intranet.api`)
+
+Sous `/api/v1`, en GET seulement, pour une session valide, quel que soit le rôle du compte : son jeton en cookie, ou en `Authorization: Bearer`.
+Sans session valide, 401, avec `WWW-Authenticate: Bearer` ; une autre méthode, 405 ; un chemin ou un élément inconnu, 404.
+Les réponses sont en JSON, en UTF-8 (`api.dumps`) : dates en ISO 8601, durées en secondes, une erreur `{"error": "…"}`.
+
+| Chemin | Réponse |
+| --- | --- |
+| `/api/v1/live` | L'antenne (`machincast.intranet.live`) : `time` ; `state` (`playing`, `dead_air` ou `stopped`) ; `public_text` ; `current`, le sonore en cours, et sa `position` ; `next`, les 5 suivants, prochain compris ; `previous`, les 5 derniers passages terminés, le plus récent en tête ; `events`, l'événement `previous`, `current` et `next`, avec `id`, `name`, `priority`, `start` et `end`. |
+| `/api/v1/incidents` | `incidents` : les 100 derniers incidents du log, niveau `incident` seulement, avec le sonore, la banque et l'événement concernés. |
+| `/api/v1/events`, `/sequences`, `/banks`, `/sounds` | Une page de la liste, sans les éléments supprimés, par identifiant : `?after=<id>&limit=<n>` (100 par défaut, 1000 au plus) ; `next`, l'identifiant à passer en `after` pour la page suivante, ou `null`. |
+| `/api/v1/<liste>/<id>` | La fiche d'un élément, même supprimé, `deleted_at` renseigné ; ses `items` (événement, séquence) ou ses sonores (`items` d'une banque, et ses `directories`). |
+
+- Les sonores en cours et à venir viennent de la socket d'état de Machin player ([§ 5.4](#54-socket-détat)), que le compte de MachinCast lit ; sans Machin player, `state` vaut `stopped`, sans sonore.
+- Les événements viennent de la grille (`shared.grid.plan`), sur la semaine d'avant et la semaine d'après : un événement avancé ou terminé à la main, que seul Machin player connaît, ne l'est pas ici ; une heure hors de cette période vaut `null`.
+- Les sessions de rôle `consult` et `actions` lisent toutes l'API ; les actions viendront dans une version suivante.
+- Un nouveau chemin de `/api/v1` garde les autres tels quels ; un changement de sens ou de forme ouvre `/api/v2`.

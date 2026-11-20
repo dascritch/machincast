@@ -49,21 +49,22 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 	Scénario: Droits du serveur intranet
 		https://github.com/dascritch/machincast/issues/537 : il ne fait que lire les comptes.
 		https://github.com/dascritch/machincast/issues/539 : il ouvre, valide et ferme leurs sessions, sans en supprimer.
+		https://github.com/dascritch/machincast/issues/540 : son API lit la programmation, l'airplay et le log, sans rien en écrire.
 
 		Alors le rôle "machincast_intranet" a exactement ces droits :
 			| table            | lire | inserer | modifier | supprimer |
-			| sounds           | non  | non     | non      | non       |
-			| feeds            | non  | non     | non      | non       |
-			| banks            | non  | non     | non      | non       |
-			| bank_directories | non  | non     | non      | non       |
-			| bank_sounds      | non  | non     | non      | non       |
-			| events           | non  | non     | non      | non       |
-			| event_items      | non  | non     | non      | non       |
-			| event_skips      | non  | non     | non      | non       |
-			| sequences        | non  | non     | non      | non       |
-			| sequence_items   | non  | non     | non      | non       |
-			| airplay          | non  | non     | non      | non       |
-			| log              | non  | non     | non      | non       |
+			| sounds           | oui  | non     | non      | non       |
+			| feeds            | oui  | non     | non      | non       |
+			| banks            | oui  | non     | non      | non       |
+			| bank_directories | oui  | non     | non      | non       |
+			| bank_sounds      | oui  | non     | non      | non       |
+			| events           | oui  | non     | non      | non       |
+			| event_items      | oui  | non     | non      | non       |
+			| event_skips      | oui  | non     | non      | non       |
+			| sequences        | oui  | non     | non      | non       |
+			| sequence_items   | oui  | non     | non      | non       |
+			| airplay          | oui  | non     | non      | non       |
+			| log              | oui  | non     | non      | non       |
 			| api_users        | oui  | non     | non      | non       |
 			| api_sessions     | oui  | oui     | oui      | non       |
 
