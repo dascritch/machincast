@@ -27,6 +27,7 @@ from machincast.configuration import Configuration, Intranet
 from machincast.database import Role, open_connection
 from machincast.i18n import _
 from machincast.intranet import certificate, network
+from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet as Application
 from machincast.intranet.portal import Portal
 
@@ -89,7 +90,8 @@ def application(configuration: Configuration) -> Application:
 		return open_connection(database.socket, database.production, Role.INTRANET)
 
 	portal = Portal(configuration.intranet, connect)
-	return Application(portal.routes())
+	api = ApiV1(portal, connect, configuration.player.state_socket)
+	return Application({**portal.routes(), **api.routes()})
 
 
 def run(configuration: Configuration, _options: argparse.Namespace) -> int:

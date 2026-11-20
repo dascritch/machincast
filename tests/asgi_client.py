@@ -47,8 +47,8 @@ def call(
 	scope: dict[str, Any] = {
 		"type": "http",
 		"method": method,
-		"path": path,
-		"query_string": b"",
+		"path": path.partition("?")[0],
+		"query_string": path.partition("?")[2].encode("latin-1"),
 		"headers": raw_headers,
 		"client": (client, 51234),
 	}

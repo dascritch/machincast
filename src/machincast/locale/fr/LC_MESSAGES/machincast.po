@@ -6421,6 +6421,24 @@ msgstr "intranet sur {addresses}, certificat {fingerprint}"
 msgid "no TLS certificate for the intranet: {error}"
 msgstr "aucun certificat TLS pour l'intranet : {error}"
 
+#: machincast/intranet/api.py
+#: machincast/intranet/portal.py
+msgid "A valid session is required."
+msgstr "Une session valide est nécessaire."
+
+#: machincast/intranet/api.py
+msgid "Unknown path of the API."
+msgstr "Chemin inconnu de l'API."
+
+#: machincast/intranet/api.py
+msgid "No such element."
+msgstr "Élément inconnu."
+
+#: machincast/intranet/api.py
+#, python-brace-format
+msgid "after is an identifier, and limit a number from 1 to {maximum}."
+msgstr "after est un identifiant, et limit un nombre de 1 à {maximum}."
+
 #: machincast/intranet/app.py
 msgid "Not found."
 msgstr "Introuvable."
@@ -6463,10 +6481,6 @@ msgstr "Connexion"
 #: machincast/intranet/portal.py
 msgid "Validation at the desk"
 msgstr "Validation au pupitre"
-
-#: machincast/intranet/portal.py
-msgid "A valid session is required."
-msgstr "Une session valide est nécessaire."
 
 #: machincast/intranet/portal.py
 #: machincast/interface/ui/preferences.ui

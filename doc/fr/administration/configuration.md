@@ -77,7 +77,7 @@ Chaque programme agit dans la base avec ses propres droits : le compte qui le la
 | `Machin player` | `machincast_player` | Lire la programmation, séquences comprises ; passer un sonore à `expiré` ; ajouter des lignes à l'airplay et au log, sans jamais les modifier ni les supprimer. |
 | `Machin indexer` | `machincast_indexer` | Lire les banques et leurs répertoires ; ajouter et mettre à jour des sonores, les ranger dans les banques, et en retirer ceux qui sortent de leurs durées ; noter la fin du parcours de chaque répertoire. Il ne supprime aucun sonore, et n'ajoute au log que ses démarrages et ses fins ([Démarrages et fins dans le log](commandes.md#démarrages-et-fins-dans-le-log)). |
 | `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques, les séquences et les événements ; lire l'airplay et le log, sans les modifier ; gérer les comptes de l'intranet ([#537](https://github.com/dascritch/machincast/issues/537)). |
-| Serveur intranet | `machincast_intranet` | Lire les comptes de l'intranet, sans les modifier ([#537](https://github.com/dascritch/machincast/issues/537)). |
+| Serveur intranet | `machincast_intranet` | Lire les comptes de l'intranet, sans les modifier ([#537](https://github.com/dascritch/machincast/issues/537)) ; ouvrir, valider et fermer leurs sessions ([#539](https://github.com/dascritch/machincast/issues/539)) ; lire la programmation, l'airplay et le log pour l'API, sans rien en écrire ([#540](https://github.com/dascritch/machincast/issues/540)). |
 
 `Machin maintenance-db`, `Machin backup-db`, `Machin restore-db` et `Machin purge` n'endossent aucun rôle : ils agissent en propriétaire de la base, ce qu'est le compte de MachinCast. Seule la purge efface des lignes de l'airplay et du log.
 
