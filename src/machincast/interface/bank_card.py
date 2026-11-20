@@ -275,7 +275,7 @@ class BankCard(Card):
 		self.ui.sounds.currentItemChanged.connect(self._refresh_buttons)
 		self.ui.sounds.itemSelectionChanged.connect(self._refresh_buttons)
 		self.columns.line_menu = lambda position: self.sound_menu(self.ui.sounds.itemAt(position))
-		clipboard.shortcuts(self.ui.sounds, self.copy_sounds, self.paste_sounds)
+		clipboard.shortcuts(self.ui.sounds, self.copy_sounds, self.paste_sounds, self.cut_sounds)
 		self.ui.sounds.itemActivated.connect(self._open_sound)
 		# Filtre et tri des sonores (https://github.com/dascritch/machincast/issues/393).
 		self.ui.sound_filter.textChanged.connect(self._filter_sounds)
@@ -488,7 +488,12 @@ class BankCard(Card):
 			self._line_entries(menu, line)
 			menu.addSeparator()
 		clipboard.offer(
-			menu, chosen=self.ui.sounds.selectedItems() != [], copy=self.copy_sounds, paste=self.paste_sounds
+			menu,
+			chosen=self.ui.sounds.selectedItems() != [],
+			copy=self.copy_sounds,
+			paste=self.paste_sounds,
+			cut=self.cut_sounds,
+			view=self.ui.sounds,
 		)
 		return menu
 
@@ -515,6 +520,14 @@ class BankCard(Card):
 				text_list.append(clipboard.text(self.ui.sounds, line))
 		if entries != []:
 			clipboard.put(entries, text_list)
+
+	def cut_sounds(self) -> None:
+		"""Les sonores choisis vont au presse-papiers, puis sont retirés, avec l'avertissement de ceux qu'une indexation
+		remettrait (https://github.com/dascritch/machincast/issues/528)."""
+		if self.ui.sounds.selectedItems() == []:
+			return
+		self.copy_sounds()
+		self._remove_sound()
 
 	def paste_sounds(self) -> None:
 		"""Les sonores copiés s'ajoutent, une fois chacun, et restent choisis ; la fiche dit ce qu'elle laisse de côté."""

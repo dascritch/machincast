@@ -134,7 +134,7 @@ class ItemList(QObject):
 		self.columns.before_export = self.load_all
 		list_.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 		list_.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-		clipboard.shortcuts(list_, self.copy, self.paste)
+		clipboard.shortcuts(list_, self.copy, self.paste, self.cut)
 		self.drop = FileDrop(list_)
 		self.drop.dropped.connect(self._drop_in)
 		model = list_.model()
@@ -523,6 +523,13 @@ class ItemList(QObject):
 		for line in chosen_list:
 			self.list_.takeTopLevelItem(self.list_.indexOfTopLevelItem(line))
 
+	def cut(self) -> None:
+		"""Les lignes choisies vont au presse-papiers, puis sont retirées (https://github.com/dascritch/machincast/issues/528)."""
+		if self.chosen() == []:
+			return
+		self.copy()
+		self._remove()
+
 	def chosen(self) -> list[QTreeWidgetItem]:
 		"""Les lignes choisies, dans l'ordre de la liste."""
 		chosen_list = []
@@ -646,7 +653,9 @@ class ItemList(QObject):
 		if (line is not None) and (line.data(0, CATEGORY) == "sound") and (line.data(0, ITEM) is not None):
 			display.offer_preview(menu, int(line.data(0, ITEM)), self.card.requested_preview.emit)
 			menu.addSeparator()
-		clipboard.offer(menu, chosen=self.chosen() != [], copy=self.copy, paste=self.paste)
+		clipboard.offer(
+			menu, chosen=self.chosen() != [], copy=self.copy, paste=self.paste, cut=self.cut, view=self.list_
+		)
 		return menu
 
 	def _open(self, line: QTreeWidgetItem) -> None:

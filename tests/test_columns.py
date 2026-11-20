@@ -400,8 +400,9 @@ def abandon(interface: Context, tab_: str) -> None:
 
 
 @then(
-	"le clic droit hors des lignes de chaque tableau de l'interface finit par « Exporter ce tableau… », après « Copier »"
-	" et « Coller » dans les listes d'éléments et de sonores d'une banque, après « Copier » dans la recherche"
+	"le clic droit hors des lignes de chaque tableau de l'interface finit par « Exporter ce tableau… », après « Couper »,"
+	" « Copier », « Coller » et « Tout sélectionner » dans les listes d'éléments et de sonores d'une banque, après"
+	" « Copier » dans la recherche"
 )
 def export_everywhere(interface: Context) -> None:
 	"""Les listes d'éléments d'un événement et d'une séquence, et celle des sonores d'une banque, proposent aussi le
@@ -415,7 +416,7 @@ def export_everywhere(interface: Context) -> None:
 		assert view.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu, columns.name
 		expected = [EXPORT]
 		if (columns.name in items.VIEWS.values()) or (columns.name == "fiche-banque-sonores"):
-			expected = [clipboard.COPY, clipboard.PASTE, "—", EXPORT]
+			expected = [clipboard.CUT, clipboard.COPY, clipboard.PASTE, "—", clipboard.SELECT_ALL, "—", EXPORT]
 		if columns.name == "recherche":
 			expected = [clipboard.COPY, "—", EXPORT]
 		assert _texts(columns.table_menu(QPoint(-1, -1))) == expected, columns.name

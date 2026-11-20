@@ -85,7 +85,8 @@
 - Un fichier ajouté à la main est enregistré à l'état `preview` : l'indexeur le décodera ; un stream est enregistré `active` ([#69](https://github.com/dascritch/machincast/issues/69)).
 	Un fichier ajouté depuis la liste des sonores est vérifié aussitôt par `machincast.interface.check.Checker`, dans un fil à part, avec le code et le rôle de l'indexeur ([#30](https://github.com/dascritch/machincast/issues/30)) : un décodage n'a jamais lieu dans le fil de l'interface.
 	Le fil ne touche à aucun widget ; il relaie sa fin par un signal.
-- La barre de menus a les menus « Fichier », « Affichage », « Diffusion », « Maintenance » et « Aide » (`MainWindow._fill_menus`, [#117](https://github.com/dascritch/machincast/issues/117)).
+- La barre de menus a les menus « Fichier », « Affichage », « Onglets », « Tableau », « Diffusion », « Maintenance » et « Aide » (`MainWindow._fill_menus`, [#117](https://github.com/dascritch/machincast/issues/117)).
+	« Tableau » ([#528](https://github.com/dascritch/machincast/issues/528)) est `machincast.interface.table_menu.TableMenu` : il retrouve les actions d'une liste par `clipboard.handlers`, que `clipboard.shortcuts` enregistre, et le tableau de l'onglet par `columns.of_widget` ; ses raccourcis ne sont rappelés qu'en `WidgetShortcut`, pour rester ceux de la liste qui a le focus.
 	Une fonction à venir y a son entrée, inactive, avec une infobulle qui donne son ticket (`_upcoming`) : l'activer fait partie de son ticket.
 	« Quitter » passe par `close()`, jamais par `QApplication.quit()`, pour que les fiches modifiées soient demandées.
 	Le navigateur web s'ouvre par `dialogs.open_page`.

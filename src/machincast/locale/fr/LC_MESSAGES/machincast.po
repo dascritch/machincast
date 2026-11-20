@@ -2100,7 +2100,16 @@ msgstr "Copier"
 msgid "Paste"
 msgstr "Coller"
 
+#: machincast/interface/clipboard.py
+msgid "Cut"
+msgstr "Couper"
+
+#: machincast/interface/clipboard.py
+msgid "Select all"
+msgstr "Tout sélectionner"
+
 #: machincast/interface/columns.py
+#: machincast/interface/table_menu.py
 msgid "Reset the columns"
 msgstr "Rétablir les colonnes"
 
@@ -5408,6 +5417,22 @@ msgstr "Onglets fermés récemment"
 msgid "tab “{key}” not reopened: {error}"
 msgstr "onglet « {key} » non rouvert : {error}"
 
+#: machincast/interface/table_menu.py
+msgid "Copy lines"
+msgstr "Copier des lignes"
+
+#: machincast/interface/table_menu.py
+msgid "Cut lines"
+msgstr "Couper des lignes"
+
+#: machincast/interface/table_menu.py
+msgid "Paste lines"
+msgstr "Coller des lignes"
+
+#: machincast/interface/table_menu.py
+msgid "Export lines…"
+msgstr "Exporter des lignes…"
+
 #: machincast/interface/timeline.py
 msgid "Waveform unavailable:"
 msgstr "Forme d'onde indisponible :"
@@ -5751,6 +5776,10 @@ msgstr ""
 #, python-brace-format
 msgid " Icon updated {places}."
 msgstr " Icône mise à jour {places}."
+
+#: machincast/interface/window.py
+msgid "Ta&ble"
+msgstr "Ta&bleau"
 
 #: machincast/interface/window.py
 msgid "Output monitor…"
