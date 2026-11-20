@@ -1,5 +1,6 @@
 """Scénarios de l'API REST v1 de l'intranet, en lecture (https://github.com/dascritch/machincast/issues/540), et de
-son accueil en direct (https://github.com/dascritch/machincast/issues/541).
+son accueil en direct (https://github.com/dascritch/machincast/issues/541), et de son calendrier
+(https://github.com/dascritch/machincast/issues/542).
 
 Les requêtes passent directement à l'application ASGI (tests.asgi_client), sur la base de test, au rôle
 machincast_intranet. Machin player est imité par une vraie socket d'état (machincast.player.state.StateSocket).
@@ -25,14 +26,14 @@ from machincast.database import Role, open_connection
 from machincast.intranet import sessions
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet
-from machincast.intranet.home import Home
+from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal
 from machincast.player.state import StateSocket
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import NAME, Connection, identifier
 
-scenarios("intranet_api.feature", "intranet_home.feature")
+scenarios("intranet_api.feature", "intranet_home.feature", "intranet_calendar.feature")
 
 
 @dataclass
@@ -64,7 +65,7 @@ def application(socket_path: Path, moment: str) -> Iterator[Api]:
 	routes = {
 		**portal.routes(),
 		**ApiV1(portal, connect, socket_path, clock).routes(),
-		**Home(portal, connect, socket_path, "Radio Thune", clock).routes(),
+		**Pages(portal, connect, socket_path, "Radio Thune", clock).routes(),
 	}
 	built = Api(Intranet(routes), socket_path, clock.now())
 	yield built
@@ -376,7 +377,7 @@ def shown(api: Api, datatable: list[list[str]]) -> None:
 @then(parsers.re(r"les décomptes (?P<names>.+) ont leur limite, pour le script"))
 def limits(api: Api, names: str) -> None:
 	for element in NAME.findall(names):
-		found = re.search(rf'id="{element}" data-limite="(?P<limit>[^"]+)"', _page(api))
+		found = re.search(rf'id="{element}" class="decompte" data-limite="(?P<limit>[^"]+)"', _page(api))
 		assert found is not None, element
 		assert datetime.fromisoformat(found["limit"]) > api.now
 
@@ -389,3 +390,105 @@ def recent(api: Api, lines: str) -> None:
 	for item in re.findall(r"<li>([^<]*)</li>", found["items"]):
 		items.append(html.unescape(item))
 	assert items == NAME.findall(lines)
+
+
+def _local(moment: str) -> datetime:
+	return datetime.fromisoformat(moment).astimezone()
+
+
+def _calendar_entry(api: Api, name: str) -> dict[str, Any]:
+	for entry in _json(api)["events"]:
+		if entry["name"] == name:
+			return dict(entry)
+	raise AssertionError(name)
+
+
+@then(
+	parsers.re(r"l'API répond 200, avec le calendrier du « (?P<first>[^»]+) » au « (?P<last>[^»]+) » : (?P<names>.+)")
+)
+def calendar(api: Api, first: str, last: str, names: str) -> None:
+	assert _answer(api).status == 200, _answer(api).text()
+	found = _json(api)
+	assert (found["from"], found["to"]) == (first, last)
+	listed = []
+	for entry in found["events"]:
+		listed.append(entry["name"])
+	assert listed == NAME.findall(names)
+
+
+@then(parsers.re(r"« (?P<name>[^»]+) » est à l'antenne (?P<moments>de « .+)"))
+def on_air_moments(api: Api, name: str, moments: str) -> None:
+	given = NAME.findall(moments)
+	expected = []
+	for start, end in zip(given[::2], given[1::2], strict=True):
+		expected.append((_local(start), _local(end)))
+	found = []
+	for moment in _calendar_entry(api, name)["on_air"]:
+		found.append((datetime.fromisoformat(moment["start"]), datetime.fromisoformat(moment["end"])))
+	assert found == expected
+
+
+@then(parsers.parse("« {name} », de « {start} » à « {end} », est couverte, sans moment à l'antenne"))
+def covered(api: Api, name: str, start: str, end: str) -> None:
+	entry = _calendar_entry(api, name)
+	assert (datetime.fromisoformat(entry["start"]), datetime.fromisoformat(entry["end"])) == (
+		_local(start),
+		_local(end),
+	)
+	assert (entry["covered"], entry["on_air"], entry["skipped"]) == (True, [], False)
+
+
+def _vevents(api: Api) -> list[str]:
+	return re.findall(r'<li class="vevent h-event[^"]*">.*?</li>', _page(api))
+
+
+@then(parsers.parse("l'API répond 200, une page hCalendar de {count:d} occurrences"))
+def hcalendar(api: Api, count: int) -> None:
+	assert _answer(api).status == 200
+	assert '<ol class="vcalendar">' in _page(api)
+	assert len(_vevents(api)) == count
+
+
+@then(parsers.parse("l'occurrence hCalendar « {name} » est de « {start} » à « {end} », « {category} », couverte"))
+def vevent(api: Api, name: str, start: str, end: str, category: str) -> None:
+	for found in _vevents(api):
+		if f'<span class="summary p-name">{name}</span>' in found:
+			assert "couvert" in found.split(">", 1)[0]
+			assert f'class="dtstart dt-start" datetime="{_local(start).isoformat()}"' in found
+			assert f'class="dtend dt-end" datetime="{_local(end).isoformat()}"' in found
+			assert f'<span class="category p-category">{category}</span>' in found
+			return
+	raise AssertionError(name)
+
+
+@then(parsers.parse("la page est titrée « {title} »"))
+def titled(api: Api, title: str) -> None:
+	assert f"<h1>{title}</h1>" in _page(api)
+
+
+@then(parsers.parse("la page mène à la semaine précédente « {before} » et à la suivante « {after} »"))
+def weeks(api: Api, before: str, after: str) -> None:
+	text = _page(api)
+	assert f'rel="prev" href="{before}"' in text
+	assert f'rel="next" href="{after}"' in text
+
+
+@then(parsers.re(r"le « (?P<day>[^»]+) » montre (?P<names>.+)"))
+def day_shows(api: Api, day: str, names: str) -> None:
+	found = re.search(rf"<h2>{day}</h2>\n<ol class=\"vcalendar\">(?P<items>.*?)</ol>", _page(api), re.DOTALL)
+	assert found is not None, day
+	assert re.findall(r'<span class="summary p-name">([^<]*)</span>', found["items"]) == NAME.findall(names)
+
+
+@then("la page mène au guide de l'antenne et à la spécification de l'intranet, à la version installée")
+def documentation(api: Api) -> None:
+	text = _page(api)
+	guide = re.search(r'<a id="guide" href="(?P<address>[^"]+)"', text)
+	specification = re.search(r'<a id="specification" href="(?P<address>[^"]+)"', text)
+	assert (guide is not None) and (specification is not None)
+	assert re.fullmatch(
+		r"https://github.com/dascritch/machincast/blob/(main|v[\d.]+)/doc/fr/utilisateur/README.md", guide["address"]
+	)
+	assert specification["address"] == guide["address"].replace(
+		"doc/fr/utilisateur/README.md", "doc/fr/spec.md#13-intranet-et-api"
+	)

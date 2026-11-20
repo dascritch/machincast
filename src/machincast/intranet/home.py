@@ -8,33 +8,29 @@ puis les derniers sonores diffusés. Le serveur écrit la page telle qu'est l'an
 Sans session, l'accueil mène à la mire ; une session à valider, à la page de validation.
 """
 
-import asyncio
-from collections.abc import Callable
 from datetime import datetime
 from html import escape
-from pathlib import Path
 from typing import Any
 
-from machincast.clock import Clock, SystemClock
 from machincast.i18n import _
-from machincast.intranet import live, template
-from machincast.intranet.app import Request, Response, Route, redirect
-from machincast.intranet.portal import Connect, Portal
-from machincast.intranet.queries import Connection
 
 EMPTY = "—"
 
 
 def _moment(value: Any) -> datetime | None:
-	"""Une date de la grille ou de la socket d'état, en datetime ; None sans elle."""
+	"""Une date de la grille ou de la socket d'état, en datetime avec son décalage, l'heure du poste sans lui ; None
+	sans elle."""
+	found = None
 	if isinstance(value, datetime):
-		return value
+		found = value
 	if isinstance(value, str):
 		try:
-			return datetime.fromisoformat(value)
+			found = datetime.fromisoformat(value)
 		except ValueError:
 			return None
-	return None
+	if found is None:
+		return None
+	return found.astimezone()
 
 
 def hour(value: Any, *, seconds: bool = False) -> str:
@@ -42,8 +38,6 @@ def hour(value: Any, *, seconds: bool = False) -> str:
 	found = _moment(value)
 	if found is None:
 		return EMPTY
-	# À l'heure du poste, comme l'interface.
-	found = found.astimezone()
 	if seconds:
 		return f"{found.hour:02d}:{found.minute:02d}:{found.second:02d}"
 	return f"{found.hour:02d}:{found.minute:02d}"
@@ -83,7 +77,9 @@ def _countdown(identifier: str, limit: Any, now: datetime) -> str:
 	found = _moment(limit)
 	if found is not None:
 		value = found.isoformat()
-	return f'<span id="{identifier}" data-limite="{escape(value)}">{escape(remaining(limit, now))}</span>'
+	return (
+		f'<span id="{identifier}" class="decompte" data-limite="{escape(value)}">{escape(remaining(limit, now))}</span>'
+	)
 
 
 def _field(label: str, content: str) -> str:
@@ -163,46 +159,3 @@ def body(direct: dict[str, Any], now: datetime) -> str:
 			"</div>",
 		)
 	)
-
-
-class Home:
-	"""GET / : l'accueil en direct, dans le gabarit, pour une session valide."""
-
-	def __init__(
-		self, portal: Portal, connect: Connect, state_socket: Path, radio: str, clock: Clock | None = None
-	) -> None:
-		self.portal = portal
-		self.connect = connect
-		self.state_socket = state_socket
-		self.radio = radio
-		self.clock = (clock) or (SystemClock())
-
-	def routes(self) -> dict[tuple[str, str], Route]:
-		return {("GET", "/"): self.home, ("GET", "/static/*"): template.static}
-
-	async def _database[T](self, action: Callable[[Connection], T]) -> T:
-		def run() -> T:
-			with self.connect() as connection:
-				return action(connection)
-
-		return await asyncio.to_thread(run)
-
-	async def home(self, request: Request) -> Response:
-		"""L'accueil d'une session valide ; la mire, ou la page de validation, sinon."""
-		found = await self.portal.session(request)
-		if found is None:
-			return redirect("/login")
-		if found.state == "pending":
-			return redirect("/validation")
-		if found.state != "valid":
-			return redirect("/login")
-		now = self.clock.now()
-		direct = await self._database(lambda connection: live.live(connection, self.state_socket, now))
-		return template.layout(
-			_("Home"),
-			body(direct, now),
-			radio=self.radio,
-			state=str(direct.get("state", "stopped")),
-			user=found.user,
-			current="/",
-		)

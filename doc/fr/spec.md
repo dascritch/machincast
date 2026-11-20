@@ -2001,6 +2001,7 @@ Les réponses sont en JSON, en UTF-8 (`api.dumps`) : dates en ISO 8601, durées 
 | Chemin | Réponse |
 | --- | --- |
 | `/api/v1/live` | L'antenne (`machincast.intranet.live`) : `time` ; `state` (`playing`, `dead_air` ou `stopped`) ; `public_text` ; `current`, le sonore en cours, et sa `position` ; `next`, les 5 suivants, prochain compris ; `previous`, les 5 derniers passages terminés, le plus récent en tête ; `events`, l'événement `previous`, `current` et `next`, avec `id`, `name`, `priority`, `start` et `end`, avec leur décalage horaire. |
+| `/api/v1/calendar` | Le calendrier des jours `?from=<date>&to=<date>`, `to` exclu, la semaine en cours par défaut, 62 jours au plus ([§ 13.5](#135-calendrier-et-documentation)) : `from`, `to`, et `events`, les occurrences dans l'ordre de leur début. Avec `?format=html`, en HTML hCalendar. |
 | `/api/v1/incidents` | `incidents` : les 100 derniers incidents du log, niveau `incident` seulement, avec le sonore, la banque et l'événement concernés. |
 | `/api/v1/events`, `/sequences`, `/banks`, `/sounds` | Une page de la liste, sans les éléments supprimés, par identifiant : `?after=<id>&limit=<n>` (100 par défaut, 1000 au plus) ; `next`, l'identifiant à passer en `after` pour la page suivante, ou `null`. |
 | `/api/v1/<liste>/<id>` | La fiche d'un élément, même supprimé, `deleted_at` renseigné ; ses `items` (événement, séquence) ou ses sonores (`items` d'une banque, et ses `directories`). |
@@ -2032,3 +2033,17 @@ L'accueil, `GET /`, montre l'antenne en direct, dans cet ordre :
 - Le script relit `/api/v1/live` toutes les 5 secondes, et tient les décomptes, affichés en secondes, au centième de seconde, à l'heure du serveur ; une session devenue invalide le ramène à la mire.
 - Les heures sont celles du poste de diffusion ; l'API les donne avec leur décalage horaire.
 - Sans session, l'accueil mène à la mire ; une session à valider, à la page de validation.
+
+### 13.5 Calendrier et documentation
+
+([#542](https://github.com/dascritch/machincast/issues/542), `machincast.intranet.calendar`, `machincast.intranet.pages`)
+
+Le calendrier vient de la grille (`shared.grid.plan`), comme celui de l'interface ([§ 8.2](#82-recherche-et-navigation)) : les occurrences des événements d'une période, passées comme à venir, même celles d'un événement supprimé d'avant sa suppression.
+Il donne aussi les occurrences qu'un événement de priorité plus haute couvre, comme une émission sous un spécial.
+
+- Chaque occurrence a `id`, `name`, `priority`, `start` et `end`, ses heures dessinées, et `on_air`, les moments où elle serait à l'antenne.
+- `covered` : couverte entièrement par d'autres, `on_air` vide ; `skipped` : une session sautée, qui ne joue rien ; `deleted` : d'un événement supprimé.
+- En HTML hCalendar, chaque occurrence est un `vevent` (et `h-event`) : son nom en `summary`, ses heures en `dtstart` et `dtend`, sa priorité en `category`.
+- La page `/calendar` montre une semaine, du lundi au dimanche, jour par jour, chaque occurrence sous chacun des jours qu'elle touche, à ses heures de ce jour ; une occurrence couverte ou sautée est barrée.
+  `?week=<un jour de la semaine>` choisit la semaine ; la page mène à la précédente, à celle d'aujourd'hui et à la suivante.
+- La page `/documentation` mène au guide de l'antenne et à cette spécification de l'intranet, à la version installée : celle du tag de la release, ou `main` (`interface.version.documentation`).

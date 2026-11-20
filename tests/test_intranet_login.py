@@ -16,7 +16,7 @@ from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
 from machincast.intranet import sessions
 from machincast.intranet.app import Intranet
-from machincast.intranet.home import Home
+from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
@@ -43,7 +43,7 @@ def connect() -> psycopg.Connection[TupleRow]:
 def application(empty_database: Connection, tmp_path: Path) -> Visit:
 	del empty_database
 	portal = Portal(Settings(enabled=True), connect)
-	home = Home(portal, connect, tmp_path / "lecture.sock", "Radio Thune")
+	home = Pages(portal, connect, tmp_path / "lecture.sock", "Radio Thune")
 	return Visit(Intranet({**portal.routes(), **home.routes()}))
 
 
