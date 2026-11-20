@@ -13,8 +13,8 @@ from machincast.intranet.app import TITLE, Request, Response, page
 
 STATES = {"playing": _("Broadcasting"), "dead_air": _("Dead air on air"), "stopped": _("Stopped")}
 """L'état de la diffusion, comme l'écrit l'onglet Antenne de l'interface."""
-NAVIGATION: list[tuple[str, str]] = [("/", _("Home"))]
-"""Les pages de l'intranet, dans l'ordre du bandeau ; chaque page s'y ajoute."""
+NAVIGATION = (("/", _("Home")), ("/calendar", _("Calendar")), ("/documentation", _("Documentation")))
+"""Les pages de l'intranet, dans l'ordre du bandeau."""
 STATIC = {"intranet.css": "text/css; charset=utf-8", "intranet.js": "text/javascript; charset=utf-8"}
 """Les seuls fichiers servis sous /static/, et leur type."""
 HEAD = """<link rel="stylesheet" href="/static/intranet.css">

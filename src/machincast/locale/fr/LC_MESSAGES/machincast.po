@@ -1974,6 +1974,7 @@ msgid "Week from Monday {start} to Sunday {day} {month} {year}"
 msgstr "Semaine du lundi {start} au dimanche {day} {month} {year}"
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/calendar.py
 msgid "skipped"
 msgstr "sauté"
 
@@ -2040,10 +2041,12 @@ msgid "Session of “{name}” of {day_and_month} at {first:%H:%M} skipped."
 msgstr "Session de « {name} » du {day_and_month} à {first:%H:%M} sautée."
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/pages.py
 msgid "Previous week"
 msgstr "Semaine précédente"
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/pages.py
 msgid "Next week"
 msgstr "Semaine suivante"
 
@@ -4462,25 +4465,30 @@ msgid "Anomaly: the line has a problem, which its tooltip tells"
 msgstr "Anomalie : la ligne a un problème, que dit son infobulle"
 
 #: machincast/interface/lists.py
+#: machincast/intranet/calendar.py
 msgid "deleted"
 msgstr "supprimé"
 
 #: machincast/interface/lists.py
+#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
 msgid "breaking"
 msgstr "imprévu"
 
 #: machincast/interface/lists.py
+#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
 msgid "special"
 msgstr "spécial"
 
 #: machincast/interface/lists.py
+#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
 msgid "show"
 msgstr "émission"
 
 #: machincast/interface/lists.py
+#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
 msgid "background programming"
 msgstr "fil musical"
@@ -6129,6 +6137,9 @@ msgstr ""
 "pu être lancé."
 
 #: machincast/interface/window.py
+#: machincast/intranet/api.py
+#: machincast/intranet/pages.py
+#: machincast/intranet/template.py
 msgid "Calendar"
 msgstr "Calendrier"
 
@@ -6310,6 +6321,8 @@ msgid "Open the {title} tab"
 msgstr "Ouvrir l'onglet {title}"
 
 #: machincast/interface/window.py
+#: machincast/intranet/pages.py
+#: machincast/intranet/template.py
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -6444,6 +6457,13 @@ msgstr "Élément inconnu."
 
 #: machincast/intranet/api.py
 #, python-brace-format
+msgid "from and to are dates, from before to, at most {maximum} days apart."
+msgstr ""
+"from et to sont des dates, from avant to, à {maximum} jours au plus l'une "
+"de l'autre."
+
+#: machincast/intranet/api.py
+#, python-brace-format
 msgid "after is an identifier, and limit a number from 1 to {maximum}."
 msgstr "after est un identifiant, et limit un nombre de 1 à {maximum}."
 
@@ -6472,16 +6492,19 @@ msgstr "Erreur interne."
 msgid "intranet: request {path} failed"
 msgstr "intranet : la requête {path} a échoué"
 
+#: machincast/intranet/calendar.py
+#: machincast/player/broadcast_types.py
+msgid "fallback"
+msgstr "secours"
+
+#: machincast/intranet/calendar.py
+msgid "covered"
+msgstr "couvert"
+
 #: machincast/intranet/certificate.py
 #, python-brace-format
 msgid "intranet certificate generated: {path}"
 msgstr "certificat de l'intranet généré : {path}"
-
-#: machincast/intranet/home.py
-#: machincast/intranet/template.py
-#: machincast/interface/ui/preferences.ui
-msgid "Home"
-msgstr "Accueil"
 
 #: machincast/intranet/home.py
 msgid "Last sounds on air"
@@ -6517,6 +6540,34 @@ msgstr "Démarre dans"
 #, python-brace-format
 msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
 msgstr "adresses du poste illisibles par iproute2, devinées : {error}"
+
+#: machincast/intranet/pages.py
+#, python-brace-format
+msgid "Week from {first} to {last}"
+msgstr "Semaine du {first} au {last}"
+
+#: machincast/intranet/pages.py
+#: machincast/intranet/template.py
+#: machincast/interface/ui/preferences.ui
+msgid "Home"
+msgstr "Accueil"
+
+#: machincast/intranet/pages.py
+msgid "Broadcast guide"
+msgstr "Guide de l'antenne"
+
+#: machincast/intranet/pages.py
+msgid "Intranet and API specification"
+msgstr "Spécification de l'intranet et de l'API"
+
+#: machincast/intranet/pages.py
+msgid "This week"
+msgstr "Cette semaine"
+
+#: machincast/intranet/pages.py
+#, python-brace-format
+msgid "MachinCast version {version}."
+msgstr "MachinCast version {version}."
 
 #: machincast/intranet/portal.py
 msgid "Connection"
@@ -6999,10 +7050,6 @@ msgstr "niveau moyen {level:.1f} dB"
 #, python-brace-format
 msgid "Next {rank}"
 msgstr "Suivant {rank}"
-
-#: machincast/player/broadcast_types.py
-msgid "fallback"
-msgstr "secours"
 
 #: machincast/player/engine.py
 msgid "the stream did not start after its buffer"

@@ -55,14 +55,25 @@ header.bandeau form { margin: 0; }
 .etat.playing { color: var(--antenne); }
 .etat.dead_air { color: var(--blanc); }
 .etat.stopped { color: var(--arret); }
+main a { color: var(--accent); }
 main { max-width: 60rem; margin: 0 auto; padding: 1rem; }
 section { border: 1px solid var(--cadre); border-radius: 6px; padding: 0.6rem 1rem; margin: 0 0 1rem; }
 section h2 { font-size: 1rem; margin: 0 0 0.4rem; color: var(--discret); text-transform: uppercase; letter-spacing: 0.04em; }
 .heure { font-size: 2.2rem; font-variant-numeric: tabular-nums; font-weight: 600; }
-.titre-public { font-size: 1.4rem; }
+.texte-public { font-size: 1.4rem; }
 .decompte { font-variant-numeric: tabular-nums; font-weight: 600; }
 .discret { color: var(--discret); }
-ol.airplay { margin: 0; padding-left: 1.4rem; }
+section.airplay ol { margin: 0; padding-left: 1.4rem; }
+dl { display: grid; grid-template-columns: 9rem 1fr; gap: 0.2rem 1rem; margin: 0; }
+dt { color: var(--discret); }
+dd { margin: 0; }
+nav.semaines { display: flex; gap: 1rem; margin: 0 0 1rem; }
+ol.vcalendar { list-style: none; margin: 0; padding: 0; }
+ol.vcalendar li { padding: 0.15rem 0; font-variant-numeric: tabular-nums; }
+.vevent .category, .vevent .remarque { color: var(--discret); font-size: 0.9rem; }
+.vevent.couvert, .vevent.saute { color: var(--discret); }
+.vevent.couvert .summary, .vevent.saute .summary { text-decoration: line-through; }
+.documentation li { margin: 0.3rem 0; }
 form.connexion { max-width: 22rem; }
 form.connexion input { width: 100%; padding: 0.4rem; }
 [role="alert"] { color: var(--accent); font-weight: 600; }

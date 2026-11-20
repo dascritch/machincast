@@ -5,6 +5,8 @@ Sous /api/v1, en GET seulement, pour une session valide, quel que soit le rôle 
 élément inconnu, 404. Les réponses sont en JSON, en UTF-8 : dates en ISO 8601, durées en secondes.
 
 - /api/v1/live : l'antenne en direct (machincast.intranet.live) ;
+- /api/v1/calendar : les occurrences des événements des jours [from, to[, ?from=<date>&to=<date>, la semaine en
+  cours par défaut, en JSON, ou en HTML hCalendar avec ?format=html (machincast.intranet.calendar) ;
 - /api/v1/incidents : les incidents seulement, les plus récents en tête ;
 - /api/v1/events, /sequences, /banks, /sounds : une page de la liste, ?after=<id>&limit=<n> ; la réponse donne
   `next`, l'identifiant à passer en after pour la page suivante, ou null ;
@@ -27,8 +29,8 @@ from urllib.parse import parse_qs
 
 from machincast.clock import Clock, SystemClock
 from machincast.i18n import _
-from machincast.intranet import live, queries
-from machincast.intranet.app import JSON, Request, Response, Route
+from machincast.intranet import calendar, live, queries
+from machincast.intranet.app import JSON, Request, Response, Route, page
 from machincast.intranet.portal import Connect, Portal
 from machincast.intranet.queries import Connection
 
@@ -106,6 +108,8 @@ class ApiV1:
 			return answer(
 				200, await self._database(lambda connection: live.live(connection, self.state_socket, instant))
 			)
+		if path == "calendar":
+			return await self._calendar(request)
 		if path == "incidents":
 			return answer(200, {"incidents": await self._database(queries.incidents)})
 		matched = CARD.fullmatch(path)
@@ -115,6 +119,22 @@ class ApiV1:
 		if matched["identifier"] is not None:
 			return await self._card(kind, int(matched["identifier"]))
 		return await self._page(kind, request)
+
+	async def _calendar(self, request: Request) -> Response:
+		"""Le calendrier des jours [from, to[, en JSON, ou en HTML hCalendar avec ?format=html."""
+		chosen = calendar.period(request.query, self.clock.now().astimezone().date())
+		if chosen is None:
+			return error(
+				400,
+				_("from and to are dates, from before to, at most {maximum} days apart.").format(
+					maximum=calendar.MAXIMUM_DAYS
+				),
+			)
+		first, last = chosen
+		found = await self._database(lambda connection: calendar.entries(connection, first, last))
+		if parse_qs(request.query).get("format") == ["html"]:
+			return page(_("Calendar"), calendar.hcalendar(found))
+		return answer(200, {"from": first, "to": last, "events": found})
 
 	async def _card(self, kind: str, identifier: int) -> Response:
 		found = await self._database(lambda connection: queries.card(connection, kind, identifier))
