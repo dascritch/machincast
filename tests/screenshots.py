@@ -34,14 +34,15 @@ time.tzset()
 
 import psycopg  # noqa: E402
 import pytest  # noqa: E402
-from PySide6.QtCore import QPoint  # noqa: E402
+from PySide6.QtCore import QPoint, QRect, Qt  # noqa: E402
+from PySide6.QtGui import QColor, QFont, QPainter  # noqa: E402
 from PySide6.QtWidgets import QApplication, QGroupBox, QWidget  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
 from machincast.clock import FixedClock  # noqa: E402
 from machincast.configuration import Crossfades, Metadata  # noqa: E402
 from machincast.database import Role, open_connection  # noqa: E402
-from machincast.interface import columns, expandable  # noqa: E402
+from machincast.interface import columns, expandable, tab_help  # noqa: E402
 from machincast.interface.application import translate  # noqa: E402
 from machincast.interface.calendar import Calendar  # noqa: E402
 from machincast.interface.event_card import EventCard  # noqa: E402
@@ -83,7 +84,7 @@ DEVICES = (
 WEEK = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 OPENED_LIST = WEEK[:5]
 
-SCREENSHOTS = (
+GUIDE_PAGES = (
 	"accueil",
 	"pour-bien-demarrer",
 	"menu-diffusion",
@@ -106,7 +107,16 @@ SCREENSHOTS = (
 	"preecoute",
 	"preecoute-fichier",
 )
-"""Les captures, par nom de fichier sans extension, dans l'ordre où elles sont prises."""
+"""Les captures du guide, par nom de fichier sans extension, dans l'ordre où elles sont prises."""
+HELP_SCREENSHOTS: dict[str, str] = {}
+"""Les images annotées des pages d'aide (https://github.com/dascritch/machincast/issues/534), par genre d'onglet."""
+for _kind, _help in tab_help.KINDS.items():
+	HELP_SCREENSHOTS[_kind] = f"aide/{_help.page}"
+SCREENSHOTS = GUIDE_PAGES + tuple(HELP_SCREENSHOTS.values())
+"""Toutes les captures, par chemin sans extension, relatif au répertoire des captures."""
+MARK_RADIUS = 11
+MARK_COLOUR = "#d84315"
+"""Les numéros des images annotées : un disque orange brûlé, lisible sur un thème clair comme sombre."""
 
 
 @dataclass(frozen=True)
@@ -664,7 +674,7 @@ def _expand(window: MainWindow, title: str) -> None:
 
 def produce(directory: Path) -> dict[str, Path]:
 	"""Les captures de CAPTURES, dans le répertoire, sur la base de test déjà migrée, qu'elles remplacent."""
-	directory.mkdir(parents=True, exist_ok=True)
+	(directory / "aide").mkdir(parents=True, exist_ok=True)
 	application = QApplication.instance()
 	if application is None:
 		application = QApplication(sys.argv[:1])
@@ -802,6 +812,11 @@ def produce(directory: Path) -> dict[str, Path]:
 		wait(lambda: preview.timeline.head is not None)
 		take("preecoute-fichier", preview)
 		preview.close()
+		for kind, name in HELP_SCREENSHOTS.items():
+			_show_kind(window, connection, kind)
+			screenshots[name] = annotate(window, kind, directory / f"{name}.png")
+			if (kind.startswith("card:")) or (kind in CLOSED):
+				_close_tab(window)
 	finally:
 		window.close()
 		connection.close()
@@ -811,6 +826,83 @@ def produce(directory: Path) -> dict[str, Path]:
 		# fichier de MachinCast : le répertoire de travail des captures, sa configuration et sa socket.
 		shutil.rmtree(work, ignore_errors=True)
 	return screenshots
+
+
+CLOSED = ("simulation", "airplay", "search")
+"""Les onglets qu'une image annotée ouvre, puis referme : les fiches aussi."""
+LISTS = {"list:sound": "Sonores", "list:bank": "Banques", "list:sequence": "Séquences", "list:event": "Événements"}
+
+
+def _show_kind(window: MainWindow, connection: Connection, kind: str) -> None:
+	"""L'onglet d'un genre, tel que le montre sa page d'aide : une fiche de la démonstration, ou une liste."""
+	cards = {
+		"card:sound": "SELECT id FROM sounds WHERE title = 'Café à minuit'",
+		"card:bank": "SELECT id FROM banks WHERE internal_name = 'Musique rotation lourde'",
+		"card:sequence": "SELECT min(id) FROM sequences",
+		"card:event": "SELECT id FROM events WHERE internal_name = 'Matinale'",
+		"card:feed": "SELECT min(id) FROM feeds",
+	}
+	if kind in cards:
+		row = connection.execute(cards[kind]).fetchone()
+		assert row is not None, kind
+		window._open(kind.removeprefix("card:"), int(row[0]), "")
+		return
+	if kind in LISTS:
+		window.tab_manager.open_list(LISTS[kind])
+		return
+	if kind == "list:feed":
+		window.tab_manager.open_list("Feeds")
+		return
+	openings = {
+		"calendar": window._open_calendar,
+		"airplay": window._open_airplay,
+		"simulation": lambda: _simulate(window),
+	}
+	if kind in openings:
+		openings[kind]()
+		return
+	if kind == "search":
+		window._open_search()
+		_screen(window, SearchScreen).field.setText("café")
+		return
+	fixed = {"on_air": window.home, "incidents": window.incidents}
+	window.ui.tabs.setCurrentWidget(fixed[kind])
+
+
+def _mark(corner: QPoint, height: int) -> QRect:
+	"""Le disque d'un numéro : à gauche de l'élément, à mi-hauteur de sa première ligne ; sur son coin, contre le bord
+	de la fenêtre."""
+	diameter = 2 * MARK_RADIUS
+	top = corner.y() + (min(height, 2 * diameter) - diameter) // 2
+	left = corner.x() - diameter - 2
+	if left < 0:
+		left, top = max(corner.x() - 4, 0), corner.y() - 4
+	return QRect(left, top, diameter, diameter)
+
+
+def annotate(window: MainWindow, kind: str, path: Path) -> Path:
+	"""La fenêtre, et, sur chaque élément visible que décrit la page d'aide du genre, son numéro dans la page."""
+	wait(lambda: False, 0.3)
+	screen = window.ui.tabs.currentWidget()
+	assert screen is not None
+	picture = window.grab()
+	font = QFont(window.font())
+	font.setBold(True)
+	font.setPixelSize(13)
+	with QPainter(picture) as painter:
+		painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+		painter.setFont(font)
+		for entry in tab_help.read(kind):
+			widget = tab_help.widget_of(screen, entry.widget)
+			if (widget is not None) and (widget.isVisible()) and (not widget.visibleRegion().isEmpty()):
+				disc = _mark(widget.mapTo(window, QPoint(0, 0)), widget.height())
+				painter.setPen(QColor("white"))
+				painter.setBrush(QColor(MARK_COLOUR))
+				painter.drawEllipse(disc)
+				painter.drawText(disc, Qt.AlignmentFlag.AlignCenter, str(entry.number))
+	assert picture.save(str(path), "PNG"), path
+	log.info(f"capture annotée : {path}")
+	return path
 
 
 def _simulate(window: MainWindow) -> None:

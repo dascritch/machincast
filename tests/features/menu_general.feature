@@ -42,6 +42,9 @@ Fonctionnalité: Menu général de l'interface
 			| Espace disque… | active | | |
 		Et le menu « Aide » a les entrées :
 			| entrée                | état     | raccourci | infobulle                                                                    |
+			| Aide sur l'onglet Antenne | active   |           |                                                                              |
+			| Aide contextuelle     | active   | F1        |                                                                              |
+			| — | | | |
 			| Documentation         | active   |           |                                                                              |
 			| Votre installation…   | active   |           |                                                                              |
 			| Lien de l'équipe…     | inactive |           | Adresse à donner dans Fichier → Préférences de l'interface…, page Interface. |

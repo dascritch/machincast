@@ -99,6 +99,9 @@ Fonctionnalité: Votre installation, un document éditable, et le lien de l'équ
 		Quand la fenêtre de l'interface s'ouvre
 		Alors le menu « Aide » a les entrées :
 			| entrée                | état     | raccourci | infobulle                                                                               |
+			| Aide sur l'onglet Antenne | active   |           |                                                                                         |
+			| Aide contextuelle     | active   | F1        |                                                                                         |
+			| — | | | |
 			| Documentation         | active   |           |                                                                                         |
 			| Votre installation…   | active   |           |                                                                                         |
 			| Lien de l'équipe…     | inactive |           | Adresse à donner dans Fichier → Préférences de l'interface…, page Interface.            |

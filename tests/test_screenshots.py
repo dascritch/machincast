@@ -33,10 +33,19 @@ def produced_list() -> set[str]:
 def cited_list() -> dict[Path, Path]:
 	"""Chaque image citée par le guide utilisateur, et la page qui la cite."""
 	cited_list = {}
-	for page in sorted(GUIDE.glob("*.md")):
+	for page in sorted(GUIDE.rglob("*.md")):
 		for path in IMAGE.findall(page.read_text(encoding="utf-8")):
 			cited_list[(page.parent / path).resolve()] = page
 	return cited_list
+
+
+def images(directory: Path) -> set[str]:
+	"""Les fichiers du répertoire, et de ses sous-répertoires, par leur chemin relatif : « aide/antenne.png »."""
+	image_set = set()
+	for image in directory.rglob("*"):
+		if image.is_file():
+			image_set.add(image.relative_to(directory).as_posix())
+	return image_set
 
 
 @pytest.fixture
@@ -58,19 +67,13 @@ def produce(empty_database: Connection, qtbot: QtBot, tmp_path: Path, products: 
 
 @then("chaque capture de Machin dev-screenshots est une image de doc/fr/captures")
 def presented_screenshot() -> None:
-	image_set = set()
-	for image in SCREENSHOTS.glob("*"):
-		image_set.add(image.name)
-	missing_list = sorted(produced_list() - image_set)
+	missing_list = sorted(produced_list() - images(SCREENSHOTS))
 	assert not missing_list, f"lancer bin/Machin dev-screenshots : {missing_list}"
 
 
 @then("chaque image de doc/fr/captures est une capture de Machin dev-screenshots")
 def produced_image() -> None:
-	image_set = set()
-	for image in SCREENSHOTS.glob("*"):
-		image_set.add(image.name)
-	orphaned = sorted(image_set - produced_list())
+	orphaned = sorted(images(SCREENSHOTS) - produced_list())
 	assert not orphaned, orphaned
 
 
@@ -88,7 +91,7 @@ def cited_screenshot() -> None:
 def cited_in_screenshots() -> None:
 	image_list = []
 	for image, page in cited_list().items():
-		if image.parent != SCREENSHOTS:
+		if not image.is_relative_to(SCREENSHOTS):
 			image_list.append(f"{page.name} : {image}")
 	elsewhere = sorted(image_list)
 	assert not elsewhere, elsewhere
@@ -96,10 +99,7 @@ def cited_in_screenshots() -> None:
 
 @then("le répertoire contient une image PNG par capture, et rien d'autre")
 def a_by_screenshot(tmp_path: Path, products: dict[str, Path]) -> None:
-	image_list = []
-	for image in (tmp_path / "captures").iterdir():
-		image_list.append(image.name)
-	assert sorted(image_list) == sorted(produced_list())
+	assert images(tmp_path / "captures") == produced_list()
 	assert sorted(products) == sorted(screenshots.SCREENSHOTS)
 
 
