@@ -22,6 +22,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| sequence_items   | oui  | non     | non      | non       |
 			| airplay          | oui  | oui     | non      | non       |
 			| log              | non  | oui     | non      | non       |
+			| api_users        | non  | non     | non      | non       |
 
 	Scénario: Droits du binaire indexation
 		https://github.com/dascritch/machincast/issues/195 : l'indexation retire d'une banque les sonores hors de ses durées.
@@ -41,6 +42,26 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| sequence_items   | non  | non     | non      | non       |
 			| airplay          | non  | non     | non      | non       |
 			| log              | non  | oui     | non      | non       |
+			| api_users        | non  | non     | non      | non       |
+
+	Scénario: Droits du serveur intranet
+		https://github.com/dascritch/machincast/issues/537 : il ne fait que lire les comptes.
+
+		Alors le rôle "machincast_intranet" a exactement ces droits :
+			| table            | lire | inserer | modifier | supprimer |
+			| sounds           | non  | non     | non      | non       |
+			| feeds            | non  | non     | non      | non       |
+			| banks            | non  | non     | non      | non       |
+			| bank_directories | non  | non     | non      | non       |
+			| bank_sounds      | non  | non     | non      | non       |
+			| events           | non  | non     | non      | non       |
+			| event_items      | non  | non     | non      | non       |
+			| event_skips      | non  | non     | non      | non       |
+			| sequences        | non  | non     | non      | non       |
+			| sequence_items   | non  | non     | non      | non       |
+			| airplay          | non  | non     | non      | non       |
+			| log              | non  | non     | non      | non       |
+			| api_users        | oui  | non     | non      | non       |
 
 	Scénario: Droits de l'interface
 		Alors le rôle "machincast_interface" a exactement ces droits :
@@ -57,6 +78,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| sequence_items   | oui  | oui     | oui      | oui       |
 			| airplay          | oui  | non     | non      | non       |
 			| log              | oui  | non     | non      | non       |
+			| api_users        | oui  | oui     | oui      | oui       |
 
 	Plan du scénario: Le binaire lecture ne modifie que le champ « etat » des sonores
 		Alors le rôle "machincast_player" <verdict> modifier la colonne "<colonne>" des sonores
@@ -78,6 +100,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| machincast_indexer   | peut        |
 			| machincast_player    | peut        |
 			| machincast_interface | ne peut pas |
+			| machincast_intranet  | ne peut pas |
 
 	Scénario: Le binaire lecture enregistre un passage complet
 		Quand le rôle "machincast_player" enregistre le début et la fin d'un passage, puis une entrée de log
@@ -88,8 +111,8 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		Quand le rôle "machincast_interface" supprime le sonore de référence
 		Alors la ligne d'airplay existe toujours, sans référence au sonore
 
-	Scénario: Le compte qui lance les tests endosse les trois rôles, sans en hériter les droits
-		Alors le compte courant peut endosser chacun des trois rôles, sans en hériter les droits
+	Scénario: Le compte qui lance les tests endosse les rôles, sans en hériter les droits
+		Alors le compte courant peut endosser chacun des rôles, sans en hériter les droits
 
 	Plan du scénario: Chaque binaire se connecte avec son propre rôle
 		Quand je me connecte à la base de test avec le rôle "<role>"
@@ -100,7 +123,8 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| machincast_player    |
 			| machincast_indexer |
 			| machincast_interface  |
+			| machincast_intranet   |
 
 	Scénario: L'annulation des migrations ne supprime pas les rôles
 		Quand j'annule toutes les migrations
-		Alors les trois rôles existent toujours
+		Alors les rôles existent toujours

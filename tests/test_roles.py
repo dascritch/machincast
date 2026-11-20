@@ -31,6 +31,7 @@ INSERTIONS: dict[str, str] = {
 	"sequence_items": ("INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES ({sequence}, 1, {sonore})"),
 	"airplay": "INSERT INTO airplay (play_id, line_type) VALUES (gen_random_uuid(), 'start')",
 	"log": "INSERT INTO log (level, kind) VALUES ('info', 'essai')",
+	"api_users": "INSERT INTO api_users (name, password_hash) VALUES ('essai', 'scrypt$essai')",
 }
 CHANGES: dict[str, str] = {
 	"sounds": "title = NULL",
@@ -45,6 +46,7 @@ CHANGES: dict[str, str] = {
 	"sequence_items": "position = 2",
 	"airplay": "title = NULL",
 	"log": "message = ''",
+	"api_users": "role = 'actions'",
 }
 
 
@@ -208,16 +210,16 @@ def acts_in_as_long_as_that(current_role: str, role: str) -> None:
 	assert current_role == role
 
 
-@then("les trois rôles existent toujours")
+@then("les rôles existent toujours")
 def roles_exist(context: Context) -> None:
 	role_names = []
 	for role in Role:
 		role_names.append(str(role))
 	lines = context.connection.execute("SELECT rolname FROM pg_roles WHERE rolname = ANY(%s)", (role_names,)).fetchall()
-	assert len(lines) == 3
+	assert len(lines) == len(Role)
 
 
-@then("le compte courant peut endosser chacun des trois rôles, sans en hériter les droits")
+@then("le compte courant peut endosser chacun des rôles, sans en hériter les droits")
 def current_count(context: Context) -> None:
 	role_list = []
 	for role in Role:

@@ -54,6 +54,7 @@ VIEWS = {
 	"fiche-sonore-passages",
 	"espace-disque-montages",
 	"espace-disque-repertoires",
+	"api-utilisateurs",
 }
 """Les vues de l'interface, une par tableau."""
 

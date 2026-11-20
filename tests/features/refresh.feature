@@ -33,6 +33,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 			| Ouvrir l'onglet Grille horaire | active   |              |           |
 			| Ouvrir l'onglet Simulation     | active   |              |           |
 			| Ouvrir l'onglet Airplay        | active   |              |           |
+			| Ouvrir l'onglet API            | active   |              |           |
 			| Pré-écoute…                    | active   |              |           |
 			| —                              |          |              |           |
 			| Rouvrir l'onglet fermé         | inactive | Ctrl+Shift+T |           |

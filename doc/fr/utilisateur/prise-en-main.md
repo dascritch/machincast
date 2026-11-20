@@ -152,6 +152,7 @@ Une fonction pas encore écrite a déjà son entrée, grisée : son infobulle do
 | Affichage | Ouvrir l'onglet Grille horaire | Ramène au premier plan le calendrier, toujours ouvert après l'onglet Antenne ([Calendrier](grille.md#calendrier)). |
 | Affichage | Ouvrir l'onglet Simulation | Ouvre la simulation ([Simulation](grille.md#simulation)). |
 | Affichage | Ouvrir l'onglet Airplay | Ouvre l'historique de diffusion, réglable et exportable ([Onglet Airplay](#onglet-airplay)). |
+| Affichage | Ouvrir l'onglet API | Ouvre les comptes de l'intranet et de l'API ([#537](https://github.com/dascritch/machincast/issues/537)) : les créer, changer leur rôle et leur mot de passe, les désactiver, les supprimer ([Comptes de l'intranet](../administration/configuration.md#comptes-de-lintranet)). |
 | Affichage | Pré-écoute… | Ouvre la fenêtre de pré-écoute ([Pré-écoute](sonores.md#pré-écoute)). Comme chaque bouton et chaque entrée de pré-écoute, elle porte un casque. |
 | Affichage | Rouvrir l'onglet fermé | Rouvre le dernier onglet fermé, aussi par <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> ; inactive tant qu'aucun onglet n'a été fermé ([#428](https://github.com/dascritch/machincast/issues/428)). |
 | Affichage | Onglets fermés récemment | Les 5 derniers onglets fermés, le plus récent en tête : choisir l'un d'eux le rouvre. La fiche d'un élément supprimé, ou pas encore enregistrée, n'y est pas. |

@@ -35,8 +35,10 @@ TABLES: tuple[str, ...] = (
 	"sequence_items",
 	"airplay",
 	"log",
+	"api_users",
 )
-"""Tables créées par les migrations, dans l'ordre de doc/fr/spec.md § 3.1."""
+"""Tables créées par les migrations, dans l'ordre de doc/fr/spec.md § 3.1 ; api_users depuis
+https://github.com/dascritch/machincast/issues/537."""
 
 TYPES: tuple[str, ...] = (
 	"sound_type",
@@ -48,6 +50,7 @@ TYPES: tuple[str, ...] = (
 	"sound_state",
 	"crossfade_rule",
 	"end_of_list",
+	"api_role",
 )
 """Types énumérés créés par la migration ; end_of_list depuis https://github.com/dascritch/machincast/issues/350."""
 
@@ -58,6 +61,8 @@ class Role(StrEnum):
 	PLAYBACK = "machincast_player"
 	INDEXING = "machincast_indexer"
 	INTERFACE = "machincast_interface"
+	INTRANET = "machincast_intranet"
+	"""Le serveur intranet et son API (https://github.com/dascritch/machincast/issues/537)."""
 
 
 def url_yoyo(socket: Path, database: str) -> str:

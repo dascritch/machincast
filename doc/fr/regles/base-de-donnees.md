@@ -54,7 +54,7 @@ Modèle complet : [spec.md § 3](../spec.md#3-base-de-données).
 Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles-et-droits).
 Il est appliqué deux fois :
 
-1. en base, par les `GRANT` des migrations, `0001.initial-schema` d'abord, aux rôles `machincast_player`, `machincast_indexer` et `machincast_interface` ;
+1. en base, par les `GRANT` des migrations, `0001.initial-schema` d'abord, aux rôles `machincast_player`, `machincast_indexer` et `machincast_interface`, puis `0005.api-users` à `machincast_intranet`, le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)) ;
 2. dans le code : chaque binaire n'exécute que les requêtes autorisées à son rôle.
 
 Règles :

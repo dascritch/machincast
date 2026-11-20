@@ -70,14 +70,29 @@ retention = 90
 
 ## Droits de chaque programme dans la base
 
-Chaque programme agit dans la base avec ses propres droits : le compte qui le lance n'a accès à rien par lui-même, et le programme endosse son rôle PostgreSQL dès la connexion. Un programme ne peut donc pas faire plus que ce qui suit, même lancé par un compte qui a les trois rôles.
+Chaque programme agit dans la base avec ses propres droits : le compte qui le lance n'a accès à rien par lui-même, et le programme endosse son rôle PostgreSQL dès la connexion. Un programme ne peut donc pas faire plus que ce qui suit, même lancé par un compte qui a les quatre rôles.
 
 | Programme | Rôle PostgreSQL | Ce qu'il peut faire |
 | --- | --- | --- |
 | `Machin player` | `machincast_player` | Lire la programmation, séquences comprises ; passer un sonore à `expiré` ; ajouter des lignes à l'airplay et au log, sans jamais les modifier ni les supprimer. |
 | `Machin indexer` | `machincast_indexer` | Lire les banques et leurs répertoires ; ajouter et mettre à jour des sonores, les ranger dans les banques, et en retirer ceux qui sortent de leurs durées ; noter la fin du parcours de chaque répertoire. Il ne supprime aucun sonore, et n'ajoute au log que ses démarrages et ses fins ([Démarrages et fins dans le log](commandes.md#démarrages-et-fins-dans-le-log)). |
-| `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques, les séquences et les événements ; lire l'airplay et le log, sans les modifier. |
+| `Machin interface` | `machincast_interface` | Tout modifier dans les sonores, les banques, les séquences et les événements ; lire l'airplay et le log, sans les modifier ; gérer les comptes de l'intranet ([#537](https://github.com/dascritch/machincast/issues/537)). |
+| Serveur intranet | `machincast_intranet` | Lire les comptes de l'intranet, sans les modifier ([#537](https://github.com/dascritch/machincast/issues/537)). |
 
 `Machin maintenance-db`, `Machin backup-db`, `Machin restore-db` et `Machin purge` n'endossent aucun rôle : ils agissent en propriétaire de la base, ce qu'est le compte de MachinCast. Seule la purge efface des lignes de l'airplay et du log.
 
 Le détail, table par table, est dans la [spécification, § 3.2](../spec.md#32-rôles-et-droits). Ajouter un autre compte est décrit dans [INSTALL.md](../../../INSTALL.fr.md#ajouter-un-autre-compte).
+
+## Comptes de l'intranet
+
+L'intranet et son API ([#524](https://github.com/dascritch/machincast/issues/524)) ne laissent entrer que les comptes créés dans l'onglet **API** de l'interface, qu'ouvre **Affichage → Ouvrir l'onglet API** ([#537](https://github.com/dascritch/machincast/issues/537)).
+L'[aide de l'onglet](../utilisateur/aide/api.md) décrit chacun de ses éléments.
+
+- **➕ Nouveau compte…** demande un nom, un mot de passe, sa confirmation et un rôle.
+	Le nom se tape dans l'adresse de l'intranet, `https://nom@adresse` : lettres sans accent, chiffres, point, tiret et souligné.
+	Le mot de passe a au moins 12 caractères.
+- **Rôle** : `consulter` donne l'intranet et l'API en lecture ; `actions API` donne la même chose, et les actions que l'API proposera.
+- **Changer le mot de passe…**, **Désactiver** (puis **Réactiver**) et **❌ Supprimer…** agissent sur le compte choisi.
+	Un compte désactivé ou supprimé ne se connecte plus.
+- Il n'y a pas de récupération de mot de passe : un mot de passe oublié se change ici.
+- MachinCast ne garde jamais un mot de passe, seulement son empreinte scrypt salée : même la base ne permet pas de le retrouver.

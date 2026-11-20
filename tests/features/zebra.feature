@@ -57,6 +57,7 @@ Fonctionnalité: Tableaux en zebra
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je choisis « Ouvrir l'onglet Simulation » dans le menu « Affichage »
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
 		Et j'appuie sur « Ctrl+F »
 		Alors chaque tableau de la fenêtre alterne ses lignes
 

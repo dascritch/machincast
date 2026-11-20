@@ -29,13 +29,13 @@ python3 -m venv .venv && . .venv/bin/activate && pip install -c constraints.txt 
 cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionné
 
 # Base de test locale (PostgreSQL ≥ 16, authentification peer) : ./install.sh la prépare. Le compte n'a besoin
-# d'aucun droit particulier (ni CREATEDB, ni CREATEROLE) : propriétaire de la base, il endosse les trois rôles
+# d'aucun droit particulier (ni CREATEDB, ni CREATEROLE) : propriétaire de la base, il endosse les quatre rôles
 # sans en hériter les droits. Les tests ne créent jamais de compte et n'attribuent jamais de rôle. À la main :
 sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
 sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
-	-c "CREATE ROLE machincast_interface NOLOGIN"
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_intranet NOLOGIN"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
 # Pour un ticket : bin/Machin dev-test --scenarios <fonctionnalités…> [wrapper] ; la suite complète, tous les 10

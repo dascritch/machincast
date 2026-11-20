@@ -62,6 +62,7 @@ def reset_database(connection: psycopg.Connection[tuple[object, ...]]) -> None:
 
 
 PURGE_ORDER: tuple[str, ...] = (
+	"api_users",
 	"log",
 	"airplay",
 	"sequence_items",
@@ -103,7 +104,7 @@ def purge_database(connection: psycopg.Connection[tuple[object, ...]]) -> None:
 
 
 def authorisation_command(name: str) -> str:
-	"""La commande qui autorise le compte à endosser les trois rôles, comme le fait install.sh."""
+	"""La commande qui autorise le compte à endosser les rôles, comme le fait install.sh."""
 	role_list = []
 	for role in Role:
 		role_list.append(str(role))
@@ -112,7 +113,7 @@ def authorisation_command(name: str) -> str:
 
 
 def check_authorisations(connection: psycopg.Connection[tuple[object, ...]]) -> None:
-	"""Ignore le scénario si le compte qui lance les tests ne peut pas endosser les trois rôles de MachinCast.
+	"""Ignore le scénario si le compte qui lance les tests ne peut pas endosser les rôles de MachinCast.
 
 	Les tests ne créent jamais de compte PostgreSQL et n'attribuent jamais de rôle : le compte doit déjà y être
 	autorisé, par install.sh ou par l'utilisateur postgres (https://github.com/dascritch/machincast/pull/72).

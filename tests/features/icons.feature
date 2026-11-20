@@ -35,11 +35,12 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| skip       | #2a2a2a |
 			| insert     | #2a2a2a |
 			| cut        | #2a2a2a |
+			| api        | #2a2a2a |
 			| sonore     | #f0f0f0 |
 			| simulation | #f0f0f0 |
 
-	Scénario: Les quinze icônes sont différentes les unes des autres
-		Alors les icônes « sonore », « séquence », « banque », « événement », « grille », « simulation », « pré-écoute », « airplay », « feed », « start », « stop », « restart », « skip », « insert » et « cut » sont toutes différentes
+	Scénario: Les seize icônes sont différentes les unes des autres
+		Alors les icônes « sonore », « séquence », « banque », « événement », « grille », « simulation », « pré-écoute », « airplay », « feed », « start », « stop », « restart », « skip », « insert », « cut » et « api » sont toutes différentes
 
 	Scénario: L'icône suit la couleur du texte du thème de l'application
 		Quand le thème de l'application écrit en #f0f0f0
@@ -139,6 +140,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 			| Ouvrir l'onglet Grille horaire  | grille     |
 			| Ouvrir l'onglet Simulation      | simulation |
 			| Ouvrir l'onglet Airplay         | airplay    |
+			| Ouvrir l'onglet API             | api        |
 			| Pré-écoute…                     | pré-écoute |
 
 	Scénario: La colonne « Type » de la recherche porte l'icône de chaque genre

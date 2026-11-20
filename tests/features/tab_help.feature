@@ -53,6 +53,7 @@ Fonctionnalité: Aide propre à l'onglet affiché, en page et en infobulles
 			| calendar      | Aide sur la grille horaire             | grille           |
 			| simulation    | Aide sur la simulation                 | simulation       |
 			| airplay       | Aide sur l'onglet Airplay              | airplay          |
+			| api           | Aide sur l'onglet API                  | api              |
 			| search        | Aide sur la recherche                  | recherche        |
 			| incidents     | Aide sur l'onglet Incidents            | incidents        |
 

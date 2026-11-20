@@ -46,6 +46,7 @@ def show_kind(interface: Context, kind: str) -> None:
 		"calendar": opened._open_calendar,
 		"simulation": opened._open_simulation,
 		"airplay": opened._open_airplay,
+		"api": opened._open_api,
 		"search": opened._open_search,
 	}
 	if kind in openings:
