@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 INSTALLS = {"INSTALL.md": ROOT / "INSTALL.md", "INSTALL.fr.md": ROOT / "INSTALL.fr.md"}
 """INSTALL.md, en anglais, et sa source française (https://github.com/dascritch/machincast/issues/355)."""
 SCRIPT = ROOT / "install.sh"
-CLAUDE = ROOT / "CLAUDE.md"
+CLAUDE = ROOT / "AGENTS.md"
 
 GRANT = re.compile(
 	r"GRANT machincast_player, machincast_indexer, machincast_interface TO .+? WITH INHERIT FALSE, SET TRUE"
@@ -99,7 +99,7 @@ def explained_packages(document: str) -> None:
 	assert not absent_list, absent_list
 
 
-@then(parsers.parse("{document}, install.sh et CLAUDE.md accordent les trois rôles par le même GRANT"))
+@then(parsers.parse("{document}, install.sh et AGENTS.md accordent les trois rôles par le même GRANT"))
 def same_grant(document: str) -> None:
 	absent_list = []
 	for path in (INSTALLS[document], SCRIPT, CLAUDE):
@@ -208,7 +208,7 @@ def section_definition_of_done() -> None:
 	assert "documentées pour les humains" in section.group(1)
 
 
-@then("les impératifs de CLAUDE.md renvoient à la definition of done")
+@then("les impératifs de AGENTS.md renvoient à la definition of done")
 def imperatives() -> None:
 	imperatives = text(CLAUDE).split("## Impératifs", 1)[1]
 	assert "doc/fr/regles/developpement.md#definition-of-done" in imperatives

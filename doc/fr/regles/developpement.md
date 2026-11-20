@@ -82,7 +82,7 @@ Une même fonction peut paraître dans deux guides, chacun pour son public : l'o
 Les scénarios de [`guide.feature`](../../../tests/features/guide.feature) échouent quand une option d'un programme manque au guide d'administration, ou un état d'un sonore, un verdict de vérification ou une clé de métadonnées au guide de l'antenne ([#74](https://github.com/dascritch/machincast/issues/74)) ; ceux de [`screenshots.feature`](../../../tests/features/screenshots.feature), quand une capture manque, ou n'est pas citée.
 
 Le modèle de description de PR ([`.github/pull_request_template.md`](../../../.github/pull_request_template.md)) reprend ces points en cases à cocher, dont « documentation humaine à jour », cochées avant la demande de relecture.
-Un scénario de [`documentation.feature`](../../../tests/features/documentation.feature) vérifie que cette section, le renvoi de `CLAUDE.md` et la case du modèle de PR existent.
+Un scénario de [`documentation.feature`](../../../tests/features/documentation.feature) vérifie que cette section, le renvoi de `AGENTS.md` et la case du modèle de PR existent.
 
 ## Références aux tickets et aux PR
 

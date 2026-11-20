@@ -5,7 +5,7 @@ Fonctionnalité: Documentation d'installation et definition of done
 	afin d'installer et de mettre à jour un poste sans connaître le code.
 
 	INSTALL.md n'est pas exécuté par ces scénarios : ils vérifient que ce qu'il cite existe et reste cohérent
-	avec install.sh et CLAUDE.md (https://github.com/dascritch/machincast/issues/71).
+	avec install.sh et AGENTS.md (https://github.com/dascritch/machincast/issues/71).
 
 	# ─── Documentation par langue (https://github.com/dascritch/machincast/issues/355) ───
 
@@ -30,15 +30,15 @@ Fonctionnalité: Documentation d'installation et definition of done
 			| README.md    | INSTALL.md    |
 			| README.fr.md | INSTALL.fr.md |
 
-	Scénario: CLAUDE.md et install.sh demandent les mêmes paquets apt
-		Alors la première commande apt de CLAUDE.md installe les paquets d'install.sh
+	Scénario: AGENTS.md et install.sh demandent les mêmes paquets apt
+		Alors la première commande apt de AGENTS.md installe les paquets d'install.sh
 
 	Plan du scénario: <install> est fidèle à install.sh et aux commandes de MachinCast
 		INSTALL.md, en anglais, et INSTALL.fr.md, sa source française, citent les mêmes commandes.
 
 		Alors la première commande apt de <install> installe les paquets d'install.sh
 		Et chaque paquet apt d'install.sh figure dans un tableau de <install>
-		Et <install>, install.sh et CLAUDE.md accordent les trois rôles par le même GRANT
+		Et <install>, install.sh et AGENTS.md accordent les trois rôles par le même GRANT
 		Et aucune commande createuser de <install> ne donne de droit particulier
 		Et chaque option d'install.sh citée dans <install> figure dans son aide
 		Et chaque commande Machin citée dans <install> appelle un binaire et des options qui existent
@@ -55,7 +55,7 @@ Fonctionnalité: Documentation d'installation et definition of done
 
 	Scénario: Un ticket n'est terminé qu'avec sa documentation pour les humains
 		Alors les règles de développement ont une section « Definition of done » qui exige la documentation humaine
-		Et les impératifs de CLAUDE.md renvoient à la definition of done
+		Et les impératifs de AGENTS.md renvoient à la definition of done
 		Et le modèle de description de PR comporte la case « documentation humaine à jour »
 
 	Scénario: Les informations des versions publiées concordent : nouveautés, RELEASE.md, README.md, leurs sources françaises, et pyproject.toml

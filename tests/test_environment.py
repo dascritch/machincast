@@ -45,4 +45,4 @@ def gstreamer() -> None:
 	gi.require_version("Gst", "1.0")
 	from gi.repository import Gst
 
-	assert Gst.init_check(None), "GStreamer manquant : installer gir1.2-gstreamer-1.0 et les plugins (voir CLAUDE.md)"
+	assert Gst.init_check(None), "GStreamer manquant : installer gir1.2-gstreamer-1.0 et les plugins (voir AGENTS.md)"

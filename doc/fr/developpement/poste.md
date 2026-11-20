@@ -45,7 +45,7 @@ MACHINCAST_CONFIG_TEST=configuration-test-locale.toml pytest
 
 Si PostgreSQL est injoignable, ou si le compte n'endosse pas les trois rôles, les scénarios de base de données sont ignorés avec la commande à lancer.
 
-Sans `install.sh`, préparer la base de test à la main avec les étapes 2, 4 et 5 de [Installer à la main](../../../INSTALL.fr.md#installer-à-la-main), en ne créant que la base `machincast_test`. Les commandes de développement sont résumées dans [CLAUDE.md](../../../CLAUDE.md), et les règles du projet dans [doc/fr/regles](../regles/developpement.md).
+Sans `install.sh`, préparer la base de test à la main avec les étapes 2, 4 et 5 de [Installer à la main](../../../INSTALL.fr.md#installer-à-la-main), en ne créant que la base `machincast_test`. Les commandes de développement sont résumées dans [AGENTS.md](../../../AGENTS.md), et les règles du projet dans [doc/fr/regles](../regles/developpement.md).
 
 ## Captures d'écran du guide de l'antenne
 

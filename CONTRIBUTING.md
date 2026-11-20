@@ -2,7 +2,7 @@
 
 *[Version française](CONTRIBUTING.fr.md)*
 
-Before any change, read [CLAUDE.md](CLAUDE.md) and the [development rules](doc/fr/regles/developpement.md) (French): a ticket, BDD scenarios first, one commit per feature, tab indentation, [definition of done](doc/fr/regles/developpement.md#definition-of-done). The development machine is installed with `./install.sh --dev` ([INSTALL.md](INSTALL.md)), which installs the exact versions of `constraints.txt`: a new dependency is declared in `pyproject.toml` **and** added, with its version, to `constraints.txt` ([#438](https://github.com/dascritch/machincast/issues/438)). `bin/Machin dev-test --coverage` measures the test coverage, subprocesses included ([development machine](doc/fr/developpement/poste.md), French).
+Before any change, read [AGENTS.md](AGENTS.md) and the [development rules](doc/fr/regles/developpement.md) (French): a ticket, BDD scenarios first, one commit per feature, tab indentation, [definition of done](doc/fr/regles/developpement.md#definition-of-done). The development machine is installed with `./install.sh --dev` ([INSTALL.md](INSTALL.md)), which installs the exact versions of `constraints.txt`: a new dependency is declared in `pyproject.toml` **and** added, with its version, to `constraints.txt` ([#438](https://github.com/dascritch/machincast/issues/438)). `bin/Machin dev-test --coverage` measures the test coverage, subprocesses included ([development machine](doc/fr/developpement/poste.md), French).
 
 ## Interface screens
 

@@ -86,7 +86,7 @@ class Requirement:
 class SoundFormat:
 	requirements: tuple[Requirement, ...]
 	package: str
-	"""Paquet Ubuntu qui fournit les éléments, parmi les prérequis de CLAUDE.md."""
+	"""Paquet Ubuntu qui fournit les éléments, parmi les prérequis de AGENTS.md."""
 
 
 _DECODER = Gst.ELEMENT_FACTORY_TYPE_DECODER

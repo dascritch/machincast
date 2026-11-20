@@ -14,7 +14,7 @@ Ce guide s'adresse aux développeurs de MachinCast. L'usage de l'interface est d
   - [Machin indexer](../regles/indexation.md) ;
   - [Machin interface](../regles/interface.md) ;
   - [Wrapper Machin, configuration, install.sh](../regles/wrapper.md).
-- [CLAUDE.md](../../../CLAUDE.md) : les commandes du dépôt, en résumé.
+- [AGENTS.md](../../../AGENTS.md) : les commandes du dépôt, en résumé.
 - Les tickets : [GitHub Issues](https://github.com/dascritch/machincast/issues).
 
 ## Où va la documentation

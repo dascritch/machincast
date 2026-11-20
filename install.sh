@@ -112,14 +112,14 @@ VENV="${RACINE}/.venv"
 ROLES=(player indexer interface)
 
 # Prérequis système : ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51).
-# Même liste que CLAUDE.md, sans les outils de développement.
+# Même liste que AGENTS.md, sans les outils de développement.
 PAQUETS=(
 	python3-venv python3-dev build-essential pkg-config libgirepository-2.0-dev libcairo2-dev
 	gir1.2-gstreamer-1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
 	gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-pipewire pipewire-bin libmagic1t64 postgresql bash-completion
 	acl wireplumber
 )
-# Outils du poste de développement, installés par --dev : ceux de CLAUDE.md.
+# Outils du poste de développement, installés par --dev : ceux de AGENTS.md.
 PAQUETS_DEV=(bats shellcheck desktop-file-utils pipewire wireplumber)
 
 SIMULATION=false

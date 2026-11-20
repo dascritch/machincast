@@ -13,7 +13,7 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 	Les binaires s'y lancent par `lancer_binaire`, qui rend leur code au lieu de sortir.
 - Développement ([#77](https://github.com/dascritch/machincast/issues/77)) : `Machin dev` (sous-shell, venv activé) et `Machin dev-test` (toutes les vérifications, avec un bilan).
 	`Machin dev-test --coverage`, avant `--scenarios` s'il y en a ([#438](https://github.com/dascritch/machincast/issues/438)), lance `pytest` par `coverage run -m pytest` puis ajoute au bilan `coverage combine` et `coverage report`.
-	La liste des outils de `dev-test` est celle de la section « Qualité » et des tests de `CLAUDE.md` : la changer d'un côté, c'est la changer de l'autre.
+	La liste des outils de `dev-test` est celle de la section « Qualité » et des tests de `AGENTS.md` : la changer d'un côté, c'est la changer de l'autre.
 	Ils restent visibles sans `--dev`, et nomment alors ce qui manque.
 	`Machin dev-screenshots` ([#128](https://github.com/dascritch/machincast/issues/128)) refait les captures du guide de l'antenne avec le Python du venv, depuis le répertoire de MachinCast (`python -m tests.screenshots`) : jamais avec `--config`, puisqu'il n'écrit que dans la base de test.
 - Un nouveau binaire `Machin_<nom>` s'ajoute aussi au tableau `BINAIRES` du wrapper et à son aide complète : un test bats vérifie que `BINAIRES` correspond à `[project.scripts]` de `pyproject.toml`.
@@ -57,10 +57,10 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 	Une nouvelle ligne est une `info`, sauf si un technicien doit la lire : l'oublier n'avertit de rien, la montrer à tort noie l'essentiel.
 	Les couleurs passent par `choisir_couleurs` (terminal seulement, `NO_COLOR` les coupe, `FORCE_COLOR` les impose pour les tests).
 	Une question passe par `interroger` : en blanc et en gras, ou dans une fenêtre `kdialog` sur un poste graphique local (`graphique`), jamais par un `read -p`.
-- La liste des paquets apt d'`install.sh` est celle des prérequis de `CLAUDE.md`, sans les outils de développement, que `--dev` ajoute (`PAQUETS_DEV`).
+- La liste des paquets apt d'`install.sh` est celle des prérequis de `AGENTS.md`, sans les outils de développement, que `--dev` ajoute (`PAQUETS_DEV`).
 - [`INSTALL.md`](../../../INSTALL.fr.md) documente `install.sh` pour l'administrateur, étape par étape, avec les commandes équivalentes à la main ([#71](https://github.com/dascritch/machincast/issues/71)).
 	Toute modification d'`install.sh`, du wrapper ou de `machincast.installation` le met à jour dans le même commit.
-	[`documentation.feature`](../../../tests/features/documentation.feature) vérifie que ses paquets apt, son `GRANT`, les options, binaires et étapes qu'il cite et ses liens restent cohérents avec `install.sh`, `CLAUDE.md` et le code.
+	[`documentation.feature`](../../../tests/features/documentation.feature) vérifie que ses paquets apt, son `GRANT`, les options, binaires et étapes qu'il cite et ses liens restent cohérents avec `install.sh`, `AGENTS.md` et le code.
 - Le compte qui installe ne reçoit aucun droit particulier sur le serveur PostgreSQL (ni `CREATEDB`, ni `CREATEROLE`) : tout ce qui en demande passe par `sudo -u postgres` (revue de [PR #72](https://github.com/dascritch/machincast/pull/72)).
 - Environnement virtuel isolé : jamais `--system-site-packages`.
 	Toute dépendance Python est déclarée dans `pyproject.toml` et installée par pip ; apt ne fournit que les bibliothèques système ([#51](https://github.com/dascritch/machincast/issues/51)).
