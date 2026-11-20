@@ -370,6 +370,7 @@ Fonctionnalité: Vérifications de l'installation
 			| wireplumber-desktop | FICHIER_WIREPLUMBER_BUREAU  |
 			| tmpfiles            | FICHIER_TMPFILES            |
 			| logrotate           | FICHIER_LOGROTATE           |
+			| profile             | FICHIER_PROFIL              |
 			| tasks-unit          | FICHIER_UNITE_TACHES        |
 			| tasks-timer         | FICHIER_MINUTEUR_TACHES     |
 			| indexing-unit       | FICHIER_UNITE_INDEXATION    |
@@ -667,3 +668,83 @@ Fonctionnalité: Vérifications de l'installation
 		Et Machin restore-db qui refuse la sauvegarde
 		Quand install.sh propose de réimporter une sauvegarde
 		Alors install.sh s'arrête avec le message « sauvegarde /srv/base.dump non réimportée : corriger, puis Machin restore-db FICHIER avant de relancer ./install.sh »
+
+	# https://github.com/dascritch/machincast/issues/517 : un installateur plus simple et moins rebutant pour un technicien
+	# radio qui travaille dans un environnement graphique. La bannière est celle de « Machin banner » (wrapper.bats), lancée
+	# au début d'install.sh, et à chaque nouveau shell interactif quand le service est installé. Sans --verbose ni
+	# --simulation, les lignes d'information techniques sont cachées ; les avertissements sont en jaune, les échecs en jaune
+	# vif sur fond rouge sombre, les questions en blanc et en gras, ou dans une fenêtre kdialog sur un poste graphique local.
+
+	Scénario: Le script de session de chaque nouveau shell lance la bannière, dans un shell interactif seulement
+		Quand je lance « python -m machincast.installation profile » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et sa sortie a, hors commentaires, les lignes :
+			| ligne                                                           |
+			| case "$-" in                                                    |
+			| *i*)                                                            |
+			| if [ -t 1 ] && command -v Machin >/dev/null 2>&1; then         |
+			| Machin banner                                                   |
+			| fi                                                              |
+			| ;;                                                              |
+			| esac                                                            |
+
+	Scénario: Le script de session ne montre rien hors d'un shell interactif, ni quand la sortie n'est pas un terminal
+		Quand un shell non interactif lit le script de session
+		Alors le script de session n'a rien montré
+
+	Scénario: Le script de session montre la bannière dans un shell interactif sur un terminal
+		Quand un shell interactif sur un terminal lit le script de session
+		Alors le script de session a lancé « Machin banner »
+
+	Plan du scénario: install.sh cache ses lignes techniques sans --verbose ni --simulation
+		Étant donné install.sh avec VERBEUX=<verbeux> et SIMULATION=<simulation>
+		Quand install.sh écrit une information technique, une annonce et un avertissement
+		Alors install.sh montre <montré>
+
+		Exemples:
+			| verbeux | simulation | montré                                              |
+			| false   | false      | l'annonce et l'avertissement, sans l'information    |
+			| true    | false      | l'information, l'annonce et l'avertissement         |
+			| false   | true       | l'information, l'annonce et l'avertissement         |
+
+	Scénario: Un avertissement a son texte en jaune, sur un terminal
+		Étant donné install.sh avec les couleurs forcées
+		Quand install.sh écrit une information technique, une annonce et un avertissement
+		Alors la ligne d'avertissement d'install.sh est entourée du code de couleur « 33 »
+		Et la ligne d'annonce d'install.sh n'a aucune couleur
+
+	Scénario: Un échec est en jaune vif sur un fond rouge sombre, sur la sortie d'erreur
+		Étant donné install.sh avec les couleurs forcées
+		Quand install.sh échoue avec « disque plein »
+		Alors la ligne d'échec d'install.sh est entourée du code de couleur « 1;93;48;5;88 »
+
+	Plan du scénario: Sans terminal, ou avec NO_COLOR, install.sh n'ajoute aucune couleur
+		Étant donné install.sh <situation>
+		Quand install.sh écrit une information technique, une annonce et un avertissement
+		Et install.sh échoue avec « disque plein »
+		Alors install.sh n'a écrit aucune couleur
+
+		Exemples:
+			| situation                                    |
+			| sans terminal                                |
+			| avec NO_COLOR et les couleurs forcées        |
+
+	Scénario: Dans le terminal, la question est en blanc et en gras
+		Étant donné un poste sans affichage graphique, dans un terminal
+		Et install.sh avec les couleurs forcées
+		Quand install.sh pose la question « Arrêter ? [y/N] », et que je réponds « o »
+		Alors la question d'install.sh est en blanc et en gras, et sa réponse est oui
+
+	Scénario: Sur un poste graphique local, toute question d'install.sh s'ouvre dans une fenêtre kdialog
+		Étant donné un poste graphique avec kdialog
+		Quand install.sh pose la question « Arrêter ? [y/N] »
+		Alors kdialog a demandé « Arrêter ? » sans ses crochets
+
+	Scénario: Par ssh, même avec un affichage, la question se pose dans le terminal
+		Étant donné un poste graphique avec kdialog
+		Et une connexion ssh
+		Quand install.sh pose la question « Arrêter ? [y/N] », et que je réponds « o »
+		Alors kdialog n'a rien demandé
+
+	Scénario: install.sh montre la bannière avant toute étape, et a une option --verbose
+		Alors install.sh lance « Machin banner » avant toute étape, et reconnaît --verbose

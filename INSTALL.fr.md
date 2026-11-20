@@ -35,6 +35,8 @@ cd ~/machincast
 ./install.sh
 ```
 
+`install.sh` ouvre sur la bannière de MachinCast et son numéro de version ([#517](https://github.com/dascritch/machincast/issues/517)). Il ne montre que les étapes, les avertissements (en jaune), les échecs (en jaune vif sur fond rouge sombre) et ce qu'il faut lire ; `--verbose` ajoute toutes les lignes techniques (liens créés, opérations SQL, fichiers déjà à jour), et `--simulation` les montre aussi. Les couleurs n'apparaissent que sur un terminal, jamais avec la variable `NO_COLOR`. Chaque question s'affiche en blanc et en gras, ou dans une fenêtre de kdialog sur un poste graphique, quand ce dernier est installé et que le script n'est pas lancé par ssh.
+
 Ensuite : adapter `machincast.toml` ([voir plus bas](#adapter-la-configuration)), puis redémarrer le poste pour lire le journal du service.
 
 ## Prérequis
@@ -96,6 +98,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 ```bash
 ./install.sh --simulation   # affiche les commandes sans rien exécuter
+./install.sh --verbose      # installe, en montrant aussi les lignes techniques
 ./install.sh                # installe
 ./install.sh --dev          # installe, avec les outils du poste de développement
 ./install.sh --service      # installe, avec le service de diffusion : ordinateur dédié à l'antenne seulement
@@ -238,6 +241,7 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 | Répertoire des sonores | Crée `/home/machincast`, au compte qui installe, groupe `machincast`, mode `2750` : les sonores s'y déposent ; le service les lit sans qu'aucun droit ne change. | Un répertoire. |
 | Sonores dans un répertoire personnel | Liste les répertoires de banque et les fichiers ajoutés de la base qui sont dans un répertoire personnel, et que le service ne lit pas ; ceux qu'il lit déjà restent en place. Au choix : les **déplace** dans `/home/machincast` (un répertoire de banque garde son nom, un fichier ajouté va dans `fichiers`, un nom pris reçoit `-2`…), et la base suit, en une transaction, les fichiers revenant à leur place si elle échoue — la seule exception à [#96](https://github.com/dascritch/machincast/issues/96), acceptée à chaque fois ; les **retire** de la base, sans toucher aucun fichier ; ou les **laisse**, sans passer à l'antenne. Sans terminal, ils sont laissés. | Des fichiers déplacés, ou des lignes de la base. |
 | Répertoires | Installe `/etc/tmpfiles.d/machincast.conf` (`python -m machincast.installation tmpfiles`) et crée, à chaque démarrage du poste, `/run/machincast`, `/var/log/machincast` et `/var/log/machincast/crash-dump`, à `machincast`, mode `2770` ; et `/etc/logrotate.d/machincast` (`logrotate`) : les logs tournent chaque semaine, 8 semaines gardées. | Deux fichiers de configuration, trois répertoires. |
+| Bannière des shells | Installe `/etc/profile.d/machincast.sh` (`profile`) : à chaque nouveau shell interactif, sur un terminal, il lance `Machin banner` : la bannière de MachinCast, son numéro de version, et si `Machin player` tourne ou est arrêté ([#517](https://github.com/dascritch/machincast/issues/517)). | Un fichier. |
 | PipeWire du service | Installe `/etc/systemd/system/machincast-pipewire.service` et `machincast-wireplumber.service` (`pipewire-unit`, `wireplumber-unit`) : un PipeWire et un WirePlumber à lui, sous `machincast`, sans aucune session ; la socket de PipeWire est `/run/machincast/pipewire-0`. WirePlumber ne lit que `/etc/machincast/wireplumber` (`wireplumber-service` : les cartes son seulement) et la configuration du paquet. | Deux unités systemd, un fragment WirePlumber. |
 | Carte de l'antenne | Installe `/etc/wireplumber/wireplumber.conf.d/50-machincast.conf` (`wireplumber-desktop`) : les sessions PipeWire du poste ne voient plus la carte de l'antenne, qui est au service — deux PipeWire n'ouvrent pas la même carte en même temps ; le WirePlumber de la session en cours est relancé. Après un changement de carte d'antenne, relancer `./install.sh --service`. | Un fragment WirePlumber. |
 | Unité systemd | Installe `/etc/systemd/system/machincast.service`, rédigé par `python -m machincast.installation unit`, puis recharge systemd. | Une unité systemd. |

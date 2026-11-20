@@ -3,6 +3,7 @@
 #
 #   Machin [--config FICHIER] BINAIRE [OPTIONS…]   appelle Machin_BINAIRE en lui transmettant les options
 #   Machin logs [OPTIONS DE journalctl…]           suit en direct le journal du service de lecture
+#   Machin banner                                   bannière, version, état du service
 #   Machin dev                                      sous-shell de développement, venv activé
 #   Machin dev-test [--coverage] [--scenarios NOM…]  lance les outils de vérification, avec un bilan
 #   Machin dev-screenshots [REPERTOIRE]                refait les captures d'écran du guide de l'antenne
@@ -30,7 +31,7 @@ CODE_INTROUVABLE=127
 aide_minimale() {
 	local liste
 	liste="$(printf '%s, ' "${BINAIRES[@]}")"
-	tf 'Usage: Machin [--config FILE] BINARY [OPTIONS…]  or  Machin logs|tasks|dev|dev-test|dev-screenshots
+	tf 'Usage: Machin [--config FILE] BINARY [OPTIONS…]  or  Machin logs|tasks|banner|dev|dev-test|dev-screenshots
 Binaries: %s. Full help: Machin --help
 ' "${liste%, }"
 }
@@ -42,6 +43,7 @@ Usage:
   Machin [--config FILE] BINARY [OPTIONS…]
   Machin logs [journalctl OPTIONS…]
   Machin [--config FILE] tasks
+  Machin banner
   Machin dev | dev-test [--coverage] [--scenarios NAME…] | dev-screenshots [DIRECTORY]
   Machin -h | --help | --binaries
 
@@ -83,6 +85,11 @@ Regular tasks (https://github.com/dascritch/machincast/issues/455):
   tasks        runs the tasks that are due, called every quarter of an hour by
                the machincast-tasks.timer timer of the service: once a day from
                the set hour (schedule.daily), purge then indexer --full-audit
+
+Banner (https://github.com/dascritch/machincast/issues/517):
+  banner       shows the MachinCast banner, its version, and whether the broadcast
+               service is running, if it is installed; install.sh --service has
+               every new shell do the same
 
 Development (computer installed by ./install.sh --dev):
   dev          opens a subshell in the MachinCast directory, venv activated, with
@@ -189,6 +196,61 @@ exiger_venv() {
 		exit "${CODE_INTROUVABLE}"
 	fi
 	printf '%s\n' "${venv}"
+}
+
+# Couleurs : sur un terminal seulement, jamais avec NO_COLOR ; FORCE_COLOR les impose, pour les tests
+# (https://github.com/dascritch/machincast/issues/517).
+couleurs_actives() {
+	[[ -z "${NO_COLOR:-}" ]] && { [[ -t 1 ]] || [[ -n "${FORCE_COLOR:-}" ]]; }
+}
+
+# Le numéro de version de MachinCast : celui de pyproject.toml, à la racine du projet.
+version_du_projet() {
+	local ligne
+	while IFS= read -r ligne; do
+		if [[ "${ligne}" =~ ^version\ =\ \"([^\"]+)\" ]]; then
+			printf '%s\n' "${BASH_REMATCH[1]}"
+			return 0
+		fi
+	done <"$(projet)/pyproject.toml"
+	printf '?\n'
+}
+
+# La bannière (https://github.com/dascritch/machincast/issues/517) : le losange en orange, le numéro de version à
+# droite, puis, si le service de diffusion est installé, son état. Lancée par install.sh et, à chaque nouveau shell
+# interactif, par /etc/profile.d/machincast.sh quand le service est installé.
+afficher_banniere() {
+	local ligne orange="" fin="" numero=0 version
+	version="$(version_du_projet)"
+	if couleurs_actives; then
+		orange=$'\e[38;5;208m'
+		fin=$'\e[0m'
+	fi
+	while IFS= read -r ligne; do
+		numero=$((numero + 1))
+		if ((numero >= 2 && numero <= 5)); then
+			printf '%s%s%s%s' "${orange}" "${ligne:0:7}" "${fin}" "${ligne:7}"
+		else
+			printf '%s' "${ligne}"
+		fi
+		if ((numero == 5)); then
+			printf '  v%s' "${version}"
+		fi
+		printf '\n'
+	done <<-'FIN'
+		        __  __            _     _        ____          _  
+		  /\   |  \/  | __ _  ___| |__ (_)_ __  / ___|__ _ ___| |_ 
+		 /  \  | |\/| |/ _` |/ __| '_ \| | '_ \| |   / _` / __| __|
+		 \  /  | |  | | (_| | (__| | | | | | | | |__| (_| \__ \ |_ 
+		  \/   |_|  |_|\__,_|\___|_| |_|_|_| |_|\____\__,_|___/\__|
+	FIN
+	if command -v systemctl >/dev/null && [[ "$(systemctl show "${UNITE_LECTURE}" --property=LoadState --value 2>/dev/null)" == loaded ]]; then
+		if systemctl is-active --quiet "${UNITE_LECTURE}"; then
+			tf 'Machin player: running\n'
+		else
+			tf 'Machin player: stopped\n'
+		fi
+	fi
 }
 
 # Sous-shell de développement (https://github.com/dascritch/machincast/issues/77). Un programme ne peut pas activer
@@ -493,6 +555,12 @@ principal() {
 		((${#configuration[@]} == 0)) || erreur_usage "$(tf '--config does not apply to %s' dev-screenshots)"
 		(($# <= 1)) || erreur_usage "$(t 'dev-screenshots takes at most one directory')"
 		lancer_dev_captures "$@"
+	fi
+
+	if [[ "${binaire}" == banner ]]; then
+		(($# == 0)) || erreur_usage "$(tf '%s takes no argument' banner)"
+		afficher_banniere
+		exit 0
 	fi
 
 	if [[ "${binaire}" == tasks ]]; then
