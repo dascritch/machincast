@@ -2533,15 +2533,18 @@ msgstr ""
 "Écouter le prochain sonore sur la sortie de pré-écoute, jamais sur l'antenne"
 
 #: machincast/interface/default_screen.py
+#: machincast/intranet/template.py
 msgid "Broadcasting"
 msgstr "En diffusion"
 
 #: machincast/interface/default_screen.py
+#: machincast/intranet/template.py
 msgid "Dead air on air"
 msgstr "Blanc à l'antenne"
 
 #: machincast/interface/default_screen.py
 #: machincast/interface/preview.py
+#: machincast/intranet/template.py
 #: machincast/interface/ui/default_screen.ui
 msgid "Stopped"
 msgstr "À l'arrêt"
@@ -2571,6 +2574,7 @@ msgstr "durée inconnue"
 #: machincast/interface/simulation.py
 #: machincast/interface/sound_card.py
 #: machincast/interface/timeline.py
+#: machincast/intranet/home.py
 #: machincast/player/simulation.py
 #: machincast/interface/ui/sound_card.ui
 msgid "Start"
@@ -2582,6 +2586,7 @@ msgstr "Début"
 #: machincast/interface/simulation.py
 #: machincast/interface/sound_card.py
 #: machincast/interface/timeline.py
+#: machincast/intranet/home.py
 #: machincast/player/simulation.py
 #: machincast/interface/ui/sound_card.ui
 msgid "End"
@@ -2590,6 +2595,7 @@ msgstr "Fin"
 #: machincast/interface/default_screen.py
 #: machincast/interface/export_airplay.py
 #: machincast/interface/lists.py
+#: machincast/intranet/home.py
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/sound_card.ui
 msgid "Duration"
@@ -3909,6 +3915,7 @@ msgstr "Message"
 
 #: machincast/interface/incidents.py
 #: machincast/interface/search.py
+#: machincast/intranet/home.py
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/sound_card.ui
 msgid "Sound"
@@ -4551,6 +4558,7 @@ msgid "State"
 msgstr "État"
 
 #: machincast/interface/lists.py
+#: machincast/intranet/home.py
 #: machincast/interface/ui/sound_card.ui
 msgid "Name"
 msgstr "Nom"
@@ -6469,6 +6477,42 @@ msgstr "intranet : la requête {path} a échoué"
 msgid "intranet certificate generated: {path}"
 msgstr "certificat de l'intranet généré : {path}"
 
+#: machincast/intranet/home.py
+#: machincast/intranet/template.py
+#: machincast/interface/ui/preferences.ui
+msgid "Home"
+msgstr "Accueil"
+
+#: machincast/intranet/home.py
+msgid "Last sounds on air"
+msgstr "Derniers sonores diffusés"
+
+#: machincast/intranet/home.py
+msgid "Current event"
+msgstr "Événement en cours"
+
+#: machincast/intranet/home.py
+msgid "Next event"
+msgstr "Événement suivant"
+
+#: machincast/intranet/home.py
+#: machincast/interface/ui/default_screen.ui
+msgid "Current sound"
+msgstr "Sonore en cours"
+
+#: machincast/intranet/home.py
+#: machincast/interface/ui/default_screen.ui
+msgid "Next sound"
+msgstr "Prochain sonore"
+
+#: machincast/intranet/home.py
+msgid "Remaining"
+msgstr "Reste"
+
+#: machincast/intranet/home.py
+msgid "Starts in"
+msgstr "Démarre dans"
+
 #: machincast/intranet/network.py
 #, python-brace-format
 msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
@@ -6481,11 +6525,6 @@ msgstr "Connexion"
 #: machincast/intranet/portal.py
 msgid "Validation at the desk"
 msgstr "Validation au pupitre"
-
-#: machincast/intranet/portal.py
-#: machincast/interface/ui/preferences.ui
-msgid "Home"
-msgstr "Accueil"
 
 #: machincast/intranet/portal.py
 msgid ""
@@ -6535,13 +6574,9 @@ msgid "Validate"
 msgstr "Valider"
 
 #: machincast/intranet/portal.py
+#: machincast/intranet/template.py
 msgid "Disconnect"
 msgstr "Se déconnecter"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "Connected as {name}."
-msgstr "Connecté en tant que {name}."
 
 #: machincast/maintenance.py
 msgid "Backs up, checks and optimises the MachinCast database."
@@ -8045,10 +8080,6 @@ msgid "Event on air"
 msgstr "Événement à l'antenne"
 
 #: machincast/interface/ui/default_screen.ui
-msgid "Current sound"
-msgstr "Sonore en cours"
-
-#: machincast/interface/ui/default_screen.ui
 msgid ""
 "Waveform, silences and fades of the current sound, as the broadcast plays it"
 msgstr ""
@@ -8094,10 +8125,6 @@ msgstr "Plus de 5 secondes sous -50 dBFS"
 #: machincast/interface/ui/default_screen.ui
 msgid "Dead air"
 msgstr "Blanc"
-
-#: machincast/interface/ui/default_screen.ui
-msgid "Next sound"
-msgstr "Prochain sonore"
 
 #: machincast/interface/ui/default_screen.ui
 msgid ""

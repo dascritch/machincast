@@ -52,7 +52,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Alors la réponse est 303, vers « / »
 		Et la session est valide, pour 12 heures
 		Quand je demande « GET / »
-		Alors la réponse est 200, et dit « Connecté en tant que regie. »
+		Alors la réponse est 200, et dit « Accueil — Machin intranet »
 
 	Scénario: Le code se saisit aussi avec une espace entre ses deux moitiés, comme le pupitre le montre
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
@@ -88,7 +88,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
 		Et que j'ai saisi le code donné au pupitre
 		Quand je demande « GET / » avec le jeton en « Authorization: Bearer », sans cookie
-		Alors la réponse est 200, et dit « Connecté en tant que regie. »
+		Alors la réponse est 200, et dit « Accueil — Machin intranet »
 
 	Scénario: Un compte désactivé perd ses sessions valides
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »

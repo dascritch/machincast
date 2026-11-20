@@ -88,15 +88,15 @@ class Response:
 Route = Callable[[Request], Awaitable[Response]]
 
 
-def page(title: str, body: str, status: int = 200) -> Response:
-	"""Une page HTML complète, en français, son titre échappé ; body est déjà du HTML."""
+def page(title: str, body: str, status: int = 200, head: str = "") -> Response:
+	"""Une page HTML complète, en français, son titre échappé ; body et head sont déjà du HTML."""
 	text_ = f"""<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{escape(title)} — {TITLE}</title>
-</head>
+{head}</head>
 <body>
 {body}
 </body>

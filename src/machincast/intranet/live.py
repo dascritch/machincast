@@ -62,14 +62,15 @@ def _segments(planned: list[Planned]) -> list[tuple[datetime, datetime, Planned]
 
 
 def _event(segment: tuple[datetime, datetime, Planned] | None, now: datetime) -> dict[str, Any] | None:
-	"""Un événement et ses heures ; None pour celle qui sort de la période cherchée : un fil musical à l'antenne
+	"""Un événement et ses heures, avec leur décalage horaire ; None pour celle qui sort de la période cherchée : un fil musical à l'antenne
 	depuis plus d'une semaine, ou qui le restera plus d'une semaine."""
 	if segment is None:
 		return None
 	begins, ends, one = segment
 	event = one.occurrence.event
-	start: datetime | None = begins
-	end: datetime | None = ends
+	# La grille est en heure murale du poste ; l'API la donne avec son décalage.
+	start: datetime | None = begins.astimezone()
+	end: datetime | None = ends.astimezone()
 	if begins <= now - HORIZON:
 		start = None
 	if ends >= now + HORIZON:

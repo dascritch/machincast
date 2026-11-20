@@ -56,7 +56,7 @@ Machin_intranet = "machincast.intranet.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-machincast = ["py.typed", "templates/*.md", "migrations/*.sql", "locale/*/LC_MESSAGES/*.po", "interface/*.png", "interface/news.md", "interface/news.*.md", "interface/icons/*.svg"]
+machincast = ["py.typed", "templates/*.md", "migrations/*.sql", "locale/*/LC_MESSAGES/*.po", "interface/*.png", "interface/news.md", "interface/news.*.md", "interface/icons/*.svg", "intranet/static/*"]
 
 # ─── Qualité ───────────────────────────────────────────────
 
