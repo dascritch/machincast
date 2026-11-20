@@ -969,9 +969,13 @@ Machin -h | --help | --binaries
 	`--keep-open`, pour le terminal qu'ouvre l'interface.
 	Rien d'autre ne change : ni propriétaire, ni droits du groupe et des autres, ni contenu ([#96](https://github.com/dascritch/machincast/issues/96)).
 - `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518), `machincast.status`) répond par une ligne sur la sortie standard, pour un script, une barre d'état ou une supervision.
+	`Machin status`, seul, ou `Machin status player`, dit l'état de Machin player : « running » quand une diffusion tourne, sous un compte quelconque, « stopped » sinon ; une simulation n'est pas une diffusion.
+	Le code de sortie est 0 s'il tourne, 1 sinon.
 	`Machin status server` dit « service » quand le service de diffusion est installé, « test » sinon.
 	`Machin status radio` donne le nom de la radio, `metadata.public_text`.
-	`Machin status event --now` et `Machin status event --next` donnent l'événement actuel et le suivant, « {début} → {fin} : {nom privé} », aux heures du poste au format `HH:MM` ; « `--:--` » dit un événement sans début ou sans fin, comme un fil musical permanent.
+	`Machin status event --now`, ou `Machin status event` seul, et `Machin status event --next` donnent l'événement actuel et le suivant, « {début} → {fin} : {nom privé} », aux heures du poste au format `HH:MM`.
+	Un fil musical permanent n'a ni début ni fin : l'heure de début est celle où il a pris l'antenne, quand l'événement d'avant s'est terminé, et l'heure de fin celle où il sera interrompu, par le début du suivant ([#518](https://github.com/dascritch/machincast/issues/518)).
+	Elles se cherchent dans la semaine d'avant et la semaine d'après ; « `--:--` » dit celle qui n'y est pas.
 	Les événements viennent de la grille de la base de production, lue avec le rôle `machincast_interface` : une session sautée est sautée, mais un événement avancé ou terminé à la main, que seul le service de lecture connaît, ne l'est pas.
 	Sans événement, rien n'est écrit et le code de sortie est 1 ; 3 si la base est injoignable ; 2 pour un appel incorrect.
 

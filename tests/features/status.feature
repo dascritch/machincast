@@ -9,7 +9,9 @@ Fonctionnalité: État de la station pour le shell : Machin status
 	service de diffusion est installé et « test » sinon ; « Machin status radio » donne le nom de la radio
 	(metadata.public_text) ; « Machin status event --now » et « Machin status event --next » donnent l'événement actuel
 	et le suivant, « {début} → {fin} : {nom privé} », aux heures du poste. Sans événement, rien n'est écrit et le code
-	de sortie est 1. La commande ne fait que lire : l'horloge des scénarios est fixée au 2026-11-20 à 10:30.
+	de sortie est 1. « Machin status », seul, dit l'état de Machin player (« running » ou « stopped », code 0 ou 1), et
+	« Machin status event », seul, est « Machin status event --now ». Un fil musical permanent n'a ni début ni fin :
+	celles qu'on lit sont l'heure où il a pris l'antenne, et l'heure où il sera interrompu. La commande ne fait que lire : l'horloge des scénarios est fixée au 2026-11-20 à 10:30.
 
 	Contexte:
 		Étant donné une configuration dont la base de production est la base de test
@@ -41,12 +43,56 @@ Fonctionnalité: État de la station pour le shell : Machin status
 		Quand je lance « Machin status event --next »
 		Alors l'état répond « 12:00 → 13:30 : Midi-info » avec le code 0
 
-	Scénario: Un fil musical permanent n'a ni début ni fin
+	Scénario: Un fil musical dit l'heure où il a pris l'antenne et l'heure où il sera interrompu
+		Étant donné les événements en base :
+			| nom privé        | priorité               | début            | fin              |
+			| Fil musical      | background_programming |                  |                  |
+			| Matinale interne | show                   | 2026-11-20 09:00 | 2026-11-20 10:00 |
+			| Midi-info        | show                   | 2026-11-20 12:00 | 2026-11-20 13:30 |
+		Quand je lance « Machin status event --now »
+		Alors l'état répond « 10:00 → 12:00 : Fil musical » avec le code 0
+
+	Scénario: Un fil musical seul, sans événement avant ni après, n'a ni début ni fin
 		Étant donné les événements en base :
 			| nom privé   | priorité               | début | fin |
 			| Fil musical | background_programming |       |     |
 		Quand je lance « Machin status event --now »
 		Alors l'état répond « --:-- → --:-- : Fil musical » avec le code 0
+
+	Scénario: Un fil musical encore sur l'antenne n'a pas de fin avant le prochain événement
+		Étant donné les événements en base :
+			| nom privé        | priorité               | début            | fin              |
+			| Fil musical      | background_programming |                  |                  |
+			| Matinale interne | show                   | 2026-11-20 09:00 | 2026-11-20 10:00 |
+		Quand je lance « Machin status event --now »
+		Alors l'état répond « 10:00 → --:-- : Fil musical » avec le code 0
+
+	Scénario: Machin status event, sans option, est l'événement actuel
+		Étant donné les événements en base :
+			| nom privé        | priorité | début            | fin              |
+			| Matinale interne | show     | 2026-11-20 09:00 | 2026-11-20 11:00 |
+		Quand je lance « Machin status event »
+		Alors l'état répond « 09:00 → 11:00 : Matinale interne » avec le code 0
+
+	Scénario: Machin status, seul, dit que Machin player diffuse
+		Étant donné Machin player qui diffuse
+		Quand je lance « Machin status »
+		Alors l'état répond « running » avec le code 0
+
+	Scénario: Machin status player est aussi l'état de Machin player
+		Étant donné Machin player qui diffuse
+		Quand je lance « Machin status player »
+		Alors l'état répond « running » avec le code 0
+
+	Scénario: Sans Machin player, l'état est arrêté, avec le code 1
+		Étant donné qu'aucun Machin player ne tourne
+		Quand je lance « Machin status »
+		Alors l'état répond « stopped » avec le code 1
+
+	Scénario: Une simulation de Machin player n'est pas une diffusion
+		Étant donné Machin player en simulation
+		Quand je lance « Machin status »
+		Alors l'état répond « stopped » avec le code 1
 
 	Scénario: Sans événement suivant, rien n'est écrit et le code est 1
 		Étant donné les événements en base :
@@ -75,6 +121,6 @@ Fonctionnalité: État de la station pour le shell : Machin status
 		Quand je lance « Machin status event --now »
 		Alors l'état n'écrit rien et se termine avec le code 3
 
-	Scénario: Une question inconnue ou incomplète est refusée
-		Quand je lance « Machin status event »
+	Scénario: Une option inconnue de l'événement est refusée
+		Quand je lance « Machin status event --soon »
 		Alors l'état est refusé avec le code 2
