@@ -56,7 +56,7 @@ from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget
 
-from machincast import crash, shortcut
+from machincast import access, crash, shortcut
 from machincast.clock import Clock
 from machincast.configuration import (
 	DAILY,
@@ -76,6 +76,7 @@ from machincast.interface import (
 	columns,
 	control,
 	dialogs,
+	disk_space,
 	display,
 	groups,
 	icons,
@@ -224,6 +225,7 @@ class MainWindow(QMainWindow):
 		self.audio = audio
 		"""Sortie de l'antenne et périphérique de pré-écoute (https://github.com/dascritch/machincast/issues/116)."""
 		self.preview: PreviewWindow | None = None
+		self.disk_space: disk_space.DiskSpaceWindow | None = None
 		"""La fenêtre de pré-écoute, une seule pour toute l'interface, créée à sa première demande."""
 		# Pour un rapport de crash (https://github.com/dascritch/machincast/issues/342).
 		crash.provide(SOUND_CARDS, self._sound_cards)
@@ -501,7 +503,8 @@ class MainWindow(QMainWindow):
 		self.grant_read.triggered.connect(self.broadcast.grant_read_files)
 		maintenance.aboutToShow.connect(self.broadcast.reread_grant_read)
 		self.broadcast.reread_grant_read()
-		# Les cartes son toujours éveillées, en essai (https://github.com/dascritch/machincast/issues/499).
+		# Où déposer des sonores, et ce qu'occupe chaque banque (https://github.com/dascritch/machincast/issues/533).
+		maintenance.addAction(disk_space.TITLE + "…").triggered.connect(self.show_disk_space)
 		help_ = self.menuBar().addMenu(_("&Help"))
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
 		# Le document de l'équipe et son lien (https://github.com/dascritch/machincast/issues/451).
@@ -536,6 +539,13 @@ class MainWindow(QMainWindow):
 			return
 		dialogs.show_news(self, news)
 		settings.setValue(version.NEWS_KEY, news.version)
+
+	def show_disk_space(self) -> None:
+		"""La fenêtre « Espace disque », une à la fois, relue à chaque ouverture."""
+		if self.disk_space is not None:
+			self.disk_space.close()
+		self.disk_space = disk_space.DiskSpaceWindow(self.connection, self, access.service_account())
+		self.disk_space.show()
 
 	def refresh(self) -> None:
 		"""Relit l'onglet ouvert, l'airplay de l'onglet Antenne et les fiches ; une liste se relit déjà à son

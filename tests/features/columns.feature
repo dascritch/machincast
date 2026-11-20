@@ -152,6 +152,7 @@ Fonctionnalité: Colonnes des tableaux, ajustées, réordonnables, masquables et
 	Scénario: Tous les tableaux de l'interface ont des colonnes déplaçables et leur menu des colonnes
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre chaque onglet et la fiche de chaque genre
+		Et je choisis « Espace disque… » dans le menu « Maintenance »
 		Alors chaque tableau de l'interface a des colonnes déplaçables, de largeur libre, avec le menu des colonnes de sa vue
 		Et le clic droit hors des lignes de chaque tableau de l'interface finit par « Exporter ce tableau… », après « Couper », « Copier », « Coller » et « Tout sélectionner » dans les listes d'éléments et de sonores d'une banque, après « Copier » dans la recherche
 

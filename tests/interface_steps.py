@@ -1244,7 +1244,7 @@ def closing_question(interface: Context, what: str, title: str) -> None:
 def opened_folder(interface: Context, folder: str) -> None:
 	path_list = []
 	for path in NAME.findall(folder):
-		path_list.append(Path(path))
+		path_list.append(Path(interface.path(path)))
 	assert interface.opened_folders == path_list
 
 

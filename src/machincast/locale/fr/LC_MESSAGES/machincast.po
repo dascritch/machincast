@@ -2465,6 +2465,7 @@ msgid "Sequence"
 msgstr "Séquence"
 
 #: machincast/interface/default_screen.py
+#: machincast/interface/disk_space.py
 #: machincast/interface/export_airplay.py
 #: machincast/interface/incidents.py
 #: machincast/interface/search.py
@@ -3077,6 +3078,49 @@ msgstr ""
 msgid "A backup of the database will be saved at {backups}."
 msgstr ""
 "Une sauvegarde de la base sera enregistrée à l'emplacement {backups}."
+
+#: machincast/interface/disk_space.py
+msgid "Disk space"
+msgstr "Espace disque"
+
+#: machincast/interface/disk_space.py
+msgid "counting…"
+msgstr "comptage…"
+
+#: machincast/interface/disk_space.py
+msgid "unreachable"
+msgstr "inaccessible"
+
+#: machincast/interface/disk_space.py
+msgid "No mount point where the broadcast service reads a sound."
+msgstr "Aucun point de montage où le service de diffusion lit un sonore."
+
+#: machincast/interface/disk_space.py
+msgid "Mount point"
+msgstr "Point de montage"
+
+#: machincast/interface/disk_space.py
+msgid "Free"
+msgstr "Libre"
+
+#: machincast/interface/disk_space.py
+#: machincast/interface/ui/sound_card.ui
+msgid "Size"
+msgstr "Taille"
+
+#: machincast/interface/disk_space.py
+#: machincast/interface/lists.py
+msgid "Directory"
+msgstr "Répertoire"
+
+#: machincast/interface/disk_space.py
+msgid "Used"
+msgstr "Occupé"
+
+#: machincast/interface/disk_space.py
+#, python-brace-format
+msgid "unreadable bank directories: {error}"
+msgstr "répertoires des banques illisibles : {error}"
 
 #: machincast/interface/display.py
 #: machincast/interface/window.py
@@ -4391,10 +4435,6 @@ msgstr "Mode"
 #: machincast/interface/lists.py
 msgid "Do not repeat"
 msgstr "Ne pas répéter"
-
-#: machincast/interface/lists.py
-msgid "Directory"
-msgstr "Répertoire"
 
 #: machincast/interface/lists.py
 #: machincast/purge.py
@@ -8327,10 +8367,6 @@ msgstr "Fichier"
 #: machincast/interface/ui/sound_card.ui
 msgid "Average encoding"
 msgstr "Encodage moyen"
-
-#: machincast/interface/ui/sound_card.ui
-msgid "Size"
-msgstr "Taille"
 
 #: machincast/interface/ui/sound_card.ui
 msgid "Created on"
