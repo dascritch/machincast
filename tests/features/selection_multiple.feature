@@ -216,7 +216,7 @@ Fonctionnalité: Sélection multiple dans les listes des sonores et des banques
 		Alors les sonores de la fiche sont, avec leur état, « Les Gaufres – Café à minuit » actif, « Les Gaufres – Gaufre royale » désactivé
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont actifs
 
-	Scénario: Plusieurs sonores de la fiche se retirent d'un coup ; « Monter » et « Descendre » ne servent qu'à un seul
+	Scénario: Plusieurs sonores de la fiche se retirent d'un coup ; « ↥ Monter » et « ↧ Descendre » ne servent qu'à un seul
 		Étant donné la banque « Matin », séquentielle, sans nom public, avec « Café à minuit », « Gaufre royale », « Jingle »
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Matin »

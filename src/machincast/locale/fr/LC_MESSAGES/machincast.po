@@ -7279,14 +7279,14 @@ msgstr "➖ Retirer le sonore"
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui
 #: machincast/interface/ui/sequence_card.ui
-msgid "Move up"
-msgstr "Monter"
+msgid "↥ Move up"
+msgstr "↥ Monter"
 
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui
 #: machincast/interface/ui/sequence_card.ui
-msgid "Move down"
-msgstr "Descendre"
+msgid "↧ Move down"
+msgstr "↧ Descendre"
 
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/event_card.ui

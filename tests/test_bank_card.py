@@ -24,6 +24,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.database import Role, open_connection
+from machincast.interface import card as card_module
 from machincast.interface.bank_card import SOUND, BankCard
 from machincast.interface.choice import Choice
 from machincast.interface.lists import IDENTIFIER, SOUNDS
@@ -141,6 +142,19 @@ def add_erased_sounds(interface: Context, qtbot: QtBot, empty_database: Connecti
 @when(parsers.parse("je choisis le sonore « {title} »"))
 def choose_sound(interface: Context, empty_database: Connection, title: str) -> None:
 	sound(interface, empty_database, title)
+
+
+@when(parsers.re(r"je sélectionne les sonores (?P<names>«.+) de la fiche"))
+def select_sounds(interface: Context, names: str) -> None:
+	"""Plusieurs sonores choisis, par leur texte dans la fiche (https://github.com/dascritch/machincast/issues/527)."""
+	sounds = card(interface).ui.sounds
+	sounds.clearSelection()
+	chosen_list = []
+	for name in NAME.findall(names):
+		chosen_list.extend(sounds.findItems(name, Qt.MatchFlag.MatchExactly))
+	sounds.setCurrentItem(chosen_list[-1])
+	for line in chosen_list:
+		line.setSelected(True)
 
 
 @when(parsers.parse("je choisis le répertoire « {directory} »"))
@@ -800,3 +814,12 @@ def offered_modes(interface: Context, texts: str) -> None:
 	for index in range(choice.count()):
 		text_list.append(choice.itemText(index))
 	assert text_list == NAME.findall(texts)
+
+
+@then(parsers.re(r"« Enregistrer » de la fiche (?P<has>a un|n'a pas de) liseré vert"))
+def save_outline(interface: Context, has: str) -> None:
+	"""Le liseré vert n'est que celui d'« Enregistrer » actif : la feuille de style ne le pose qu'à :enabled."""
+	button = card(interface).button_save
+	assert card_module.GREEN in button.styleSheet()
+	assert ":enabled" in button.styleSheet()
+	assert button.isEnabled() == (has == "a un")

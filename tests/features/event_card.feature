@@ -615,7 +615,7 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je choisis l'élément « Les Gaufres – Spot » de l'événement
-		Et je clique sur « Monter »
+		Et je clique sur « ↥ Monter »
 		Et j'ajoute les séquences « Passage pub »
 		Et j'ajoute les sonores « Jingle fin »
 		Et je choisis l'élément n° 1 de l'événement
@@ -625,6 +625,24 @@ Fonctionnalité: Fiche d'un événement
 		Quand j'enregistre la fiche
 		Alors les éléments de l'événement « Matinale » sont, dans l'ordre, le sonore « Spot », la séquence « Passage pub », la séquence « Passage pub », le sonore « Jingle fin »
 
+	Scénario: Plusieurs éléments choisis montent et descendent ensemble, en gardant leur ordre
+		# https://github.com/dascritch/machincast/issues/527
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Et j'ajoute les séquences « Passage pub »
+		Et j'ajoute les sonores « Jingle fin »
+		Et je choisis les éléments n° 2 à 3 de l'événement
+		Et je clique sur « ↥ Monter »
+		Alors la fiche de l'événement montre les éléments « Passage pub », « Les Gaufres – Spot », « Habillage », « Passage pub », « Jingle fin »
+		Et les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « ↧ Descendre »
+		Quand je clique sur « ↧ Descendre »
+		Et je clique sur « ↧ Descendre »
+		Et je clique sur « ↧ Descendre »
+		Alors la fiche de l'événement montre les éléments « Habillage », « Passage pub », « Jingle fin », « Passage pub », « Les Gaufres – Spot »
+		Et les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « ↥ Monter »
+		Quand j'enregistre la fiche
+		Alors les éléments de l'événement « Matinale » sont, dans l'ordre, la banque « Habillage », la séquence « Passage pub », le sonore « Jingle fin », la séquence « Passage pub », le sonore « Spot »
+
 	Scénario: Une ligne restée dans la liste reste celle que désigne l'historique de diffusion, à sa nouvelle place
 		# La diffusion reprend un fil musical après la ligne de son dernier passage (spec § 4.2) ; une ligne retirée
 		# ne désigne plus rien.
@@ -633,8 +651,8 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je choisis l'élément « Les Gaufres – Spot » de l'événement
-		Et je clique sur « Monter »
-		Et je clique sur « Monter »
+		Et je clique sur « ↥ Monter »
+		Et je clique sur « ↥ Monter »
 		Et je choisis l'élément « Habillage » de l'événement
 		Et je clique sur « ➖ Retirer l'élément »
 		Et j'ajoute les banques « Habillage »
@@ -695,10 +713,10 @@ Fonctionnalité: Fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
 		Et je choisis l'élément n° 3 de l'événement
-		Alors les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « Monter »
+		Alors les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « ↥ Monter »
 		Quand j'ajoute les feeds « Ancien », « Relais », en effaçant « Ancien » de la base pendant le choix
 		Alors la fiche de l'événement montre les éléments « Habillage », « Passage pub », « Les Gaufres – Spot », « Relais »
-		Et les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « Monter », « Descendre »
+		Et les boutons de ligne actifs de l'événement sont « ➖ Retirer l'élément », « ↥ Monter », « ↧ Descendre »
 
 	Scénario: Renoncer au choix des feeds ne change rien
 		Quand la fenêtre de l'interface s'ouvre

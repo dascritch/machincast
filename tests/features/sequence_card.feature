@@ -116,7 +116,7 @@ Fonctionnalité: Fiche d'une séquence
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Et je choisis l'élément « Jingle fin »
-		Et je clique sur « Monter »
+		Et je clique sur « ↥ Monter »
 		Et j'ajoute les sonores « Jingle début »
 		Et j'ajoute les banques « Habillage », « Publicité »
 		Et je choisis l'élément n° 5
@@ -134,24 +134,24 @@ Fonctionnalité: Fiche d'une séquence
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Et je choisis l'élément « Jingle fin »
-		Et je clique sur « Monter »
+		Et je clique sur « ↥ Monter »
 		Et je retire les éléments « Jingle début »
 		Et j'ajoute les sonores « Jingle début »
 		Et j'enregistre la fiche
 		Alors l'historique de diffusion désigne, dans la séquence « Passage pub », la ligne n° 1 et aucune ligne
 
-	Scénario: Les boutons d'une ligne ne servent qu'à une ligne choisie, et « Monter » et « Descendre » pas aux extrémités
+	Scénario: Les boutons d'une ligne ne servent qu'à une ligne choisie, et « ↥ Monter » et « ↧ Descendre » pas aux extrémités
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Alors les boutons de ligne actifs de la séquence sont aucun
 		Quand je choisis l'élément « Jingle début »
-		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « Descendre »
+		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « ↧ Descendre »
 		Quand je choisis l'élément « Publicité »
-		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « Monter », « Descendre »
-		Quand je clique sur « Descendre »
-		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « Monter »
+		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « ↥ Monter », « ↧ Descendre »
+		Quand je clique sur « ↧ Descendre »
+		Alors les boutons de ligne actifs de la séquence sont « ➖ Retirer l'élément », « ↥ Monter »
 		Et la fiche de la séquence montre les éléments « Jingle début », « Jingle fin », « Publicité »
-		Quand je clique sur « Monter »
+		Quand je clique sur « ↥ Monter »
 		Alors la fiche de la séquence montre les éléments « Jingle début », « Publicité », « Jingle fin »
 
 	Scénario: Les éléments se glissent, mais une ligne ne se dépose pas dans une autre
@@ -271,14 +271,14 @@ Fonctionnalité: Fiche d'une séquence
 		Et j'ouvre la fiche de la séquence « Passage pub »
 		Et j'ajoute les banques « Publicité »
 		Et je choisis l'élément n° 4
-		Et je clique sur « Monter »
+		Et je clique sur « ↥ Monter »
 		Alors la fiche de la séquence avertit « Ligne 3 : la banque « Publicité » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »
 		Quand j'enregistre la fiche, puis je la rouvre
 		Alors la fiche ne signale rien
 		Et les éléments de la séquence « Passage pub » sont, dans l'ordre, le sonore « Jingle début », la banque « Publicité », la banque « Publicité », le sonore « Jingle fin »
 		Et la fiche de la séquence avertit « Ligne 3 : la banque « Publicité » vient de passer, et ne passe jamais deux fois de suite : cet appel sera sauté. »
 		Quand je choisis l'élément n° 3
-		Et je clique sur « Descendre »
+		Et je clique sur « ↧ Descendre »
 		Alors la fiche de la séquence n'avertit de rien
 
 	Scénario: À la relecture, une banque qui ne refuse plus de se répéter n'est plus signalée
