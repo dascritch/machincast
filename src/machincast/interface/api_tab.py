@@ -18,7 +18,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTreeWidgetItem, QWidget
 
 from machincast.configuration import SESSION
-from machincast.i18n import _
+from machincast.i18n import _, pgettext
 from machincast.interface import dialogs, display
 from machincast.interface.columns import Columns
 from machincast.interface.queries import api_users as queries
@@ -41,7 +41,8 @@ SESSIONS_VIEW = "api-sessions"
 ACTIVE = _("active")
 DISABLED = _("disabled")
 DISABLE = _("Disable")
-ENABLE = _("Enable")
+ENABLE = pgettext("account", "Enable")
+"""« Réactiver » un compte, quand « Activer » un sonore."""
 IDENTIFIER = Qt.ItemDataRole.UserRole
 COLUMNS_VIEW = "api-utilisateurs"
 

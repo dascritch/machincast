@@ -1487,8 +1487,7 @@ msgid "Disable"
 msgstr "Désactiver"
 
 #: machincast/interface/api_tab.py
-#: machincast/interface/bank_card.py
-#: machincast/interface/groups.py
+msgctxt "account"
 msgid "Enable"
 msgstr "Réactiver"
 
@@ -1710,6 +1709,11 @@ msgstr "Masqué par le nom public de la banque"
 #: machincast/interface/sound_card.py
 msgid "Shown"
 msgstr "Affichés"
+
+#: machincast/interface/bank_card.py
+#: machincast/interface/groups.py
+msgid "Enable"
+msgstr "Activer"
 
 #: machincast/interface/bank_card.py
 #: machincast/interface/indexing_status.py
