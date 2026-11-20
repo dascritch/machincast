@@ -121,6 +121,46 @@ Fonctionnalité: État de la station pour le shell : Machin status
 		Quand je lance « Machin status event --now »
 		Alors l'état n'écrit rien et se termine avec le code 3
 
+	Scénario: Le résumé de la bannière donne le serveur, la radio, le player, et les événements quand le player diffuse
+		Étant donné que le service de diffusion est installé
+		Et que le nom de la radio est « Radio FMR »
+		Et Machin player qui diffuse
+		Et les événements en base :
+			| nom privé        | priorité | début            | fin              |
+			| Matinale interne | show     | 2026-11-20 09:00 | 2026-11-20 11:00 |
+			| Midi-info        | show     | 2026-11-20 12:00 | 2026-11-20 13:30 |
+		Quand je lance « Machin status summary »
+		Alors l'état écrit les lignes :
+			| clé    | valeur                              |
+			| server | service                             |
+			| radio  | Radio FMR                           |
+			| player | running                             |
+			| now    | 09:00 → 11:00 : Matinale interne    |
+			| next   | 12:00 → 13:30 : Midi-info           |
+
+	Scénario: Le résumé de la bannière ne cherche aucun événement quand le player ne diffuse pas
+		Étant donné que le service de diffusion n'est pas installé
+		Et que le nom de la radio est « Radio FMR »
+		Et aucun Machin player ne tourne
+		Quand je lance « Machin status summary »
+		Alors l'état écrit les lignes :
+			| clé    | valeur    |
+			| server | test      |
+			| radio  | Radio FMR |
+			| player | stopped   |
+
+	Scénario: Le résumé garde le serveur, la radio et le player quand la base est injoignable
+		Étant donné que le service de diffusion n'est pas installé
+		Et que le nom de la radio est « Radio FMR »
+		Et une configuration dont la base de production est injoignable
+		Et Machin player qui diffuse
+		Quand je lance « Machin status summary »
+		Alors l'état écrit les lignes :
+			| clé    | valeur  |
+			| server | test    |
+			| radio  | Radio FMR |
+			| player | running |
+
 	Scénario: Une option inconnue de l'événement est refusée
 		Quand je lance « Machin status event --soon »
 		Alors l'état est refusé avec le code 2

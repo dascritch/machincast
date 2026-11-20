@@ -968,11 +968,14 @@ Machin -h | --help | --binaries
 	Code 0 quand le service lit tout, 1 sinon ou sans compte du service.
 	`--keep-open`, pour le terminal qu'ouvre l'interface.
 	Rien d'autre ne change : ni propriétaire, ni droits du groupe et des autres, ni contenu ([#96](https://github.com/dascritch/machincast/issues/96)).
-- `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) affiche la bannière de MachinCast : le logo en ASCII, son losange en orange, à droite le numéro de version, puis, si le service de diffusion est installé, « Machin player : en marche » ou « Machin player : arrêté ».
+- `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) affiche la bannière de MachinCast : le logo en ASCII, son losange en orange.
+	À sa droite, sur la première ligne, le numéro de version ; puis, avec les réponses de `Machin status summary` ([#518](https://github.com/dascritch/machincast/issues/518)) : la radio et le serveur (« Radio FMR · service »), « Machin player : en marche » ou « arrêté » et, quand il diffuse, « En cours : … » et « Suivant : … », l'événement actuel et le suivant.
+	Sans le binaire `Machin_status`, seul le numéro de version est à droite, et l'état du service, lu à son unité, est écrit sous le logo.
 	Les couleurs ne viennent que sur un terminal, jamais avec `NO_COLOR` ; `install.sh --service` installe `/etc/profile.d/machincast.sh` (`machincast.installation profile`), qui le lance à chaque nouveau shell interactif sur un terminal, et `--remove-service` le retire.
 - `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518), `machincast.status`) répond par une ligne sur la sortie standard, pour un script, une barre d'état ou une supervision.
 	`Machin status`, seul, ou `Machin status player`, dit l'état de Machin player : « running » quand une diffusion tourne, sous un compte quelconque, « stopped » sinon ; une simulation n'est pas une diffusion.
 	Le code de sortie est 0 s'il tourne, 1 sinon.
+	`Machin status summary` ([#517](https://github.com/dascritch/machincast/issues/517)) donne, pour la bannière, une ligne « clé, tabulation, valeur » par réponse : `server`, `radio`, `player` et, quand Machin player diffuse, `now` et `next` ; la base injoignable n'enlève que ces deux dernières.
 	`Machin status server` dit « service » quand le service de diffusion est installé, « test » sinon.
 	`Machin status radio` donne le nom de la radio, `metadata.public_text`.
 	`Machin status event --now`, ou `Machin status event` seul, et `Machin status event --next` donnent l'événement actuel et le suivant, « {début} → {fin} : {nom privé} », aux heures du poste au format `HH:MM`.

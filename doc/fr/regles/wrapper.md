@@ -21,7 +21,8 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 - `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518)) est un binaire comme les autres, `Machin_status` : le wrapper ne fait que l'appeler.
 	Ses réponses vont sur la sortie standard, une ligne chacune, pour qu'un script les lise : tout autre message passe par le journal.
 	Une nouvelle réponse s'ajoute à `machincast.status`, avec ses scénarios (`status.feature`), sans toucher au wrapper.
-- `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) est écrit en bash dans le wrapper, sans Python ni base : il est lancé à chaque nouveau shell du service et doit rester instantané.
+- `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) est écrit en bash dans le wrapper : il est lancé à chaque nouveau shell du service et doit rester rapide.
+	Un seul appel à `Machin_status summary` lui donne la colonne de droite ; les événements ne se cherchent en base que si Machin player diffuse, et sans ce binaire, ou sans réponse, la bannière n'a que sa version.
 	Le script de session `/etc/profile.d/machincast.sh` est statique (`machincast.installation.profile`) : le numéro de version vient de `pyproject.toml` à l'exécution, pour que `install.sh` n'ait pas à le réécrire à chaque version.
 - Le binaire est cherché d'abord dans le venv du projet (`<projet>/.venv/bin`, le projet étant le parent du `bin/` du wrapper, liens symboliques résolus), puis dans le `PATH`.
 	Le venv n'a pas besoin d'être activé.

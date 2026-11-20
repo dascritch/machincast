@@ -4,6 +4,8 @@ Des réponses courtes, une par ligne sur la sortie standard, pour un script ou u
 
 - ``Machin status``, ou ``Machin status player`` : « running » quand Machin player diffuse, « stopped » sinon, avec le
   code de sortie 0, ou STOPPED_CODE ; un programme en simulation n'est pas une diffusion ;
+- ``Machin status summary`` : tout ce qui précède pour la bannière de ``Machin banner``, une ligne « clé, tabulation,
+  valeur » par réponse : server, radio, player, et, quand Machin player diffuse, now et next, quand ils existent ;
 - ``Machin status server`` : « service » quand le service de diffusion est installé, « test » sinon ;
 - ``Machin status radio`` : le nom de la radio, metadata.public_text ;
 - ``Machin status event --now``, ou ``Machin status event`` : l'événement actuel, « {début} → {fin} : {nom privé} » ;
@@ -120,8 +122,28 @@ def event(configuration: Configuration, *, following: bool) -> str | None:
 	return describe(found)
 
 
+def summary(configuration: Configuration) -> list[tuple[str, str]]:
+	"""Les réponses de la bannière : serveur, radio, état de Machin player, et, s'il diffuse, l'événement actuel et le
+	suivant ; ceux que la base ne donne pas manquent."""
+	answers = [("server", server()), ("radio", configuration.metadata.public_text), ("player", player())]
+	if answers[-1][1] != RUNNING:
+		return answers
+	try:
+		for key, following in (("now", False), ("next", True)):
+			found = event(configuration, following=following)
+			if found is not None:
+				answers.append((key, found))
+	except psycopg.Error as error:
+		log.error(_("database unreachable: {error}").format(error=error))
+	return answers
+
+
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
 	"""Écrit la réponse demandée ; le code de sortie."""
+	if options.question == "summary":
+		for key, value in summary(configuration):
+			sys.stdout.write(f"{key}\t{value}\n")
+		return 0
 	if options.question in (None, "player"):
 		state = player()
 		sys.stdout.write(f"{state}\n")
@@ -148,6 +170,7 @@ def run(configuration: Configuration, options: argparse.Namespace) -> int:
 def add_options(analyser: argparse.ArgumentParser) -> None:
 	questions = analyser.add_subparsers(dest="question", metavar="QUESTION")
 	questions.add_parser("player", help=_("“running” if Machin player is broadcasting, “stopped” otherwise (default)"))
+	questions.add_parser("summary", help=_("all the answers, one “key, tab, value” line each, for the banner"))
 	questions.add_parser("server", help=_("“service” if the broadcast service is installed, “test” otherwise"))
 	questions.add_parser("radio", help=_("the name of the radio (metadata.public_text)"))
 	events = questions.add_parser("event", help=_("the current or the next event, “start → end : private name”"))
