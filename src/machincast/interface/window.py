@@ -281,6 +281,7 @@ class MainWindow(QMainWindow):
 		# Les coupures, depuis le prochain sonore (https://github.com/dascritch/machincast/issues/323).
 		self.home.requested_interruption.connect(self.broadcast.interrupt)
 		self.home.requested_fallback.connect(self.broadcast.cut_by_fallback)
+		self.home.requested_insertion.connect(self.broadcast.insert)
 		self.checker = Checker(connection, self)
 		self.checker.finished.connect(self._finished_check)
 		self.full_check = FullCheck(connection, self)
@@ -448,28 +449,24 @@ class MainWindow(QMainWindow):
 		self.listen.triggered.connect(self._switch_listening)
 		self._show_listening(False)
 		self.broadcast_menu.addSeparator()
+		# Démarrer ou arrêter : seule l'entrée qui sert est montrée (https://github.com/dascritch/machincast/issues/530).
 		self.controlled_list: dict[str, QAction] = {}
 		for verb, (entry, _success, _failure) in control.VERBS.items():
-			action = self.broadcast_menu.addAction(entry)
+			action = self.broadcast_menu.addAction(icons.icon(verb), entry)
 			action.triggered.connect(lambda _ticked=False, verb=verb: self.broadcast.run(verb))
 			self.controlled_list[verb] = action
 		self.broadcast_menu.addSeparator()
-		self.interruptions: dict[str, QAction] = {}
-		# Revenir au début, entre deux traits (https://github.com/dascritch/machincast/issues/366), puis les sauts
-		# (https://github.com/dascritch/machincast/issues/104).
-		for entries in (interruption.RESTARTS, interruption.ENTRIES):
-			for item, entry in entries.items():
-				action = self.broadcast_menu.addAction(entry)
-				action.triggered.connect(lambda _ticked=False, item=item: self.broadcast.interrupt(item))
-				self.interruptions[item] = action
-			if entries is interruption.RESTARTS:
-				self.broadcast_menu.addSeparator()
-		# https://github.com/dascritch/machincast/issues/323 : relu à l'ouverture du menu, et quand la grille change.
-		self.cutoff_by_fallback = self.broadcast_menu.addAction(interruption.CUT_BY_FALLBACK)
-		fallback = self.cutoff_by_fallback
-		fallback.triggered.connect(
-			lambda _ticked=False: interruption.ask_fallback(fallback, self.broadcast.cut_by_fallback)
+		# Recommencer, Sauter, Insérer après ce sonore, Couper (https://github.com/dascritch/machincast/issues/530) ; la
+		# coupure par le secours est relue à l'ouverture du menu, et quand la grille change
+		# (https://github.com/dascritch/machincast/issues/323).
+		self.on_air_menu = interruption.OnAirMenu(
+			self.broadcast_menu,
+			self.connection,
+			interruption.Requests(self.broadcast.interrupt, self.broadcast.cut_by_fallback, self.broadcast.insert),
+			self,
 		)
+		self.interruptions = self.on_air_menu.actions
+		self.cutoff_by_fallback = self.on_air_menu.fallback
 		self.broadcast_menu.aboutToShow.connect(self.broadcast.reread_fallback)
 		maintenance = self.menuBar().addMenu(_("&Maintenance"))
 		_upcoming(

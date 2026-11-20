@@ -8,7 +8,7 @@ clair ou sombre : l'icône se lit sur le fond de la fenêtre.
 
 L'icône d'un genre désigne ce genre partout où il apparaît : onglets des listes, des fiches, de la grille et de la
 simulation, menu « Affichage », colonne « Type » de la recherche, relations de la fiche d'un sonore. Un genre sans
-icône (feed) n'en montre aucune : icon_of rend alors une icône nulle.
+icône n'en montre aucune : icon_of rend alors une icône nulle.
 """
 
 from pathlib import Path
@@ -27,11 +27,20 @@ FILES = {
 	"simulation": "simulation.svg",
 	"preview": "preview.svg",
 	"airplay": "airplay.svg",
+	"feed": "feed.svg",
+	"start": "start.svg",
+	"stop": "stop.svg",
+	"restart": "restart.svg",
+	"skip": "skip.svg",
+	"insert": "insert.svg",
+	"cut": "cut.svg",
 }
 """Le dessin de chaque genre ; les fiches et la recherche nomment les genres ainsi. « preview », un casque, n'est pas
 un genre : il marque chaque bouton et chaque entrée de menu qui lance une pré-écoute
 (https://github.com/dascritch/machincast/issues/223). « airplay » marque l'onglet de l'historique de diffusion
-(https://github.com/dascritch/machincast/issues/244)."""
+(https://github.com/dascritch/machincast/issues/244). « feed », un poste de radio, est le genre des feeds ; « start »,
+« stop », « restart », « skip », « insert » et « cut » marquent les entrées de menu qui pilotent ou modifient l'antenne
+(https://github.com/dascritch/machincast/issues/530)."""
 SIZES = (16, 24, 32, 48, 64)
 """Les tailles dessinées : Qt prend la plus proche de celle demandée."""
 COLOUR = "currentColor"

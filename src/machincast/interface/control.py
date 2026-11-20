@@ -23,20 +23,19 @@ from machincast import service
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import PROJECT_DIRECTORY, InvalidConfiguration, default_file, load
 from machincast.i18n import _
-from machincast.interface.intents import HALT, START, label
 from machincast.service import UNIT
 
 VERBS = {
-	"start": (label(START, _("Start the broadcast")), _("Broadcast started."), _("Broadcast not started")),
-	"stop": (label(HALT, _("Stop the broadcast")), _("Broadcast stopped."), _("Broadcast not stopped")),
+	"start": (_("Start the broadcast"), _("Broadcast started."), _("Broadcast not started")),
+	"stop": (_("Stop the broadcast"), _("Broadcast stopped."), _("Broadcast not stopped")),
 }
 """Pour chaque verbe de systemctl : l'entrée du menu, ce qu'annonce sa réussite, et son échec."""
 RESTART = (_("Broadcast restarted."), _("Broadcast not restarted"))
 """Ce qu'annonce un redémarrage, demandé par les paramètres du service (https://github.com/dascritch/machincast/issues/389) :
 sa réussite, et son échec ; il n'a pas d'entrée de menu."""
 TRIAL = {
-	"start": label(START, _("Start the trial broadcast")),
-	"stop": label(HALT, _("Stop the trial broadcast")),
+	"start": _("Start the trial broadcast"),
+	"stop": _("Stop the trial broadcast"),
 }
 """Les entrées du menu sans le service."""
 TERMINALS = ("konsole", "x-terminal-emulator")

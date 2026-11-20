@@ -23,6 +23,7 @@ from machincast.player.state import (
 	advance_request,
 	cutoff_request_by_fallback,
 	cutoff_request_by_feed,
+	insertion_request,
 	interruption_request,
 	request_reread_grid,
 )
@@ -78,19 +79,15 @@ class BroadcastControl(QObject):
 	def offer_interruptions(self, state: PlaybackState) -> None:
 		"""Les interruptions du menu « Diffusion » suivent ce qui est à l'antenne, comme la coupure par le secours, et
 		le clic droit sur un feed (https://github.com/dascritch/machincast/issues/323)."""
-		for item, proposal in interruption.offer(state).items():
-			action = self.window.interruptions[item]
-			action.setEnabled(proposal.active)
-			action.setToolTip(proposal.tooltip)
 		self._on_air = state
-		self.fill_fallback()
+		self.window.on_air_menu.offer(state, self._fallback)
 
 	def reread_fallback(self) -> None:
 		self._fallback = interruption.read_fallback(self.window.connection)
 		self.fill_fallback()
 
 	def fill_fallback(self) -> None:
-		interruption.fill_fallback(self.window.cutoff_by_fallback, self._on_air, self._fallback, self.cut_by_fallback)
+		self.window.on_air_menu.offer(self._on_air, self._fallback)
 
 	def cut_by_fallback(self, fallback: interruption.Fallback) -> None:
 		"""Demande à Machin player de couper l'antenne par ce secours, sans question."""
@@ -126,6 +123,17 @@ class BroadcastControl(QObject):
 			announces = interruption.ANNOUNCEMENTS[item]
 		self.window.ui.state_bar.showMessage(announces)
 
+	def insert(self, category: str, identifier: int, name: str) -> None:
+		"""Demande à Machin player de jouer, après le sonore en cours, cette séquence ou un sonore de cette banque, sans
+		question (https://github.com/dascritch/machincast/issues/530)."""
+		request = insertion_request(bank=identifier)
+		if category == "sequence":
+			request = insertion_request(sequence=identifier)
+		announces = interruption.INSERTION_WITHOUT_PLAYBACK
+		if self.window.home.client.send(request):
+			announces = interruption.insertion_announcement(category, name)
+		self.window.ui.state_bar.showMessage(announces)
+
 	def advance(self, event: int, name: str) -> None:
 		"""Demande à Machin player d'avancer l'événement suivant qu'il a annoncé, sans question
 		(https://github.com/dascritch/machincast/issues/257)."""
@@ -145,11 +153,13 @@ class BroadcastControl(QObject):
 		self.window.tab_manager.title_tab(index, f"{indicator} {ON_AIR}")
 		self.window.show_status()
 		if self.service.installed:
-			# En marche : arrêter ; arrêté ou en échec : démarrer.
+			# En marche : arrêter ; arrêté ou en échec : démarrer. Seule l'entrée qui sert est montrée
+			# (https://github.com/dascritch/machincast/issues/530).
 			allowed = {"start": not self.service.running, "stop": self.service.running}
 			for verb, action in self.window.controlled_list.items():
 				action.setText(control.VERBS[verb][0])
 				action.setEnabled(allowed[verb])
+				action.setVisible(allowed[verb])
 				action.setToolTip("")
 			return
 		ongoing = self.window.home.client.player_pid() is not None
@@ -159,6 +169,7 @@ class BroadcastControl(QObject):
 		for verb, action in self.window.controlled_list.items():
 			action.setText(control.TRIAL[verb])
 			action.setEnabled((verb == "start") != ongoing)
+			action.setVisible((verb == "start") != ongoing)
 			action.setToolTip(tooltips[verb])
 
 	def run(self, verb: str) -> None:

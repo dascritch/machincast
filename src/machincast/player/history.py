@@ -57,7 +57,8 @@ class History(Protocol):
 		...
 
 	def last_item(self, connection: Connection, event: int, since: datetime | None) -> int | None:
-		"""Élément de l'événement joué en dernier, depuis cet instant s'il est donné."""
+		"""Élément de l'événement joué en dernier, depuis cet instant s'il est donné ; un passage hors de la liste,
+		inséré à la main ou stream d'un feed, n'en est pas un (https://github.com/dascritch/machincast/issues/530)."""
 		...
 
 	def last_play(self, connection: Connection) -> LastPlay | None:
@@ -201,7 +202,7 @@ class PlannedHistory(HistoryInPlayback):
 
 	def last_item(self, connection: Connection, event: int, since: datetime | None) -> int | None:
 		for play in reversed(self.planned_list):
-			if (play.event == event) and ((since is None) or (play.start >= since)):
+			if (play.event == event) and (play.item is not None) and ((since is None) or (play.start >= since)):
 				return play.item
 		return self.source.last_item(connection, event, since)
 
@@ -242,6 +243,7 @@ class HistoryInDatabase:
 	def last_item(self, connection: Connection, event: int, since: datetime | None) -> int | None:
 		line = connection.execute(
 			"SELECT event_item_id FROM airplay WHERE event_id = %s AND line_type = 'start'"
+			" AND event_item_id IS NOT NULL"
 			" AND (%s::timestamptz IS NULL OR logged_at >= %s::timestamptz)"
 			" ORDER BY logged_at DESC, id DESC LIMIT 1",
 			(event, since, since),

@@ -87,6 +87,7 @@ ITEMS = {
 	"coupe l'événement par le fil musical": "event",
 	"reviens au début du sonore": "restart_sound",
 	"recommence l'événement": "restart_event",
+	"recommence la séquence": "restart_sequence",
 }
 """Interruptions manuelles (https://github.com/dascritch/machincast/issues/228), par leur texte dans les scénarios."""
 
@@ -645,7 +646,7 @@ def advance(bench: Bench, count: str) -> None:
 @when(
 	parsers.re(
 		r"je (?P<what>saute au sonore suivant|saute après la séquence|coupe l'événement par le fil musical"
-		r"|reviens au début du sonore|recommence l'événement)$"
+		r"|reviens au début du sonore|recommence l'événement|recommence la séquence)$"
 	)
 )
 def interrupt(bench: Bench, what: str) -> None:
@@ -1110,3 +1111,45 @@ def connections(server: StreamServer, qtbot: QtBot, count: int) -> None:
 @then("le serveur de flux local n'a bientôt plus de connexion")
 def more_connection(server: StreamServer, qtbot: QtBot) -> None:
 	qtbot.waitUntil(lambda: server.connections == 0, timeout=5000)
+
+
+# ─── Insertions (https://github.com/dascritch/machincast/issues/530) ───
+
+
+@given(parsers.re(r"la séquence « (?P<name>[^»]+) », hors de la grille, des sonores (?P<list_>.+)"))
+def sequence_outside_grid(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
+	sequence = empty_database.execute(
+		"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (name,)
+	).fetchone()
+	assert sequence is not None
+	for position, sound_name in enumerate(quoted_names(list_), start=1):
+		empty_database.execute(
+			"INSERT INTO sequence_items (sequence_id, position, sound_id) VALUES (%s, %s, %s)",
+			(sequence[0], position, create_sound(bench, empty_database, tmp_path, sound_name)),
+		)
+
+
+@given(parsers.re(r"la banque séquentielle « (?P<name>[^»]+) », hors de la grille, des sonores (?P<list_>.+)"))
+def bank_outside_grid(bench: Bench, empty_database: Connection, tmp_path: Path, name: str, list_: str) -> None:
+	bank = empty_database.execute(
+		"INSERT INTO banks (internal_name, mode) VALUES (%s, 'sequential') RETURNING id", (name,)
+	).fetchone()
+	assert bank is not None
+	for position, sound_name in enumerate(quoted_names(list_), start=1):
+		empty_database.execute(
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
+			(bank[0], create_sound(bench, empty_database, tmp_path, sound_name), position),
+		)
+
+
+@when(parsers.re(r"j'insère après ce sonore la (?P<kind>séquence|banque) « (?P<name>[^»]+) »"))
+def insert(bench: Bench, empty_database: Connection, kind: str, name: str) -> None:
+	table = "sequences"
+	if kind == "banque":
+		table = "banks"
+	line = empty_database.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (name,)).fetchone()
+	assert line is not None
+	if kind == "banque":
+		broadcast(bench).interruptions.insert(None, int(str(line[0])))
+		return
+	broadcast(bench).interruptions.insert(int(str(line[0])), None)

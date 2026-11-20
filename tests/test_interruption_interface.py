@@ -14,6 +14,7 @@ from machincast.interface import interruption
 from machincast.interface.state import read_message
 from machincast.player.state import ADVANCE, CUT_BY_FALLBACK, CUT_BY_FEED, Request
 from tests.interface_steps import Connection, Context, identifier, list_, window
+from tests.menu_entries import SUBMENU, find_entry
 from tests.player_socket_steps import Player, publish
 from tests.waiting import quiet
 
@@ -195,12 +196,9 @@ def next_actions(interface: Context) -> list[QAction]:
 
 @when(parsers.parse("je choisis « {entry} » au clic droit sur le prochain sonore"))
 def choose_to_next(interface: Context, entry: str) -> None:
-	action_list = []
-	for candidate in next_actions(interface):
-		if candidate.text() == entry:
-			action_list.append(candidate)
-	(action,) = action_list
-	action.trigger()
+	"""Une entrée d'un sous-menu s'écrit « sous-menu › entrée » (https://github.com/dascritch/machincast/issues/530)."""
+	menu = window(interface).home.next_menu()
+	find_entry(menu, entry).trigger()
 
 
 @when(parsers.parse("Machin player ferme sa socket d'état, juste avant que je choisisse « {entry} »"))
@@ -211,11 +209,7 @@ def closed_socket_before_choice(interface: Context, player: Player, qtbot: QtBot
 	player.socket = None
 	client = window(interface).home.client
 	qtbot.waitUntil(lambda: client._socket.state() != QLocalSocket.LocalSocketState.ConnectedState, timeout=WAITING)
-	action_list = []
-	for candidate in entries(interface).values():
-		if candidate.text() == entry:
-			action_list.append(candidate)
-	(action,) = action_list
+	action = find_entry(window(interface).broadcast_menu, entry)
 	action.setEnabled(True)
 	action.trigger()
 
@@ -227,14 +221,15 @@ def closed_socket_before_choice(interface: Context, player: Player, qtbot: QtBot
 def interruptions(interface: Context, menu: str, datatable: list[list[str]]) -> None:
 	_, *lines = datatable
 	assert menu == "Diffusion"
-	broadcast_menu = window(interface).broadcast_menu
 	obtained_list = []
-	for action in broadcast_menu.actions():
-		if action in entries(interface).values():
-			state = "inactive"
-			if action.isEnabled():
-				state = "active"
-			obtained_list.append([action.text(), state, action.toolTip()])
+	# Les sous-menus regroupés (https://github.com/dascritch/machincast/issues/530) : « sous-menu › entrée ».
+	for under in window(interface).on_air_menu.menus.values():
+		for action in under.actions():
+			if action in entries(interface).values():
+				state = "inactive"
+				if action.isEnabled():
+					state = "active"
+				obtained_list.append([f"{under.title()}{SUBMENU}{action.text()}", state, action.toolTip()])
 	line_list = []
 	for line in lines:
 		value_list = []
@@ -372,7 +367,7 @@ def choose_to_feed(interface: Context, entry: str, name: str) -> None:
 )
 def active_fallback(interface: Context, tooltip: str) -> None:
 	action = window(interface).cutoff_by_fallback
-	assert action in window(interface).broadcast_menu.actions()
+	assert action in window(interface).on_air_menu.menus["cut"].actions()
 	assert (action.text(), action.isEnabled(), action.menu(), action.toolTip()) == (
 		interruption.CUT_BY_FALLBACK,
 		True,

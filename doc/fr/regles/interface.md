@@ -57,7 +57,8 @@
 	Les scénarios remplacent `simulation_command` par `tests/simulation_fixtures.py`, qui simule sur la base de test : la base de production de la configuration des tests n'existe pas, et ne doit jamais être atteinte.
 	Un répertoire temporaire qu'il efface porte la justification de `machincast.protection.MARK`.
 - Les interruptions du menu « Diffusion » (`machincast.interface.interruption`, [#104](https://github.com/dascritch/machincast/issues/104)) suivent `StateClient.received_state` : `proposer` décide, de l'état reçu seul, ce qui est actif.
-	L'interface n'écrit sur la socket d'état que par `StateClient.send`, et seulement les lignes de `machincast.player.state.interruption_request`.
+	L'interface n'écrit sur la socket d'état que par `StateClient.send`, et seulement les lignes de `machincast.player.state` (`interruption_request`, `insertion_request`…).
+	Le menu « Diffusion » et les clics droits de l'onglet Antenne regroupent ces actions dans les sous-menus d'`interruption.OnAirMenu` ([#530](https://github.com/dascritch/machincast/issues/530)) : une nouvelle action sur l'antenne y prend sa place, avec son icône, jamais un emoji.
 - Tout texte saisi qui entre en base (noms, artiste, titre, métadonnées musicales) passe par `machincast.conformation.conform` ([#108](https://github.com/dascritch/machincast/issues/108)), dans `_write` comme dans ce que la fiche compare (`_inputs`) ; jamais un chemin ni une adresse.
 - Le service se pilote via systemd et polkit, jamais par sudo ([#25](https://github.com/dascritch/machincast/issues/25)) : `systemctl start|stop machincast.service` dans un `QProcess` (`machincast.interface.control.Control`), jamais attendu dans le fil de l'interface, car l'agent polkit peut demander longtemps une authentification.
 	L'état se lit par `machincast.service.read_state` (`systemctl show`, sans droit), au lancement, à l'ouverture du menu « Diffusion » et après chaque commande ; jamais en boucle.

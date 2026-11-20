@@ -145,49 +145,52 @@ L'onglet Antenne montre le texte public du sonore en cours, tel que la page publ
 
 ## Piloter la diffusion
 
-Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la redémarrer, l'arrêter puis la démarrer ([#223](https://github.com/dascritch/machincast/issues/223)). Seuls les **Paramètres du service…** la redémarrent d'eux-mêmes, à leur validation ([Préférences](prise-en-main.md#préférences), [#389](https://github.com/dascritch/machincast/issues/389)). Ses entrées suivent l'état de la diffusion, relu à chaque ouverture du menu. Dans ce menu comme dans les clics droits de l'onglet Antenne, ⏵ marque ce qui démarre la diffusion, ⏹ ce qui l'arrête, et ⏭ ce qui saute le sonore ou l'événement en cours ([#322](https://github.com/dascritch/machincast/issues/322)). Tant que la diffusion ne tourne pas, la dernière ligne de la fenêtre affiche **🔇 Diffusion arrêtée**.
+Le menu **Diffusion** démarre et arrête la diffusion, sans terminal. Pour la redémarrer, l'arrêter puis la démarrer ([#223](https://github.com/dascritch/machincast/issues/223)). Seuls les **Paramètres du service…** la redémarrent d'eux-mêmes, à leur validation ([Préférences](prise-en-main.md#préférences), [#389](https://github.com/dascritch/machincast/issues/389)). Il ne montre que l'entrée qui sert, **Démarrer la diffusion** ou **Arrêter la diffusion**, selon l'état de la diffusion, relu à chaque ouverture du menu ([#530](https://github.com/dascritch/machincast/issues/530)). Dans ce menu comme dans les clics droits de l'onglet Antenne, chaque entrée qui pilote ou modifie l'antenne porte son icône : un triangle pour démarrer, un carré pour arrêter, et une icône pour recommencer, sauter, insérer ou couper ([#322](https://github.com/dascritch/machincast/issues/322), [#530](https://github.com/dascritch/machincast/issues/530)). Tant que la diffusion ne tourne pas, la dernière ligne de la fenêtre affiche **🔇 Diffusion arrêtée**.
 
 ![Le menu Diffusion : démarrer, arrêter, puis les interruptions](../captures/menu-diffusion.png)
 
 **Sur un poste installé pour l'antenne**, la diffusion tourne comme un service du poste :
 
-| État de la diffusion | Entrées actives |
+| État de la diffusion | Entrée du menu |
 | --- | --- |
-| Arrêtée | ⏵ Démarrer la diffusion |
-| En marche | ⏹ Arrêter la diffusion |
-| En échec (elle a planté trop souvent) | ⏵ Démarrer la diffusion |
+| Arrêtée | Démarrer la diffusion |
+| En marche | Arrêter la diffusion |
+| En échec (elle a planté trop souvent) | Démarrer la diffusion |
 
 Chaque entrée demande le mot de passe d'un administrateur du poste. La barre d'état dit ensuite ce qu'il en est : `Diffusion démarrée.`, `Diffusion arrêtée.`, ou l'échec et sa raison, par exemple quand le mot de passe est refusé.
 
 **Le poste d'antenne ne s'éteint pas par mégarde** ([#448](https://github.com/dascritch/machincast/issues/448)) : l'éteindre, le redémarrer ou le mettre en veille, depuis le menu du bureau comme depuis l'écran de connexion, demande aussi le mot de passe d'un administrateur. Depuis l'écran de connexion, qui ne sait pas le demander, ce n'est pas possible : ouvrir une session d'abord. Un appui bref sur le bouton d'alimentation, une touche de veille, la fermeture du capot ou Ctrl+Alt+Suppr ne coupent plus l'antenne ; seul un appui long sur le bouton d'alimentation éteint l'ordinateur, de force, en cas de blocage.
 
-Après **⏵ Démarrer la diffusion**, la barre d'état dit `Démarrage de la diffusion…` pendant quelques secondes, le temps de voir si la diffusion tient ([#376](https://github.com/dascritch/machincast/issues/376)). Si elle s'arrête aussitôt, une alerte **Diffusion non démarrée** le dit, avec son code et ce qu'il veut dire, et, en détails, les dernières lignes du journal de la diffusion. Le code 2, une configuration ou un appel invalide, se voit surtout après une mise à jour de MachinCast : l'administrateur du poste relance `./install.sh`, qui met le service à jour. Le code 1 : base de données injoignable, sortie audio indisponible, ou une autre diffusion déjà en cours. Dans tous les cas, `Machin logs`, dans un terminal, en dit plus.
+Après **Démarrer la diffusion**, la barre d'état dit `Démarrage de la diffusion…` pendant quelques secondes, le temps de voir si la diffusion tient ([#376](https://github.com/dascritch/machincast/issues/376)). Si elle s'arrête aussitôt, une alerte **Diffusion non démarrée** le dit, avec son code et ce qu'il veut dire, et, en détails, les dernières lignes du journal de la diffusion. Le code 2, une configuration ou un appel invalide, se voit surtout après une mise à jour de MachinCast : l'administrateur du poste relance `./install.sh`, qui met le service à jour. Le code 1 : base de données injoignable, sortie audio indisponible, ou une autre diffusion déjà en cours. Dans tous les cas, `Machin logs`, dans un terminal, en dit plus.
 
 **Sur un poste d'essai**, sans ce service, la barre d'état affiche en permanence `Installation non définitive : diffusion sans service`, l'onglet s'appelle **🟩 Antenne** au lieu de **🟥 Antenne**, et le menu pilote une **diffusion d'essai**, qui joue bel et bien à l'antenne :
 
 | Entrée | Ce qu'elle fait |
 | --- | --- |
-| ⏵ Démarrer la diffusion d'essai | Ouvre la diffusion dans une fenêtre de terminal, qui en montre le journal. Fermer l'interface ne l'arrête pas. |
-| ⏹ Arrêter la diffusion d'essai | L'arrête proprement : le passage en cours se termine. La barre d'état annonce `Diffusion d'essai arrêtée.` |
+| Démarrer la diffusion d'essai | Ouvre la diffusion dans une fenêtre de terminal, qui en montre le journal. Fermer l'interface ne l'arrête pas. |
+| Arrêter la diffusion d'essai | L'arrête proprement : le passage en cours se termine. La barre d'état annonce `Diffusion d'essai arrêtée.` |
 
 ## Interrompre l'antenne
 
-Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, sans attendre ([#228](https://github.com/dascritch/machincast/issues/228)) : d'abord revenir au début ([#366](https://github.com/dascritch/machincast/issues/366)), puis, après un autre trait, sauter ou couper. Le **clic droit sur le sonore en cours**, sur l'onglet Antenne, propose aussi de revenir au début :
+Le menu **Diffusion** propose aussi, après un trait, de corriger ce qui passe, sans attendre ([#228](https://github.com/dascritch/machincast/issues/228)), dans quatre sous-menus ([#530](https://github.com/dascritch/machincast/issues/530)) : **Recommencer**, **Sauter**, **Insérer après ce sonore** et **Couper**. Le **clic droit sur le sonore en cours** et sur le **prochain sonore**, sur l'onglet Antenne, proposent les mêmes :
 
 | Entrée | Effet |
 | --- | --- |
-| ⏮ Revenir au début de ce sonore | Pour un début raté ([#366](https://github.com/dascritch/machincast/issues/366)) : le sonore en cours repart de son début, dans un nouveau passage ; la séquence et les sonores à venir continuent après lui. Inactive sur un stream, qui n'a pas de début. |
-| ⏮ Recommencer cet événement | L'événement à l'antenne repart du premier élément de sa liste, même le fil musical ; une émission qui prête son nom au fil musical le reprend, rejoue sa liste, puis le prête de nouveau. Une séquence en cours est abandonnée. |
-| ⏭ Sauter au sonore suivant | Le sonore en cours est coupé, et le prochain sonore annoncé sur l'onglet Antenne passe aussitôt ; les sonores à venir avancent d'un cran. |
-| ⏭ Sauter après la séquence | Le sonore en cours est coupé, et le reste de sa séquence n'est pas joué : le sonore prévu après la séquence passe aussitôt, et les sonores à venir qui le suivent sont gardés. |
-| ⏭ Couper l'événement par le fil musical | Le sonore en cours est coupé, et le fil musical prend aussitôt l'antenne, jusqu'à la fin prévue de l'événement coupé : un spécial et l'émission qu'il recouvre laissent tous les deux la place. Inactive dans le fil musical, sauf quand il joue au nom d'une émission ([#399](https://github.com/dascritch/machincast/issues/399)) : elle coupe alors cette émission, et le fil musical reprend sous son propre nom. |
-| ⏭ Couper par le secours | Comme la coupure par le fil musical, mais c'est un **événement de secours** qui joue sa liste, jusqu'à la fin prévue de l'événement coupé ; dans le fil musical, jusqu'au début de l'événement suivant ([#323](https://github.com/dascritch/machincast/issues/323)). Inactive sans événement de secours. Avec plusieurs secours, un sous-menu les nomme. Si le secours n'a plus rien à jouer, le fil musical reprend. |
+| Recommencer › ce sonore | Pour un début raté ([#366](https://github.com/dascritch/machincast/issues/366)) : le sonore en cours repart de son début, dans un nouveau passage ; la séquence et les sonores à venir continuent après lui. Inactive sur un stream, qui n'a pas de début. |
+| Recommencer › cette séquence | La séquence à l'antenne repart de son premier sonore jouable, puis continue jusqu'au bout {U}. Inactive hors d'une séquence. |
+| Recommencer › cet événement | L'événement à l'antenne repart du premier élément de sa liste, même le fil musical ; une émission qui prête son nom au fil musical le reprend, rejoue sa liste, puis le prête de nouveau. Une séquence en cours est abandonnée. |
+| Sauter › au sonore suivant | Le sonore en cours est coupé, et le prochain sonore annoncé sur l'onglet Antenne passe aussitôt ; les sonores à venir avancent d'un cran. |
+| Sauter › après cette séquence | Le sonore en cours est coupé, et le reste de sa séquence n'est pas joué : le sonore prévu après la séquence passe aussitôt, et les sonores à venir qui le suivent sont gardés. |
+| Insérer après ce sonore › une séquence | Choisie dans la liste des séquences, elle passe en entier après le sonore en cours, qui n'est pas coupé ; puis la liste de l'événement reprend {U}. Une séquence de l'événement en cours ne reprend pas après l'insertion : la liste repart de l'élément qui la suit. |
+| Insérer après ce sonore › un sonore d'une banque | Choisie dans la liste des banques, elle fournit un sonore, selon son mode, qui passe après le sonore en cours ; puis la liste de l'événement reprend {U}. |
+| Couper › cet événement par un fil musical | Le sonore en cours est coupé, et le fil musical prend aussitôt l'antenne, jusqu'à la fin prévue de l'événement coupé : un spécial et l'émission qu'il recouvre laissent tous les deux la place. Inactive dans le fil musical, sauf quand il joue au nom d'une émission ([#399](https://github.com/dascritch/machincast/issues/399)) : elle coupe alors cette émission, et le fil musical reprend sous son propre nom. |
+| Couper › par un secours | Comme la coupure par le fil musical, mais c'est un **événement de secours** qui joue sa liste, jusqu'à la fin prévue de l'événement coupé ; dans le fil musical, jusqu'au début de l'événement suivant ([#323](https://github.com/dascritch/machincast/issues/323)). Inactive sans événement de secours. Avec plusieurs secours, un sous-menu les nomme. Si le secours n'a plus rien à jouer, le fil musical reprend. |
 
 - Chaque entrée n'est active que si son élément est à l'antenne ; son infobulle le nomme, ou dit pourquoi elle est inactive (« Rien à l'antenne », « Aucune séquence à l'antenne », « Le fil musical est déjà à l'antenne »).
-- La demande part **aussitôt, sans question** : l'antenne n'attend pas. La barre d'état l'annonce, par exemple `Saut au sonore suivant demandé.`
+- La demande part **aussitôt, sans question** : l'antenne n'attend pas. La barre d'état l'annonce, par exemple `Saut au sonore suivant demandé.` Une insertion est notée dans le journal : `insertion manuelle`, `de la séquence « Annonce » après le sonore « … »`.
 - Le sonore coupé s'éteint pendant le crossfade de fin par défaut des [préférences](prise-en-main.md#préférences), et le suivant monte pendant le crossfade de début par défaut ; sans crossfade par défaut, la coupure est nette, quels que soient les crossfades du sonore. Son passage se termine sans incident, et le journal note `interruption manuelle`.
 - Un événement coupé par le fil musical, par le secours ou par un feed ne revient pas avant sa prochaine diffusion, sauf si la diffusion redémarre entre-temps.
-- **Couper par un feed** : dans l'onglet **Feeds**, le clic droit sur un feed propose **Pré-écoute…** de son stream, et **⏭ Couper l'événement par ce feed**, ou, dans le fil musical, **⏭ Couper le fil musical par ce feed** ([#323](https://github.com/dascritch/machincast/issues/323)). Le stream qui suit le feed passe aussitôt, jusqu'à la fin prévue de l'événement coupé, ou jusqu'au début de l'événement suivant ; s'il tombe, le fil musical prend le relais, sans retenter le feed. L'entrée est inactive sans stream actif qui suive le feed. La barre d'état l'annonce : `Coupure par le feed « Studio mobile » demandée.`
+- **Couper par un feed** : dans l'onglet **Feeds**, le clic droit sur un feed propose **Pré-écoute…** de son stream, et **Couper l'événement par ce feed**, ou, dans le fil musical, **Couper le fil musical par ce feed** ([#323](https://github.com/dascritch/machincast/issues/323)). Le stream qui suit le feed passe aussitôt, jusqu'à la fin prévue de l'événement coupé, ou jusqu'au début de l'événement suivant ; s'il tombe, le fil musical prend le relais, sans retenter le feed. L'entrée est inactive sans stream actif qui suive le feed. La barre d'état l'annonce : `Coupure par le feed « Studio mobile » demandée.`
 - Chaque coupure est notée dans le journal, comme les autres interruptions : `interruption manuelle`, `de l'événement « Matinale » par le secours « Attente »`.
 - Si le sonore annoncé n'est plus jouable, la diffusion en choisit un autre, et recalcule les sonores à venir.
 
@@ -198,9 +201,9 @@ Sur l'onglet Antenne, le **clic droit sur le cadre du prochain sonore** propose 
 | Entrée | Effet |
 | --- | --- |
 | Pré-écoute… | Ouvre le prochain sonore dans la [pré-écoute](sonores.md#pré-écoute), au casque. |
-| ⏭ Sauter à ce sonore | Comme « ⏭ Sauter au sonore suivant » : le sonore en cours s'arrête, et le prochain sonore passe aussitôt. |
-| ⏭ Sauter après la séquence, ⏭ Couper l'événement par le fil musical, ⏭ Couper par le secours | Les mêmes coupures que dans le menu **Diffusion**, actives selon ce qui est à l'antenne ([#323](https://github.com/dascritch/machincast/issues/323)). |
-| ⏭ Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | L'événement suivant de la grille commence aussitôt, avant son heure, et passe jusqu'à sa fin prévue, comme s'il avait commencé plus tôt : le sonore en cours s'arrête, et sa liste commence. À son heure prévue, rien ne change. |
+| Sauter à ce sonore | Comme « Sauter › au sonore suivant » : le sonore en cours s'arrête, et le prochain sonore passe aussitôt. |
+| Recommencer, Sauter, Insérer après ce sonore, Couper | Les mêmes sous-menus que dans le menu **Diffusion**, actifs selon ce qui est à l'antenne ([#323](https://github.com/dascritch/machincast/issues/323), [#530](https://github.com/dascritch/machincast/issues/530)) |
+| Avancer « Journal », prévu le mercredi 21 octobre à 12:00 | L'événement suivant de la grille commence aussitôt, avant son heure, et passe jusqu'à sa fin prévue, comme s'il avait commencé plus tôt : le sonore en cours s'arrête, et sa liste commence. À son heure prévue, rien ne change. |
 
 - L'événement suivant est le prochain qui prendra l'antenne d'après la grille, dans les sept jours : une émission, un spécial, ou un fil musical daté. Il passe au-dessus de tout, même d'un spécial en cours. Une émission qui a une fin reprend sa liste depuis le début quand elle l'a jouée en entier, jusqu'à sa fin.
 - Sans événement suivant dans les sept jours, l'entrée est inactive. Pendant un blanc, l'événement suivant s'avance quand même ; il n'y a alors rien à sauter.

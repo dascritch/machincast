@@ -59,7 +59,7 @@ Machin dev-screenshots /tmp/essai        # ailleurs, pour comparer
 - **Base de démonstration** : la commande vide la **base de test** de la configuration des tests, la remplit d'une radio de démonstration, « Radio Exemple », puis ouvre l'interface hors de l'écran, sans fenêtre visible, le mercredi 21 octobre 2026 à 09:41:30. Elle n'ouvre jamais la base de production, et ses fichiers sonores sont des copies d'un fichier de test, dans le répertoire temporaire `machincast-demonstration`.
 - **Reproductible** : mêmes données, même heure, même style Qt (Fusion), même taille de fenêtre (1280 × 800) : seule une modification des écrans change les images.
 - **Liste** : les captures sont nommées dans `CAPTURES`, dans `tests/screenshots.py`. Une capture ajoutée doit être citée par le guide de l'antenne, et une image de `doc/fr/captures` doit être une capture de la commande : les scénarios de `screenshots.feature` le vérifient.
-- **Polices** : les symboles des menus (⏵, ⏹, ⏮, ⏭) et les emoji (🟩, ❌, ➕) demandent les polices Noto d'un bureau Ubuntu, `fonts-noto-core` et `fonts-noto-color-emoji` ; sans elles, ils s'affichent en carrés vides sur les captures.
+- **Polices** : les symboles des lecteurs (⏵, ⏸, ⏹) et les emoji (🟩, ❌, ➕) demandent les polices Noto d'un bureau Ubuntu, `fonts-noto-core` et `fonts-noto-color-emoji` ; sans elles, ils s'affichent en carrés vides sur les captures.
 - **Relire** les images avant de les livrer : une capture est un écran tel que l'utilisateur le verra, défauts compris.
 
 ## Mesurer les blocages de GStreamer

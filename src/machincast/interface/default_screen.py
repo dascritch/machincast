@@ -91,7 +91,10 @@ class DefaultScreen(QWidget):
 	"""Une interruption du menu « Diffusion », au clic droit sur le prochain sonore : « sequence » ou « evenement »
 	(https://github.com/dascritch/machincast/issues/323)."""
 	requested_fallback = Signal(object)
-	"""« ⏭ Couper par le secours », au clic droit sur le prochain sonore : le secours choisi (interruption.Secours)."""
+	"""« Couper » « par un secours », au clic droit sur le prochain sonore : le secours choisi (interruption.Secours)."""
+	requested_insertion = Signal(str, int, str)
+	"""« Insérer après ce sonore », au clic droit : le genre (« sequence » ou « bank »), l'identifiant et le nom
+	(https://github.com/dascritch/machincast/issues/530)."""
 	AIRPLAY_COLUMNS = (
 		("start", _("Start")),
 		("end", _("End")),
@@ -529,28 +532,16 @@ class DefaultScreen(QWidget):
 		menu = QMenu(self)
 		menu.setToolTipsVisible(True)
 		entries = interruption.offer_to_next(self.state)
-		skip = menu.addAction(entries["sound"].text)
+		skip = menu.addAction(icons.icon("skip"), entries["sound"].text)
 		skip.triggered.connect(lambda _ticked=False: self.requested_skip.emit())
 		following = self.state.following_event
-		advances = menu.addAction(entries["advance"].text)
+		advances = menu.addAction(icons.icon("skip"), entries["advance"].text)
 		if following is not None:
 			advances.triggered.connect(
 				lambda _ticked=False, following=following: self.requested_advance.emit(following.id, following.name)
 			)
-		# Les coupures du menu « Diffusion » (https://github.com/dascritch/machincast/issues/323), avant l'avance.
-		proposals = interruption.offer(self.state)
-		for item in ("sequence", "event"):
-			cutoff = menu.addAction(interruption.ENTRIES[item])
-			cutoff.setEnabled(proposals[item].active)
-			cutoff.setToolTip(proposals[item].tooltip)
-			cutoff.triggered.connect(lambda _ticked=False, item=item: self.requested_interruption.emit(item))
-		fallback = menu.addAction(interruption.CUT_BY_FALLBACK)
-		interruption.fill_fallback(
-			fallback, self.state, interruption.read_fallback(self.connection), self.requested_fallback.emit
-		)
-		fallback.triggered.connect(
-			lambda _ticked=False: interruption.ask_fallback(fallback, self.requested_fallback.emit)
-		)
+		# Les sous-menus du menu « Diffusion » (https://github.com/dascritch/machincast/issues/530), avant l'avance.
+		self._on_air_entries(menu)
 		menu.addAction(advances)
 		for action, entry in ((skip, entries["sound"]), (advances, entries["advance"])):
 			action.setEnabled(entry.proposal.active)
@@ -570,15 +561,24 @@ class DefaultScreen(QWidget):
 			return None
 		menu = QMenu(self)
 		menu.setToolTipsVisible(True)
-		proposals = interruption.offer(self.state)
-		for item, entry in interruption.RESTARTS.items():
-			restart = menu.addAction(entry)
-			restart.setEnabled(proposals[item].active)
-			restart.setToolTip(proposals[item].tooltip)
-			restart.triggered.connect(lambda _ticked=False, item=item: self.requested_interruption.emit(item))
+		self._on_air_entries(menu)
 		# Un trait sépare l'emplacement, s'il est connu.
 		display.offer_location(menu, sound.location, stream=sound.stream, open_folder=_open_folder)
 		return menu
+
+	def _on_air_entries(self, menu: QMenu) -> interruption.OnAirMenu:
+		"""Les sous-menus « Recommencer », « Sauter », « Insérer après ce sonore » et « Couper », comme ceux du menu
+		« Diffusion » (https://github.com/dascritch/machincast/issues/530)."""
+		on_air = interruption.OnAirMenu(
+			menu,
+			self.connection,
+			interruption.Requests(
+				self.requested_interruption.emit, self.requested_fallback.emit, self.requested_insertion.emit
+			),
+			menu,
+		)
+		on_air.offer(self.state, interruption.read_fallback(self.connection))
+		return on_air
 
 	def _ongoing_menu(self, position: QPoint) -> None:
 		menu = self.ongoing_menu()

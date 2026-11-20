@@ -14,7 +14,7 @@ import psycopg
 import pytest
 from pytest_bdd import parsers, scenarios, then, when
 
-from machincast.player.interruptions import ADVANCED_EVENT, MANUAL_INTERRUPTION
+from machincast.player.interruptions import ADVANCED_EVENT, MANUAL_INSERTION, MANUAL_INTERRUPTION
 from machincast.player.state import IGNORED_REQUEST, advance_request, cutoff_request_by_fallback
 from tests.broadcast_steps import Bench, broadcast, clock
 from tests.log_texts import shown
@@ -137,3 +137,10 @@ def reported_log(caplog: pytest.LogCaptureFixture, text: str) -> None:
 			found = True
 			break
 	assert found, caplog.text
+
+
+@then("le log ne note aucune insertion manuelle")
+def no_insertion(empty_database: Connection) -> None:
+	"""https://github.com/dascritch/machincast/issues/530"""
+	line = empty_database.execute("SELECT count(*) FROM log WHERE kind = %s", (MANUAL_INSERTION,)).fetchone()
+	assert line == (0,)

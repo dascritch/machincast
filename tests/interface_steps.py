@@ -59,6 +59,7 @@ from machincast.interface.window import MainWindow
 from machincast.service import ABSENT, ServiceState
 from tests.categories import SCENARIO
 from tests.database_fixtures import configuration_test, sample_database_parameters
+from tests.menu_entries import find_entry
 from tests.sounds import SOUND_FILES
 
 Connection = psycopg.Connection[tuple[object, ...]]
@@ -1460,20 +1461,21 @@ def menus(interface: Context) -> list[QMenu]:
 
 
 def actions(interface: Context, menu: str) -> list[QAction]:
-	"""Les entrées d'un menu de la barre de menus, séparateurs compris, dans l'ordre."""
-	return list(named_menu(interface, menu).actions())
+	"""Les entrées montrées d'un menu de la barre de menus, séparateurs compris, dans l'ordre : une entrée cachée,
+	comme « Démarrer la diffusion » pendant la diffusion (https://github.com/dascritch/machincast/issues/530), n'en est
+	pas."""
+	shown_list = []
+	for action in named_menu(interface, menu).actions():
+		if action.isVisible():
+			shown_list.append(action)
+	return shown_list
 
 
 @when(parsers.parse("je choisis « {title} » dans le menu « {menu} »"))
 def choose_in_menu(interface: Context, title: str, menu: str) -> None:
-	"""Le menu s'ouvre d'abord, comme sous la souris : il peut relire ce qu'il propose (aboutToShow)."""
-	named_menu(interface, menu).aboutToShow.emit()
-	titled = []
-	for action in actions(interface, menu):
-		if action.text() == title:
-			titled.append(action)
-	assert len(titled) == 1, f"« {title} » absent du menu « {menu} »"
-	titled[0].trigger()
+	"""Le menu s'ouvre d'abord, comme sous la souris : il peut relire ce qu'il propose (aboutToShow). Une entrée d'un
+	sous-menu s'écrit « sous-menu › entrée »."""
+	find_entry(named_menu(interface, menu), title).trigger()
 
 
 @when(parsers.parse("j'ouvre la ligne « {name} »"))

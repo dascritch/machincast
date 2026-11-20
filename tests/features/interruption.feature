@@ -472,6 +472,62 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Alors l'airplay montre les passages « g », « f », « g », « f »
 		Et le log note l'interruption manuelle « retour au début de l'événement « Matinale » »
 
+	# ─── Recommencer la séquence, insérer (https://github.com/dascritch/machincast/issues/530) ───
+
+	Scénario: Recommencer la séquence rejoue aussitôt son premier sonore, puis la suite de la séquence
+		Étant donné le fil musical permanent « Continue » joue les séquences « Pub » des sonores « p1 », « p2 », « p3 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 70 secondes
+		Et je recommence la séquence
+		Et la diffusion avance de 130 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « p1 », « p2 », « p1 », « p2 », « p3 »
+		Et le log note l'interruption manuelle « retour au début de la séquence « Pub », dans « Continue » »
+
+	Scénario: Hors d'une séquence, recommencer la séquence ne fait rien
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et je recommence la séquence
+		Et la diffusion avance de 60 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « f2 »
+
+	Scénario: Une séquence insérée passe en entier après le sonore en cours, puis la liste reprend
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la séquence « Annonce », hors de la grille, des sonores « a1 », « a2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'insère après ce sonore la séquence « Annonce »
+		Et la diffusion avance de 190 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « a1 », « a2 », « f2 »
+
+	Scénario: Un sonore d'une banque inséré passe après le sonore en cours, puis la liste reprend
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la banque séquentielle « Jingles », hors de la grille, des sonores « j1 », « j2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'insère après ce sonore la banque « Jingles »
+		Et la diffusion avance de 130 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « j1 », « f2 »
+
+	Scénario: Pendant un blanc, une insertion ne fait rien
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
+		Et le sonore « f1 » est à l'état « disabled »
+		Et la séquence « Annonce », hors de la grille, des sonores « a1 »
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 5 secondes
+		Et j'insère après ce sonore la séquence « Annonce »
+		Et la diffusion s'arrête
+		Alors le log ne note aucune insertion manuelle
+		Et le journal du binaire a signalé « insertion ignorée : rien à l'antenne »
+
 	Scénario: Une demande de retour au début arrive par la socket d'état
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
 		Et chaque sonore dure 60 secondes

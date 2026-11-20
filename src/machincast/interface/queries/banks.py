@@ -25,6 +25,14 @@ TAIL_STATES = (
 """Les états des sonores de la banque qui ne sont pas encore lus, et leur nombre, pour l'avertissement de la fiche."""
 
 
+def named(connection: Connection) -> list[TupleRow]:
+	"""Les banques en base, non supprimées, par nom : identifiant et nom
+	(https://github.com/dascritch/machincast/issues/530)."""
+	return connection.execute(
+		"SELECT id, internal_name FROM banks WHERE deleted_at IS NULL ORDER BY lower(internal_name), id"
+	).fetchall()
+
+
 def read_bank(connection: Connection, bank: int) -> TupleRow | None:
 	"""Les champs de la banque, dans l'ordre de la fiche ; None si elle est absente."""
 	return connection.execute(

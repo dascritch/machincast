@@ -2101,6 +2101,7 @@ msgid "Paste"
 msgstr "Coller"
 
 #: machincast/interface/clipboard.py
+#: machincast/interface/interruption.py
 msgid "Cut"
 msgstr "Couper"
 
@@ -2259,6 +2260,14 @@ msgid "Broadcast not restarted"
 msgstr "Diffusion non redémarrée"
 
 #: machincast/interface/control.py
+msgid "Start the trial broadcast"
+msgstr "Démarrer la diffusion d'essai"
+
+#: machincast/interface/control.py
+msgid "Stop the trial broadcast"
+msgstr "Arrêter la diffusion d'essai"
+
+#: machincast/interface/control.py
 msgid ""
 "The database is unreachable, the audio output unavailable, or another "
 "Machin player is already broadcasting."
@@ -2283,6 +2292,10 @@ msgstr ""
 "./install.sh, qui met le service à jour."
 
 #: machincast/interface/control.py
+msgid "Start the broadcast"
+msgstr "Démarrer la diffusion"
+
+#: machincast/interface/control.py
 msgid "Broadcast started."
 msgstr "Diffusion démarrée."
 
@@ -2292,28 +2305,16 @@ msgid "Broadcast not started"
 msgstr "Diffusion non démarrée"
 
 #: machincast/interface/control.py
+msgid "Stop the broadcast"
+msgstr "Arrêter la diffusion"
+
+#: machincast/interface/control.py
 msgid "Broadcast stopped."
 msgstr "Diffusion arrêtée."
 
 #: machincast/interface/control.py
 msgid "Broadcast not stopped"
 msgstr "Diffusion non arrêtée"
-
-#: machincast/interface/control.py
-msgid "Start the trial broadcast"
-msgstr "Démarrer la diffusion d'essai"
-
-#: machincast/interface/control.py
-msgid "Stop the trial broadcast"
-msgstr "Arrêter la diffusion d'essai"
-
-#: machincast/interface/control.py
-msgid "Start the broadcast"
-msgstr "Démarrer la diffusion"
-
-#: machincast/interface/control.py
-msgid "Stop the broadcast"
-msgstr "Arrêter la diffusion"
 
 #: machincast/interface/control.py
 #, python-brace-format
@@ -3880,6 +3881,38 @@ msgid "Your installation: {path} not created: {error}."
 msgstr "Votre installation : {path} non créé : {error}."
 
 #: machincast/interface/interruption.py
+msgid "Restart"
+msgstr "Recommencer"
+
+#: machincast/interface/interruption.py
+msgid "Skip"
+msgstr "Sauter"
+
+#: machincast/interface/interruption.py
+msgid "Insert after this sound"
+msgstr "Insérer après ce sonore"
+
+#: machincast/interface/interruption.py
+msgid "a sequence"
+msgstr "une séquence"
+
+#: machincast/interface/interruption.py
+msgid "a sound from a bank"
+msgstr "un sonore d'une banque"
+
+#: machincast/interface/interruption.py
+msgid "No sequence"
+msgstr "Aucune séquence"
+
+#: machincast/interface/interruption.py
+msgid "No bank"
+msgstr "Aucune banque"
+
+#: machincast/interface/interruption.py
+msgid "by a fallback"
+msgstr "par un secours"
+
+#: machincast/interface/interruption.py
 msgid "Nothing on air"
 msgstr "Rien à l'antenne"
 
@@ -3900,6 +3933,14 @@ msgid ""
 "Interruption impossible: Machin player does not answer on its state socket."
 msgstr ""
 "Interruption impossible : Machin player ne répond pas sur sa socket d'état."
+
+#: machincast/interface/interruption.py
+msgid "Skip to this sound"
+msgstr "Sauter à ce sonore"
+
+#: machincast/interface/interruption.py
+msgid "Advance the next event"
+msgstr "Avancer l'événement suivant"
 
 #: machincast/interface/interruption.py
 msgid "No next sound"
@@ -3932,6 +3973,14 @@ msgstr ""
 "musical, jusqu'à l'événement suivant"
 
 #: machincast/interface/interruption.py
+msgid "Cut the event by this feed"
+msgstr "Couper l'événement par ce feed"
+
+#: machincast/interface/interruption.py
+msgid "Cut the background programming by this feed"
+msgstr "Couper le fil musical par ce feed"
+
+#: machincast/interface/interruption.py
 msgid "No active stream follows this feed"
 msgstr "Aucun stream actif ne suit ce feed"
 
@@ -3950,6 +3999,36 @@ msgid ""
 "Cutoff impossible: Machin player does not answer on its state socket."
 msgstr ""
 "Coupure impossible : Machin player ne répond pas sur sa socket d'état."
+
+#: machincast/interface/interruption.py
+msgid ""
+"Insertion impossible: Machin player does not answer on its state socket."
+msgstr ""
+"Insertion impossible : Machin player ne répond pas sur sa socket d'état."
+
+#: machincast/interface/interruption.py
+msgid "this sound"
+msgstr "ce sonore"
+
+#: machincast/interface/interruption.py
+msgid "this sequence"
+msgstr "cette séquence"
+
+#: machincast/interface/interruption.py
+msgid "this event"
+msgstr "cet événement"
+
+#: machincast/interface/interruption.py
+msgid "to the next sound"
+msgstr "au sonore suivant"
+
+#: machincast/interface/interruption.py
+msgid "after this sequence"
+msgstr "après cette séquence"
+
+#: machincast/interface/interruption.py
+msgid "this event by the background programming"
+msgstr "cet événement par un fil musical"
 
 #: machincast/interface/interruption.py
 msgid "Skip to the next sound requested."
@@ -3972,44 +4051,8 @@ msgid "Restart of the event requested."
 msgstr "Retour au début de l'événement demandé."
 
 #: machincast/interface/interruption.py
-msgid "Skip to this sound"
-msgstr "Sauter à ce sonore"
-
-#: machincast/interface/interruption.py
-msgid "Advance the next event"
-msgstr "Avancer l'événement suivant"
-
-#: machincast/interface/interruption.py
-msgid "Cut by the fallback"
-msgstr "Couper par le secours"
-
-#: machincast/interface/interruption.py
-msgid "Cut the event by this feed"
-msgstr "Couper l'événement par ce feed"
-
-#: machincast/interface/interruption.py
-msgid "Cut the background programming by this feed"
-msgstr "Couper le fil musical par ce feed"
-
-#: machincast/interface/interruption.py
-msgid "Skip to the next sound"
-msgstr "Sauter au sonore suivant"
-
-#: machincast/interface/interruption.py
-msgid "Skip after the sequence"
-msgstr "Sauter après la séquence"
-
-#: machincast/interface/interruption.py
-msgid "Cut the event by the background programming"
-msgstr "Couper l'événement par le fil musical"
-
-#: machincast/interface/interruption.py
-msgid "Back to the start of this sound"
-msgstr "Revenir au début de ce sonore"
-
-#: machincast/interface/interruption.py
-msgid "Restart this event"
-msgstr "Recommencer cet événement"
+msgid "Restart of the sequence requested."
+msgstr "Retour au début de la séquence demandé."
 
 #: machincast/interface/interruption.py
 msgid "It starts at once, above the grid, until the end of its list"
@@ -4018,8 +4061,8 @@ msgstr ""
 
 #: machincast/interface/interruption.py
 #, python-brace-format
-msgid "{skip} Advance “{name}”, planned on {day_and_month} at {start:%H:%M}"
-msgstr "{skip} Avancer « {name} », prévu le {day_and_month} à {start:%H:%M}"
+msgid "Advance “{name}”, planned on {day_and_month} at {start:%H:%M}"
+msgstr "Avancer « {name} », prévu le {day_and_month} à {start:%H:%M}"
 
 #: machincast/interface/interruption.py
 #, python-brace-format
@@ -4044,8 +4087,20 @@ msgstr "Coupure par le feed « {name} » demandée."
 
 #: machincast/interface/interruption.py
 #, python-brace-format
+msgid ""
+"Insertion of a sound from the bank “{name}” after this sound requested."
+msgstr ""
+"Insertion d'un sonore de la banque « {name} » après ce sonore demandée."
+
+#: machincast/interface/interruption.py
+#, python-brace-format
 msgid "“{next}”, at once: “{ongoing}” stops"
 msgstr "« {next} », aussitôt : « {ongoing} » s'arrête"
+
+#: machincast/interface/interruption.py
+#, python-brace-format
+msgid "Insertion of the sequence “{name}” after this sound requested."
+msgstr "Insertion de la séquence « {name} » après ce sonore demandée."
 
 #: machincast/interface/interruption.py
 #, python-brace-format
@@ -4065,6 +4120,11 @@ msgstr "événements de secours illisibles : {error}"
 #, python-brace-format
 msgid "unreadable stream of feed {feed}: {error}"
 msgstr "stream du feed {feed} illisible : {error}"
+
+#: machincast/interface/interruption.py
+#, python-brace-format
+msgid "unreadable {category} list: {error}"
+msgstr "liste {category} illisible : {error}"
 
 #: machincast/interface/items.py
 #, python-brace-format
@@ -6498,6 +6558,14 @@ msgid "advance ignored"
 msgstr "avance ignorée"
 
 #: machincast/player/interruptions.py
+msgid "manual insertion"
+msgstr "insertion manuelle"
+
+#: machincast/player/interruptions.py
+msgid "insertion ignored"
+msgstr "insertion ignorée"
+
+#: machincast/player/interruptions.py
 #, python-brace-format
 msgid "{manual_interruption} ignored"
 msgstr "{manual_interruption} ignorée"
@@ -6506,6 +6574,16 @@ msgstr "{manual_interruption} ignorée"
 #: install.sh
 msgid "none"
 msgstr "aucun"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of the sequence “{name}” after the sound “{sound_name}”"
+msgstr "de la séquence « {name} » après le sonore « {sound_name} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "of a sound from the bank “{name}” after the sound “{sound_name}”"
+msgstr "d'un sonore de la banque « {name} » après le sonore « {sound_name} »"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
@@ -6592,6 +6670,16 @@ msgstr "retour au début du sonore « {sound_name} »"
 #, python-brace-format
 msgid "back to the start of the event “{name}”"
 msgstr "retour au début de l'événement « {name} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "back to the start of the sequence {on_air_sequence}"
+msgstr "retour au début de la séquence {on_air_sequence}"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{ignored}: sequence {sequence} or bank {bank} unknown"
+msgstr "{ignored} : séquence {sequence} ou banque {bank} inconnue"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
