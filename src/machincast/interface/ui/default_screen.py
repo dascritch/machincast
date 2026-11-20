@@ -54,6 +54,8 @@ class Ui_DefaultScreen(object):
 
         self.banner.addWidget(self.public_text)
 
+        self.state_column = QVBoxLayout()
+        self.state_column.setObjectName(u"state_column")
         self.playback_state = QLabel(DefaultScreen)
         self.playback_state.setObjectName(u"playback_state")
         font2 = QFont()
@@ -62,7 +64,15 @@ class Ui_DefaultScreen(object):
         self.playback_state.setFont(font2)
         self.playback_state.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
-        self.banner.addWidget(self.playback_state)
+        self.state_column.addWidget(self.playback_state)
+
+        self.monitor = QPushButton(DefaultScreen)
+        self.monitor.setObjectName(u"monitor")
+
+        self.state_column.addWidget(self.monitor)
+
+
+        self.banner.addLayout(self.state_column)
 
         self.banner.setStretch(1, 1)
 
@@ -529,6 +539,10 @@ class Ui_DefaultScreen(object):
         self.playback_state.setToolTip(QCoreApplication.translate("DefaultScreen", u"State of Machin player", None))
 #endif // QT_CONFIG(tooltip)
         self.playback_state.setText(QCoreApplication.translate("DefaultScreen", u"Stopped", None))
+#if QT_CONFIG(tooltip)
+        self.monitor.setToolTip(QCoreApplication.translate("DefaultScreen", u"Listen to the on-air output on the pre-listen output, at once", None))
+#endif // QT_CONFIG(tooltip)
+        self.monitor.setText(QCoreApplication.translate("DefaultScreen", u"On-air monitor", None))
 #if QT_CONFIG(tooltip)
         self.on_air_event.setToolTip(QCoreApplication.translate("DefaultScreen", u"Event on air", None))
 #endif // QT_CONFIG(tooltip)

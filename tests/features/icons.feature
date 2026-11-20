@@ -112,7 +112,7 @@ Fonctionnalité: Icônes des genres, uniformes dans toute l'interface
 		Et le bouton « preview_next » de l'onglet Antenne porte l'icône « pré-écoute »
 		Et les entrées du menu « Diffusion » portent les icônes :
 			| entrée                  | icône      |
-			| Pré-écoute de l'antenne | pré-écoute |
+			| Moniteur de l'antenne | pré-écoute |
 
 	Scénario: Les écrans n'emploient d'icônes du thème du poste que pour ce qui n'est pas un genre
 		Les écrans dessinés avec Qt Widgets Designer ne prennent pas d'icône du thème pour un genre : celle-ci se pose dans

@@ -171,11 +171,12 @@ SET_ON_AIR = _(
 )
 RESTARTING_FOR_SETTINGS = _("Broadcast service settings saved: restarting the broadcast, which takes them…")
 LISTENING = {
-	False: (_("On-air pre-listen"), _("Listen to the on-air output on the pre-listen output, at once")),
-	True: (_("Stop the on-air pre-listen"), _("Stop listening to the on-air output on the pre-listen output")),
+	False: (_("On-air monitor"), _("Listen to the on-air output on the pre-listen output, at once")),
+	True: (_("Stop the on-air monitor"), _("Stop listening to the on-air output on the pre-listen output")),
 }
 """L'entrée d'écoute de l'antenne du menu « Diffusion », et son infobulle, selon que l'antenne s'écoute
-(https://github.com/dascritch/machincast/issues/256)."""
+(https://github.com/dascritch/machincast/issues/256). « Moniteur de l'antenne » depuis
+https://github.com/dascritch/machincast/issues/531, aussi le bouton sous le voyant de l'onglet Antenne."""
 
 SOUND_CARDS = _("Sound cards")
 WPCTL_STATUS = "wpctl status"
@@ -261,7 +262,8 @@ class MainWindow(QMainWindow):
 		self.key_hints = key_hints.KeyHints(self)
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
 		self.home.show_clipping(poster=self.clipping)
-		self.home.requested_listening.connect(self._listen_on_air)
+		# Le moniteur de l'antenne n'a ni lecture ni pause : il écoute aussitôt (https://github.com/dascritch/machincast/issues/531).
+		self.home.requested_listening.connect(lambda: self._listen_on_air(launch=True))
 		self.tab_manager.add_fixed(self.home, ON_AIR, "on_air")
 		# La grille d'antenne, onglet fixe juste après l'onglet Antenne (https://github.com/dascritch/machincast/issues/307).
 		self.calendar = Calendar(connection, clock)
@@ -282,6 +284,10 @@ class MainWindow(QMainWindow):
 		self.home.requested_interruption.connect(self.broadcast.interrupt)
 		self.home.requested_fallback.connect(self.broadcast.cut_by_fallback)
 		self.home.requested_insertion.connect(self.broadcast.insert)
+		# Le bouton « Moniteur de l'antenne », sous le voyant, comme l'entrée du menu « Diffusion »
+		# (https://github.com/dascritch/machincast/issues/531).
+		self.home.ui.monitor.setIcon(icons.icon("preview"))
+		self.home.ui.monitor.clicked.connect(self._switch_listening)
 		self.checker = Checker(connection, self)
 		self.checker.finished.connect(self._finished_check)
 		self.full_check = FullCheck(connection, self)
@@ -735,6 +741,8 @@ class MainWindow(QMainWindow):
 		text, tooltip = LISTENING[ongoing]
 		self.listen.setText(text)
 		display.set_preview(self.listen, active=True, tooltip=tooltip)
+		self.home.ui.monitor.setText(text)
+		display.set_preview(self.home.ui.monitor, active=True, tooltip=tooltip)
 
 	def _follow_preview(self) -> None:
 		"""Sur l'entrée « Sortie factice » de la pré-écoute, ses boutons et ses entrées de menu sont grisés, partout

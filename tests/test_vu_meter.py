@@ -22,10 +22,11 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Audio
-from machincast.interface import binding, monitor, preview, screen_saver, states
+from machincast.interface import binding, icons, monitor, preview, screen_saver, states
 from machincast.interface.monitor import Monitor, monitor_source
 from machincast.interface.vu_meter import VuMeter
 from tests.interface_steps import Context, actions, window
+from tests.menu_steps import same_icon
 from tests.preview_steps import SIGNALS, home
 from tests.waiting import quiet
 
@@ -714,3 +715,47 @@ def soon_nothing_captured(interface: Context, qtbot: QtBot) -> None:
 	monitor_ = home(interface).monitor
 	qtbot.waitUntil(lambda: not monitor_.active(), timeout=DELAY)
 	assert (monitor_.levels, monitor_.peaks) == ([], [])
+
+
+# ─── Moniteur de l'antenne (https://github.com/dascritch/machincast/issues/531) ───
+
+
+@then("le moniteur de l'antenne cache la lecture, la pause et le temps")
+def hidden_commands(interface: Context) -> None:
+	ui = window(interface).preview.ui
+	assert (ui.playback.isHidden(), ui.stop.isHidden(), ui.time.isHidden()) == (True, True, True)
+
+
+@then("la forme d'onde du direct avance bientôt, à la place de la frise")
+def live_wave_moves(interface: Context, qtbot: QtBot) -> None:
+	opened = window(interface).preview
+	assert opened.timeline.isHidden()
+	assert not opened.live_wave.isHidden()
+
+	def heard() -> bool:
+		filled = False
+		for height in opened.live_wave.columns():
+			if height > 0:
+				filled = True
+		return filled
+
+	qtbot.waitUntil(heard, timeout=5000)
+
+
+@then(
+	parsers.re(
+		r"le bouton sous le voyant de la diffusion est (?P<soon>bientôt )?« (?P<text>[^»]+) »(?P<icon>, avec le casque)?"
+	)
+)
+def monitor_button(interface: Context, qtbot: QtBot, soon: str | None, text: str, icon: str | None) -> None:
+	button = home(interface).ui.monitor
+	if soon is not None:
+		qtbot.waitUntil(lambda: button.text() == text, timeout=5000)
+	assert button.text() == text
+	if icon is not None:
+		assert same_icon(button.icon(), icons.icon("preview"))
+
+
+@when("je clique sur le bouton sous le voyant de la diffusion")
+def click_monitor(interface: Context, qtbot: QtBot) -> None:
+	qtbot.mouseClick(home(interface).ui.monitor, Qt.MouseButton.LeftButton)

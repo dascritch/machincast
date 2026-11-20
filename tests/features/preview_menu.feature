@@ -121,7 +121,7 @@ Fonctionnalité: Pré-écoute d'un sonore depuis le menu contextuel de sa ligne
 		Étant donné la configuration audio sortie « pipewire », avec le périphérique d'antenne « carte-1 » et de pré-écoute « dummy »
 		Quand la fenêtre de l'interface s'ouvre
 		Alors l'entrée « Pré-écoute… » du menu « Affichage » est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences de l'interface…, page Audio). »
-		Et l'entrée « Pré-écoute de l'antenne » du menu « Diffusion » est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences de l'interface…, page Audio). »
+		Et l'entrée « Moniteur de l'antenne » du menu « Diffusion » est inactive, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences de l'interface…, page Audio). »
 		Et le bouton « Pré-écoute » du prochain sonore est inactif, avec l'infobulle « Pré-écoute désactivée : sa carte son est la sortie factice (Fichier → Préférences de l'interface…, page Audio). »
 		Quand j'appuie sur « Alt+P »
 		Et je clique sur le VU-mètre de l'antenne

@@ -29,7 +29,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Tableau », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Diffusion » a les entrées :
 			| entrée                                | état       | raccourci | infobulle                                               |
-			| Pré-écoute de l'antenne               | active     | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| Moniteur de l'antenne               | active     | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |            |           |                                                         |
 			| <entree>                              | active     |           |                                                         |
 			| —                                     |            |           |                                                         |
@@ -95,7 +95,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                               |
-			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| Moniteur de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |          |           |                                                         |
 			| Arrêter la diffusion | active |           |                                                         |
 			| —                                     |          |           |                                                         |
@@ -111,7 +111,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Alors la barre d'état annonce bientôt « Diffusion démarrée. »
 		Et le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                               |
-			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| Moniteur de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |          |           |                                                         |
 			| Arrêter la diffusion | active |           |                                                         |
 			| —                                     |          |           |                                                         |
@@ -127,7 +127,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                               |
-			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
+			| Moniteur de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt |
 			| —                                     |          |           |                                                         |
 			| Démarrer la diffusion | active |           |                                                         |
 			| —                                     |          |           |                                                         |
@@ -146,7 +146,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Tableau », « Diffusion », « Maintenance », « Aide »
 		Et le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                                  |
-			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt    |
+			| Moniteur de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt    |
 			| —                                     |          |           |                                                            |
 			| Démarrer la diffusion d'essai | active |           | Sans service : Machin player dans une fenêtre de terminal |
 			| —                                     |          |           |                                                            |
@@ -181,7 +181,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et j'ouvre le menu « Diffusion »
 		Alors le menu « Diffusion » a les entrées :
 			| entrée                                | état     | raccourci | infobulle                                                             |
-			| Pré-écoute de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt               |
+			| Moniteur de l'antenne               | active   | Alt+P     | Écouter l'antenne sur la sortie de pré-écoute, aussitôt               |
 			| —                                     |          |           |                                                                       |
 			| Arrêter la diffusion d'essai | active |           | Sans service : arrête le Machin player lancé à la main, comme Ctrl-C |
 			| —                                     |          |           |                                                                       |
