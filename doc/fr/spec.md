@@ -2000,7 +2000,7 @@ Les réponses sont en JSON, en UTF-8 (`api.dumps`) : dates en ISO 8601, durées 
 
 | Chemin | Réponse |
 | --- | --- |
-| `/api/v1/live` | L'antenne (`machincast.intranet.live`) : `time` ; `state` (`playing`, `dead_air` ou `stopped`) ; `public_text` ; `current`, le sonore en cours, et sa `position` ; `next`, les 5 suivants, prochain compris ; `previous`, les 5 derniers passages terminés, le plus récent en tête ; `events`, l'événement `previous`, `current` et `next`, avec `id`, `name`, `priority`, `start` et `end`. |
+| `/api/v1/live` | L'antenne (`machincast.intranet.live`) : `time` ; `state` (`playing`, `dead_air` ou `stopped`) ; `public_text` ; `current`, le sonore en cours, et sa `position` ; `next`, les 5 suivants, prochain compris ; `previous`, les 5 derniers passages terminés, le plus récent en tête ; `events`, l'événement `previous`, `current` et `next`, avec `id`, `name`, `priority`, `start` et `end`, avec leur décalage horaire. |
 | `/api/v1/incidents` | `incidents` : les 100 derniers incidents du log, niveau `incident` seulement, avec le sonore, la banque et l'événement concernés. |
 | `/api/v1/events`, `/sequences`, `/banks`, `/sounds` | Une page de la liste, sans les éléments supprimés, par identifiant : `?after=<id>&limit=<n>` (100 par défaut, 1000 au plus) ; `next`, l'identifiant à passer en `after` pour la page suivante, ou `null`. |
 | `/api/v1/<liste>/<id>` | La fiche d'un élément, même supprimé, `deleted_at` renseigné ; ses `items` (événement, séquence) ou ses sonores (`items` d'une banque, et ses `directories`). |
@@ -2009,3 +2009,26 @@ Les réponses sont en JSON, en UTF-8 (`api.dumps`) : dates en ISO 8601, durées 
 - Les événements viennent de la grille (`shared.grid.plan`), sur la semaine d'avant et la semaine d'après : un événement avancé ou terminé à la main, que seul Machin player connaît, ne l'est pas ici ; une heure hors de cette période vaut `null`.
 - Les sessions de rôle `consult` et `actions` lisent toutes l'API ; les actions viendront dans une version suivante.
 - Un nouveau chemin de `/api/v1` garde les autres tels quels ; un changement de sens ou de forme ouvre `/api/v2`.
+
+### 13.4 Gabarit « Machin intranet » et accueil en direct
+
+([#541](https://github.com/dascritch/machincast/issues/541), `machincast.intranet.template`, `machincast.intranet.home`)
+
+Chaque page de l'intranet, une fois connecté, a le même gabarit minimaliste : un bandeau avec le nom de la radio (`metadata.public_text`), « Machin intranet », l'état de la diffusion, les liens vers les pages de l'intranet, la page en cours marquée, le compte connecté et **Se déconnecter**.
+Sa feuille de style et son script sont servis par l'intranet lui-même, sous `/static/` : la Content-Security-Policy n'accepte aucune ressource d'ailleurs, ni script dans la page.
+Sous `/static/`, seuls `intranet.css` et `intranet.js` sont servis ; tout autre chemin répond 404.
+
+L'accueil, `GET /`, montre l'antenne en direct, dans cet ordre :
+
+1. l'heure ;
+2. le texte public en cours ;
+3. l'événement en cours : son nom, son début, sa fin et le temps restant ;
+4. l'événement suivant : son nom, son début et sa fin ;
+5. le sonore en cours : son nom, sa durée et le temps restant ;
+6. le sonore suivant : son nom, sa durée et le temps avant son début ;
+7. les derniers sonores diffusés, avec leur heure de début.
+
+- Le serveur écrit la page telle qu'est l'antenne à son chargement, d'après les mêmes sources que `/api/v1/live` ; sans JavaScript, elle reste lisible.
+- Le script relit `/api/v1/live` toutes les 5 secondes, et tient les décomptes, affichés en secondes, au centième de seconde, à l'heure du serveur ; une session devenue invalide le ramène à la mire.
+- Les heures sont celles du poste de diffusion ; l'API les donne avec leur décalage horaire.
+- Sans session, l'accueil mène à la mire ; une session à valider, à la page de validation.

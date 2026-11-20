@@ -8,7 +8,7 @@
 - POST /validation : le code exact valide la session, et mène à l'accueil ; un code faux le redemande ; au cinquième,
   ou le délai passé, la session est invalide, et il faut se reconnecter.
 - POST /logout : la session devient invalide, son cookie s'efface.
-- GET / : l'accueil, pour une session valide ; sinon la mire, ou la page de validation.
+- GET / : l'accueil (machincast.intranet.home), pour une session valide ; sinon la mire, ou la page de validation.
 
 Le cookie de session est Secure, HttpOnly, SameSite=Strict ; le même jeton sert l'API, en cookie ou en
 « Authorization: Bearer ». Les accès à la base passent par asyncio.to_thread : une connexion par requête, au rôle
@@ -152,7 +152,6 @@ class Portal:
 
 	def routes(self) -> dict[tuple[str, str], Route]:
 		return {
-			("GET", "/"): self.home,
 			("GET", "/login"): self.login_form,
 			("POST", "/login"): self.login,
 			("GET", "/validation"): self.validation_form,
@@ -180,20 +179,6 @@ class Portal:
 		if (found is None) or (found.state != "valid"):
 			return None
 		return found
-
-	async def home(self, request: Request) -> Response:
-		found = await self.session(request)
-		if found is None:
-			return redirect("/login")
-		if found.state == "pending":
-			return redirect("/validation")
-		if found.state != "valid":
-			return redirect("/login")
-		return page(
-			_("Home"),
-			f"<h1>{TITLE}</h1>\n<p>{escape(_('Connected as {name}.').format(name=found.user))}</p>\n"
-			f'<form method="post" action="/logout"><p><button type="submit">{escape(_("Disconnect"))}</button></p></form>',
-		)
 
 	async def login_form(self, _request: Request) -> Response:
 		return login_page()

@@ -1,13 +1,16 @@
-"""Scénarios de l'API REST v1 de l'intranet, en lecture (https://github.com/dascritch/machincast/issues/540).
+"""Scénarios de l'API REST v1 de l'intranet, en lecture (https://github.com/dascritch/machincast/issues/540), et de
+son accueil en direct (https://github.com/dascritch/machincast/issues/541).
 
 Les requêtes passent directement à l'application ASGI (tests.asgi_client), sur la base de test, au rôle
 machincast_intranet. Machin player est imité par une vraie socket d'état (machincast.player.state.StateSocket).
 """
 
+import html
 import json
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -22,19 +25,21 @@ from machincast.database import Role, open_connection
 from machincast.intranet import sessions
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet
+from machincast.intranet.home import Home
 from machincast.intranet.portal import Portal
 from machincast.player.state import StateSocket
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import NAME, Connection, identifier
 
-scenarios("intranet_api.feature")
+scenarios("intranet_api.feature", "intranet_home.feature")
 
 
 @dataclass
 class Api:
 	application: Intranet
 	socket_path: Path
+	now: datetime
 	answer: Answer | None = None
 	player: StateSocket | None = None
 	extra: dict[str, Any] = field(default_factory=dict)
@@ -56,7 +61,12 @@ def socket_path(tmp_path: Path) -> Path:
 def application(socket_path: Path, moment: str) -> Iterator[Api]:
 	clock = FixedClock(datetime.fromisoformat(moment).astimezone())
 	portal = Portal(Settings(enabled=True), connect)
-	built = Api(Intranet({**portal.routes(), **ApiV1(portal, connect, socket_path, clock).routes()}), socket_path)
+	routes = {
+		**portal.routes(),
+		**ApiV1(portal, connect, socket_path, clock).routes(),
+		**Home(portal, connect, socket_path, "Radio Thune", clock).routes(),
+	}
+	built = Api(Intranet(routes), socket_path, clock.now())
 	yield built
 	if built.player is not None:
 		built.player.shut_down()
@@ -120,14 +130,18 @@ def _sound(title: str) -> dict[str, Any]:
 @given(parsers.re(r"Machin player qui publie « (?P<current>[^»]+) » en cours, puis (?P<following>.+)"))
 def player(api: Api, current: str, following: str) -> None:
 	titles = NAME.findall(following)
-	published = dict(_sound(current), public_text=f"Radio Thune — {current}", position=12.5)
+	ends = api.now + timedelta(seconds=167.5)
+	published = dict(
+		_sound(current), public_text=f"Radio Thune — {current}", position=12.5, estimated_end=ends.isoformat()
+	)
+	following_sound = dict(_sound(titles[0]), estimated_start=ends.isoformat())
 	upcoming = []
 	for title in titles[1:]:
 		upcoming.append(_sound(title))
 	api.player = StateSocket(api.socket_path)
 	api.player.open_()
 	api.player.publish(
-		{"version": 3, "state": "playing", "current": published, "next": _sound(titles[0]), "upcoming": upcoming}
+		{"version": 3, "state": "playing", "current": published, "next": following_sound, "upcoming": upcoming}
 	)
 
 
@@ -282,10 +296,96 @@ def previous(api: Api, titles: str) -> None:
 def event(api: Api, which: str, name: str, start: str, end: str) -> None:
 	key = {"précédent": "previous", "en cours": "current", "suivant": "next"}[which]
 	found = _json(api)["events"][key]
-	assert (found["name"], found["start"], found["end"]) == (name, start, end)
+	assert found["name"] == name
+	assert datetime.fromisoformat(found["start"]) == datetime.fromisoformat(start).astimezone()
+	assert datetime.fromisoformat(found["end"]) == datetime.fromisoformat(end).astimezone()
 
 
 @then("l'API répond 200, en direct « stopped », sans sonore en cours ni à venir")
 def stopped(api: Api) -> None:
 	found = _json(api)
 	assert (found["state"], found["current"], found["next"]) == ("stopped", None, [])
+
+
+def _page(api: Api) -> str:
+	answer = _answer(api)
+	assert answer.header("content-type") == "text/html; charset=utf-8", answer.headers
+	return answer.text()
+
+
+def _element(api: Api, identifier: str) -> str:
+	"""Le texte de l'élément d'identifiant donné, sans balise."""
+	found = re.search(rf'id="{identifier}"[^>]*>(?P<text>[^<]*)<', _page(api))
+	assert found is not None, identifier
+	return html.unescape(found["text"])
+
+
+@then(parsers.parse("l'API répond {status:d}, vers « {address} »"))
+def redirected(api: Api, status: int, address: str) -> None:
+	assert (_answer(api).status, _answer(api).header("location")) == (status, address)
+
+
+@then(parsers.parse("l'API répond {status:d}, de type « {kind} »"))
+def typed(api: Api, status: int, kind: str) -> None:
+	assert (_answer(api).status, _answer(api).header("content-type")) == (status, kind)
+
+
+@then(parsers.parse("l'API répond 200, une page « {title} » du gabarit de « {radio} », « {state} », pour « {user} »"))
+def templated(api: Api, title: str, radio: str, state: str, user: str) -> None:
+	assert _answer(api).status == 200, _answer(api).text()
+	text = _page(api)
+	assert f"<title>{title} — Machin intranet</title>" in text
+	assert f'<span class="radio">{radio}</span>' in text
+	assert '<span class="machin">Machin intranet</span>' in text
+	assert _element(api, "etat") == state
+	assert f'<span class="discret">{user}</span>' in text
+
+
+@then(parsers.parse("le bandeau mène à « {address} » « {label} », la page en cours, et permet de se déconnecter"))
+def navigation(api: Api, address: str, label: str) -> None:
+	text = _page(api)
+	assert f'<a href="{address}" aria-current="page">{label}</a>' in text
+	assert '<form method="post" action="/logout"><button type="submit">Se déconnecter</button></form>' in text
+
+
+@then("la page charge /static/intranet.css et /static/intranet.js, sans script dans la page")
+def resources(api: Api) -> None:
+	text = _page(api)
+	assert '<link rel="stylesheet" href="/static/intranet.css">' in text
+	assert re.findall(r"<script[^>]*>", text) == ['<script src="/static/intranet.js" defer>']
+	assert "default-src 'self'" in str(_answer(api).header("content-security-policy"))
+
+
+@then(parsers.re(r"les sections de l'accueil sont, dans l'ordre, (?P<names>.+)"))
+def sections(api: Api, names: str) -> None:
+	text = _page(api)
+	positions = []
+	for name in NAME.findall(names):
+		found = re.search(rf'(?:class|id)="{name}"', text)
+		assert found is not None, name
+		positions.append(found.start())
+	assert positions == sorted(positions)
+
+
+@then("l'accueil montre :")
+def shown(api: Api, datatable: list[list[str]]) -> None:
+	for element, text in datatable[1:]:
+		assert _element(api, element.strip()) == text.strip(), element
+
+
+@then(parsers.re(r"les décomptes (?P<names>.+) ont leur limite, pour le script"))
+def limits(api: Api, names: str) -> None:
+	for element in NAME.findall(names):
+		found = re.search(rf'id="{element}" data-limite="(?P<limit>[^"]+)"', _page(api))
+		assert found is not None, element
+		assert datetime.fromisoformat(found["limit"]) > api.now
+
+
+@then(parsers.re(r"l'airplay de l'accueil est (?P<lines>.+)"))
+def recent(api: Api, lines: str) -> None:
+	found = re.search(r'<ol id="airplay">(?P<items>.*?)</ol>', _page(api))
+	assert found is not None
+	items = []
+	for item in re.findall(r"<li>([^<]*)</li>", found["items"]):
+		items.append(html.unescape(item))
+	assert items == NAME.findall(lines)

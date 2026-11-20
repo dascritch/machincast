@@ -124,8 +124,10 @@ def validate(connection: Connection, value: str, given: str, hours: int) -> str:
 		identifier, expected, attempts = row
 		if secrets.compare_digest(str(expected), given.strip().replace(" ", "")):
 			connection.execute(
-				"UPDATE api_sessions SET state = 'valid', code = NULL, validated_at = clock_timestamp(),"
-				" expires_at = clock_timestamp() + make_interval(hours => %s) WHERE id = %s",
+				# Un seul instant pour la validation et la fin de la session : elle dure exactement hours.
+				"UPDATE api_sessions SET state = 'valid', code = NULL, validated_at = moment.now,"
+				" expires_at = moment.now + make_interval(hours => %s) FROM (SELECT clock_timestamp() AS now) moment"
+				" WHERE id = %s",
 				(hours, identifier),
 			)
 			return "valid"

@@ -6,6 +6,7 @@ machincast_intranet.
 
 from dataclasses import dataclass
 from datetime import timedelta
+from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
@@ -15,6 +16,7 @@ from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
 from machincast.intranet import sessions
 from machincast.intranet.app import Intranet
+from machincast.intranet.home import Home
 from machincast.intranet.portal import Portal
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
@@ -38,9 +40,11 @@ def connect() -> psycopg.Connection[TupleRow]:
 
 
 @given("l'application de l'intranet sur la base de test", target_fixture="visit")
-def application(empty_database: Connection) -> Visit:
+def application(empty_database: Connection, tmp_path: Path) -> Visit:
 	del empty_database
-	return Visit(Intranet(Portal(Settings(enabled=True), connect).routes()))
+	portal = Portal(Settings(enabled=True), connect)
+	home = Home(portal, connect, tmp_path / "lecture.sock", "Radio Thune")
+	return Visit(Intranet({**portal.routes(), **home.routes()}))
 
 
 def _keep(visit: Visit, answer: Answer) -> None:

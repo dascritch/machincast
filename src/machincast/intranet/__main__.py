@@ -29,6 +29,7 @@ from machincast.i18n import _
 from machincast.intranet import certificate, network
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet as Application
+from machincast.intranet.home import Home
 from machincast.intranet.portal import Portal
 
 log = logging.getLogger(__name__)
@@ -91,7 +92,8 @@ def application(configuration: Configuration) -> Application:
 
 	portal = Portal(configuration.intranet, connect)
 	api = ApiV1(portal, connect, configuration.player.state_socket)
-	return Application({**portal.routes(), **api.routes()})
+	home = Home(portal, connect, configuration.player.state_socket, configuration.metadata.public_text)
+	return Application({**portal.routes(), **api.routes(), **home.routes()})
 
 
 def run(configuration: Configuration, _options: argparse.Namespace) -> int:
