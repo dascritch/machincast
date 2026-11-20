@@ -1,14 +1,17 @@
 """Scénarios des raccourcis des onglets (https://github.com/dascritch/machincast/issues/192,
-https://github.com/dascritch/machincast/issues/318, https://github.com/dascritch/machincast/issues/428).
+https://github.com/dascritch/machincast/issues/318, https://github.com/dascritch/machincast/issues/428,
+https://github.com/dascritch/machincast/issues/529).
 
 Les étapes de la fenêtre et des fiches sont dans tests/interface_steps.py.
 """
 
+import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QMenu
+from PySide6.QtWidgets import QAbstractButton, QMenu
 from pytest_bdd import parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
+from machincast.interface import key_hints
 from machincast.interface.lists import List
 from tests.interface_steps import NAME, Context, actions, named_menu, tab_title, window
 
@@ -114,3 +117,79 @@ def choose_in_submenu(interface: Context, entry: str, title: str, menu: str) -> 
 			found_list.append(action)
 	(found,) = found_list
 	found.trigger()
+
+
+# ─── Raccourcis en surimpression (https://github.com/dascritch/machincast/issues/529) ───
+
+HELD_KEYS = {"Ctrl": Qt.Key.Key_Control, "Alt": Qt.Key.Key_Alt}
+
+
+@pytest.fixture(autouse=True)
+def short_hold(monkeypatch: pytest.MonkeyPatch) -> None:
+	"""L'attente de la touche tenue, raccourcie : 50 ms au lieu d'une seconde."""
+	monkeypatch.setattr(key_hints, "HOLD_DELAY", 50)
+
+
+def _hints(interface: Context) -> list[key_hints.Hint]:
+	return window(interface).key_hints.shown
+
+
+def _press(interface: Context, qtbot: QtBot, key: Qt.Key) -> None:
+	with qtbot.waitActive(window(interface)):
+		window(interface).activateWindow()
+	qtbot.keyPress(window(interface), key)
+
+
+@when(parsers.re(r"je tiens la touche (?P<key>Ctrl|Alt)"))
+def hold(interface: Context, qtbot: QtBot, key: str) -> None:
+	_press(interface, qtbot, HELD_KEYS[key])
+	qtbot.waitUntil(lambda: _hints(interface) != [], timeout=5000)
+
+
+@when(parsers.re(r"je relâche la touche (?P<key>Ctrl|Alt)"))
+def release(interface: Context, qtbot: QtBot, key: str) -> None:
+	qtbot.keyRelease(window(interface), HELD_KEYS[key])
+
+
+@when("je presse Ctrl puis F avant la fin de l'attente")
+def interrupted(interface: Context, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr(key_hints, "HOLD_DELAY", 200)
+	_press(interface, qtbot, Qt.Key.Key_Control)
+	qtbot.keyPress(window(interface), Qt.Key.Key_F, Qt.KeyboardModifier.ControlModifier)
+	qtbot.waitUntil(lambda: not window(interface).key_hints.waiting(), timeout=5000)
+
+
+def _on_button(hint: key_hints.Hint) -> str:
+	if isinstance(hint.target, QAbstractButton):
+		return hint.target.text()
+	return ""
+
+
+@then(parsers.parse("les raccourcis en surimpression comptent « {text} » sur « {button} »"))
+def on_button(interface: Context, text: str, button: str) -> None:
+	found = []
+	for hint in _hints(interface):
+		if _on_button(hint) == button:
+			found.append(hint.text)
+	assert text in found, _hints(interface)
+
+
+@then(parsers.parse("les raccourcis en surimpression comptent « {text} » pour « {entry} »"))
+def for_entry(interface: Context, text: str, entry: str) -> None:
+	found = []
+	for hint in _hints(interface):
+		if hint.entry == entry:
+			found.append(hint.text)
+	assert text in found, _hints(interface)
+
+
+@then(parsers.re(r"les raccourcis en surimpression ne comptent aucun raccourci (?:de |d')(?P<key>Ctrl|Alt)"))
+def without(interface: Context, key: str) -> None:
+	for hint in _hints(interface):
+		assert f"{key}+" not in hint.text, hint
+
+
+@then("aucun raccourci n'est en surimpression")
+def nothing_shown(interface: Context) -> None:
+	assert _hints(interface) == []
+	assert window(interface).key_hints.labels == []

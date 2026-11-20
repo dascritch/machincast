@@ -133,7 +133,10 @@ Sur l'onglet ouvert ([#428](https://github.com/dascritch/machincast/issues/428))
 | <kbd>Ctrl</kbd>+<kbd>W</kbd> | Le ferme, comme sa croix, s'il se ferme : une fiche, les listes Sonores et Feeds, la recherche, la simulation, l'airplay. Une fiche modifiée demande d'abord quoi faire de ses modifications. Sur un onglet fixe, rien. |
 | <kbd>Ctrl</kbd>+<kbd>S</kbd> | Enregistre la fiche, qui reste ouverte. Sur une fiche sans modification, ou un autre onglet, rien. |
 | <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> | Enregistre la fiche, puis la ferme, comme son bouton **Enregistrer** ; une fiche sans modification se ferme simplement. Une fiche que MachinCast refuse d'enregistrer reste ouverte, et dit pourquoi. Les deux touches Entrée, celle du clavier et celle du pavé numérique, conviennent. Sur un autre onglet, rien. |
+| <kbd>Ctrl</kbd>+<kbd>Échap</kbd> | Ferme la fiche sans rien enregistrer ni rien demander : ses modifications sont perdues ([#529](https://github.com/dascritch/machincast/issues/529)). Sur un autre onglet, rien. Sous KDE Plasma, ce raccourci ouvre d'ordinaire l'activité du système : il faut alors le libérer dans les raccourcis de Plasma. |
 | <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd> | Rouvre le dernier onglet fermé, puis celui d'avant, à droite de l'onglet ouvert. |
+
+**Retrouver un raccourci** ([#529](https://github.com/dascritch/machincast/issues/529)) : maintenez <kbd>Ctrl</kbd>, ou <kbd>Alt</kbd>, une seconde. Les raccourcis qui commencent par cette touche s'affichent par-dessus la fenêtre : sur les boutons, comme <kbd>Ctrl</kbd>+<kbd>S</kbd> et <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> sur **Enregistrer** d'une fiche, et ceux des menus dans un encart, en bas à droite. Ils disparaissent dès qu'on relâche la touche ou qu'on en presse une autre.
 
 ## Menus
 

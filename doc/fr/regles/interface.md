@@ -88,6 +88,7 @@
 - La barre de menus a les menus « Fichier », « Affichage », « Onglets », « Tableau », « Diffusion », « Maintenance » et « Aide » (`MainWindow._fill_menus`, [#117](https://github.com/dascritch/machincast/issues/117)).
 	« Tableau » ([#528](https://github.com/dascritch/machincast/issues/528)) est `machincast.interface.table_menu.TableMenu` : il retrouve les actions d'une liste par `clipboard.handlers`, que `clipboard.shortcuts` enregistre, et le tableau de l'onglet par `columns.of_widget` ; ses raccourcis ne sont rappelés qu'en `WidgetShortcut`, pour rester ceux de la liste qui a le focus.
 	Une fonction à venir y a son entrée, inactive, avec une infobulle qui donne son ticket (`_upcoming`) : l'activer fait partie de son ticket.
+	Un raccourci tenu par un `QShortcut` de la fenêtre, plutôt que par le bouton qu'il déclenche, s'attache à ce bouton par `key_hints.attach`, pour s'afficher en surimpression quand Ctrl ou Alt est tenue ([#529](https://github.com/dascritch/machincast/issues/529)).
 	« Quitter » passe par `close()`, jamais par `QApplication.quit()`, pour que les fiches modifiées soient demandées.
 	Le navigateur web s'ouvre par `dialogs.open_page`.
 	Le rafraîchissement (F5, [#148](https://github.com/dascritch/machincast/issues/148)) passe par `Card.refresh` : jamais de relecture d'une fiche modifiée sans la question sur ses modifications.

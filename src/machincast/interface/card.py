@@ -70,7 +70,7 @@ from PySide6.QtWidgets import (
 
 from machincast.clock import Clock
 from machincast.i18n import _
-from machincast.interface import deletion, dialogs, intents, preferences
+from machincast.interface import deletion, dialogs, intents, key_hints, preferences
 from machincast.interface.dialogs import Closing
 from machincast.interface.queries import cards as queries
 from machincast.protection import is_sound_file
@@ -229,6 +229,9 @@ class Card(QWidget):
 		"""Les boutons et le message de la fiche ; à appeler une fois son écran construit, avant charger()."""
 		self.button_save = save
 		self.button_save.setStyleSheet(SAVE_OUTLINE)
+		# Montrés en surimpression, Ctrl tenue (https://github.com/dascritch/machincast/issues/529).
+		key_hints.attach(save, key_hints.SAVE, key_hints.SAVE_AND_CLOSE)
+		key_hints.attach(cancel, key_hints.CANCEL_AND_CLOSE)
 		self.button_cancel = cancel
 		self.button_delete = delete
 		self.message = message

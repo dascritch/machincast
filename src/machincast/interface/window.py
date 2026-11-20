@@ -83,6 +83,7 @@ from machincast.interface import (
 	indexing_status,
 	installation_notes,
 	interruption,
+	key_hints,
 	power_save_switch,
 	preferences,
 	service_access,
@@ -256,6 +257,8 @@ class MainWindow(QMainWindow):
 		self.ui.tabs.setMovable(True)
 		self.broadcast = BroadcastControl(self)
 		self.tab_manager = TabManager(self, self.ui.tabs, self._reopen, self._close, self._remove)
+		# Ctrl ou Alt tenue une seconde : les raccourcis en surimpression (https://github.com/dascritch/machincast/issues/529).
+		self.key_hints = key_hints.KeyHints(self)
 		self.home = DefaultScreen(connection, state_socket, clock, audio=audio)
 		self.home.show_clipping(poster=self.clipping)
 		self.home.requested_listening.connect(self._listen_on_air)
