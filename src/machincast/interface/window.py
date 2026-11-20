@@ -52,7 +52,7 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget
 
@@ -88,6 +88,7 @@ from machincast.interface import (
 	preferences,
 	service_access,
 	suggestions,
+	tab_help,
 	table_menu,
 	version,
 )
@@ -364,11 +365,13 @@ class MainWindow(QMainWindow):
 		self.tab_manager.add_fixed(self.incidents, _("Incidents"), "incidents")
 		self.ui.tabs.setCurrentIndex(0)
 		self.ui.tabs.currentChanged.connect(self._opened_tab)
+		self.ui.tabs.currentChanged.connect(self._follow_help)
 		self.ui.tabs.tabCloseRequested.connect(self._close)
 		self.ui.tabs.tabBar().tabMoved.connect(self.tab_manager.moved_tab)
 		self.tab_manager.create_shortcuts()
 		self.tab_manager.reopen_tabs()
 		self.tab_manager.appending = False
+		self._follow_help()
 		if not identify(self._application(), self.icon):
 			self.statusBar().showMessage(
 				_("Icon {icon} unreadable or not found: MachinCast icon instead.").format(icon=self.icon)
@@ -506,6 +509,15 @@ class MainWindow(QMainWindow):
 		# Où déposer des sonores, et ce qu'occupe chaque banque (https://github.com/dascritch/machincast/issues/533).
 		maintenance.addAction(disk_space.TITLE + "…").triggered.connect(self.show_disk_space)
 		help_ = self.menuBar().addMenu(_("&Help"))
+		# L'aide de l'onglet affiché, en page et en infobulles (https://github.com/dascritch/machincast/issues/534).
+		self.tab_help = help_.addAction(tab_help.label(None))
+		self.tab_help.triggered.connect(self._open_tab_help)
+		self.contextual_help = tab_help.ContextualHelp(self)
+		self.contextual = help_.addAction(tab_help.CONTEXTUAL)
+		self.contextual.setShortcut(QKeySequence(tab_help.SHORTCUT))
+		self.contextual.setShortcutContext(Qt.ShortcutContext.WindowShortcut)
+		self.contextual.triggered.connect(self._toggle_contextual_help)
+		help_.addSeparator()
 		help_.addAction(_("Documentation")).triggered.connect(lambda: dialogs.open_page(version.documentation()))
 		# Le document de l'équipe et son lien (https://github.com/dascritch/machincast/issues/451).
 		help_.addAction(installation_notes.NOTES).triggered.connect(self._open_notes)
@@ -518,6 +530,35 @@ class MainWindow(QMainWindow):
 		)
 		for menu in (file, display_menu, self.tabs_menu, self.broadcast_menu, maintenance, help_):
 			menu.setToolTipsVisible(True)
+
+	def _help_kind(self) -> str | None:
+		"""Le genre de l'onglet affiché, pour son aide."""
+		screen = self.ui.tabs.currentWidget()
+		category = None
+		if isinstance(screen, Card):
+			category = screen.category
+		return tab_help.kind_of(self.tab_manager.tab_key(screen), category)
+
+	def _follow_help(self) -> None:
+		"""« Aide sur … » nomme le genre de l'onglet affiché, et l'aide contextuelle suit ses éléments."""
+		kind = self._help_kind()
+		self.tab_help.setText(tab_help.label(kind))
+		self.tab_help.setEnabled(kind is not None)
+		self.contextual_help.follow(self.ui.tabs.currentWidget(), kind)
+
+	def _open_tab_help(self) -> None:
+		kind = self._help_kind()
+		if kind is not None:
+			dialogs.open_page(tab_help.address(kind, version.documentation()))
+
+	def _toggle_contextual_help(self) -> None:
+		"""F1 : l'aide contextuelle s'active, et l'entrée propose de la désactiver ; ou l'inverse."""
+		if self.contextual_help.toggle():
+			self.contextual.setText(tab_help.DISABLE_CONTEXTUAL)
+			self.ui.state_bar.showMessage(tab_help.ACTIVE)
+			return
+		self.contextual.setText(tab_help.CONTEXTUAL)
+		self.ui.state_bar.clearMessage()
 
 	def _open_notes(self) -> None:
 		self.statusBar().showMessage(installation_notes.open_notes(self.configuration))

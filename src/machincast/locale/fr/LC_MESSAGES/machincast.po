@@ -5501,6 +5501,90 @@ msgstr "le fil musical « {name} »"
 msgid "the banks {list}"
 msgstr "les banques {list}"
 
+#: machincast/interface/tab_help.py
+msgid "Contextual help"
+msgstr "Aide contextuelle"
+
+#: machincast/interface/tab_help.py
+msgid "Disable contextual help"
+msgstr "Désactiver l'aide contextuelle"
+
+#: machincast/interface/tab_help.py
+msgid ""
+"Contextual help: hover or click an element of the tab to read its help; F1 "
+"to leave it."
+msgstr ""
+"Aide contextuelle : survolez ou cliquez un élément de l'onglet pour lire "
+"son aide ; F1 pour la quitter."
+
+#: machincast/interface/tab_help.py
+msgid "Help on this tab"
+msgstr "Aide sur cet onglet"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the On air tab"
+msgstr "Aide sur l'onglet Antenne"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the list of sounds"
+msgstr "Aide sur la liste des sonores"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the list of banks"
+msgstr "Aide sur la liste des banques"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the list of sequences"
+msgstr "Aide sur la liste des séquences"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the list of events"
+msgstr "Aide sur la liste des événements"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the list of feeds"
+msgstr "Aide sur la liste des feeds"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the card of a sound"
+msgstr "Aide sur la fiche d'un sonore"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the card of a bank"
+msgstr "Aide sur la fiche d'une banque"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the card of a sequence"
+msgstr "Aide sur la fiche d'une séquence"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the card of an event"
+msgstr "Aide sur la fiche d'un événement"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the card of a feed"
+msgstr "Aide sur la fiche d'un feed"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the schedule"
+msgstr "Aide sur la grille horaire"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the simulation"
+msgstr "Aide sur la simulation"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the Airplay tab"
+msgstr "Aide sur l'onglet Airplay"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the search"
+msgstr "Aide sur la recherche"
+
+#: machincast/interface/tab_help.py
+msgid "Help on the Incidents tab"
+msgstr "Aide sur l'onglet Incidents"
+
 #: machincast/interface/tab_manager.py
 msgid "Close all closable tabs"
 msgstr "Fermer tous les onglets fermables"
