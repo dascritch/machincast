@@ -63,7 +63,7 @@ Le choix est grisé, sur **Rejouer la liste de lecture**, sans fin cochée, et p
 
 **Liste de lecture** : les sonores, les banques et les séquences que l'événement joue, dans l'ordre.
 
-- **Ordre** : un élément se déplace par glisser-déposer, ou avec **Monter** et **Descendre**. Un même élément peut revenir.
+- **Ordre** : un élément se déplace par glisser-déposer, ou avec **↥ Monter** et **↧ Descendre**, qui déplacent ensemble tous les éléments choisis. Un même élément peut revenir.
 - **➕ Ajouter des sonores…**, **➕ Ajouter des banques…**, **➕ Ajouter des séquences…** ouvrent la liste de ceux déjà en base, avec son filtre ; plusieurs se choisissent avec <kbd>Ctrl</kbd> ou <kbd>Maj</kbd>, puis **➕ Ajouter**.
 - **➕ Ajouter des feeds…** ajoute un stream depuis un [feed](sonores.md#feeds), pour retransmettre une émission en extérieur : le stream qui suit déjà ce feed, sinon un nouveau stream, créé à l'enregistrement (la ligne le dit : « nouveau stream »).
 - **Déposer des fichiers** glissés depuis le navigateur de fichiers les ajoute en fin de liste ([Ajouter un sonore](sonores.md#ajouter-un-sonore)).

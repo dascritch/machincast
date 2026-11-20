@@ -266,6 +266,10 @@ Page **Sauvegarde**, dans les **Paramètres du service** seulement ([#347](https
 
 **OK** les enregistre ; la barre d'état le dit. **Annuler** ne change rien.
 
+## Fiches
+
+Dans une fiche, le bouton **Enregistrer** prend un liseré vert dès qu'il y a une modification à enregistrer ([#527](https://github.com/dascritch/machincast/issues/527)).
+
 ## Textes saisis
 
 Les noms, l'artiste, le titre et les métadonnées sont nettoyés à l'enregistrement, pour ne pas gêner la page publique, les flux et les afficheurs : les tabulations, retours à la ligne et espaces spéciales deviennent une espace simple, les espaces en trop disparaissent, et les caractères invisibles sont retirés. Les accents, les écritures non latines et les emoji restent tels quels. Les chemins de fichiers et les adresses de streams sont gardés tels quels.

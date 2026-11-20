@@ -35,7 +35,7 @@ from PySide6.QtWidgets import QAbstractItemView, QGroupBox, QMenu, QPushButton, 
 
 from machincast.conversion import integer_or_none, text_or_none
 from machincast.i18n import _, counted
-from machincast.interface import clipboard, dialogs, display, preferences
+from machincast.interface import clipboard, dialogs, display, preferences, reorder
 from machincast.interface.card import Card, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.drop import FileDrop
@@ -147,8 +147,8 @@ class ItemList(QObject):
 		for category, button in buttons.add.items():
 			button.clicked.connect(lambda _ticked=False, category=category: self._add(category))
 		buttons.remove.clicked.connect(self._remove)
-		buttons.raise_.clicked.connect(lambda: self._move(-1))
-		buttons.go_down.clicked.connect(lambda: self._move(1))
+		buttons.raise_.clicked.connect(lambda: self._move(reorder.UP))
+		buttons.go_down.clicked.connect(lambda: self._move(reorder.DOWN))
 
 	def load(self, parent: int | None, *, copies: bool = False) -> None:
 		"""Lit en base les éléments de la séquence ou de l'événement, dans l'ordre, par pages de
@@ -440,15 +440,12 @@ class ItemList(QObject):
 		return line
 
 	def _refresh_buttons(self) -> None:
-		"""Les boutons d'une ligne ne servent qu'à une ligne choisie ; « Monter » et « Descendre », pas aux
-		extrémités."""
+		"""Les boutons d'une ligne ne servent qu'à des lignes choisies ; « ↥ Monter » et « ↧ Descendre », pas quand
+		l'une d'elles est déjà au bord (https://github.com/dascritch/machincast/issues/527)."""
 		line = self.list_.currentItem()
 		self.buttons.remove.setEnabled(line is not None)
-		row = -1
-		if line is not None:
-			row = self.list_.indexOfTopLevelItem(line)
-		self.buttons.raise_.setEnabled(row > 0)
-		self.buttons.go_down.setEnabled(0 <= row < self.list_.topLevelItemCount() - 1)
+		self.buttons.raise_.setEnabled(reorder.can_move(self.list_, reorder.UP))
+		self.buttons.go_down.setEnabled(reorder.can_move(self.list_, reorder.DOWN))
 
 	def _add(self, category: str) -> None:
 		"""Les éléments choisis s'ajoutent en fin de liste, dans l'ordre du choix ; un élément effacé de la base
@@ -638,12 +635,8 @@ class ItemList(QObject):
 		lines.append(self._sound_line(by_file.get(file, (None, None, None, file, file))))
 
 	def _move(self, offset: int) -> None:
-		line = self.list_.currentItem()
-		row = self.list_.indexOfTopLevelItem(line)
-		self.list_.takeTopLevelItem(row)
-		self.list_.insertTopLevelItem(row + offset, line)
-		# Rendue courante, la ligne déplacée met à jour les boutons (currentItemChanged).
-		self.list_.setCurrentItem(line)
+		reorder.move(self.list_, offset)
+		self._refresh_buttons()
 
 	def line_menu(self, line: QTreeWidgetItem | None) -> QMenu:
 		"""Le menu du clic droit : « Pré-écoute… » d'un sonore en base (https://github.com/dascritch/machincast/issues/226),

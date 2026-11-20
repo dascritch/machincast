@@ -98,6 +98,10 @@ OUTLINE = f"QLabel#erreur_de_la_fiche {{ border: 4px solid {RED}; padding: 6px; 
 ORANGE = "#ef6c00"
 """Orange d'un avertissement, qui ne refuse rien : lisible sur un fond clair comme sur un fond sombre."""
 WARNING_OUTLINE = f"QLabel#avertissement_de_la_fiche {{ border: 4px solid {ORANGE}; padding: 6px; }}"
+GREEN = "#2e7d32"
+"""Vert du liseré d'« Enregistrer » actif : lisible sur un fond clair comme sur un fond sombre."""
+SAVE_OUTLINE = "QPushButton:enabled { border: 2px solid " + GREEN + "; border-radius: 4px; padding: 4px 12px; }"
+"""Le liseré d'« Enregistrer », quand il y a quelque chose à enregistrer (https://github.com/dascritch/machincast/issues/527)."""
 WARNED = "⚠️ "
 """Ce qui précède l'avertissement en haut de la fiche (https://github.com/dascritch/machincast/issues/328)."""
 
@@ -224,6 +228,7 @@ class Card(QWidget):
 	) -> None:
 		"""Les boutons et le message de la fiche ; à appeler une fois son écran construit, avant charger()."""
 		self.button_save = save
+		self.button_save.setStyleSheet(SAVE_OUTLINE)
 		self.button_cancel = cancel
 		self.button_delete = delete
 		self.message = message

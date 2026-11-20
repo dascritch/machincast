@@ -78,7 +78,7 @@ from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.conversion import text_or_none
 from machincast.i18n import _
-from machincast.interface import clipboard, dialogs, display, preferences, service_access
+from machincast.interface import clipboard, dialogs, display, preferences, reorder, service_access
 from machincast.interface.card import Card, Connection, Refusal, rank_of, sound_files
 from machincast.interface.columns import Columns
 from machincast.interface.dialogs import Removal
@@ -285,8 +285,8 @@ class BankCard(Card):
 		self.ui.remove_directory.clicked.connect(self._remove_directory)
 		self.ui.add_sounds.clicked.connect(self._add_sounds)
 		self.ui.remove_sound.clicked.connect(self._remove_sound)
-		self.ui.raise_.clicked.connect(lambda: self._move(-1))
-		self.ui.go_down.clicked.connect(lambda: self._move(1))
+		self.ui.raise_.clicked.connect(lambda: self._move(reorder.UP))
+		self.ui.go_down.clicked.connect(lambda: self._move(reorder.DOWN))
 		self.load()
 
 	def title(self) -> str:
@@ -809,11 +809,8 @@ class BankCard(Card):
 		list_ = self.ui.sounds
 		chosen_list = list_.selectedItems()
 		self.ui.remove_sound.setEnabled(chosen_list != [])
-		row = -1
-		if len(chosen_list) == 1:
-			row = list_.indexOfTopLevelItem(chosen_list[0])
-		self.ui.raise_.setEnabled((movable) and (row > 0))
-		self.ui.go_down.setEnabled((movable) and (0 <= row < list_.topLevelItemCount() - 1))
+		self.ui.raise_.setEnabled((movable) and (reorder.can_move(list_, reorder.UP)))
+		self.ui.go_down.setEnabled((movable) and (reorder.can_move(list_, reorder.DOWN)))
 
 	def _follow_mode(self, *, sequential: bool) -> None:
 		"""En mode aléatoire, les sonores se trient par colonne ; en séquentiel, non, et l'ordre d'avant le tri revient
@@ -1045,12 +1042,4 @@ class BankCard(Card):
 		return None
 
 	def _move(self, offset: int) -> None:
-		list_ = self.ui.sounds
-		line = list_.currentItem()
-		if line is None:
-			return
-		row = list_.indexOfTopLevelItem(line)
-		list_.takeTopLevelItem(row)
-		list_.insertTopLevelItem(row + offset, line)
-		# Rendue courante, la ligne déplacée met à jour les boutons (currentItemChanged).
-		list_.setCurrentItem(line)
+		reorder.move(self.ui.sounds, offset)

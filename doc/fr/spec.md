@@ -1364,7 +1364,7 @@ Mise en œuvre ([#28](https://github.com/dascritch/machincast/issues/28), `machi
 	La suppression du fichier se fait hors de l'outil, parfois depuis un autre poste quand l'utilisateur n'a pas le droit d'écriture sur l'emplacement.
 - **Filtre et tri des sonores** ([#393](https://github.com/dascritch/machincast/issues/393), `BankCard._filter_sounds`, `_follow_mode`) : un champ « Filtrer… » au-dessus du tableau cache les sonores dont aucune colonne ne contient le texte, sans majuscules ni accents ; il lit d'abord toutes les pages (`load_all`), et le titre du groupe devient « Sonores : n affichés sur N ».
 	Une ligne ajoutée ou déposée est filtrée aussi.
-	Tant qu'un filtre est rempli, l'ordre ne se change pas : glisser-déposer, « Monter » et « Descendre » sont inactifs, un déplacement entre lignes cachées étant ambigu.
+	Tant qu'un filtre est rempli, l'ordre ne se change pas : glisser-déposer, « ↥ Monter » et « ↧ Descendre » sont inactifs, un déplacement entre lignes cachées étant ambigu.
 	Le tri par colonne (`SoundLine`, la durée par secondes, les autres colonnes par leur texte sans accents) n'existe qu'en mode aléatoire, où l'ordre ne compte pas ; il lit aussi toutes les pages.
 	Chaque ligne porte son rang dans la banque (rôle `ORDER`), renuméroté à l'entrée en mode aléatoire ; le passage en mode séquentiel désactive le tri et, si une colonne était triée, remet les lignes dans ce rang (`_restore_order`) : un ordre trié n'est jamais enregistré.
 - Sélection multiple des sonores liés ([#114](https://github.com/dascritch/machincast/issues/114)) : une colonne État ; le clic droit sur plusieurs sonores les active ou les désactive, à l'enregistrement de la fiche (« Annuler » l'oublie ; un sonore en aperçu reste en aperçu) ; « ➖ Retirer le sonore » les retire tous, avec un seul avertissement pour ceux des répertoires de la banque ; « Monter » et « Descendre » ne servent qu'à un sonore seul.
@@ -1393,7 +1393,8 @@ Mise en œuvre ([#31](https://github.com/dascritch/machincast/issues/31), `machi
 	Le message au pied de la fiche ne dit plus que ce qui informe : fichiers ignorés d'un dépôt, élément supprimé, copie dont l'original a disparu.
 - **Masquage** : « Hérité du sonore » (NULL), « Masqués » (vrai), « Affichés » (faux).
 - **Répertoires** : enregistrés sous leur forme normale (`os.path.normpath`), sans doublon, rangés dans l'ordre de leurs caractères.
-- **Sonores** : réordonnables par glisser-déposer ou par « Monter » et « Descendre », en mode séquentiel seulement ; une ligne ne se dépose pas dans une autre.
+- **Sonores** : réordonnables par glisser-déposer ou par « ↥ Monter » et « ↧ Descendre », en mode séquentiel seulement ; une ligne ne se dépose pas dans une autre.
+	« ↥ Monter » et « ↧ Descendre » bougent ensemble tous les sonores choisis, d'un rang, en gardant leur ordre ([#527](https://github.com/dascritch/machincast/issues/527)).
 	Les boutons d'une ligne ne servent qu'à une ligne choisie.
 	L'ajout se fait parmi les sonores déjà en base (`Choice`, la liste filtrable des sonores à sélection multiple), ou par dépôt de fichiers (ci-dessous) ; l'ajout de fichiers depuis la liste des sonores est décrit au [§ 8.8](#88-ajout-dun-sonore).
 	L'avertissement de réintégration vaut pour un fichier sous l'un des répertoires de la fiche, sous-répertoires compris, et ouvre le dossier du fichier.
@@ -1667,7 +1668,7 @@ Mise en œuvre ([#112](https://github.com/dascritch/machincast/issues/112), `mac
 - **Champs** : noms enregistrés sans les espaces qui les entourent, un nom public vide comme NULL ; masquage « Selon la banque ou le sonore » (NULL), « Masqués » (vrai), « Affichés » (faux).
 	Un nom interne vide ou déjà pris laisse la fiche modifiée, avec un message ; une séquence sans élément s'enregistre, et la fiche avertit qu'elle ne joue rien ([#138](https://github.com/dascritch/machincast/issues/138)).
 - **Éléments** (`machincast.interface.items`, commun avec la fiche d'un événement) : genre, nom (artiste et titre d'un sonore, le nom du fichier d'un sonore pas encore décodé, le nom interne d'une banque) et détail (emplacement d'un sonore ; mode d'une banque, et « ne pas répéter »).
-	Réordonnables par glisser-déposer ou par « Monter » et « Descendre » ; une ligne ne se dépose pas dans une autre.
+	Réordonnables par glisser-déposer ou par « ↥ Monter » et « ↧ Descendre », qui bougent ensemble toutes les lignes choisies ([#527](https://github.com/dascritch/machincast/issues/527)) ; une ligne ne se dépose pas dans une autre.
 	Copier-coller ([#129](https://github.com/dascritch/machincast/issues/129), `ItemList.copy`, `paste`, `machincast.interface.clipboard`) : les lignes se choisissent à plusieurs (Ctrl, Maj) ; Ctrl+C, ou « Copier » au clic droit, met les lignes choisies, dans leur ordre, au presse-papiers, au format `application/x-machincast-items` (genre, identifiant, fichier d'un sonore pas encore en base, feed d'un stream à créer) et en texte, une ligne par élément, ses colonnes séparées par des tabulations.
 	Ctrl+V, ou « Coller », relit les éléments en base, les ajoute après la ligne courante, ou en fin de liste, et les laisse choisis, dans la même fiche ou une autre, d'un événement ou d'une séquence ; « ➖ Retirer l'élément » retire toutes les lignes choisies.
 	Une séquence collée dans une séquence est laissée de côté, et la fiche le dit (« Laissé de côté, une séquence ne contient pas de séquence : … ») ; un élément effacé de la base depuis la copie n'est pas collé.

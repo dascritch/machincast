@@ -661,15 +661,39 @@ Fonctionnalité: Fiche d'une banque
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Tubes »
 		Et je choisis le sonore « Café à minuit »
-		Et je clique sur « Descendre »
-		Et je clique sur « Descendre »
+		Et je clique sur « ↧ Descendre »
+		Et je clique sur « ↧ Descendre »
 		Et je choisis le sonore « Matin clair »
-		Et je clique sur « Monter »
+		Et je clique sur « ↥ Monter »
 		Alors la fiche montre les sonores « Aube – Matin clair », « Jingle », « Les Gaufres – Café à minuit »
 		Quand j'enregistre la fiche
 		Alors les sonores de la banque « Tubes » sont, dans l'ordre, « Matin clair », « Jingle », « Café à minuit »
 
-	Scénario: Les boutons d'une ligne ne servent qu'à une ligne choisie, et « Monter » et « Descendre » pas aux extrémités
+	Scénario: Plusieurs sonores choisis montent et descendent ensemble, en gardant leur ordre
+		# https://github.com/dascritch/machincast/issues/527 : « ↥ Monter » et « ↧ Descendre » bougent toutes les lignes
+		# choisies, qui restent choisies ; un choix déjà au bord ne bouge plus de ce côté.
+		Étant donné la banque « Tubes », séquentielle, sans nom public, avec « Café à minuit », « Matin clair », « Jingle », « Spot »
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Tubes »
+		Et je sélectionne les sonores « Aube – Matin clair », « Jingle » de la fiche
+		Et je clique sur « ↥ Monter »
+		Alors la fiche montre les sonores « Aube – Matin clair », « Jingle », « Les Gaufres – Café à minuit », « Spot »
+		Et les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « ↧ Descendre »
+		Quand je clique sur « ↧ Descendre »
+		Et je clique sur « ↧ Descendre »
+		Alors la fiche montre les sonores « Les Gaufres – Café à minuit », « Spot », « Aube – Matin clair », « Jingle »
+		Et les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « ↥ Monter »
+		Quand j'enregistre la fiche
+		Alors les sonores de la banque « Tubes » sont, dans l'ordre, « Café à minuit », « Spot », « Matin clair », « Jingle »
+
+	Scénario: « Enregistrer » a un liseré vert, une fois actif
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la banque « Jingles »
+		Alors « Enregistrer » de la fiche n'a pas de liseré vert
+		Quand je décoche « ne pas répéter »
+		Alors « Enregistrer » de la fiche a un liseré vert
+
+	Scénario: Les boutons d'une ligne ne servent qu'à une ligne choisie, et « ↥ Monter » et « ↧ Descendre » pas aux extrémités
 		Étant donné la banque « Tubes », séquentielle, sans nom public, avec « Café à minuit », « Matin clair », « Jingle »
 		Et les répertoires « /srv/jingles/hiver », « /srv/habillage » de la banque « Tubes »
 		Quand la fenêtre de l'interface s'ouvre
@@ -677,20 +701,20 @@ Fonctionnalité: Fiche d'une banque
 		Alors les boutons de ligne actifs de la fiche sont aucun
 		Quand je choisis le répertoire « /srv/habillage »
 		Et je choisis le sonore « Café à minuit »
-		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « ↧ Descendre »
 		Quand je choisis le sonore « Matin clair »
-		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « Monter », « Descendre »
-		Quand je clique sur « Descendre »
-		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « Monter »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « ↥ Monter », « ↧ Descendre »
+		Quand je clique sur « ↧ Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le répertoire », « ➖ Retirer le sonore », « ↥ Monter »
 		Quand je clique sur « ➖ Retirer le répertoire »
 		Et je clique sur « ➖ Retirer le répertoire »
 		Et je réponds « ➖ Retirer quand même » à l'avertissement de réintégration
 		Et je clique sur « ➖ Retirer le sonore »
 		Alors la fiche montre les répertoires aucun
 		Et la fiche montre les sonores « Les Gaufres – Café à minuit », « Jingle »
-		Et les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter »
+		Et les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « ↥ Monter »
 		Quand j'ajoute les sonores « Spot »
-		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter », « Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « ↥ Monter », « ↧ Descendre »
 
 	Scénario: Une ligne de sonore ne se dépose pas dans une autre
 		Quand la fenêtre de l'interface s'ouvre
@@ -886,9 +910,9 @@ Fonctionnalité: Fiche d'une banque
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la banque « Jingles »
 		Et je choisis le sonore « Matin clair »
-		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « ↥ Monter »
 		Quand je dépose sur les sonores de la fiche « …/nouveau.ogg »
-		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « Monter », « Descendre »
+		Alors les boutons de ligne actifs de la fiche sont « ➖ Retirer le sonore », « ↥ Monter », « ↧ Descendre »
 
 	Scénario: Un glisser abandonné avant le dépôt ne change rien
 		Étant donné les dossiers « …/jingles/automne » du scénario

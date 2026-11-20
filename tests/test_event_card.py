@@ -215,6 +215,16 @@ def choose_number(interface: Context, number: int) -> None:
 	card(interface).ui.items.setCurrentItem(lines(interface)[number - 1])
 
 
+@when(parsers.parse("je choisis les éléments n° {first:d} à {last:d} de l'événement"))
+def choose_numbers(interface: Context, first: int, last: int) -> None:
+	view = card(interface).ui.items
+	view.clearSelection()
+	found = lines(interface)
+	view.setCurrentItem(found[last - 1])
+	for line in found[first - 1 : last]:
+		line.setSelected(True)
+
+
 @when(parsers.re(r"je retire les éléments (?P<names>.+)"))
 def remove(interface: Context, qtbot: QtBot, names: str) -> None:
 	for name in NAME.findall(names):
