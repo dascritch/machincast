@@ -80,7 +80,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 
 	Scénario: Allumé, Machin intranet répond en HTTPS, avec ses en-têtes de sécurité
 		Quand je lance Machin intranet avec l'intranet allumé
-		Alors une requête HTTPS « GET / » reçoit 200, une page « Machin intranet »
+		Alors une requête HTTPS « GET /login » reçoit 200, une page « Machin intranet »
 		Et la réponse a les en-têtes :
 			| en-tête                   | valeur                                                          |
 			| strict-transport-security | max-age=31536000                                                |

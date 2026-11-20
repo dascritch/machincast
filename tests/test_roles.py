@@ -32,6 +32,10 @@ INSERTIONS: dict[str, str] = {
 	"airplay": "INSERT INTO airplay (play_id, line_type) VALUES (gen_random_uuid(), 'start')",
 	"log": "INSERT INTO log (level, kind) VALUES ('info', 'essai')",
 	"api_users": "INSERT INTO api_users (name, password_hash) VALUES ('essai', 'scrypt$essai')",
+	"api_sessions": (
+		"INSERT INTO api_sessions (user_id, token_hash, code, validate_before)"
+		" VALUES ({compte}, repeat('a', 64), '123456', clock_timestamp())"
+	),
 }
 CHANGES: dict[str, str] = {
 	"sounds": "title = NULL",
@@ -47,6 +51,7 @@ CHANGES: dict[str, str] = {
 	"airplay": "title = NULL",
 	"log": "message = ''",
 	"api_users": "role = 'actions'",
+	"api_sessions": "attempts = 1",
 }
 
 
@@ -100,6 +105,7 @@ def database(context: Context) -> None:
 		context, "INSERT INTO events (internal_name, priority) VALUES ('Fil', 'background_programming')"
 	)
 	r["sequence"] = insert(context, "INSERT INTO sequences (internal_name) VALUES ('Passage publicitaire')")
+	r["compte"] = insert(context, "INSERT INTO api_users (name, password_hash) VALUES ('regie', 'scrypt$regie')")
 
 
 @given("un passage du sonore de référence dans l'airplay")

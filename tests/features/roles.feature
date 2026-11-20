@@ -23,6 +23,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| airplay          | oui  | oui     | non      | non       |
 			| log              | non  | oui     | non      | non       |
 			| api_users        | non  | non     | non      | non       |
+			| api_sessions     | non  | non     | non      | non       |
 
 	Scénario: Droits du binaire indexation
 		https://github.com/dascritch/machincast/issues/195 : l'indexation retire d'une banque les sonores hors de ses durées.
@@ -43,9 +44,11 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| airplay          | non  | non     | non      | non       |
 			| log              | non  | oui     | non      | non       |
 			| api_users        | non  | non     | non      | non       |
+			| api_sessions     | non  | non     | non      | non       |
 
 	Scénario: Droits du serveur intranet
 		https://github.com/dascritch/machincast/issues/537 : il ne fait que lire les comptes.
+		https://github.com/dascritch/machincast/issues/539 : il ouvre, valide et ferme leurs sessions, sans en supprimer.
 
 		Alors le rôle "machincast_intranet" a exactement ces droits :
 			| table            | lire | inserer | modifier | supprimer |
@@ -62,6 +65,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| airplay          | non  | non     | non      | non       |
 			| log              | non  | non     | non      | non       |
 			| api_users        | oui  | non     | non      | non       |
+			| api_sessions     | oui  | oui     | oui      | non       |
 
 	Scénario: Droits de l'interface
 		Alors le rôle "machincast_interface" a exactement ces droits :
@@ -79,6 +83,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| airplay          | oui  | non     | non      | non       |
 			| log              | oui  | non     | non      | non       |
 			| api_users        | oui  | oui     | oui      | oui       |
+			| api_sessions     | oui  | oui     | oui      | non       |
 
 	Plan du scénario: Le binaire lecture ne modifie que le champ « etat » des sonores
 		Alors le rôle "machincast_player" <verdict> modifier la colonne "<colonne>" des sonores

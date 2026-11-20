@@ -62,6 +62,7 @@ def reset_database(connection: psycopg.Connection[tuple[object, ...]]) -> None:
 
 
 PURGE_ORDER: tuple[str, ...] = (
+	"api_sessions",
 	"api_users",
 	"log",
 	"airplay",

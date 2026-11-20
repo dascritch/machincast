@@ -155,6 +155,8 @@ fallback = false
 # port = 8443
 # Minutes left to validate a connection at the studio desk, with its 6-digit code, from 1 to 1440; 30 by default.
 # validation = 30
+# Hours a validated session lasts, from 1 to 720; 12 by default (https://github.com/dascritch/machincast/issues/539).
+# session = 12
 # A certificate of the internal certification authority, and its private key, in PEM; a relative path starts from
 # this file. Both, or none.
 # certificate = "tls/intranet.pem"

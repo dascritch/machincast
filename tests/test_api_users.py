@@ -1,36 +1,17 @@
 """Scénarios des comptes de l'intranet et de l'API, dans l'onglet « API »
 (https://github.com/dascritch/machincast/issues/537)."""
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QWidget
-from pytest_bdd import given, parsers, scenarios, then, when
+from pytest_bdd import parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface import api_tab
-from machincast.interface.api_tab import Account, ApiScreen, ApiUserDialog
+from machincast.interface.api_tab import Account, ApiUserDialog
 from machincast.shared import passwords
 from tests.interface_steps import NAME, Connection, Context, window
+from tests.intranet_steps import ROLES, screen
 
 scenarios("api_users.feature")
-
-ROLES = {"consulter": "consult", "actions API": "actions"}
-STATES = {"actif": False, "désactivé": True}
-
-
-def screen(interface: Context) -> ApiScreen:
-	opened = window(interface).ui.tabs.currentWidget()
-	assert isinstance(opened, ApiScreen)
-	return opened
-
-
-@given("les comptes de l'intranet :")
-def accounts(empty_database: Connection, datatable: list[list[str]]) -> None:
-	for name, password, role, state in datatable[1:]:
-		empty_database.execute(
-			"INSERT INTO api_users (name, password_hash, role, disabled_at) VALUES (%s, %s, %s,"
-			" CASE WHEN %s THEN clock_timestamp() END)",
-			(name, passwords.digest(password), ROLES[role], STATES[state]),
-		)
 
 
 def _answer(interface: Context, account: Account | None) -> None:
@@ -41,14 +22,6 @@ def _answer(interface: Context, account: Account | None) -> None:
 def create(interface: Context, name: str, password: str, role: str) -> None:
 	_answer(interface, Account(name, password, ROLES[role]))
 	screen(interface).ui.new_user.click()
-
-
-@when(parsers.parse("je choisis le compte « {name} » dans l'onglet API"))
-def choose(interface: Context, name: str) -> None:
-	users = screen(interface).ui.users
-	found = users.findItems(name, Qt.MatchFlag.MatchExactly, 0)
-	assert len(found) == 1, name
-	users.setCurrentItem(found[0])
 
 
 @when(parsers.parse("je donne au compte le rôle « {role} »"))

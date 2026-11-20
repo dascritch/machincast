@@ -55,6 +55,7 @@ VIEWS = {
 	"espace-disque-montages",
 	"espace-disque-repertoires",
 	"api-utilisateurs",
+	"api-sessions",
 }
 """Les vues de l'interface, une par tableau."""
 

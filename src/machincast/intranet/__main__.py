@@ -17,14 +17,18 @@ import signal
 from collections.abc import Sequence
 from pathlib import Path
 
+import psycopg
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
+from psycopg.rows import TupleRow
 
 from machincast.cli import launch
 from machincast.configuration import Configuration, Intranet
+from machincast.database import Role, open_connection
 from machincast.i18n import _
 from machincast.intranet import certificate, network
 from machincast.intranet.app import Intranet as Application
+from machincast.intranet.portal import Portal
 
 log = logging.getLogger(__name__)
 
@@ -77,6 +81,17 @@ def server_configuration(settings: Intranet, chosen: certificate.Pair) -> Config
 	return config
 
 
+def application(configuration: Configuration) -> Application:
+	"""L'application de l'intranet, sur la base de production, au rôle machincast_intranet."""
+	database = configuration.database
+
+	def connect() -> psycopg.Connection[TupleRow]:
+		return open_connection(database.socket, database.production, Role.INTRANET)
+
+	portal = Portal(configuration.intranet, connect)
+	return Application(portal.routes())
+
+
 def run(configuration: Configuration, _options: argparse.Namespace) -> int:
 	"""Éteint, s'arrête aussitôt ; allumé, prend son certificat, dit l'adresse à donner et l'empreinte du certificat,
 	puis sert jusqu'à SIGTERM ou SIGINT. Le code de sortie."""
@@ -95,7 +110,7 @@ def run(configuration: Configuration, _options: argparse.Namespace) -> int:
 			fingerprint=certificate.fingerprint(chosen.certificate),
 		)
 	)
-	asyncio.run(_serve(Application(), server_configuration(settings, chosen)))
+	asyncio.run(_serve(application(configuration), server_configuration(settings, chosen)))
 	return 0
 
 
