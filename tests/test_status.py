@@ -142,3 +142,13 @@ def writes_nothing(answer: Answer, code: int) -> None:
 @then(parsers.parse("l'état est refusé avec le code {code:d}"))
 def refused(answer: Answer, code: int) -> None:
 	assert answer.code == code
+
+
+@then("l'état écrit les lignes :")
+def writes_lines(answer: Answer, datatable: list[list[str]]) -> None:
+	_header, *rows = datatable
+	expected = []
+	for key, value in rows:
+		expected.append(f"{key}\t{value}")
+	assert answer.text.splitlines() == expected, answer.text
+	assert answer.code == 0

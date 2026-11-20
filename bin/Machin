@@ -87,9 +87,10 @@ Regular tasks (https://github.com/dascritch/machincast/issues/455):
                the set hour (schedule.daily), purge then indexer --full-audit
 
 Banner (https://github.com/dascritch/machincast/issues/517):
-  banner       shows the MachinCast banner, its version, and whether the broadcast
-               service is running, if it is installed; install.sh --service has
-               every new shell do the same
+  banner       shows the MachinCast banner, with on its right its version, the radio
+               and the server, whether Machin player is running and, if it is, the
+               current and the next events (those of Machin status summary);
+               install.sh --service has every new shell do the same
 
 Development (computer installed by ./install.sh --dev):
   dev          opens a subshell in the MachinCast directory, venv activated, with
@@ -220,21 +221,44 @@ version_du_projet() {
 # droite, puis, si le service de diffusion est installé, son état. Lancée par install.sh et, à chaque nouveau shell
 # interactif, par /etc/profile.d/machincast.sh quand le service est installé.
 afficher_banniere() {
-	local ligne orange="" fin="" numero=0 version
+	local ligne orange="" fin="" numero=0 version statut cle valeur
+	local -A reponses=()
+	local droite=()
 	version="$(version_du_projet)"
 	if couleurs_actives; then
 		orange=$'\e[38;5;208m'
 		fin=$'\e[0m'
 	fi
+	# À droite du logo : le numéro de version, puis ce que dit Machin status summary, quand son binaire est là
+	# (https://github.com/dascritch/machincast/issues/517) ; les événements ne se cherchent que si Machin player diffuse.
+	droite=("v${version}")
+	if statut="$(trouver_binaire status 2>/dev/null)"; then
+		while IFS=$'\t' read -r cle valeur; do
+			reponses["${cle}"]="${valeur}"
+		done < <("${statut}" summary 2>/dev/null || true)
+	fi
+	if [[ -n "${reponses[player]:-}" ]]; then
+		droite+=("${reponses[radio]:-} · ${reponses[server]:-}")
+		if [[ "${reponses[player]}" == running ]]; then
+			droite+=("$(tf 'Machin player: running\n')")
+		else
+			droite+=("$(tf 'Machin player: stopped\n')")
+		fi
+		[[ -z "${reponses[now]:-}" ]] || droite+=("$(tf 'Now: %s' "${reponses[now]}")")
+		[[ -z "${reponses[next]:-}" ]] || droite+=("$(tf 'Next: %s' "${reponses[next]}")")
+	fi
 	while IFS= read -r ligne; do
 		numero=$((numero + 1))
+		if ((numero <= ${#droite[@]})); then
+			ligne="$(printf '%-60s' "${ligne}")"
+		fi
 		if ((numero >= 2 && numero <= 5)); then
 			printf '%s%s%s%s' "${orange}" "${ligne:0:7}" "${fin}" "${ligne:7}"
 		else
 			printf '%s' "${ligne}"
 		fi
-		if ((numero == 5)); then
-			printf '  v%s' "${version}"
+		if ((numero <= ${#droite[@]})); then
+			printf ' %s' "${droite[numero - 1]}"
 		fi
 		printf '\n'
 	done <<-'FIN'
@@ -244,7 +268,9 @@ afficher_banniere() {
 		 \  /  | |  | | (_| | (__| | | | | | | | |__| (_| \__ \ |_ 
 		  \/   |_|  |_|\__,_|\___|_| |_|_|_| |_|\____\__,_|___/\__|
 	FIN
-	if command -v systemctl >/dev/null && [[ "$(systemctl show "${UNITE_LECTURE}" --property=LoadState --value 2>/dev/null)" == loaded ]]; then
+	# Sans Machin status, l'état du service se lit à son unité.
+	if [[ -z "${reponses[player]:-}" ]] && command -v systemctl >/dev/null \
+		&& [[ "$(systemctl show "${UNITE_LECTURE}" --property=LoadState --value 2>/dev/null)" == loaded ]]; then
 		if systemctl is-active --quiet "${UNITE_LECTURE}"; then
 			tf 'Machin player: running\n'
 		else
