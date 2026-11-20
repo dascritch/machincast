@@ -49,6 +49,7 @@ Il fonctionne sous Linux (Ubuntu LTS).
 | Maintenance de la base | `Machin_maintenance-db` | Sauvegarde, vérifie le schéma et les rôles, et optimise la base de production ([#127](https://github.com/dascritch/machincast/issues/127)). |
 | Export et réimportation de la base | `Machin_backup-db`, `Machin_restore-db` | Sauvegarde la base de production ; réimporte une sauvegarde dans une base neuve, vide ([#347](https://github.com/dascritch/machincast/issues/347)). |
 | Purge de la base | `Machin_purge` | Efface de la base de production ce qui dépasse la durée de péremption ([#268](https://github.com/dascritch/machincast/issues/268)) ; chaque jour à l'heure de `schedule.daily` avec le service ([#455](https://github.com/dascritch/machincast/issues/455)). |
+| État de la station | `Machin_status` | Dit en une ligne, pour un script, l'état du serveur, le nom de la radio, l'événement actuel et le suivant ([#518](https://github.com/dascritch/machincast/issues/518)). |
 
 Tous les exécutables commencent par `Machin_`.
 Les binaires sans interface graphique se lancent par convention via `Machin` (voir [§ 7](#7-wrapper-machin)) : ce n'est pas une contrainte technique, mais une façon de n'avoir qu'une commande à retenir.
@@ -917,7 +918,7 @@ Machin dev | dev-test [--scenarios NOM…] | dev-screenshots [REPERTOIRE]
 Machin -h | --help | --binaries
 ```
 
-- `Machin BINAIRE` appelle `Machin_BINAIRE` (`player`, `indexer`, `interface`, `maintenance-db`, `backup-db`, `restore-db`, `purge` ou `grant-read` ; noms anglais depuis [#356](https://github.com/dascritch/machincast/issues/356), sans compatibilité avec `lecture` ni `indexation`) en lui transmettant toutes les options qui suivent, intactes, et se termine avec son code de sortie.
+- `Machin BINAIRE` appelle `Machin_BINAIRE` (`player`, `indexer`, `interface`, `maintenance-db`, `backup-db`, `restore-db`, `purge`, `grant-read` ou `status` ; noms anglais depuis [#356](https://github.com/dascritch/machincast/issues/356), sans compatibilité avec `lecture` ni `indexation`) en lui transmettant toutes les options qui suivent, intactes, et se termine avec son code de sortie.
 	Le binaire est cherché d'abord dans le venv du projet (`.venv`, à côté du répertoire `bin/` du wrapper, même appelé par un lien symbolique), puis dans le `PATH` : le wrapper prépare ainsi l'environnement, sans qu'il soit besoin d'activer le venv.
 - `--config FICHIER` (ou `--config=FICHIER`), placé avant le binaire, lui est transmis, notamment pour les tests.
 	Placé après le binaire, il est transmis tel quel.
@@ -967,6 +968,12 @@ Machin -h | --help | --binaries
 	Code 0 quand le service lit tout, 1 sinon ou sans compte du service.
 	`--keep-open`, pour le terminal qu'ouvre l'interface.
 	Rien d'autre ne change : ni propriétaire, ni droits du groupe et des autres, ni contenu ([#96](https://github.com/dascritch/machincast/issues/96)).
+- `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518), `machincast.status`) répond par une ligne sur la sortie standard, pour un script, une barre d'état ou une supervision.
+	`Machin status server` dit « service » quand le service de diffusion est installé, « test » sinon.
+	`Machin status radio` donne le nom de la radio, `metadata.public_text`.
+	`Machin status event --now` et `Machin status event --next` donnent l'événement actuel et le suivant, « {début} → {fin} : {nom privé} », aux heures du poste au format `HH:MM` ; « `--:--` » dit un événement sans début ou sans fin, comme un fil musical permanent.
+	Les événements viennent de la grille de la base de production, lue avec le rôle `machincast_interface` : une session sautée est sautée, mais un événement avancé ou terminé à la main, que seul le service de lecture connaît, ne l'est pas.
+	Sans événement, rien n'est écrit et le code de sortie est 1 ; 3 si la base est injoignable ; 2 pour un appel incorrect.
 
 Autocomplétion bash (`bash-completion/Machin`) : binaires, `logs`, `dev` et `dev-test`, `--scenarios` après `dev-test` puis les fonctionnalités de `tests/features` et `wrapper`, options du wrapper, fichiers après `--config`, options d'un binaire lues dans son aide, options courantes de `journalctl` après `logs`.
 
