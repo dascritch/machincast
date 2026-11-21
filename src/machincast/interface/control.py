@@ -206,9 +206,12 @@ class Control(QObject):
 IN_TERMINAL = _("No password dialog in this session: the password is asked in a terminal window.")
 NO_ANSWER = _("Service unchanged: no authentication in the terminal window.")
 NO_AUTHENTICATION = _("No way to ask for the password in this session: run “sudo systemctl {verb} {unit}”.")
-INTERACTIVE = "Interactive authentication required"
+INTERACTIVE = ("Interactive authentication required", "requires interactive authentication")
 """Ce que répond systemctl, en anglais, quand aucun agent polkit ne peut demander le mot de passe : une session à
-distance (ssh -X), ou ouverte par su (https://github.com/dascritch/machincast/issues/558)."""
+distance (ssh -X), ou ouverte par su (https://github.com/dascritch/machincast/issues/558). systemd 255 dit
+« Interactive authentication required. » ; les versions récentes, celle d'Ubuntu 26.04 comprise, « Access denied as
+the requested operation requires interactive authentication. However, interactive authentication has not been enabled
+by the calling program. » : polkit répond ainsi sans agent, même quand systemctl permet l'authentification."""
 AUTHENTICATION_WINDOW = 120.0
 """Secondes laissées pour s'authentifier dans la fenêtre de terminal, sans agent graphique."""
 
@@ -231,7 +234,10 @@ def systemctl(parent: QObject, arguments: list[str]) -> QProcess:
 
 def without_agent(said: str) -> bool:
 	"""systemctl n'a trouvé aucun agent pour demander le mot de passe."""
-	return INTERACTIVE in said
+	for marker in INTERACTIVE:
+		if marker in said:
+			return True
+	return False
 
 
 def authenticate_in_terminal(arguments: list[str]) -> bool:
