@@ -1895,10 +1895,12 @@ msgid "Double-click: open the event"
 msgstr "Double-clic : ouvrir l'événement"
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/hour_grid.py
 msgid "Deleted event"
 msgstr "Événement supprimé"
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/hour_grid.py
 msgid "by another event"
 msgstr "par un autre événement"
 
@@ -1920,6 +1922,7 @@ msgstr "Rétablir cette session"
 
 #: machincast/interface/calendar.py
 #: machincast/interface/event_card.py
+#: machincast/intranet/hour_grid.py
 msgid "Skipped session"
 msgstr "Session sautée"
 
@@ -2017,6 +2020,7 @@ msgid "Permanent background programming"
 msgstr "Fil musical permanent"
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/hour_grid.py
 msgid "Plays in full"
 msgstr "Joue en entier"
 
@@ -2047,10 +2051,12 @@ msgstr "{day} {month} {year}"
 
 #: machincast/interface/calendar.py
 #: machincast/interface/window.py
+#: machincast/intranet/hour_grid.py
 msgid " and "
 msgstr " et "
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/hour_grid.py
 #, python-brace-format
 msgid "Plays {moments}; hidden the rest of the time {mask}"
 msgstr "Joue {moments} ; masqué le reste du temps {mask}"
@@ -2084,6 +2090,7 @@ msgstr ""
 "liste"
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/hour_grid.py
 #, python-brace-format
 msgid "Hidden in full {mask}"
 msgstr "Masqué en entier {mask}"
@@ -2133,6 +2140,7 @@ msgstr ""
 "{skipped} : « {reinstate} » au clic droit\n"
 
 #: machincast/interface/calendar.py
+#: machincast/intranet/hour_grid.py
 #, python-brace-format
 msgid "from {schedule} to {schedule2}"
 msgstr "de {schedule} à {schedule2}"
@@ -6715,6 +6723,11 @@ msgstr "Reste"
 #: machincast/intranet/home.py
 msgid "Starts in"
 msgstr "Démarre dans"
+
+#: machincast/intranet/hour_grid.py
+#, python-brace-format
+msgid "{weekday}. {day:02d}/{month:02d}"
+msgstr "{weekday}. {day:02d}/{month:02d}"
 
 #: machincast/intranet/network.py
 #, python-brace-format

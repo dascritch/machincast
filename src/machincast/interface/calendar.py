@@ -84,6 +84,7 @@ from machincast.shared.grid import (
 	sessions,
 	wall_hour,
 )
+from machincast.shared.side_by_side import columns
 
 Connection = psycopg.Connection[TupleRow]
 
@@ -441,39 +442,6 @@ def strips(plays: list[Play], days: list[date], now: datetime) -> list[Strip]:
 		for day in days:
 			add_day(day, arrival, count, departure, end, play)
 	return found_list
-
-
-def columns(blocks: list[Block]) -> dict[Block, tuple[int, int]]:
-	"""La colonne de chaque bloc d'un jour, et le nombre de colonnes de son groupe : ceux qui se chevauchent se
-	placent côte à côte, à la première colonne libre."""
-	places: dict[Block, tuple[int, int]] = {}
-	group: list[tuple[Block, int]] = []
-	group_end: datetime | None = None
-	for block in sorted(blocks, key=lambda b: (b.start, b.end)):
-		if (group_end is not None) and (block.start >= group_end):
-			_put(group, places)
-			group, group_end = [], None
-		busy = set()
-		for other, taken in group:
-			if other.end > block.start:
-				busy.add(taken)
-		# La première colonne libre.
-		column = 0
-		while column in busy:
-			column += 1
-		group.append((block, column))
-		group_end = max((group_end) or (block.end), block.end)
-	_put(group, places)
-	return places
-
-
-def _put(group: list[tuple[Block, int]], places: dict[Block, tuple[int, int]]) -> None:
-	block_list = []
-	for _block, column in group:
-		block_list.append(column)
-	count = max(block_list, default=-1) + 1
-	for block, column in group:
-		places[block] = (column, count)
 
 
 def colour_square(colour: QColor) -> QIcon:

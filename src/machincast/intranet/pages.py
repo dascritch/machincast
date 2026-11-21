@@ -2,7 +2,8 @@
 
 - GET / : l'accueil en direct (machincast.intranet.home, https://github.com/dascritch/machincast/issues/541) ;
 - GET /calendar : le calendrier de la semaine, ?week=<un jour de la semaine>, avec la semaine précédente et la
-  suivante (machincast.intranet.calendar, https://github.com/dascritch/machincast/issues/542) ;
+  suivante, en grille horaire (machincast.intranet.calendar, https://github.com/dascritch/machincast/issues/542,
+  machincast.intranet.hour_grid, https://github.com/dascritch/machincast/issues/580) ;
 - GET /documentation : les liens vers la documentation de la version installée
   (https://github.com/dascritch/machincast/issues/542) ;
 - GET /static/* : la feuille de style et le script du gabarit, sans session.
@@ -12,7 +13,7 @@ Sans session, une page mène à la mire ; une session à valider, à la page de 
 
 import asyncio
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,7 @@ from machincast.i18n import _
 
 # Sans Qt : machincast.interface.version ne lit que git, pour situer l'installation.
 from machincast.interface import version
-from machincast.intranet import calendar, home, live, template
+from machincast.intranet import calendar, home, hour_grid, live, template
 from machincast.intranet.app import Request, Response, Route, redirect
 from machincast.intranet.portal import Connect, Portal
 from machincast.intranet.queries import Connection
@@ -58,9 +59,9 @@ def documentation_body(address: str) -> str:
 	)
 
 
-def calendar_body(found: list[dict[str, Any]], first: date) -> str:
-	"""La page du calendrier : la semaine de first, et les liens vers la précédente, celle d'aujourd'hui et la
-	suivante."""
+def calendar_body(found: list[dict[str, Any]], first: date, now: datetime) -> str:
+	"""La page du calendrier : la semaine de first en grille horaire, telle qu'elle est à now, et les liens vers la
+	précédente, celle d'aujourd'hui et la suivante."""
 	before = (first - timedelta(days=calendar.WEEK)).isoformat()
 	after = (first + timedelta(days=calendar.WEEK)).isoformat()
 	last = first + timedelta(days=calendar.WEEK - 1)
@@ -75,7 +76,7 @@ def calendar_body(found: list[dict[str, Any]], first: date) -> str:
 			f'<a id="aujourdhui" href="/calendar">{escape(_("This week"))}</a>',
 			f'<a id="suivante" rel="next" href="/calendar?week={after}">{escape(_("Next week"))}</a>',
 			"</nav>",
-			f'<div class="semaine">\n{calendar.weekly(found, first)}\n</div>',
+			hour_grid.week(found, first, now),
 		)
 	)
 
@@ -152,10 +153,11 @@ class Pages:
 		found = await self._session(request)
 		if isinstance(found, Response):
 			return found
-		first = calendar.week(request.query, self.clock.now().astimezone().date())
+		now = self.clock.now().astimezone()
+		first = calendar.week(request.query, now.date())
 		last = first + timedelta(days=calendar.WEEK)
 		entries = await self._database(lambda connection: calendar.entries(connection, first, last))
-		return await self._framed(found, _("Calendar"), calendar_body(entries, first), "/calendar")
+		return await self._framed(found, _("Calendar"), calendar_body(entries, first, now), "/calendar")
 
 	async def documentation(self, request: Request) -> Response:
 		"""Les liens vers la documentation de la version installée."""

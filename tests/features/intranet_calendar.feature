@@ -8,6 +8,9 @@ Fonctionnalité: Calendrier de l'intranet, en API, en hCalendar et en page, et l
 	https://github.com/dascritch/machincast/issues/524. Le calendrier vient de la grille, passé comme à venir, même
 	les occurrences qu'un événement de priorité plus haute couvre. Les requêtes passent directement à l'application
 	ASGI (tests/asgi_client.py), sur la base de test ; le jeton de la session en « Authorization: Bearer ».
+	La page montre la semaine en grille horaire, comme le calendrier de l'interface
+	(https://github.com/dascritch/machincast/issues/580), en SVG : la politique de sécurité du contenu refuse tout
+	attribut style.
 
 	Contexte:
 		Étant donné les comptes de l'intranet :
@@ -49,14 +52,58 @@ Fonctionnalité: Calendrier de l'intranet, en API, en hCalendar et en page, et l
 		Alors l'API répond 200, une page hCalendar de 4 occurrences
 		Et l'occurrence hCalendar « Chronique » est de « 2026-11-18 07:45 » à « 2026-11-18 08:00 », « émission », couverte
 
-	Scénario: La page du calendrier montre une semaine, jour par jour, avec la précédente et la suivante
+	Scénario: La page du calendrier montre une semaine en grille horaire, avec la précédente et la suivante
 		Quand je demande à l'API « GET /calendar?week=2026-11-18 »
 		Alors l'API répond 200, une page « Calendrier » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
 		Et le bandeau mène à « /calendar » « Calendrier », la page en cours, et permet de se déconnecter
 		Et la page est titrée « Semaine du 16/11 au 22/11/2026 »
 		Et la page mène à la semaine précédente « /calendar?week=2026-11-09 » et à la suivante « /calendar?week=2026-11-23 »
-		Et le « mercredi 18/11 » montre « Fil de jour », « Matinale », « Spécial », « Chronique »
-		Et le « jeudi 19/11 » montre « Fil de jour »
+		Et la grille a pour jours « lundi 16/11 », « mardi 17/11 », « mercredi 18/11 », « jeudi 19/11 », « vendredi 20/11 », « samedi 21/11 », « dimanche 22/11 »
+		Et la grille a pour heures « 00:00 » à « 23:00 », et s'ouvre à 07:00
+		Et le « vendredi 20/11 » est aujourd'hui, l'heure actuelle à 10:00
+		Et la bande de la journée entière du « mercredi 18/11 » montre « Fil de jour »
+		Et la bande de la journée entière du « jeudi 19/11 » montre « Fil de jour »
+		Et les heures du « mercredi 18/11 » montrent « Matinale », « Spécial », « Chronique »
+		Et les heures du « jeudi 19/11 » ne montrent rien
+		Et la page n'a aucun attribut style
+
+	Scénario: Dans la grille, les blocs qui se chevauchent sont côte à côte, pleins là où ils sont à l'antenne
+		Quand je demande à l'API « GET /calendar?week=2026-11-18 »
+		Alors les heures du « mercredi 18/11 » ont pour blocs :
+			| nom       | priorité | heures        | colonne | à l'antenne                  | estompé |
+			| Matinale  | show     | 07:00 – 09:00 | 1 sur 3 | 07:00 – 07:30, 08:30 – 09:00 | non     |
+			| Spécial   | special  | 07:30 – 08:30 | 2 sur 3 | 07:30 – 08:30                | non     |
+			| Chronique | show     | 07:45 – 08:00 | 3 sur 3 | —                            | oui     |
+		Et le bloc « Matinale » du « mercredi 18/11 » dit :
+			"""
+			Matinale — émission
+			07:00 – 09:00
+			Joue de 07:00 à 07:30 et de 08:30 à 09:00 ; masqué le reste du temps par un autre événement
+			"""
+		Et le bloc « Chronique » du « mercredi 18/11 » dit :
+			"""
+			Chronique — émission
+			07:45 – 08:00
+			Masqué en entier par un autre événement
+			"""
+		Et le bloc « Fil de jour » de la bande du « mercredi 18/11 » est à l'antenne de 00:00 à 07:00, et de 09:00 à 24:00
+
+	Scénario: Dans la grille, une session sautée est hachurée, et ne cache rien
+		Étant donné les événements :
+			| name     | public_name | priority | starts_at        | ends_at          | days                                     |
+			| Magazine |             | show     | 2026-11-16 18:00 | 2026-11-16 19:00 | monday,tuesday,wednesday,thursday,friday |
+		Et la session du 2026-11-18 de l'événement « Magazine » est sautée
+		Quand je demande à l'API « GET /calendar?week=2026-11-18 »
+		Alors les heures du « mercredi 18/11 » ont pour blocs :
+			| nom       | priorité | heures        | colonne | à l'antenne                  | estompé |
+			| Matinale  | show     | 07:00 – 09:00 | 1 sur 3 | 07:00 – 07:30, 08:30 – 09:00 | non     |
+			| Spécial   | special  | 07:30 – 08:30 | 2 sur 3 | 07:30 – 08:30                | non     |
+			| Chronique | show     | 07:45 – 08:00 | 3 sur 3 | —                            | oui     |
+			| Magazine  | show     | 18:00 – 19:00 | 1 sur 1 | —                            | hachuré |
+		Et les heures du « jeudi 19/11 » ont pour blocs :
+			| nom      | priorité | heures        | colonne | à l'antenne   | estompé |
+			| Magazine | show     | 18:00 – 19:00 | 1 sur 1 | 18:00 – 19:00 | non     |
+		Et le bloc « Fil de jour » de la bande du « mercredi 18/11 » est à l'antenne de 00:00 à 07:00, et de 09:00 à 24:00
 
 	Scénario: La page de la documentation mène au guide de l'antenne et à la spécification de l'intranet, à la version installée
 		Quand je demande à l'API « GET /documentation »
