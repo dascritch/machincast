@@ -64,6 +64,54 @@ def check_who_waiting(monkeypatch: pytest.MonkeyPatch, resumption: threading.Eve
 	monkeypatch.setattr(check, "check_file", decode)
 
 
+@dataclass
+class Late:
+	"""La demande qui arrive quand le fil de la vérification se termine, et les vérifications faites."""
+
+	identifiers: list[int] = field(default_factory=list)
+	asked: bool = False
+	done: int = 0
+
+
+@pytest.fixture
+def late() -> Late:
+	return Late()
+
+
+@given("une vérification demandée juste quand le fil de la précédente se termine")
+def asked_while_ending(monkeypatch: pytest.MonkeyPatch, late: Late) -> None:
+	"""https://github.com/dascritch/machincast/issues/552 : après que le fil a vu sa file vide, et avant qu'il se
+	termine, une seconde demande arrive ; jamais l'attente d'un délai."""
+	original_check, original_work, original_run = check.Checker.check, check.Checker._work, check.Checker._check
+
+	def asks(self: check.Checker, identifiers: list[int]) -> None:
+		if late.identifiers == []:
+			late.identifiers = list(identifiers)
+		original_check(self, identifiers)
+
+	def works(self: check.Checker) -> None:
+		original_work(self)
+		# Le fil a vu la file vide, et va se terminer : il est encore vivant.
+		if not late.asked:
+			late.asked = True
+			self.check(late.identifiers)
+
+	def runs(self: check.Checker, identifiers: list[int]) -> str:
+		late.done += 1
+		return original_run(self, identifiers)
+
+	monkeypatch.setattr(check.Checker, "check", asks)
+	monkeypatch.setattr(check.Checker, "_work", works)
+	monkeypatch.setattr(check.Checker, "_check", runs)
+
+
+@then("les deux vérifications ont été faites, et annoncées")
+def both_done(interface: Context, qtbot: QtBot, late: Late) -> None:
+	qtbot.waitUntil(lambda: late.done == 2, timeout=WAITING)
+	wait_check(interface, qtbot)
+	assert late.asked
+
+
 @given("un indexeur qui ne sait pas décoder les fichiers")
 def without_decoder(monkeypatch: pytest.MonkeyPatch) -> None:
 	def decode(_path: Path) -> Check:

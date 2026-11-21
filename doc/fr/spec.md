@@ -1536,6 +1536,7 @@ Mise en œuvre ([#37](https://github.com/dascritch/machincast/issues/37), `machi
 	Le fichier est référencé là où il se trouve, sans copie.
 	Il peut être synchronisé depuis un autre ordinateur et changer de contenu sous le même nom (émission pré-enregistrée, rediffusion d'un direct).
 	Il passe immédiatement par la vérification de l'indexeur.
+	Les vérifications demandées se font l'une après l'autre, dans un seul fil ; une demande qui arrive pendant qu'il se termine en lance un autre, et n'est jamais perdue (`check.Checker`, [#552](https://github.com/dascritch/machincast/issues/552)).
 - Stream : URL directe ou feed, et l'événement de secours.
 
 Mise en œuvre ([#30](https://github.com/dascritch/machincast/issues/30), `machincast.interface.adding`, `machincast.interface.check`, `machincast.interface.sound_card`) :
