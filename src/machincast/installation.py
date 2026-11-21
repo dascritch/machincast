@@ -657,6 +657,9 @@ INTRANET_HARDENING = (
 	"ProtectClock=yes",
 	"ProtectHostname=yes",
 	"ProtectProc=invisible",
+	# Dans /proc, seuls les processus : ni /proc/stat, ni /proc/sys, ni les autres réglages du noyau, que le serveur ne
+	# lit pas ; ip lit les adresses par netlink (https://github.com/dascritch/machincast/issues/556).
+	"ProcSubset=pid",
 	"CapabilityBoundingSet=",
 	"AmbientCapabilities=",
 	"RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK",

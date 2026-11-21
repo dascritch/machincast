@@ -112,7 +112,7 @@ Machin intranet is the only MachinCast program that listens to the network. It i
 **The partitioning of the unit** (`machincast-intranet.service`)
 
 - The whole system is read-only, the repository and `machincast.toml` included; only its state directory, `/var/lib/machincast-intranet`, is writable.
-- No personal directory is visible, no device, no kernel capability.
+- No personal directory is visible, no device, no kernel capability; in `/proc`, only its own processes, without the settings or the state of the kernel ([#556](https://github.com/dascritch/machincast/issues/556)).
 - Only Unix, IP and netlink sockets are allowed (netlink to read the addresses of the computer), and only the system calls of an ordinary service, without the privileged ones; `capset` stays allowed, which `ip` calls to drop its capabilities, even without any ([#556](https://github.com/dascritch/machincast/issues/556)): it can only remove some.
 - `systemd-analyze security machincast-intranet` measures this partitioning.
 
