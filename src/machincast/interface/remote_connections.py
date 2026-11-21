@@ -14,7 +14,7 @@ from psycopg.rows import TupleRow
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from machincast.i18n import _
+from machincast.i18n import _, counted
 from machincast.interface.queries import api_users as queries
 
 log = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ REFUSE = _("Refuse")
 def describe(connection: queries.Pending) -> str:
 	"""La ligne d'une connexion à valider, en texte riche : le code en gras, chiffres groupés par trois."""
 	code = f"{connection.code[:3]} {connection.code[3:]}"
-	return _(
+	said = _(
 		"Remote connection to validate: <b>{user}</b>, from {address}, {browser}, until {limit}. "
 		"Code to give: <b>{code}</b>"
 	).format(
@@ -39,6 +39,12 @@ def describe(connection: queries.Pending) -> str:
 		limit=f"{connection.validate_before.astimezone():%H:%M}",
 		code=code,
 	)
+	if connection.attempts > 0:
+		# Des codes faux : peut-être quelqu'un qui essaie de deviner (https://github.com/dascritch/machincast/issues/547).
+		said += " — " + escape(
+			counted("{count} wrong code already entered", "{count} wrong codes already entered", connection.attempts)
+		)
+	return said
 
 
 class RemoteConnections(QFrame):

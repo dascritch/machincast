@@ -65,6 +65,13 @@ def hidden(interface: Context) -> None:
 	assert banner(interface).isHidden()
 
 
+@given(parsers.parse("la connexion à valider de « {name} » a déjà reçu {count:d} codes faux"))
+def wrong_codes(empty_database: Connection, name: str, count: int) -> None:
+	empty_database.execute(
+		"UPDATE api_sessions SET attempts = %s WHERE token_hash = %s", (count, sessions.fingerprint(f"jeton-{name}"))
+	)
+
+
 @then(
 	parsers.re(
 		r"le bandeau des connexions à distance montre 1 connexion, qui nomme (?P<names>.+) et le code « (?P<code>[^»]+) »"

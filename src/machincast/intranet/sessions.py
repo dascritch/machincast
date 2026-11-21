@@ -3,7 +3,9 @@
 1. Nom et mot de passe valides, d'un compte actif : une session à valider (pending), un cookie aléatoire dont la base
    ne garde que l'empreinte SHA-256, et un code à 6 chiffres que l'interface montre au pupitre.
 2. Le code saisi sur le poste distant, avant validate_before : la session devient valide, jusqu'à expires_at.
-   Un code faux est compté ; au cinquième, comme passé le délai, la session est invalide.
+   Un code faux est compté ; au cinquième, comme passé le délai, la session est invalide. Un compte n'a que
+   MAXIMUM_PENDING sessions à valider à la fois ; le portail freine aussi les codes faux, par adresse et par compte
+   (https://github.com/dascritch/machincast/issues/547).
 3. Une session valide sert l'intranet comme l'API : le même cookie, ou « Authorization: Bearer ».
 
 Les heures sont celles de la base (clock_timestamp()). Ces fonctions, sans asyncio, s'appellent hors de la boucle
@@ -24,6 +26,10 @@ Connection = psycopg.Connection[TupleRow]
 
 ATTEMPTS = 5
 """Codes faux permis avant que la session soit invalide."""
+MAXIMUM_PENDING = 2
+PENDING_LOCK = 547
+"""Le premier mot du verrou consultatif qui compte les sessions à valider d'un compte, le second étant son id."""
+"""Sessions à valider d'un compte, au plus, à la fois (https://github.com/dascritch/machincast/issues/547)."""
 TOKEN_BYTES = 32
 COOKIE = "machincast_session"
 DECOY = passwords.digest("machincast-decoy-password")
@@ -72,10 +78,22 @@ def authenticate(connection: Connection, name: str, password: str) -> int | None
 	return identifier
 
 
-def open_pending(connection: Connection, user: int, value: str, validation: int, user_agent: str, address: str) -> str:
-	"""Une session à valider dans les minutes de validation ; le code à donner au pupitre."""
+def open_pending(
+	connection: Connection, user: int, value: str, validation: int, user_agent: str, address: str
+) -> str | None:
+	"""Une session à valider dans les minutes de validation ; le code à donner au pupitre. None si le compte a déjà
+	MAXIMUM_PENDING sessions à valider : le pupitre les valide ou les refuse, ou leur délai passe."""
 	given = code()
 	with connection.transaction():
+		_expire(connection)
+		# Le compte verrouillé le temps de compter, sans droit d'écriture sur api_users : deux connexions simultanées ne
+		# dépassent pas la limite.
+		connection.execute("SELECT pg_advisory_xact_lock(%s, %s)", (PENDING_LOCK, user))
+		waiting = connection.execute(
+			"SELECT count(*) FROM api_sessions WHERE user_id = %s AND state = 'pending'", (user,)
+		).fetchone()
+		if (waiting is not None) and (int(waiting[0]) >= MAXIMUM_PENDING):
+			return None
 		connection.execute(
 			"INSERT INTO api_sessions (user_id, token_hash, code, user_agent, source_ip, validate_before)"
 			" VALUES (%s, %s, %s, %s, %s, clock_timestamp() + make_interval(mins => %s))",
@@ -112,7 +130,8 @@ def find(connection: Connection, value: str) -> Session | None:
 
 def validate(connection: Connection, value: str, given: str, hours: int) -> str:
 	"""Le code saisi : « valid », la session validée pour hours heures ; « wrong », un code faux, encore permis ;
-	« invalid », la session ne se valide plus."""
+	« exhausted », un code faux, le dernier permis, qui rend la session invalide ; « invalid », la session ne se
+	valide plus."""
 	with connection.transaction():
 		_expire(connection)
 		row = connection.execute(
@@ -138,7 +157,7 @@ def validate(connection: Connection, value: str, given: str, hours: int) -> str:
 				" ended_at = clock_timestamp() WHERE id = %s",
 				(identifier,),
 			)
-			return "invalid"
+			return "exhausted"
 		connection.execute("UPDATE api_sessions SET attempts = attempts + 1 WHERE id = %s", (identifier,))
 		return "wrong"
 

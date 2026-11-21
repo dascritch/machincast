@@ -5110,6 +5110,13 @@ msgstr ""
 
 #: machincast/interface/remote_connections.py
 #, python-brace-format
+msgid "{count} wrong code already entered"
+msgid_plural "{count} wrong codes already entered"
+msgstr[0] "{count} code faux déjà saisi"
+msgstr[1] "{count} codes faux déjà saisis"
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
 msgid "Remote connection of {user} refused."
 msgstr "Connexion à distance de {user} refusée."
 
@@ -6648,6 +6655,10 @@ msgid "Unknown user, disabled account or wrong password."
 msgstr "Nom inconnu, compte désactivé ou mot de passe faux."
 
 #: machincast/intranet/portal.py
+msgid "Too many wrong codes: wait a quarter of an hour."
+msgstr "Trop de codes faux : attendez un quart d'heure."
+
+#: machincast/intranet/portal.py
 msgid "Wrong code: ask again at the desk."
 msgstr "Code faux : redemandez-le au pupitre."
 
@@ -6684,6 +6695,15 @@ msgstr "Valider"
 #: machincast/intranet/template.py
 msgid "Disconnect"
 msgstr "Se déconnecter"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"This account already has {count} connections waiting for validation: have "
+"them validated or refused at the desk, or wait for their delay."
+msgstr ""
+"Ce compte a déjà {count} connexions qui attendent leur validation : "
+"faites-les valider ou refuser au pupitre, ou attendez leur délai."
 
 #: machincast/maintenance.py
 msgid "Backs up, checks and optimises the MachinCast database."

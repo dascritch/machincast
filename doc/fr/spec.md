@@ -1985,11 +1985,15 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 1. **Mire** (`GET /login`) : nom d'utilisateur et mot de passe, sans récupération de mot de passe.
 	`POST /login` vérifie un compte actif ; un nom inconnu, un compte désactivé ou un mot de passe faux donnent la même réponse, 401, dans le même temps (une empreinte leurre est vérifiée pour un nom inconnu).
 	Cinq échecs d'une même adresse en un quart d'heure la font attendre un quart d'heure, 429 (`portal.Throttle`, en mémoire).
-2. **Session à valider** : des identifiants valides ouvrent une session `pending`, un jeton aléatoire de 32 octets dans le cookie `machincast_session` (`Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`), dont la base ne garde que l'empreinte SHA-256, et un code à 6 chiffres ; la réponse mène à `/validation`, qui dit qu'une action doit être faite au pupitre.
+	Cinq codes faux d'une même adresse, ou d'un même compte, font aussi attendre un quart d'heure, avant même que le mot de passe soit lu : la réponse ne dit pas s'il était bon ([#547](https://github.com/dascritch/machincast/issues/547), `Portal.codes`).
+	Une connexion réussie efface les mots de passe refusés de l'adresse, mais pas ses codes faux : seule une session validée au pupitre les efface.
+2. **Session à valider** : des identifiants valides ouvrent une session `pending`, si le compte n'en a pas déjà deux (`sessions.MAXIMUM_PENDING`, 429 sinon ; se reconnecter du même navigateur remplace sa session d'avant), un jeton aléatoire de 32 octets dans le cookie `machincast_session` (`Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`), dont la base ne garde que l'empreinte SHA-256, et un code à 6 chiffres ; la réponse mène à `/validation`, qui dit qu'une action doit être faite au pupitre.
 3. **Au pupitre** : l'interface relit toutes les 3 secondes les connexions à valider (`machincast.interface.remote_connections`) ; un bandeau orange, au-dessus des onglets, nomme le compte, l'adresse IP source, le navigateur, l'heure limite, et le code à donner, en deux groupes de trois chiffres.
 	« Refuser » rend la session invalide.
+	Une session qui a déjà reçu des codes faux le dit, « 3 codes faux déjà saisis » : peut-être quelqu'un qui essaie de deviner.
 	Le délai est `intranet.validation` minutes, 30 par défaut.
 4. **Code** (`POST /validation`) : le code exact, espaces ignorées, rend la session valide pour `intranet.session` heures, 12 par défaut, et mène à l'accueil ; un code faux le redemande, 400 ; au cinquième (`sessions.ATTEMPTS`), comme le délai passé, la session est invalide, 401, et il faut se reconnecter.
+	Une adresse ou un compte qui a saisi cinq codes faux en un quart d'heure n'essaie plus aucun code, pas même le bon, avant un quart d'heure, 429 : un mot de passe volé ne suffit pas à forcer le code, qui demanderait des années à ce rythme.
 5. **Session valide** : le même jeton sert l'intranet et l'API, en cookie ou en `Authorization: Bearer` (`portal.bearer`) ; un compte désactivé perd ses sessions.
 	`POST /logout` rend la session invalide et efface le cookie.
 - Un formulaire envoyé d'une autre origine (en-tête `Origin` d'un autre hôte) est refusé, 403 ; un corps de plus de 64 Kio, 413.

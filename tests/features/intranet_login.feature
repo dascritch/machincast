@@ -103,6 +103,55 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Alors la réponse est 429, et dit « Trop d'essais refusés : attendez un quart d'heure. »
 		Et aucune session n'est ouverte
 
+	# ─── Forçage du code donné au pupitre (https://github.com/dascritch/machincast/issues/547) ───
+
+	Scénario: Avec le bon mot de passe, des codes faux répétés font attendre l'adresse, même en se reconnectant
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Quand je saisis un code faux 5 fois
+		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 429, et dit « Trop d'essais refusés : attendez un quart d'heure. »
+		Et aucune nouvelle session n'est ouverte
+
+	Scénario: Des codes faux répétés font attendre le compte, même depuis une autre adresse
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que j'ai saisi un code faux 5 fois
+		Quand je me connecte en « regie », mot de passe « tisane-au-micro », depuis l'adresse « 10.0.0.32 »
+		Alors la réponse est 429, et dit « Trop d'essais refusés : attendez un quart d'heure. »
+		Et aucune nouvelle session n'est ouverte
+
+	Scénario: Freiné, un code n'est même pas essayé, pas même le bon
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que j'ai saisi un code faux 4 fois
+		Et que je me suis connecté depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
+		Et que j'ai saisi un code faux
+		Quand je saisis le code donné au pupitre
+		Alors la réponse est 429, et dit « Trop de codes faux : attendez un quart d'heure. »
+		Et la session est à valider
+
+	Scénario: Une session validée au pupitre efface les codes faux du compte
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que j'ai saisi un code faux 4 fois
+		Quand je saisis le code donné au pupitre
+		Alors la session est valide, pour 12 heures
+		Quand je me déconnecte
+		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Et je saisis un code faux 4 fois
+		Alors la réponse est 400, et dit « Code faux : redemandez-le au pupitre. »
+
+	Scénario: Un compte n'a que deux sessions à valider à la fois
+		Étant donné que je me suis connecté depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
+		Et que je me suis connecté depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
+		Quand je me connecte depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 429, et dit « Ce compte a déjà 2 connexions qui attendent leur validation : faites-les valider ou refuser au pupitre, ou attendez leur délai. »
+		Et « regie » a 2 sessions à valider
+
+	Scénario: Se reconnecter du même navigateur remplace sa session à valider
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Quand je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « /validation »
+		Et « regie » a 1 session à valider
+
 	Scénario: Un formulaire envoyé d'un autre site est refusé
 		Quand je me connecte en « regie », mot de passe « tisane-au-micro », depuis l'origine « https://ailleurs.example »
 		Alors la réponse est 403
