@@ -43,9 +43,11 @@ Seuls les fichiers ajoutés depuis la liste des sonores sont vérifiés aussitô
 | `expiré` | Maximum de lectures atteint, ou période de diffusion terminée ([Expiration des sonores](antenne.md#expiration-des-sonores)). | non | Par l'interface seulement. |
 | `erroné` | Fichier `endommagé` ou `illisible`. | non | Tout seul, quand une vérification trouve le fichier redevenu sain. |
 | `non supporté` | Fichier qui n'est pas du son, quelle que soit son extension. | non | Tout seul, quand le fichier est remplacé par un vrai son. L'interface peut aussi le passer `actif` ou `désactivé`. |
-| `supprimé` | Fichier `introuvable` : effacé ou déplacé. | non | Par l'interface seulement. Un fichier déplacé dans le répertoire d'une banque revient comme un nouveau sonore. |
+| `introuvable` | Fichier `introuvable` : effacé, déplacé, ou sur un disque débranché. | non | Tout seul, quand une vérification retrouve le fichier sain ([#563](https://github.com/dascritch/machincast/issues/563)). L'interface peut aussi le passer `actif` ou `désactivé`. Un fichier déplacé dans le répertoire d'une banque revient comme un nouveau sonore. |
 
-La vérification ne change jamais un sonore `désactivé`, `expiré` ou `supprimé` : elle signale seulement un problème de son fichier. Elle ne supprime jamais un sonore.
+La vérification ne change jamais un sonore `désactivé` ou `expiré` : elle signale seulement un problème de son fichier. Elle ne supprime jamais un sonore.
+
+Un répertoire de banque absent, comme un disque ou un partage réseau pas encore monté, ne fait pas passer ses sonores `introuvable` : la vérification les laisse tels quels, et le dit dans son journal. Ils sont vérifiés de nouveau dès que le répertoire revient.
 
 ## Vérification d'un fichier
 
@@ -59,7 +61,7 @@ Chaque vérification d'un fichier donne l'un de ces verdicts :
 | `illisible` | Le fichier est vide, cassé, ou rien n'a pu en être lu. |
 | `introuvable` | Aucun fichier à l'emplacement enregistré : il a été effacé ou déplacé. |
 
-Le sonore suit le verdict : `sain` le rend `actif`, `endommagé` ou `illisible` le rend `erroné`, `non supporté` le rend `non supporté`, `introuvable` le rend `supprimé`.
+Le sonore suit le verdict : `sain` le rend `actif`, `endommagé` ou `illisible` le rend `erroné`, `non supporté` le rend `non supporté`, `introuvable` le rend `introuvable`.
 
 ## Tags et métadonnées
 
@@ -89,7 +91,7 @@ La fiche d'un sonore s'ouvre dans un onglet nommé « Sonore : » suivi de son t
 
 **Encarts** : pour garder l'essentiel en vue, **Métadonnées**, **Diffusion**, **Enchainement**, **Relations** et **Fichier** s'ouvrent repliés, leur titre précédé de « ▸ ». Un clic sur le titre les déplie (« ▾ »). Les encarts dépliés sont retenus : la fiche de sonore suivante les montre dépliés de même, même après avoir relancé l'interface.
 
-- **Sonore** : le type, l'emplacement du fichier et sa durée, qui ne se modifient pas, et l'**état** : `actif` ou `désactivé` ; un sonore `expiré`, `erroné` ou `supprimé` peut revenir à `actif`. La liste montre tous les états, ceux qu'on ne peut pas choisir grisés. Un sonore en `aperçu` attend sa vérification. Le bouton **Dossier…** ouvre le dossier du fichier dans le navigateur de fichiers du poste.
+- **Sonore** : le type, l'emplacement du fichier et sa durée, qui ne se modifient pas, et l'**état** : `actif` ou `désactivé` ; un sonore `expiré`, `erroné` ou `introuvable` peut revenir à `actif`. La liste montre tous les états, ceux qu'on ne peut pas choisir grisés. Un sonore en `aperçu` attend sa vérification. Le bouton **Dossier…** ouvre le dossier du fichier dans le navigateur de fichiers du poste.
 - **Métadonnées** : artiste, titre et les autres champs des [tags](#tags-et-métadonnées).
 - **Diffusion** :
   - **Artiste et titre** : `Masqués` ou `Affichés` sur la page publique, sauf si l'événement, la séquence ou la banque en décide ([Page publique et masquage](antenne.md#page-publique-et-masquage)) ;

@@ -140,15 +140,16 @@ Le schéma est géré par migrations **yoyo-migrations**, appliquées aux deux b
 | `disabled` | désactivé | interface | choix humain | par l'interface seulement |
 | `expired` | expiré | binaire lecture | maximum de lectures atteint ou fin de la période de diffusion ([§ 4.5](#45-sonore-jouable)) | par l'interface seulement |
 | `corrupt` | erroné | indexeur | fichier illisible ou endommagé | automatique, par l'indexeur, quand le fichier redevient sain |
-| `missing` | supprimé | indexeur | fichier introuvable (supprimé ou déplacé) | par l'interface seulement ; un fichier déplacé est réindexé comme nouveau sonore |
+| `missing` | introuvable | indexeur | fichier introuvable (supprimé ou déplacé) | automatique, par l'indexeur, quand le fichier revient sain ([#563](https://github.com/dascritch/machincast/issues/563)) ; un fichier déplacé est réindexé comme nouveau sonore |
 
 **Le fichier d'un sonore n'est jamais supprimé, renommé, déplacé, remplacé ni écrit par MachinCast** ([#96](https://github.com/dascritch/machincast/issues/96)), quels que soient les changements de son entrée : état, emplacement, tags, ou suppression de la ligne.
 L'état `missing` constate qu'un fichier a disparu, il ne le fait pas disparaître.
 Aucune sortie (CSV, .pls, HTML, socket d'état, fichiers de simulation) ne peut être placée sur un chemin à l'extension d'un fichier sonore.
 
-L'indexeur ne change l'état que d'un sonore `preview`, `active` ou `corrupt`.
+L'indexeur ne change l'état que d'un sonore `preview`, `active`, `corrupt`, `unsupported` ou `missing`.
 Un fichier ajouté à la main depuis l'interface commence aussi à l'état `preview` ; un stream, jamais vérifié, commence à l'état `active`.
-Un sonore `disabled`, `expired` ou `missing` garde son état, même si son fichier est défectueux ; l'anomalie est quand même signalée.
+Un sonore `disabled` ou `expired` garde son état, même si son fichier est défectueux ; l'anomalie est quand même signalée.
+Les sonores d'un répertoire de banque absent, comme un disque ou un partage pas encore monté, ne sont pas vérifiés : ils gardent leur état, et le journal le dit une fois par répertoire ([#563](https://github.com/dascritch/machincast/issues/563)).
 
 Contraintes :
 
@@ -847,6 +848,7 @@ Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 - **Indexation rapide**, par défaut : un nouveau fichier est enregistré à l'état `preview`, sans être décodé ([§ 6.2](#62-indexation-des-répertoires-de-banques)).
 	Seuls les sonores en aperçu, et ceux dont le fichier a changé depuis sa dernière vérification (date de modification ou taille, [#10](https://github.com/dascritch/machincast/issues/10)), sont ensuite décodés et leurs tags lus.
 	Pour les autres, seule la présence du fichier est contrôlée : un fichier disparu passe quand même son sonore à `missing`.
+	Un sonore `missing` dont le fichier est revenu est décodé, même si sa date et sa taille n'ont pas changé.
 	Un fichier jamais vérifié, sans date ni taille enregistrées, n'est pas comparé.
 - **Audit complet**, option `--full-audit` : les sonores de type fichier sont décodés, comme décrit ci-dessous ; lui seul mesure les silences ([#146](https://github.com/dascritch/machincast/issues/146), [§ 6.1](#61-vérification-des-sonores-existants-hors-streams)).
 	Il saute un sonore déjà audité au même seuil de silence (`audited_at`, `audit_threshold`) dont le fichier n'a pas changé depuis : date de modification au plus égale à celle de l'audit, date et taille égales à celles enregistrées ([#206](https://github.com/dascritch/machincast/issues/206), `check.already_audited`).
@@ -888,8 +890,8 @@ Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 	Un nouveau seuil vaut donc pour les audits complets suivants, y compris l'analyse au dernier moment ([§ 5.1](#51-lecture-audio)).
 - Fichier illisible ou endommagé : signalé sur STDERR, sonore `preview` ou `active` passé `corrupt`.
 - Fichier introuvable (supprimé ou déplacé) : signalé sur STDERR, sonore `preview`, `active` ou `corrupt` passé `missing`.
-	Un fichier déplacé sera réindexé comme nouveau sonore.
-- Un sonore `disabled`, `expired` ou `missing` garde son état ; son fichier défectueux est quand même signalé ([§ 3.1](#sounds), [#66](https://github.com/dascritch/machincast/issues/66)).
+	Un fichier déplacé sera réindexé comme nouveau sonore ; un fichier revenu sain rend son sonore `missing` actif, endommagé, `corrupt`.
+- Un sonore `disabled` ou `expired` garde son état ; son fichier défectueux est quand même signalé ([§ 3.1](#sounds), [#66](https://github.com/dascritch/machincast/issues/66)).
 - Chaque décodage libère tout ce qu'il a ouvert : une indexation de milliers de fichiers ne garde aucun descripteur de fichier ouvert ([#149](https://github.com/dascritch/machincast/issues/149)).
 - Décodeur GStreamer absent pour un format : la vérification s'arrête et indique les paquets à installer, sans changer l'état du sonore, car le fichier n'y est pour rien.
 - Date de modification ou taille changée : nouvelle vérification complète, mise à jour de la durée et des tags, **sans toucher aux champs édités à la main**.
@@ -1956,7 +1958,7 @@ Aucun point en attente.
 - **Affichage public masqué** : nom public de l'événement, sinon texte public par défaut de la configuration ([#49](https://github.com/dascritch/machincast/issues/49), voir [§ 4.8](#48-métadonnées-publiques-et-masquage)).
 - **Droits sur les feeds** : modifiables par l'interface seule ; le binaire lecture les lit, l'indexeur n'y accède pas ([#50](https://github.com/dascritch/machincast/issues/50), voir [§ 3.2](#32-rôles-et-droits)).
 - **Banque « ne pas répéter »** : un élément qui rappellerait une banque marquée « ne pas répéter » juste après elle est sauté, même d'un événement à l'autre ; s'il ne reste rien d'autre de jouable, l'événement se termine et l'événement inférieur prend le relais ([#63](https://github.com/dascritch/machincast/issues/63), voir [§ 4.4](#44-choix-dun-sonore-dans-une-banque)).
-- **État d'un sonore** : le booléen `active` devient un état `active`, `disabled`, `expired`, `corrupt` ou `missing` ; seul l'indexeur rétablit automatiquement un sonore, quand il l'avait lui-même déclaré `corrupt` ([#66](https://github.com/dascritch/machincast/issues/66), voir [§ 3.1](#sounds)).
+- **État d'un sonore** : le booléen `active` devient un état `active`, `disabled`, `expired`, `corrupt` ou `missing` ; seul l'indexeur rétablit automatiquement un sonore, quand il l'avait lui-même déclaré `corrupt` ([#66](https://github.com/dascritch/machincast/issues/66), voir [§ 3.1](#sounds)), ou `missing` ([#563](https://github.com/dascritch/machincast/issues/563)).
 - **Durées d'une banque** : l'indexation, rapide ou complète, retire d'une banque les sonores de durée connue qui sortent de ses durées, même ajoutés à la main, et n'y rattache pas un sonore connu hors de ses durées ([#195](https://github.com/dascritch/machincast/issues/195), voir [§ 6.2](#62-indexation-des-répertoires-de-banques)).
 - **Indexation rapide** : par défaut, l'indexeur ne décode que les nouveaux fichiers, à l'état `preview`, et ceux dont la date ou la taille a changé ([#10](https://github.com/dascritch/machincast/issues/10)), et repère les fichiers disparus ; l'audit complet (`--full-audit`) décode ce qui n'a pas encore été audité à ce seuil de silence, ou a changé depuis, et `--force` tout ([#69](https://github.com/dascritch/machincast/issues/69), [#206](https://github.com/dascritch/machincast/issues/206), voir [§ 6.0](#60-modes-dindexation)).
 - **Détection de silence** : mesurée par l'audit complet seulement, au seuil `silences.threshold` (-40 dB par défaut) ; la fin détectée se compte depuis la fin du fichier ; appliquée à un sonore qui l'active ou fourni par une banque qui l'active, jamais par défaut ; un sonore sans silence détecté est joué en entier ([#146](https://github.com/dascritch/machincast/issues/146), voir [§ 5.1](#51-lecture-audio) et [§ 6.1](#61-vérification-des-sonores-existants-hors-streams)).

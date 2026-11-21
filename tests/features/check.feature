@@ -130,7 +130,9 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 			| mp3 sain      | corrupt    | active     |
 			| mp3 endommagé | corrupt    | corrupt    |
 			| introuvable   | corrupt    | missing  |
-			| mp3 sain      | missing  | missing  |
+			| mp3 sain      | missing  | active     |
+			| mp3 endommagé | missing  | corrupt    |
+			| introuvable   | missing  | missing  |
 			| mp3 sain      | disabled | disabled |
 			| mp3 endommagé | disabled | disabled |
 			| introuvable   | disabled | disabled |
@@ -146,7 +148,7 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Exemples:
 			| fichier       | avant     | verdict     | consequence             |
 			| mp3 endommagé | active     | endommagé   | sonore passé erroné     |
-			| introuvable   | active     | introuvable | sonore passé supprimé   |
+			| introuvable   | active     | introuvable | sonore passé introuvable |
 			| mp3 endommagé | corrupt    | endommagé   | sonore toujours erroné  |
 			| mp3 endommagé | disabled | endommagé   | état désactivé conservé |
 			| mp3 endommagé | expired    | endommagé   | état expiré conservé    |

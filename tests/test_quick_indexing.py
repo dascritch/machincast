@@ -37,3 +37,15 @@ def launch(executable: str, option: str) -> subprocess.CompletedProcess[str]:
 @then(parsers.parse('la sortie mentionne "{text}"'))
 def mentions(command: subprocess.CompletedProcess[str], text: str) -> None:
 	assert text in command.stdout
+
+
+@given("ce fichier mis de côté")
+def set_aside(file: Path) -> None:
+	"""Comme un disque démonté : le fichier n'est plus là, sa date et sa taille ne changent pas
+	(https://github.com/dascritch/machincast/issues/563)."""
+	file.rename(file.with_name(f"{file.name}.de-cote"))
+
+
+@given("ce fichier remis en place")
+def put_back(file: Path) -> None:
+	file.with_name(f"{file.name}.de-cote").rename(file)

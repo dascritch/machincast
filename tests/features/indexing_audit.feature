@@ -18,10 +18,10 @@ Fonctionnalité: Document d'audit de l'indexation, en CSV et en HTML
 		Quand Machin indexer est lancé sur la base de test
 		Alors le document d'audit « machincast-audit-2026-10-15T08:15:00.csv » contient :
 			| date                | chemin           | verdict     | problème                                                                                             | conséquence           |
-			| 2026-10-15 08:15:00 | …/disparu.flac   | introuvable | aucun fichier à cet emplacement                                                                      | sonore passé supprimé |
+			| 2026-10-15 08:15:00 | …/disparu.flac   | introuvable | aucun fichier à cet emplacement                                                                      | sonore passé introuvable |
 			| 2026-10-15 08:15:00 |                  | bilan       | indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu |    |
 		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » s'intitule « Audit de l'indexation du 2026-10-15 08:15:00 »
-		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » montre « …/disparu.flac », « introuvable », « aucun fichier à cet emplacement », « sonore passé supprimé »
+		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » montre « …/disparu.flac », « introuvable », « aucun fichier à cet emplacement », « sonore passé introuvable »
 		Et la page d'audit « machincast-audit-2026-10-15T08:15:00.html » montre « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 0 sonore vérifié ; 0 erroné, 0 non supporté, 1 supprimé, 0 rétabli, 0 sorti d'aperçu »
 
 	Scénario: Le problème d'un fichier endommagé est donné sans répéter son verdict

@@ -410,7 +410,7 @@ Fonctionnalité: Fiche d'un sonore
 			| expired    | « expiré », « actif », « désactivé »   |
 			| corrupt    | « erroné », « actif », « désactivé »   |
 			| unsupported | « non supporté », « actif », « désactivé » |
-			| missing  | « supprimé », « actif », « désactivé » |
+			| missing  | « introuvable », « actif », « désactivé » |
 			| preview    | « aperçu »                             |
 
 	Scénario: L'état modifié part en base, sans être marqué : l'indexeur peut encore le changer
