@@ -1552,6 +1552,13 @@ msgstr ""
 
 #: machincast/interface/api_tab.py
 #, python-brace-format
+msgid "{count} session ended."
+msgid_plural "{count} sessions ended."
+msgstr[0] "{count} session terminée."
+msgstr[1] "{count} sessions terminées."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
 msgid "{name} enabled again."
 msgstr "{name} réactivé."
 
@@ -1605,11 +1612,6 @@ msgstr "{name} a désormais le rôle {role}."
 
 #: machincast/interface/api_tab.py
 #, python-brace-format
-msgid "Password of {name} changed."
-msgstr "Mot de passe de {name} changé."
-
-#: machincast/interface/api_tab.py
-#, python-brace-format
 msgid "User {name} deleted."
 msgstr "Compte {name} supprimé."
 
@@ -1617,6 +1619,11 @@ msgstr "Compte {name} supprimé."
 #, python-brace-format
 msgid "Password of {name}"
 msgstr "Mot de passe de {name}"
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "Password of {name} changed."
+msgstr "Mot de passe de {name} changé."
 
 #: machincast/interface/api_tab.py
 #, python-brace-format

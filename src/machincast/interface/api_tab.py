@@ -18,7 +18,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTreeWidgetItem, QWidget
 
 from machincast.configuration import SESSION
-from machincast.i18n import _, pgettext
+from machincast.i18n import _, counted, pgettext
 from machincast.interface import dialogs, display
 from machincast.interface.columns import Columns
 from machincast.interface.queries import api_users as queries
@@ -133,6 +133,13 @@ def ask_account(parent: QWidget, connection: psycopg.Connection[TupleRow], name:
 	if window.exec() != QDialog.DialogCode.Accepted:
 		return None
 	return window.account()
+
+
+def ended_sessions(count: int) -> str:
+	"""« 2 sessions terminées », après un message ; rien sans session terminée."""
+	if count == 0:
+		return ""
+	return " " + counted("{count} session ended.", "{count} sessions ended.", count)
 
 
 class ApiScreen(QWidget):
@@ -313,8 +320,8 @@ class ApiScreen(QWidget):
 		if account is None:
 			return
 		with self.connection.transaction():
-			queries.set_password(self.connection, identifier, passwords.digest(account.password))
-		self._write(_("Password of {name} changed.").format(name=name))
+			ended = queries.set_password(self.connection, identifier, passwords.digest(account.password))
+		self._write(_("Password of {name} changed.").format(name=name) + ended_sessions(ended))
 
 	def toggle_disabled(self) -> None:
 		line = self.ui.users.currentItem()
@@ -324,11 +331,11 @@ class ApiScreen(QWidget):
 		name = self._chosen_name()
 		disabling = not line.data(2, IDENTIFIER)
 		with self.connection.transaction():
-			queries.set_disabled(self.connection, identifier, disabled=disabling)
+			ended = queries.set_disabled(self.connection, identifier, disabled=disabling)
 		done = _("{name} enabled again.")
 		if disabling:
 			done = _("{name} disabled: it can no longer connect.")
-		self._write(done.format(name=name))
+		self._write(done.format(name=name) + ended_sessions(ended))
 
 	def delete_user(self) -> None:
 		identifier = self.chosen()
