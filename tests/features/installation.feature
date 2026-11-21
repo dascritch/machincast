@@ -272,6 +272,8 @@ Fonctionnalité: Vérifications de l'installation
 			| ProtectHome             | yes                                      |
 			| PrivateTmp              | yes                                      |
 			| PrivateDevices          | yes                                      |
+			| ProtectProc             | invisible                                |
+			| ProcSubset              | pid                                      |
 			| CapabilityBoundingSet   |                                          |
 			| RestrictAddressFamilies | AF_UNIX AF_INET AF_INET6 AF_NETLINK      |
 			| MemoryDenyWriteExecute  | yes                                      |
