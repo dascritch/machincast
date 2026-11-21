@@ -26,7 +26,9 @@ SECURITY_HEADERS = (
 	("strict-transport-security", "max-age=31536000"),
 	("x-content-type-options", "nosniff"),
 	("x-frame-options", "DENY"),
-	("referrer-policy", "no-referrer"),
+	# Pas no-referrer : le navigateur enverrait « Origin: null » même vers l'intranet lui-même, et ses formulaires
+	# seraient pris pour ceux d'un autre site (https://github.com/dascritch/machincast/issues/571).
+	("referrer-policy", "same-origin"),
 	("content-security-policy", "default-src 'self'; frame-ancestors 'none'; form-action 'self'"),
 	("cache-control", "no-store"),
 )
@@ -70,7 +72,12 @@ class Request:
 		return fields
 
 	def same_origin(self) -> bool:
-		"""Sans en-tête Origin, ou d'une origine dont l'hôte est celui de la requête."""
+		"""Envoyée du même site (https://github.com/dascritch/machincast/issues/571) : d'abord d'après Sec-Fetch-Site,
+		que le navigateur pose et qu'aucun script ne peut falsifier ; sans lui, sans en-tête Origin, ou d'une origine
+		dont l'hôte est celui de la requête. Une origine « null », celle d'un cadre isolé, n'est jamais du même site."""
+		fetched = self.headers.get("sec-fetch-site")
+		if fetched is not None:
+			return fetched == "same-origin"
 		origin = self.headers.get("origin")
 		if origin is None:
 			return True

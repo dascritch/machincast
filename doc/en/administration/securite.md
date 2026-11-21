@@ -98,7 +98,7 @@ Why even on the network of the radio: the Wi-Fi of shared premises, a guest comp
 
 Machin intranet is the only MachinCast program that listens to the network. It is **switched off by default**, and is switched on in **File → Service settings…**, **Intranet** page ([Commands and messages](commandes.md)).
 
-**The transport**: HTTPS only ([above](#https-only-even-through-a-plain-ip-address)). Each answer also forbids the browser to show the page in a frame, to load a resource from elsewhere or to keep the page in cache, and a form sent from another site is refused.
+**The transport**: HTTPS only ([above](#https-only-even-through-a-plain-ip-address)). Each answer also forbids the browser to show the page in a frame, to load a resource from elsewhere or to keep the page in cache, and a form sent from another site is refused: the intranet relies first on what the browser says of where the form comes from, which a page cannot forge ([#571](https://github.com/dascritch/machincast/issues/571)).
 
 **The connections**
 

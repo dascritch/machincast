@@ -207,6 +207,23 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Alors la réponse est 403
 		Et aucune session n'est ouverte
 
+	Plan du scénario: Le navigateur dit d'où vient le formulaire, et l'intranet s'y fie d'abord
+		https://github.com/dascritch/machincast/issues/571 : sous « Referrer-Policy: no-referrer », un vrai navigateur
+		envoie « Origin: null » même vers le même site, avec « Sec-Fetch-Site: same-origin », qu'aucun script ne peut
+		falsifier. Sans Sec-Fetch-Site, l'origine se compare à l'hôte, « null » toujours refusé.
+		Quand je me connecte en « regie », mot de passe « tisane-au-micro », avec les en-têtes « <en-têtes> »
+		Alors la réponse est <code>
+
+		Exemples:
+			| en-têtes                                                            | code |
+			| origin: null; sec-fetch-site: same-origin                           | 303  |
+			| origin: https://studio.radio.lan:8443; sec-fetch-site: same-origin  | 303  |
+			| origin: https://studio.radio.lan:8443; sec-fetch-site: cross-site   | 403  |
+			| origin: https://studio.radio.lan:8443; sec-fetch-site: same-site    | 403  |
+			| origin: https://studio.radio.lan:8443                               | 303  |
+			| origin: null                                                        | 403  |
+			| sec-fetch-site: cross-site                                          | 403  |
+
 	Scénario: Un corps de requête trop gros est refusé
 		Quand j'envoie à « /login » un formulaire de 100000 octets
 		Alors la réponse est 413
