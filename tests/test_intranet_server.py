@@ -19,7 +19,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.configuration import Configuration, InvalidConfiguration, load
 from machincast.intranet import __main__ as server
-from machincast.intranet import certificate, network
+from machincast.intranet import certificate, network, process
 from tests.database_fixtures import sample_configuration_path
 
 scenarios("intranet_server.feature")
@@ -349,3 +349,14 @@ def journal_address(context: Context) -> None:
 	assert f"https://127.0.0.1:{context.port}/" in context.journal, context.journal
 	fingerprint = certificate.fingerprint(certificate.default(context.directory / "etat").certificate)
 	assert fingerprint in context.journal, context.journal
+
+
+@then("son PID est noté dans son répertoire d'état")
+def pid_recorded(context: Context) -> None:
+	assert context.process is not None
+	assert process.running_pid(context.directory / "etat") == context.process.pid
+
+
+@then("son PID n'est plus noté")
+def pid_removed(context: Context) -> None:
+	assert not (context.directory / "etat" / process.PID_FILE).exists()

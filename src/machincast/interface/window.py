@@ -266,7 +266,7 @@ class MainWindow(QMainWindow):
 		self.tab_manager = TabManager(self, self.ui.tabs, self._reopen, self._close, self._remove)
 		# Ctrl ou Alt tenue une seconde : les raccourcis en surimpression (https://github.com/dascritch/machincast/issues/529).
 		self.key_hints = key_hints.KeyHints(self)
-		self.intranet_switch = IntranetSwitch(self)
+		self.intranet_switch = IntranetSwitch(self, configuration=self.configuration)
 		self.intranet_switch.announced.connect(self.ui.state_bar.showMessage)
 		# Les connexions à distance à valider au pupitre (https://github.com/dascritch/machincast/issues/539).
 		self.remote_connections = RemoteConnections(connection, self)

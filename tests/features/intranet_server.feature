@@ -95,7 +95,10 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Et une requête en HTTP clair ne reçoit aucune réponse HTTP
 		Et son journal donne l'adresse à donner et l'empreinte du certificat
 
-	Scénario: Machin intranet s'arrête proprement à SIGTERM
+	Scénario: Machin intranet s'arrête proprement à SIGTERM, son PID noté le temps qu'il sert
+		https://github.com/dascritch/machincast/issues/544 : l'interface le retrouve par ce PID pour l'arrêter.
 		Quand je lance Machin intranet avec l'intranet allumé
-		Et Machin intranet reçoit SIGTERM
+		Alors son PID est noté dans son répertoire d'état
+		Quand Machin intranet reçoit SIGTERM
 		Alors Machin intranet s'arrête avec le code 0
+		Et son PID n'est plus noté

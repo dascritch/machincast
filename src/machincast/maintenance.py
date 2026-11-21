@@ -212,10 +212,10 @@ def own_options(analyser: argparse.ArgumentParser) -> None:
 	)
 
 
-def stay_open() -> None:
+def stay_open(said: str = END) -> None:
 	"""Jusqu'à la fermeture du terminal : la fin de l'entrée standard, ou Ctrl-C. Fermer la fenêtre envoie SIGHUP,
 	qui arrête aussi le programme."""
-	sys.stdout.write(f"{END}\n")
+	sys.stdout.write(f"{said}\n")
 	sys.stdout.flush()
 	try:
 		sys.stdin.read()

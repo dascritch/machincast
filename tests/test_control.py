@@ -20,6 +20,7 @@ from machincast.configuration import PROJECT_DIRECTORY, Intranet, load
 from machincast.installation import systemd_unit
 from machincast.interface import broadcast_status, control, intranet_switch
 from machincast.interface.control import service_configuration
+from machincast.intranet import process
 from machincast.service import INTRANET_UNIT
 from tests.interface_steps import Context, configuration_file, window
 from tests.waiting import quiet
@@ -92,6 +93,24 @@ while True:
 	time.sleep(1)
 """
 """Un Machin player lancé à la main : il annonce la diffusion sur sa socket d'état, s'arrête proprement à SIGTERM."""
+HAND_INTRANET = """
+import signal, sys, time
+from pathlib import Path
+from machincast.intranet import process
+
+
+def stop(_signal_number, _frame):
+	Path(sys.argv[3]).write_text("SIGTERM", encoding="utf-8")
+	sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, stop)
+with process.recorded(Path(sys.argv[2])):
+	while True:
+		time.sleep(1)
+"""
+"""Un Machin intranet lancé sans le service : son PID noté, il s'arrête à SIGTERM ; « intranet » est dans ses
+arguments, comme dans ceux du vrai."""
 STATES = {"arrêté": "inactive", "en marche": "active", "en échec": "failed"}
 
 
@@ -104,6 +123,9 @@ class Station:
 		self.service = directory / "service"
 		self.service.mkdir()
 		self.trial: subprocess.Popen[bytes] | None = None
+		self.intranet: subprocess.Popen[bytes] | None = None
+		self.intranet_state = directory / "intranet"
+		self.intranet_stop = directory / "intranet.signal"
 		self.trial_stop = directory / "essai.signal"
 
 	def imitate(self, name: str, script: str) -> None:
@@ -137,10 +159,13 @@ def station(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Station
 	monkeypatch.setenv("MACHINCAST_TEST_SERVICE", str(fake.service))
 	monkeypatch.setenv("MACHINCAST_TEST_ESSAI", str(fake.trial_stop))
 	monkeypatch.setenv("MACHINCAST_TEST_ERREUR", "")
+	# Le PID d'un Machin intranet lancé sans le service : jamais celui du compte qui lance les tests.
+	monkeypatch.setenv("STATE_DIRECTORY", str(fake.intranet_state))
 	yield fake
-	if fake.trial is not None:
-		fake.trial.kill()
-		fake.trial.wait()
+	for launched in (fake.trial, fake.intranet):
+		if launched is not None:
+			launched.kill()
+			launched.wait()
 
 
 @given(parsers.re(r"le service de diffusion installé, (?P<state>arrêté|en marche|en échec)"))
@@ -532,3 +557,50 @@ def configured_intranet(interface: Context, port: int) -> None:
 def not_received(station: Station, qtbot: QtBot, call: str) -> None:
 	quiet(qtbot, 200, reason="systemctl, que lancerait l'interrupteur de l'intranet")
 	assert call not in station.calls()
+
+
+# ─── Serveur intranet sans le service (https://github.com/dascritch/machincast/issues/544) ───
+
+
+@given(parsers.parse("Machin intranet qui s'arrête aussitôt lancé par son unité, avec le code {code:d}"))
+def intranet_immediate_stop(monkeypatch: pytest.MonkeyPatch, code: int) -> None:
+	monkeypatch.setenv("MACHINCAST_TEST_ARRET", f"{code} failed failed")
+
+
+@given(parsers.parse("le journal de l'unité du serveur intranet qui finit par « {line} »"))
+def intranet_journal(tmp_path: Path, line: str) -> None:
+	(tmp_path / "journal").write_text(f"Started machincast-intranet.service\n{line}\n", encoding="utf-8")
+
+
+@given("un Machin intranet lancé sans le service")
+def hand_intranet(station: Station, qtbot: QtBot) -> None:
+	station.intranet = subprocess.Popen(
+		[sys.executable, "-c", HAND_INTRANET, "intranet", str(station.intranet_state), str(station.intranet_stop)]
+	)
+	qtbot.waitUntil(lambda: process.running_pid() == station.intranet.pid, timeout=5000)  # type: ignore[union-attr]
+
+
+@given("un PID resté d'un Machin intranet arrêté brutalement")
+def stale_pid(station: Station) -> None:
+	ended = subprocess.Popen([sys.executable, "-c", "pass"])
+	ended.wait()
+	station.intranet_state.mkdir(parents=True, exist_ok=True)
+	(station.intranet_state / process.PID_FILE).write_text(f"{ended.pid}\n", encoding="utf-8")
+	assert process.running_pid() is None
+
+
+@then("le Machin intranet lancé sans le service a reçu SIGTERM, et ne tourne plus")
+def hand_intranet_stopped(station: Station, qtbot: QtBot) -> None:
+	launched = station.intranet
+	assert launched is not None
+	qtbot.waitUntil(lambda: launched.poll() is not None, timeout=5000)
+	assert station.intranet_stop.read_text(encoding="utf-8") == "SIGTERM"
+	assert process.running_pid() is None
+
+
+@then("le terminal a lancé bientôt Machin intranet sur la configuration de l'interface, gardé ouvert sur une erreur")
+def intranet_in_terminal(interface: Context, station: Station, qtbot: QtBot) -> None:
+	qtbot.waitUntil(station.terminal.exists, timeout=5000)
+	arguments = station.terminal.read_text(encoding="utf-8").splitlines()
+	expected = ["-e", str(control.MACHIN), "--config", str(configuration_file(interface)), "intranet", "--keep-open"]
+	assert arguments == expected

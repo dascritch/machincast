@@ -2460,6 +2460,7 @@ msgstr ""
 "MachinCast, relancer ./install.sh, qui met le service à jour."
 
 #: machincast/interface/control.py
+#: machincast/interface/intranet_switch.py
 msgid ""
 "A program is missing: after an update of MachinCast, run ./install.sh "
 "again, which updates the service."
@@ -4359,24 +4360,59 @@ msgid "Intranet server switched off."
 msgstr "Serveur intranet éteint."
 
 #: machincast/interface/intranet_switch.py
+msgid "Intranet server starting…"
+msgstr "Serveur intranet en cours de démarrage…"
+
+#: machincast/interface/intranet_switch.py
 #, python-brace-format
 msgid "Intranet server unchanged: systemctl said “{said}”."
 msgstr "Serveur intranet inchangé : systemctl a dit « {said} »."
 
 #: machincast/interface/intranet_switch.py
+#, python-brace-format
 msgid ""
-"Intranet switched on in machincast.toml: without the broadcast service, "
-"launch it with Machin intranet."
+"Intranet server not started: Machin intranet stopped, exit code {code}."
 msgstr ""
-"Intranet allumé dans machincast.toml : sans le service de diffusion, "
-"lancez-le par Machin intranet."
+"Serveur intranet non démarré : Machin intranet s'est arrêté, code de sortie "
+"{code}."
+
+#: machincast/interface/intranet_switch.py
+msgid "Intranet server not started: Machin intranet stopped."
+msgstr "Serveur intranet non démarré : Machin intranet s'est arrêté."
+
+#: machincast/interface/intranet_switch.py
+#, python-brace-format
+msgid "Machin intranet launched in a terminal: {addresses}"
+msgstr "Machin intranet lancé dans un terminal : {addresses}"
 
 #: machincast/interface/intranet_switch.py
 msgid ""
-"Intranet switched off in machincast.toml: stop Machin intranet if it is "
-"running."
+"No terminal found (konsole, x-terminal-emulator): run Machin intranet by "
+"hand."
 msgstr ""
-"Intranet éteint dans machincast.toml : arrêtez Machin intranet s'il tourne."
+"Aucun terminal trouvé (konsole, x-terminal-emulator) : lancez Machin "
+"intranet à la main."
+
+#: machincast/interface/intranet_switch.py
+#, python-brace-format
+msgid ""
+"Machin intranet still running (PID {pid}): stop it in its terminal, with "
+"Ctrl-C."
+msgstr ""
+"Machin intranet tourne encore (PID {pid}) : arrêtez-le dans son terminal, "
+"par Ctrl-C."
+
+#: machincast/interface/intranet_switch.py
+msgid "Its configuration is invalid."
+msgstr "Sa configuration est invalide."
+
+#: machincast/interface/intranet_switch.py
+msgid ""
+"It is switched off in machincast.toml of the MachinCast directory, which "
+"the service reads."
+msgstr ""
+"Il est éteint dans le machincast.toml du répertoire de MachinCast, que lit "
+"le service."
 
 #: machincast/interface/items.py
 #, python-brace-format
@@ -6427,6 +6463,22 @@ msgid ""
 "switched on."
 msgstr ""
 "Sert l'intranet et l'API de MachinCast, en HTTPS seulement, une fois allumé."
+
+#: machincast/intranet/__main__.py
+msgid ""
+"Machin intranet stopped on an error: this window stays open, close it "
+"whenever you want."
+msgstr ""
+"Machin intranet s'est arrêté sur une erreur : cette fenêtre reste ouverte, "
+"fermez-la quand vous voulez."
+
+#: machincast/intranet/__main__.py
+msgid ""
+"keeps the terminal open after an error, until it is closed: for the window "
+"that the interface opens"
+msgstr ""
+"garde le terminal ouvert après une erreur, jusqu'à sa fermeture : pour la "
+"fenêtre qu'ouvre l'interface"
 
 #: machincast/intranet/__main__.py
 msgid ""

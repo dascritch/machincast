@@ -415,14 +415,78 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Alors systemctl a reçu bientôt « stop machincast-intranet.service »
 		Et la barre d'état annonce bientôt « Serveur intranet éteint. »
 
-	Scénario: Sans le service installé, l'intranet allumé se lance à la main
-		Étant donné le service de diffusion non installé
-		Et l'unité du serveur intranet non installée
+	Plan du scénario: Un serveur intranet dont l'unité s'arrête aussitôt n'est pas annoncé allumé, et la raison est dite
+		https://github.com/dascritch/machincast/issues/544 : systemctl réussit dès que Machin intranet est lancé.
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et Machin intranet qui s'arrête aussitôt lancé par son unité, avec le code <code>
+		Et le journal de l'unité du serveur intranet qui finit par « <ligne> »
 		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Paramètres du service… » dans le menu « Fichier »
-		Alors la barre d'état annonce bientôt « Intranet allumé dans machincast.toml : sans le service de diffusion, lancez-le par Machin intranet. »
+		Alors systemctl a reçu bientôt « restart machincast-intranet.service »
+		Et la barre d'état annonce bientôt « Serveur intranet non démarré : Machin intranet s'est arrêté, code de sortie <code>. <suite> »
+
+		Exemples:
+			| code | ligne                                            | suite                                                                                                                         |
+			| 1    | ModuleNotFoundError: No module named 'hypercorn' | ModuleNotFoundError: No module named 'hypercorn'                                                                              |
+			| 4    | l'intranet est éteint                            | Il est éteint dans le machincast.toml du répertoire de MachinCast, que lit le service. l'intranet est éteint                  |
+
+	# ─── Sans le service (https://github.com/dascritch/machincast/issues/544) ───
+
+	Scénario: Sans le service installé, l'intranet allumé se lance dans un terminal, sur la configuration de l'interface
+		Étant donné le service de diffusion non installé
+		Et l'unité du serveur intranet non installée
+		Et le terminal « konsole » du poste
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Machin intranet lancé dans un terminal : https://127.0.0.1:9443/ »
+		Et le terminal a lancé bientôt Machin intranet sur la configuration de l'interface, gardé ouvert sur une erreur
 		Et systemctl n'a pas reçu « restart machincast-intranet.service »
+
+	Scénario: Sans terminal sur le poste, l'intranet allumé se lance à la main
+		Étant donné le service de diffusion non installé
+		Et l'unité du serveur intranet non installée
+		Et aucun terminal sur le poste
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Aucun terminal trouvé (konsole, x-terminal-emulator) : lancez Machin intranet à la main. »
+
+	Scénario: Sans le service installé, éteindre l'intranet arrête le Machin intranet lancé, comme Ctrl-C
+		Étant donné le service de diffusion non installé
+		Et l'unité du serveur intranet non installée
+		Et le fichier de configuration de l'interface allume l'intranet
+		Et un Machin intranet lancé sans le service
+		Et les paramètres du service éteindront l'intranet
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Serveur intranet éteint. »
+		Et le Machin intranet lancé sans le service a reçu SIGTERM, et ne tourne plus
+
+	Scénario: Sans le service installé, un nouveau réglage arrête le Machin intranet lancé, puis le relance
+		Étant donné le service de diffusion non installé
+		Et l'unité du serveur intranet non installée
+		Et le terminal « konsole » du poste
+		Et le fichier de configuration de l'interface allume l'intranet
+		Et un Machin intranet lancé sans le service
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9444
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Machin intranet lancé dans un terminal : https://127.0.0.1:9444/ »
+		Et le Machin intranet lancé sans le service a reçu SIGTERM, et ne tourne plus
+		Et le terminal a lancé bientôt Machin intranet sur la configuration de l'interface, gardé ouvert sur une erreur
+
+	Scénario: Un PID resté d'un Machin intranet arrêté brutalement ne fait rien arrêter
+		Étant donné le service de diffusion non installé
+		Et l'unité du serveur intranet non installée
+		Et le fichier de configuration de l'interface allume l'intranet
+		Et un PID resté d'un Machin intranet arrêté brutalement
+		Et les paramètres du service éteindront l'intranet
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Serveur intranet éteint. »
 
 	Scénario: Un redémarrage refusé de l'intranet le dit, avec la réponse de systemctl
 		Étant donné le service de diffusion installé, arrêté

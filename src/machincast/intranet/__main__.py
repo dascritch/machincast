@@ -5,17 +5,18 @@ des paramètres du service. Il écoute sur intranet.address et intranet.port, en
 aucune réponse HTTP. Sans certificat donné, il utilise celui qu'il génère dans son répertoire d'état
 (machincast.intranet.certificate) : STATE_DIRECTORY sous systemd, ~/.local/state/machincast/intranet sinon.
 
-Il s'arrête proprement sur SIGTERM ou SIGINT.
+Il s'arrête proprement sur SIGTERM ou SIGINT. Tant qu'il sert, son PID est noté dans son répertoire d'état
+(machincast.intranet.process), où l'interface le retrouve pour l'arrêter. Avec --keep-open, pour le terminal que
+lance l'interface sans le service (https://github.com/dascritch/machincast/issues/544), un arrêt sur une erreur garde
+la fenêtre ouverte sur sa raison.
 """
 
 import argparse
 import asyncio
 import ipaddress
 import logging
-import os
 import signal
 from collections.abc import Sequence
-from pathlib import Path
 
 import psycopg
 from hypercorn.asyncio import serve
@@ -26,11 +27,12 @@ from machincast.cli import launch
 from machincast.configuration import Configuration, Intranet
 from machincast.database import Role, open_connection
 from machincast.i18n import _
-from machincast.intranet import certificate, network
+from machincast.intranet import certificate, network, process
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet as Application
 from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal
+from machincast.maintenance import stay_open
 
 log = logging.getLogger(__name__)
 
@@ -40,24 +42,14 @@ DISABLED_CODE = 4
 """Éteint dans la configuration : un autre code que celui d'une configuration invalide, 2, que systemd ne doit pas
 prendre pour un arrêt voulu."""
 FAILURE_CODE = 1
-
-
-def state_directory() -> Path:
-	"""Le répertoire d'état : celui que systemd donne à l'unité, ou celui du compte."""
-	given = os.environ.get("STATE_DIRECTORY", "").split(":")[0]
-	if given != "":
-		return Path(given)
-	base = os.environ.get("XDG_STATE_HOME", "")
-	if base == "":
-		base = str(Path.home() / ".local" / "state")
-	return Path(base) / "machincast" / "intranet"
+STOPPED_ON_ERROR = _("Machin intranet stopped on an error: this window stays open, close it whenever you want.")
 
 
 def pair(settings: Intranet) -> certificate.Pair:
 	"""Le certificat donné, ou celui que Machin intranet génère, refait s'il ne couvre plus le poste."""
 	if (settings.certificate is not None) and (settings.key is not None):
 		return certificate.Pair(settings.certificate, settings.key)
-	generated = certificate.default(state_directory())
+	generated = certificate.default(process.state_directory())
 	certificate.ensure(generated, network.names(), network.addresses())
 	return generated
 
@@ -96,9 +88,25 @@ def application(configuration: Configuration) -> Application:
 	return Application({**portal.routes(), **api.routes(), **pages.routes()})
 
 
-def run(configuration: Configuration, _options: argparse.Namespace) -> int:
+def own_options(analyser: argparse.ArgumentParser) -> None:
+	analyser.add_argument(
+		"--keep-open",
+		action="store_true",
+		help=_("keeps the terminal open after an error, until it is closed: for the window that the interface opens"),
+	)
+
+
+def run(configuration: Configuration, options: argparse.Namespace) -> int:
+	"""serve, et, avec --keep-open, le terminal gardé ouvert sur l'erreur qui l'arrête."""
+	code = serve_intranet(configuration)
+	if (code != 0) and (options.keep_open):
+		stay_open(STOPPED_ON_ERROR)
+	return code
+
+
+def serve_intranet(configuration: Configuration) -> int:
 	"""Éteint, s'arrête aussitôt ; allumé, prend son certificat, dit l'adresse à donner et l'empreinte du certificat,
-	puis sert jusqu'à SIGTERM ou SIGINT. Le code de sortie."""
+	puis sert jusqu'à SIGTERM ou SIGINT, son PID noté. Le code de sortie."""
 	settings = configuration.intranet
 	if not settings.enabled:
 		log.error(_("the intranet is switched off: intranet.enabled, or the « Intranet » page of the service settings"))
@@ -114,7 +122,8 @@ def run(configuration: Configuration, _options: argparse.Namespace) -> int:
 			fingerprint=certificate.fingerprint(chosen.certificate),
 		)
 	)
-	asyncio.run(_serve(application(configuration), server_configuration(settings, chosen)))
+	with process.recorded():
+		asyncio.run(_serve(application(configuration), server_configuration(settings, chosen)))
 	return 0
 
 
@@ -127,7 +136,7 @@ async def _serve(application: Application, config: Config) -> None:
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
-	return launch(EXECUTABLE, DESCRIPTION, arguments, run)
+	return launch(EXECUTABLE, DESCRIPTION, arguments, run, own_options)
 
 
 if __name__ == "__main__":
