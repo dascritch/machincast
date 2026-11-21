@@ -235,7 +235,7 @@ La diffusion tient aussi un **journal** de ce qu'elle fait. L'onglet **Incidents
 | `élément sauté` | info | Un élément rappelle la banque « ne pas répéter » qui vient de passer. |
 | `sonore expiré` | info | Un sonore a atteint son maximum de lectures ou la fin de sa période. |
 | `analyse du prochain sonore` | info | Le prochain sonore n'a jamais été vérifié en entier : il l'est en arrière-plan, avant de passer. |
-| `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne. |
+| `reconnexion abandonnée` | info | L'événement d'un stream tombé n'est plus à l'antenne, ou un autre stream, comme son secours, est tombé à son tour ([#565](https://github.com/dascritch/machincast/issues/565)). |
 | `blanc` | alerte | Rien à diffuser : un blanc à l'antenne ; les alertes plus anciennes, notées `silence`, sont renommées ([#291](https://github.com/dascritch/machincast/issues/291)). |
 | `événement terminé plus tôt` | alerte | Une émission n'a plus rien de jouable une fois la banque « ne pas répéter » sautée. |
 | `fichier modifié` | alerte | Le fichier a changé depuis sa dernière vérification ; il est quand même joué, et sera revérifié. |

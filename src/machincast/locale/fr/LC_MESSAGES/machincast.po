@@ -7176,6 +7176,11 @@ msgstr "socket d'état indisponible"
 
 #: machincast/player/broadcast.py
 #, python-brace-format
+msgid "{address}: another stream dropped during its suspension"
+msgstr "{address} : un autre stream est tombé pendant sa suspension"
+
+#: machincast/player/broadcast.py
+#, python-brace-format
 msgid "{address}: the event of the stream is no longer on air"
 msgstr "{address} : l'événement du stream n'est plus à l'antenne"
 

@@ -518,6 +518,7 @@ Décidé avec le ticket [#16](https://github.com/dascritch/machincast/issues/16)
 	Dès que le son arrive, crossfade immédiat : le stream monte pendant son `crossfade_start`, et les sonores de remplacement s'éteignent pendant ce même temps (coupure nette à 0).
 	Nouveau passage dans l'airplay, et l'incident `reprise du flux` dans le log, avec l'adresse et la durée de la panne : chaque panne a ses deux lignes d'incident, début et fin.
 - L'occurrence du stream n'est plus active (fin de l'événement, ou un autre commence) : la reconnexion est abandonnée, `reconnexion abandonnée` (info) dans le log.
+- Un autre stream tombe pendant la suspension, comme un secours qui est lui-même un stream quand le réseau tombe : sa suspension remplace la première, dont la sonde se ferme, avec la même ligne `reconnexion abandonnée` ([#565](https://github.com/dascritch/machincast/issues/565)).
 - Blanc dans un stream ([#122](https://github.com/dascritch/machincast/issues/122), [§ 5.1](#51-lecture-audio)) : avec `dead_air.fallback`, un stream qui ne donne plus que du vide, sa connexion ouverte, laisse l'antenne comme un flux tombé, au secours ou à l'événement inférieur, avec l'incident `blanc dans un sonore` au lieu de `flux tombé`.
 	Sa voie reste ouverte et muette : elle sert de sonde, sans nouvelle connexion, et le stream reprend l'antenne, de même, dès que son niveau repasse le seuil (`Track.heard`), avec l'incident `reprise du flux`.
 	Une sonde qui tombe ou gèle entre-temps est reprise comme les autres, et ne reprend l'antenne qu'avec du son.

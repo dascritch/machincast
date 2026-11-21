@@ -863,7 +863,24 @@ class Broadcast:
 			self.in_waiting = choice
 
 	def _suspend(self, playback: Playback, instant: datetime) -> None:
-		"""Stream tombé : l'ordonnanceur le remplace, et la sonde le reconnectera."""
+		"""Stream tombé : l'ordonnanceur le remplace, et la sonde le reconnectera. Un stream qui tombe pendant la
+		suspension d'un autre, comme son secours quand le réseau tombe, remplace sa suspension : la sonde du premier se
+		ferme, et le log le dit (https://github.com/dascritch/machincast/issues/565)."""
+		previous = self.probe
+		if previous is not None:
+			if previous.track is not None:
+				previous.track.shut_down()
+			self.history.record(
+				self.connection,
+				"info",
+				N_("reconnection abandoned"),
+				N_("{address}: another stream dropped during its suspension").format(
+					address=previous.parameters.address
+				),
+				instant,
+				sound=previous.choice.sound,
+				event=previous.choice.occurrence.event.id,
+			)
 		self.scheduler.suspend(playback.choice.occurrence, playback.parameters.fallback)
 		self.upcoming = []
 		self.probe = Probe(playback.choice, playback.parameters, instant + self.reconnection_delay, instant)
