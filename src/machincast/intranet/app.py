@@ -188,9 +188,18 @@ class Intranet:
 				return
 
 	async def _request(self, scope: Scope, receive: Receive) -> Request:
-		headers = {}
+		headers: dict[str, str] = {}
 		for name, value in scope.get("headers", []):
-			headers[name.decode("latin-1").lower()] = value.decode("latin-1")
+			key = name.decode("latin-1").lower()
+			text_ = value.decode("latin-1")
+			if key in headers:
+				# Un en-tête répété se joint (RFC 9110 § 5.3) ; les cookies, que HTTP/2 envoie volontiers un par
+				# en-tête (RFC 9113 § 8.2.3), par « ; » (https://github.com/dascritch/machincast/issues/551).
+				separator = ", "
+				if key == "cookie":
+					separator = "; "
+				text_ = f"{headers[key]}{separator}{text_}"
+			headers[key] = text_
 		body = b""
 		too_large = False
 		more = True
