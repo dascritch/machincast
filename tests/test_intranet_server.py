@@ -17,9 +17,11 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import service
 from machincast.configuration import Configuration, InvalidConfiguration, load
 from machincast.intranet import __main__ as server
-from machincast.intranet import certificate, network, process
+from machincast.intranet import certificate, live, network, process
+from machincast.player.state import StateSocket
 from tests.database_fixtures import sample_configuration_path
 
 scenarios("intranet_server.feature")
@@ -360,3 +362,48 @@ def pid_recorded(context: Context) -> None:
 @then("son PID n'est plus noté")
 def pid_removed(context: Context) -> None:
 	assert not (context.directory / "etat" / process.PID_FILE).exists()
+
+
+# ─── Mode test (https://github.com/dascritch/machincast/issues/549) ───
+
+
+@given("un poste sans le service de diffusion, le répertoire d'exécution du compte dans un répertoire temporaire")
+def without_service(context: Context, monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setenv("XDG_RUNTIME_DIR", str(context.directory / "run"))
+	monkeypatch.setenv(service.RUNTIME_ENVIRONMENT, str(context.directory / "absent" / "machincast"))
+	monkeypatch.setenv(service.INTRANET_RUNTIME_ENVIRONMENT, str(context.directory / "absent" / "intranet"))
+
+
+@when("je charge la configuration de test, sans section [player]")
+def without_player(context: Context) -> None:
+	kept = []
+	skipping = False
+	for line in sample_configuration_path().read_text(encoding="utf-8").splitlines():
+		if line.startswith("["):
+			skipping = line.strip() == "[player]"
+		if not skipping:
+			kept.append(line)
+	path = context.directory / "machincast.toml"
+	path.write_text("\n".join(kept) + "\n", encoding="utf-8")
+	context.configuration = load(path)
+
+
+@then(parsers.parse("la socket de l'intranet est « {intranet} », à côté de la socket d'état « {state} »"))
+def sockets_side_by_side(context: Context, intranet: str, state: str) -> None:
+	assert context.configuration is not None
+	player = context.configuration.player
+	assert player.state_socket == context.directory / "run" / "machincast" / state
+	assert player.intranet_socket == player.state_socket.with_name(intranet)
+
+
+@then("un Machin player qui diffuse sur ces sockets donne son état à Machin intranet, par la socket de l'intranet")
+def shared_state(context: Context) -> None:
+	assert context.configuration is not None
+	player = context.configuration.player
+	sockets = StateSocket(player.state_socket, player.intranet_socket)
+	sockets.open_()
+	try:
+		sockets.publish({"state": "playing", "current": None, "next": None, "upcoming": []})
+		assert live.read_state(player.intranet_socket)["state"] == "playing"
+	finally:
+		sockets.shut_down()

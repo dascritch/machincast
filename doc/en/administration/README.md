@@ -15,6 +15,7 @@ The messages of the programs are shown in the language of the session; this guid
 2. [Configuration and rights](configuration.md): the `machincast.toml` file, the outputs of the broadcast, the protection of the sound files, the rights in the database.
 3. [Indexing: Machin indexer](indexation.md): recording and checking the sound files, on the command line.
 4. [Broadcast: Machin player](diffusion.md): broadcasting and simulating on the command line, the state socket, the audio output, the history and the log.
+5. [Security of the service and application accounts](securite.md): one system account and one role per program, the sockets of Machin player, the partitioning of the intranet server, the test mode.
 
 ## What does not exist yet
 

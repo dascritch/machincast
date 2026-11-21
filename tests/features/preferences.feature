@@ -642,6 +642,17 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Alors la page « Intranet » dit « Adresse à donner aux autres postes : https://10.0.0.12:9443/ »
 		Et la fenêtre donne l'intranet allumé, sur le port 9443, avec 15 minutes pour valider une connexion
 
+	Plan du scénario: Sans le service, la page « Intranet » prévient que Machin intranet tourne en mode test, sous le compte
+		https://github.com/dascritch/machincast/issues/549 : sans son compte, ni le cloisonnement de son unité.
+		Étant donné l'unité du serveur intranet <unité>
+		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet éteint
+		Alors la page « Intranet » <avertit> du mode test
+
+		Exemples:
+			| unité        | avertit      |
+			| non installée | avertit      |
+			| installée    | n'avertit pas |
+
 	Scénario: Les réglages de l'intranet s'écrivent dans machincast.toml, l'adresse d'écoute et le certificat gardés
 		Étant donné un fichier de configuration dont l'intranet écoute « 10.0.0.12 », avec un certificat donné
 		Quand j'enregistre l'intranet allumé, sur le port 9443, avec 15 minutes pour valider une connexion

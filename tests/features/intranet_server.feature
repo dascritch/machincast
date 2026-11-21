@@ -71,6 +71,16 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Étant donné le poste « studio », aux adresses « 10.0.0.12 »
 		Alors les adresses à donner pour « 0.0.0.0 », port 8443, sont « https://10.0.0.12:8443/ »
 
+	# ─── Mode test, sans le service (https://github.com/dascritch/machincast/issues/549) ───
+
+	Scénario: En mode test, Machin player et Machin intranet, sous le même compte, s'accordent sur la socket de l'intranet
+		Sans le service, Machin intranet tourne sous le compte qui le lance, et lit la socket que lui ouvre le Machin
+		player de ce compte, à côté de sa socket d'état, privée au compte.
+		Étant donné un poste sans le service de diffusion, le répertoire d'exécution du compte dans un répertoire temporaire
+		Quand je charge la configuration de test, sans section [player]
+		Alors la socket de l'intranet est « intranet.sock », à côté de la socket d'état « lecture.sock »
+		Et un Machin player qui diffuse sur ces sockets donne son état à Machin intranet, par la socket de l'intranet
+
 	# ─── Serveur ───────────────────────────────────────────
 
 	Scénario: Éteint, Machin intranet refuse de démarrer, et le dit

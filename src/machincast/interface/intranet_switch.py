@@ -40,13 +40,24 @@ CODES = {
 	127: _("A program is missing: after an update of MachinCast, run ./install.sh again, which updates the service."),
 }
 """Ce que veut dire le code de sortie de Machin intranet, ou de Machin qui le lance."""
-LAUNCHED = _("Machin intranet launched in a terminal: {addresses}")
+LAUNCHED = _("Machin intranet launched in a terminal, in test mode under your account: {addresses}")
+TEST_MODE = _(
+	"Test mode: without the broadcast service, Machin intranet runs under your account, without the partitioning of "
+	"the service; for a computer open to the network of the radio, install the service (./install.sh --service)."
+)
+"""Ce que dit la page « Intranet » des paramètres sans le service (https://github.com/dascritch/machincast/issues/549) :
+la documentation de la sécurité dit ce qui diffère (doc/fr/administration/securite.md)."""
 WITHOUT_TERMINAL = _("No terminal found (konsole, x-terminal-emulator): run Machin intranet by hand.")
 STILL_RUNNING = _("Machin intranet still running (PID {pid}): stop it in its terminal, with Ctrl-C.")
 STOP_WINDOW = 10.0
 """Secondes pour que Machin intranet, lancé sans le service, s'arrête à SIGTERM."""
 STOP_STEP = 0.1
 """Secondes entre deux regards sur son PID pendant cette attente."""
+
+
+def service_installed() -> bool:
+	"""L'unité du serveur intranet est installée : il tourne sous son propre compte, cloisonné."""
+	return UNIT_FILE.exists()
 
 
 def command(configuration: Path | None) -> list[str]:

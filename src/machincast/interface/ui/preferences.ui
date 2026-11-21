@@ -829,7 +829,7 @@
        <item>
         <widget class="QLabel" name="intranet_explanation">
          <property name="text">
-          <string>Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is validated at the studio desk with a 6-digit code, within the time set here.</string>
+          <string>Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is accepted at the studio desk, which then gives a 6-digit code, within the time set here.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -843,6 +843,13 @@
          </property>
          <property name="textInteractionFlags">
           <set>Qt::TextInteractionFlag::TextSelectableByMouse</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="intranet_test_mode">
+         <property name="wordWrap">
+          <bool>true</bool>
          </property>
         </widget>
        </item>

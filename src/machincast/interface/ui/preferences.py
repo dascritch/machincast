@@ -561,6 +561,12 @@ class Ui_PreferencesWindow(object):
 
         self.intranet_layout.addWidget(self.intranet_addresses)
 
+        self.intranet_test_mode = QLabel(self.intranet_page)
+        self.intranet_test_mode.setObjectName(u"intranet_test_mode")
+        self.intranet_test_mode.setWordWrap(True)
+
+        self.intranet_layout.addWidget(self.intranet_test_mode)
+
         self.intranet_space = QSpacerItem(0, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.intranet_layout.addItem(self.intranet_space)
@@ -699,7 +705,7 @@ class Ui_PreferencesWindow(object):
         self.intranet_port_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Port", None))
         self.intranet_validation_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Validation of a connection within", None))
         self.intranet_validation.setSuffix(QCoreApplication.translate("PreferencesWindow", u" min", None))
-        self.intranet_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is validated at the studio desk with a 6-digit code, within the time set here.", None))
+        self.intranet_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is accepted at the studio desk, which then gives a 6-digit code, within the time set here.", None))
         self.pages.setTabText(self.pages.indexOf(self.intranet_page), QCoreApplication.translate("PreferencesWindow", u"Intranet", None))
     # retranslateUi
 

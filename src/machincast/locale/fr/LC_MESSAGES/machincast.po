@@ -4389,8 +4389,22 @@ msgstr "Serveur intranet non démarré : Machin intranet s'est arrêté."
 
 #: machincast/interface/intranet_switch.py
 #, python-brace-format
-msgid "Machin intranet launched in a terminal: {addresses}"
-msgstr "Machin intranet lancé dans un terminal : {addresses}"
+msgid ""
+"Machin intranet launched in a terminal, in test mode under your account: "
+"{addresses}"
+msgstr ""
+"Machin intranet lancé dans un terminal, en mode test sous votre compte : "
+"{addresses}"
+
+#: machincast/interface/intranet_switch.py
+msgid ""
+"Test mode: without the broadcast service, Machin intranet runs under your "
+"account, without the partitioning of the service; for a computer open to "
+"the network of the radio, install the service (./install.sh --service)."
+msgstr ""
+"Mode test : sans le service de diffusion, Machin intranet tourne sous votre "
+"compte, sans le cloisonnement du service ; pour un poste ouvert au réseau "
+"de la radio, installez le service (./install.sh --service)."
 
 #: machincast/interface/intranet_switch.py
 msgid ""
@@ -8896,14 +8910,15 @@ msgid ""
 "API to the other computers of the network, in HTTPS only, even on a simple "
 "IP address; without a certificate given in machincast.toml, it generates a "
 "self-signed one. Only the accounts of the API tab connect, and each "
-"connection is validated at the studio desk with a 6-digit code, within the "
-"time set here."
+"connection is accepted at the studio desk, which then gives a 6-digit code, "
+"within the time set here."
 msgstr ""
 "Éteint par défaut. Allumé, Machin intranet sert l'intranet et son API aux "
 "autres postes du réseau, en HTTPS seulement, même sur une simple adresse IP "
 "; sans certificat donné dans machincast.toml, il en génère un auto-signé. "
-"Seuls les comptes de l'onglet API se connectent, et chaque connexion se "
-"valide au pupitre par un code à 6 chiffres, dans le délai réglé ici."
+"Seuls les comptes de l'onglet API se connectent, et chaque connexion "
+"s'accepte au pupitre, qui donne alors un code à 6 chiffres, dans le délai "
+"réglé ici."
 
 #: machincast/interface/ui/preview.ui
 msgctxt "preview"
