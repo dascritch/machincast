@@ -29,7 +29,7 @@
 - **Passage de minuit** : un événement peut finir le lendemain, par exemple de 23:00 à 01:00 ; pour un événement récurrent, c'est le jour du début qui compte.
 - **Émission ou spécial sans fin** : il reste à l'antenne jusqu'au bout de sa liste, qui ne boucle pas ; l'événement en dessous reprend alors. Un événement de même priorité qui commence après lui prend l'antenne ; il reprend ensuite là où il en était, si sa liste n'est pas épuisée.
 - **Chevauchement** : deux événements de même priorité ne se chevauchent pas : la [fiche d'un événement](grille.md#fiche-dun-événement) le refuse.
-- **Changement d'heure** : un événement garde son heure. Une émission de 21:00 reste à 21:00 après le passage à l'heure d'été ou d'hiver ; l'heure sautée ou répétée, la nuit du changement, tombe dans le fil musical de nuit.
+- **Changement d'heure** : un événement garde son heure. Une émission de 21:00 reste à 21:00 après le passage à l'heure d'été ou d'hiver ; l'heure sautée ou répétée, la nuit du changement, tombe dans le fil musical de nuit. Une émission programmée pendant cette heure-là ([#566](https://github.com/dascritch/machincast/issues/566)) : à l'heure d'été, une émission de 02:30 commence à 03:00, quand l'horloge saute ; à l'heure d'hiver, une émission de 02:30 à 03:30 joue de 02:30 à 03:00, laisse le fil musical pendant la première demi-heure de l'heure répétée, puis reprend de 02:30 à 03:30.
 
 Le [calendrier](grille.md#calendrier) montre la grille qui en résulte, semaine par semaine.
 

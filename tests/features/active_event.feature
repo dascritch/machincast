@@ -185,6 +185,35 @@ Fonctionnalité: Détermination de l'événement actif
 
 	# ─── Changement d'heure ────────────────────────────────────
 
+	Scénario: Pendant l'heure répétée du passage à l'heure d'hiver, le prochain changement n'est jamais passé
+		https://github.com/dascritch/machincast/issues/566 : à 02:10, à la seconde occurrence de l'heure, un début à
+		02:30 est celui de la seconde occurrence, pas celui de la première, déjà passé.
+		Étant donné les événements :
+			| nom      | priorité               | début            | fin              | jours                                                          | modifié          |
+			| Continue | background_programming |                  |                  |                                                                | 2026-10-01 10:00 |
+			| Nuit     | show                   | 2026-10-18 02:30 | 2026-10-18 03:30 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-10-01 10:00 |
+		Alors le prochain changement de la grille après le « 2026-10-25 02:10+02:00 » est le « 2026-10-25 02:30+02:00 »
+		Et le prochain changement de la grille après le « 2026-10-25 02:10+01:00 » est le « 2026-10-25 02:30+01:00 »
+		Et l'événement actif est :
+			| heure                  | actif    |
+			| 2026-10-25 02:40+02:00 | Nuit     |
+			| 2026-10-25 02:10+01:00 | Continue |
+			| 2026-10-25 02:40+01:00 | Nuit     |
+
+	Scénario: Un événement qui commence dans l'heure sautée du passage à l'heure d'été change la grille à 3 heures
+		https://github.com/dascritch/machincast/issues/566 : 02:30 n'existe pas cette nuit-là ; l'heure murale passe
+		de 02:00 à 03:00, où l'événement est déjà commencé.
+		Étant donné les événements :
+			| nom      | priorité               | début            | fin              | jours                                                          | modifié          |
+			| Continue | background_programming |                  |                  |                                                                | 2026-03-01 10:00 |
+			| Nuit     | show                   | 2026-03-22 02:30 | 2026-03-22 03:30 | monday, tuesday, wednesday, thursday, friday, saturday, sunday | 2026-03-01 10:00 |
+		Alors le prochain changement de la grille après le « 2026-03-29 01:50+01:00 » est le « 2026-03-29 03:00+02:00 »
+		Et l'événement actif est :
+			| heure                  | actif    |
+			| 2026-03-29 01:50+01:00 | Continue |
+			| 2026-03-29 03:00+02:00 | Nuit     |
+			| 2026-03-29 03:30+02:00 | Continue |
+
 	Scénario: Un événement quotidien garde son heure murale au changement d'heure
 		Étant donné les événements :
 			| nom      | priorité               | début            | fin              | jours                                                          | modifié          |
