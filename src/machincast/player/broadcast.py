@@ -166,14 +166,15 @@ UPCOMING = 5
 """Sonores prévus après le prochain : la playlist immédiate (https://github.com/dascritch/machincast/issues/228)."""
 GRID_FINGERPRINT = (
 	"SELECT md5(concat_ws('|',"
-	" (SELECT string_agg(concat_ws(';', e.id, e.priority, e.starts_at, e.ends_at, e.recurrence_days, e.deleted_at), ','"
-	" ORDER BY e.id) FROM events e),"
+	" (SELECT string_agg(concat_ws(';', e.id, e.priority, e.starts_at, e.ends_at, e.recurrence_days, e.deleted_at,"
+	" e.end_of_list, e.end_fallback_event_id, e.stream_fallback_event_id), ',' ORDER BY e.id) FROM events e),"
 	" (SELECT string_agg(x::text, ',' ORDER BY x.id) FROM event_items x),"
 	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequence_items l),"
 	" (SELECT string_agg(s::text, ',' ORDER BY s.event_id, s.day) FROM event_skips s)))"
 )
 """Empreinte de ce qui règle l'antenne dans la grille : les dates, les jours, la priorité et la suppression des
-événements, leurs listes, leurs sessions sautées et les listes des séquences. Changée, elle fait recalculer les
+événements, leur fin de liste et leurs secours (https://github.com/dascritch/machincast/issues/564), leurs listes,
+leurs sessions sautées et les listes des séquences. Changée, elle fait recalculer les
 sonores à venir ; un nom, un nom public, un masquage ou la date de modification n'y sont pas : les sonores à venir,
 déjà tirés, restent ceux qui passeront (https://github.com/dascritch/machincast/issues/266)."""
 

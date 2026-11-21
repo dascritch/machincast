@@ -602,6 +602,19 @@ Fonctionnalité: Fiche d'un événement
 		Et j'enregistre la fiche, puis je la rouvre
 		Alors l'empreinte de la grille a changé
 
+	Plan du scénario: Une fin de liste ou un secours changé change aussi l'empreinte de la grille
+		https://github.com/dascritch/machincast/issues/564 : ils décident de ce qui passera, et Machin player recalcule
+		les sonores à venir quand l'empreinte change.
+		Quand je note l'empreinte de la grille
+		Et la colonne <colonne> de l'événement « Matinale » change
+		Alors l'empreinte de la grille a changé
+
+		Exemples:
+			| colonne                  |
+			| end_of_list              |
+			| end_fallback_event_id    |
+			| stream_fallback_event_id |
+
 	Scénario: Sans Machin player, un événement s'enregistre comme toujours
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Matinale »
