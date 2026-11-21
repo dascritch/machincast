@@ -567,3 +567,19 @@ def lent_sound(empty_database: Connection, client: Client, which: str, event: st
 	identifier = empty_database.execute("SELECT id FROM events WHERE internal_name = %s", (lender,)).fetchone()
 	assert identifier is not None
 	assert (fields["event"], fields["lender"], fields["lender_id"]) == (event, lender, identifier[0]), fields
+
+
+@given("la progression publiée au plus une fois par seconde")
+def publication_per_second(bench: Bench) -> None:
+	bench.minimal_publication = 1.0
+
+
+@then(parsers.parse("le client a reçu au plus {count:d} messages avec « {title} » en cours"))
+def received_with(client: Client, count: int, title: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/562"""
+	wait_end(client)
+	received = []
+	for message in client.received_list:
+		if (message["current"] is not None) and (message["current"]["title"] == title):
+			received.append(message["current"]["progress"])
+	assert 0 < len(received) <= count, received
