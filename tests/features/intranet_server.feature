@@ -71,6 +71,25 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Étant donné le poste « studio », aux adresses « 10.0.0.12 »
 		Alors les adresses à donner pour « 0.0.0.0 », port 8443, sont « https://10.0.0.12:8443/ »
 
+	# ─── Le PID de Machin intranet (https://github.com/dascritch/machincast/issues/550) ───
+
+	Plan du scénario: Machin intranet se reconnaît à ses arguments, élément par élément, jamais par sous-chaîne
+		Alors des arguments « <arguments> » <verdict> ceux de Machin intranet
+
+		Exemples:
+			| arguments                                                                   | verdict     |
+			| /opt/machincast/.venv/bin/python /opt/machincast/.venv/bin/Machin_intranet  | sont        |
+			| /usr/bin/python3 -m machincast.intranet --config machincast.toml            | sont        |
+			| vim src/machincast/intranet/app.py                                          | ne sont pas |
+			| /usr/bin/python3 -m machincast.intranet.process                             | ne sont pas |
+			| less /var/log/Machin_intranet.log                                           | ne sont pas |
+			| grep -r intranet .                                                          | ne sont pas |
+
+	Scénario: Un Machin intranet d'un autre compte ne compte pas
+		Étant donné un Machin intranet qui tourne, son PID noté
+		Quand l'interface le cherche sous un autre compte
+		Alors elle ne le trouve pas
+
 	# ─── Mode test, sans le service (https://github.com/dascritch/machincast/issues/549) ───
 
 	Scénario: En mode test, Machin player et Machin intranet, sous le même compte, s'accordent sur la socket de l'intranet

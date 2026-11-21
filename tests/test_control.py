@@ -8,6 +8,7 @@ d'environnement que règle le scénario.
 import os
 import subprocess
 import sys
+import time
 import tomllib
 from collections.abc import Iterator
 from pathlib import Path
@@ -100,17 +101,17 @@ from machincast.intranet import process
 
 
 def stop(_signal_number, _frame):
-	Path(sys.argv[3]).write_text("SIGTERM", encoding="utf-8")
+	Path(sys.argv[2]).write_text("SIGTERM", encoding="utf-8")
 	sys.exit(0)
 
 
 signal.signal(signal.SIGTERM, stop)
-with process.recorded(Path(sys.argv[2])):
+with process.recorded(Path(sys.argv[1])):
 	while True:
 		time.sleep(1)
 """
-"""Un Machin intranet lancé sans le service : son PID noté, il s'arrête à SIGTERM ; « intranet » est dans ses
-arguments, comme dans ceux du vrai."""
+"""Un Machin intranet lancé sans le service : son PID noté, il s'arrête à SIGTERM ; lancé par un script nommé
+Machin_intranet, comme le vrai."""
 STATES = {"arrêté": "inactive", "en marche": "active", "en échec": "failed"}
 
 
@@ -574,8 +575,12 @@ def intranet_journal(tmp_path: Path, line: str) -> None:
 
 @given("un Machin intranet lancé sans le service")
 def hand_intranet(station: Station, qtbot: QtBot) -> None:
+	# Un script nommé comme l'exécutable de Machin intranet : c'est ainsi qu'il se reconnaît
+	# (https://github.com/dascritch/machincast/issues/550).
+	script = station.commands.parent / process.EXECUTABLE
+	script.write_text(HAND_INTRANET, encoding="utf-8")
 	station.intranet = subprocess.Popen(
-		[sys.executable, "-c", HAND_INTRANET, "intranet", str(station.intranet_state), str(station.intranet_stop)]
+		[sys.executable, str(script), str(station.intranet_state), str(station.intranet_stop)]
 	)
 	qtbot.waitUntil(lambda: process.running_pid() == station.intranet.pid, timeout=5000)  # type: ignore[union-attr]
 
@@ -604,3 +609,36 @@ def intranet_in_terminal(interface: Context, station: Station, qtbot: QtBot) -> 
 	arguments = station.terminal.read_text(encoding="utf-8").splitlines()
 	expected = ["-e", str(control.MACHIN), "--config", str(configuration_file(interface)), "intranet", "--keep-open"]
 	assert arguments == expected
+
+
+SLEEPER = "import time\nwhile True:\n\ttime.sleep(1)\n"
+
+
+@given(
+	parsers.re(
+		r"(?P<kind>un éditeur ouvert sur « (?P<file>[^»]+) »|un Machin intranet démarré une heure après l'écriture du"
+		r" fichier de son PID), dont le PID est resté dans le répertoire d'état de l'intranet"
+	)
+)
+def reused_pid(station: Station, kind: str, file: str | None) -> None:
+	"""https://github.com/dascritch/machincast/issues/550"""
+	command = [sys.executable, "-c", SLEEPER, str(file)]
+	if file is None:
+		# Lancé comme Machin intranet, mais après l'écriture du fichier : ce PID-là n'est pas le sien.
+		script = station.commands.parent / process.EXECUTABLE
+		script.write_text(SLEEPER, encoding="utf-8")
+		command = [sys.executable, str(script)]
+	station.intranet = subprocess.Popen(command)
+	station.intranet_state.mkdir(parents=True, exist_ok=True)
+	recorded = station.intranet_state / process.PID_FILE
+	recorded.write_text(f"{station.intranet.pid}\n", encoding="utf-8")
+	if file is None:
+		hour_ago = time.time() - 3600
+		os.utime(recorded, (hour_ago, hour_ago))
+	assert process.running_pid() is None, kind
+
+
+@then("ce programme tourne toujours")
+def still_running(station: Station) -> None:
+	assert station.intranet is not None
+	assert station.intranet.poll() is None

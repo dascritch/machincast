@@ -407,3 +407,38 @@ def shared_state(context: Context) -> None:
 		assert live.read_state(player.intranet_socket)["state"] == "playing"
 	finally:
 		sockets.shut_down()
+
+
+# ─── Le PID de Machin intranet (https://github.com/dascritch/machincast/issues/550) ───
+
+
+@then(parsers.re(r"des arguments « (?P<given>[^»]+) » (?P<verdict>sont|ne sont pas) ceux de Machin intranet"))
+def recognised(given: str, verdict: str) -> None:
+	assert process.runs_intranet(given.split()) is (verdict == "sont")
+
+
+@given("un Machin intranet qui tourne, son PID noté", target_fixture="hand")
+def hand_intranet(context: Context) -> Iterator[subprocess.Popen[bytes]]:
+	script = context.directory / process.EXECUTABLE
+	script.write_text("import time\nwhile True:\n\ttime.sleep(1)\n", encoding="utf-8")
+	launched = subprocess.Popen([sys.executable, str(script)])
+	deadline = time.monotonic() + STARTUP
+	while (not process.arguments(launched.pid)) and (time.monotonic() < deadline):
+		time.sleep(0.01)
+	(context.directory / process.PID_FILE).write_text(f"{launched.pid}\n", encoding="utf-8")
+	assert process.running_pid(context.directory) == launched.pid
+	yield launched
+	launched.kill()
+	launched.wait()
+
+
+@when("l'interface le cherche sous un autre compte", target_fixture="found")
+def other_account(context: Context, monkeypatch: pytest.MonkeyPatch) -> int | None:
+	other = os.getuid() + 1
+	monkeypatch.setattr(process.os, "getuid", lambda: other)
+	return process.running_pid(context.directory)
+
+
+@then("elle ne le trouve pas")
+def not_found(found: int | None) -> None:
+	assert found is None

@@ -488,6 +488,24 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et je choisis « Paramètres du service… » dans le menu « Fichier »
 		Alors la barre d'état annonce bientôt « Serveur intranet éteint. »
 
+	Plan du scénario: Un PID resté, repris par un autre programme, ne le fait jamais arrêter
+		https://github.com/dascritch/machincast/issues/550 : seul compte un processus lancé comme Machin intranet, élément
+		par élément de ses arguments, et démarré avant l'écriture du fichier de son PID.
+		Étant donné le service de diffusion non installé
+		Et l'unité du serveur intranet non installée
+		Et le fichier de configuration de l'interface allume l'intranet
+		Et <programme>, dont le PID est resté dans le répertoire d'état de l'intranet
+		Et les paramètres du service éteindront l'intranet
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Serveur intranet éteint. »
+		Et ce programme tourne toujours
+
+		Exemples:
+			| programme                                                                        |
+			| un éditeur ouvert sur « src/machincast/intranet/app.py »                          |
+			| un Machin intranet démarré une heure après l'écriture du fichier de son PID      |
+
 	Scénario: Un redémarrage refusé de l'intranet le dit, avec la réponse de systemctl
 		Étant donné le service de diffusion installé, arrêté
 		Et l'unité du serveur intranet installée
