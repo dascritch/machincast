@@ -271,9 +271,10 @@ def _sounds(connection: psycopg.Connection[TupleRow], identifiers: Collection[in
 	last = 0
 	while True:
 		with connection.transaction():
+			# Ce que le verdict change dans la ligne se relit à son écriture (_write_check) : seul ce qui décide de
+			# l'examen se lit ici.
 			lines = connection.execute(
-				"SELECT id, location, state::text, edited_fields, artist, title, music_metadata,"
-				" file_modified_at, file_size, detected_start, detected_end, audit_requested, audited_at,"
+				"SELECT id, location, state::text, file_modified_at, file_size, audit_requested, audited_at,"
 				" audit_threshold FROM sounds WHERE type = 'file' AND deleted_at IS NULL"
 				" AND (%s::bigint[] IS NULL OR id = ANY(%s)) AND id > %s ORDER BY id LIMIT %s",
 				(list_or_none(identifiers), list_or_none(identifiers), last, BATCH),
@@ -328,22 +329,47 @@ def _merge_result(
 	return _Merged(duration, artist, title, metadata, detected_start, detected_end)
 
 
+@dataclass(frozen=True)
+class _Written:
+	"""Le verdict écrit : l'état du sonore avant et après, et ses champs."""
+
+	before: SoundState
+	after: SoundState
+	merged: _Merged
+
+
 def _write_check(
 	connection: psycopg.Connection[TupleRow],
 	identifier: object,
-	after: SoundState,
-	merged: _Merged,
+	location: object,
+	result: Check,
 	file: tuple[datetime, int] | None,
 	file_type: str | None,
 	*,
 	audited: bool,
 	silence_threshold: float,
-) -> None:
-	"""Écrit le verdict de l'examen dans la ligne du sonore, dans une transaction."""
+) -> _Written | None:
+	"""Écrit le verdict de l'examen dans la ligne du sonore, dans une transaction.
+
+	La ligne se relit, verrouillée, dans cette transaction : l'examen a pu durer, et ce que l'interface y a changé
+	entre-temps compte (https://github.com/dascritch/machincast/issues/561) ; un titre saisi, un état désactivé restent.
+	None, sans rien écrire, si le sonore a été supprimé ou son fichier déplacé pendant l'examen.
+	"""
 	modified_at, size = (None, None)
 	if file is not None:
 		modified_at, size = file
 	with connection.transaction():
+		row = connection.execute(
+			"SELECT state::text, edited_fields, artist, title, music_metadata, detected_start, detected_end"
+			" FROM sounds WHERE id = %s AND type = 'file' AND deleted_at IS NULL AND location = %s FOR UPDATE",
+			(identifier, str(location)),
+		).fetchone()
+		if row is None:
+			return None
+		text_state, edited_fields, artist, title, metadata, detected_start, detected_end = row
+		before = SoundState(str(text_state))
+		after = new_state(before, result.state)
+		merged = _merge_result(result, edited_fields, artist, title, metadata, detected_start, detected_end)
 		# Un fichier introuvable garde la date et la taille de son dernier passage.
 		connection.execute(
 			"UPDATE sounds SET state = %s, duration = COALESCE(%s, duration),"
@@ -381,6 +407,7 @@ def _write_check(
 				identifier,
 			),
 		)
+	return _Written(before, after, merged)
 
 
 def _count_change(report: Report, before: SoundState, after: SoundState) -> None:
@@ -425,22 +452,7 @@ def _check_sound(
 ) -> None:
 	"""Vérifie un sonore, dans sa propre transaction, et complète le bilan. Lève Expired si l'examen de son fichier
 	dépasse AUDIT_LIMIT, UnavailableDecoder si GStreamer ne sait pas décoder son format."""
-	(
-		identifier,
-		location,
-		text_state,
-		edited_fields,
-		artist,
-		title,
-		metadata,
-		modified_before,
-		size_before,
-		detected_start,
-		detected_end,
-		asks,
-		audited_at,
-		threshold_audit,
-	) = line
+	identifier, location, text_state, modified_before, size_before, asks, audited_at, threshold_audit = line
 	path = Path(str(location))
 	# Pour le rapport de crash d'une exception (https://github.com/dascritch/machincast/issues/342) ; après un signal
 	# fatal, la dernière ligne du journal qui ouvre une analyse nomme le fichier
@@ -468,22 +480,23 @@ def _check_sound(
 	file_type, result = watched(
 		lambda: _examine(path, check, audited=audited, silence_threshold=silence_threshold), AUDIT_LIMIT
 	)
-	after = new_state(before, result.state)
-	merged = _merge_result(result, edited_fields, artist, title, metadata, detected_start, detected_end)
-	_write_check(
+	written = _write_check(
 		connection,
 		identifier,
-		after,
-		merged,
+		location,
+		result,
 		file_state(path),
 		file_type,
 		audited=audited,
 		silence_threshold=silence_threshold,
 	)
+	if written is None:
+		log.info(_("  sound deleted or moved during its check; left unchanged"))
+		return
 	if decode:
 		report.checked_list += 1
-	_count_change(report, before, after)
-	_log_check(report, location, result, before, after, merged)
+	_count_change(report, written.before, written.after)
+	_log_check(report, location, result, written.before, written.after, written.merged)
 
 
 def _examine(path: Path, check: Checker, *, audited: bool, silence_threshold: float) -> tuple[str | None, Check]:

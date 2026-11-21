@@ -50,6 +50,7 @@ Comportement complet : [spec.md § 6](../spec.md#6-binaire-indexation).
 	Un emplacement n'est jamais enregistré deux fois ; un sonore connu trouvé dans le répertoire d'une banque y est rattaché s'il n'y est pas.
 - Volume ([#390](https://github.com/dascritch/machincast/issues/390), [base-de-donnees.md](base-de-donnees.md#principes)) : le parcours lit une fois, par banque, les emplacements de ses sonores (`_attached_files`) ; un fichier déjà rattaché ne demande rien à la base, seuls les nouveaux fichiers et les rattachements manquants passent par `_save`.
 	La vérification lit les sonores par lots de `check.BATCH` (500), par identifiant croissant ; les retraits hors des durées se font en une requête.
+	Le lot ne dit que ce qui décide de l'examen : le verdict s'écrit sur la ligne relue `FOR UPDATE` dans sa transaction (`check._write_check`), après l'examen, qui peut durer ; un titre saisi ou un état changé par l'interface pendant ce temps reste, et un sonore supprimé ou déplacé n'est pas réécrit ([#561](https://github.com/dascritch/machincast/issues/561)).
 	Une indexation rapide de 50 000 sonores inchangés parcourt leurs répertoires en une seconde environ sur un poste de développement (27 secondes avant), et la mémoire ne dépend plus de leur nombre.
 - Un parcours ordonné (tri des noms) : positions et bilan sont reproductibles.
 - Les streams ne sont jamais vérifiés par l'indexeur.
