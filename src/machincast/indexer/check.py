@@ -88,7 +88,7 @@ class SoundState(StrEnum):
 
 LABELS = {
 	SoundState.PREVIEW: _("preview"),
-	SoundState.ACTIVE: "actif",
+	SoundState.ACTIVE: _("active"),
 	SoundState.DISABLED: _("disabled"),
 	SoundState.EXPIRED: _("expired"),
 	SoundState.CORRUPT: _("corrupt"),

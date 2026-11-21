@@ -540,6 +540,9 @@ class Timeline(QWidget):
 		self.plan: Plan | None = None
 		self.duration: float | None = None
 		self.shape: WaveShape | None = None
+		self._drawn: dict[str, tuple[tuple[object, ...], list[float]]] = {}
+		"""Les colonnes déjà calculées des crêtes et du niveau moyen, avec ce dont elles dépendent : un dessin sans
+		nouvelle mesure ne reparcourt pas la forme d'onde (https://github.com/dascritch/machincast/issues/567)."""
 		self.head: float | None = None
 		"""La tête de lecture, en secondes du fichier ; None : pas de lecture."""
 		self.legend = ""
@@ -787,17 +790,22 @@ class Timeline(QWidget):
 		"""L'amplitude crête de chaque colonne de points : la plus forte des mesures qui y tombent."""
 		if self.shape is None:
 			return []
-		return self._columns(self.shape.peaks)
+		return self._columns("peaks", self.shape.peaks)
 
 	def medium_columns(self) -> list[float]:
 		"""Le niveau moyen de chaque colonne de points : le plus fort des mesures qui y tombent, sous la crête."""
 		if self.shape is None:
 			return []
-		return self._columns(self.shape.means)
+		return self._columns("means", self.shape.means)
 
-	def _columns(self, measures: list[float]) -> list[float]:
+	def _columns(self, kind: str, measures: list[float]) -> list[float]:
 		if (self.shape is None) or (not measures):
 			return []
+		# Les mesures ne font que s'ajouter : leur nombre suffit à dire qu'elles ont changé.
+		key = (self.shape, len(measures), self.width(), self.extent())
+		drawn = self._drawn.get(kind)
+		if (drawn is not None) and (drawn[0] == key):
+			return drawn[1]
 		heights = [0.0] * max(1, self.width())
 		step = self.shape.step
 		for index, peak in enumerate(measures):
@@ -807,6 +815,7 @@ class Timeline(QWidget):
 			for column in range(left, right):
 				heights[column] = max(heights[column], peak)
 		last = min(len(heights), math.ceil(self.seconds_to_x(self.shape.covered())))
+		self._drawn[kind] = (key, heights[:last])
 		return heights[:last]
 
 	def _draw_shape(self, painter: QPainter, colour: QColor) -> None:

@@ -42,6 +42,16 @@ Fonctionnalité: Langue des messages
 			| LANG=fr_FR.UTF-8 | Préférences |
 			| LANG=en_US.UTF-8 | Preferences |
 
+	Plan du scénario: Les états d'un sonore se nomment dans la langue de la session, au journal comme dans la liste
+		https://github.com/dascritch/machincast/issues/567 : « actif » était écrit en français, sans traduction.
+		Quand je demande les noms des états d'un sonore dans une session « <variables> »
+		Alors l'indexeur et la liste des sonores les nomment <noms>
+
+		Exemples:
+			| variables        | noms                                                                                     |
+			| LANG=en_US.UTF-8 | « preview », « active », « disabled », « expired », « corrupt », « unsupported », « missing » |
+			| LANG=fr_FR.UTF-8 | « aperçu », « actif », « désactivé », « expiré », « erroné », « non supporté », « introuvable » |
+
 	Scénario: Un message du log, gardé en anglais, se traduit à l'affichage
 		Alors le message « dropped stream » du log s'affiche « flux tombé »
 		Et le message « No stream follows it. » du log s'affiche « Aucun stream ne le suit. »

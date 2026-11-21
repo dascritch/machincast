@@ -57,7 +57,7 @@ SORT = IDENTIFIER + 2
 (Ligne.tris)."""
 STATES = {
 	"preview": _("preview"),
-	"active": "actif",
+	"active": _("active"),
 	"disabled": _("disabled"),
 	"expired": _("expired"),
 	"corrupt": _("corrupt"),
@@ -565,7 +565,7 @@ class PagedSounds(QAbstractTableModel):
 		# resterait ouverte, et ce que l'interface écrit ensuite ne serait validé qu'à sa fermeture
 		# (https://github.com/dascritch/machincast/issues/560).
 		with self.connection.transaction():
-			lines = self._page(len(self._lines))
+			lines = self._following()
 		if lines == []:
 			self.total = len(self._lines)
 			return
@@ -606,6 +606,31 @@ class PagedSounds(QAbstractTableModel):
 		page = []
 		for row in rows:
 			page.append(sound_line(row))
+		return page
+
+	def _following(self) -> list[Line]:
+		"""La page qui suit le dernier sonore montré, sans ceux déjà montrés : un sonore renommé entre-temps peut s'être
+		placé plus loin (https://github.com/dascritch/machincast/issues/567)."""
+		where, values = self._filter()
+		order, order_values = self._ordering()
+		rows = queries.sound_page_after(
+			self.connection,
+			where,
+			# L'ordre est avant le filtre dans la requête, et ses paramètres aussi.
+			[*order_values, *values],
+			order,
+			preferences.table_rows(),
+			self._lines[-1].identifier,
+			len(self._lines),
+		)
+		shown = set()
+		for line in self._lines:
+			shown.add(line.identifier)
+		page = []
+		for row in rows:
+			line = sound_line(row[:-1])
+			if line.identifier not in shown:
+				page.append(line)
 		return page
 
 	def _filter(self) -> tuple[str, list[object]]:
