@@ -479,7 +479,7 @@ WantedBy={PIPEWIRE_UNIT}
 
 def tmpfiles() -> str:
 	"""Les répertoires du service, recréés à chaque démarrage du poste : d'exécution, des logs et des rapports de
-	crash, au compte du service et à son groupe."""
+	crash, au compte du service et à son groupe ; la socket et le journal du serveur intranet."""
 	lines = [
 		"# Directories of the MachinCast broadcast service (https://github.com/dascritch/machincast/issues/381).",
 		HEADER,
@@ -489,6 +489,11 @@ def tmpfiles() -> str:
 	# La socket que Machin player réserve au serveur intranet, que seul son groupe joint
 	# (https://github.com/dascritch/machincast/issues/549).
 	lines.append(f"d {INTRANET_RUNTIME} 2750 {SERVICE_ACCOUNT} {INTRANET_ACCOUNT} -")
+	# Le journal du serveur intranet, à son compte et au groupe du service, qui le lit et le fait tourner (logrotate,
+	# copytruncate) ; son compte, hors du groupe, ne fait que traverser le répertoire des logs, sans le lister ni lire
+	# les autres journaux (https://github.com/dascritch/machincast/issues/578).
+	lines.append(f"f {INTRANET_LOG} 0660 {INTRANET_ACCOUNT} {SERVICE_ACCOUNT} -")
+	lines.append(f"a+ {log_directory.DIRECTORY} - - - - u:{INTRANET_ACCOUNT}:--x")
 	return "\n".join(lines) + "\n"
 
 
@@ -640,6 +645,9 @@ SyslogIdentifier=machincast-indexing
 
 INTRANET_STATE = "machincast-intranet"
 """Le répertoire d'état du serveur intranet, /var/lib/machincast-intranet : son certificat généré."""
+INTRANET_LOG = log_directory.DIRECTORY / "Machin_intranet.log"
+"""Le journal du serveur intranet (machincast.intranet.__main__.EXECUTABLE), préparé par tmpfiles à son compte : il ne
+peut ni lister ni écrire /var/log/machincast (https://github.com/dascritch/machincast/issues/578)."""
 INTRANET_DISABLED = 4
 """Le code de Machin intranet éteint (machincast.intranet.__main__.DISABLED_CODE)."""
 
@@ -689,7 +697,8 @@ def intranet_unit(directory: Path = PROJECT_DIRECTORY) -> str:
 	machincast_intranet (https://github.com/dascritch/machincast/issues/549). Elle démarre avec le poste ; Machin intranet
 	s'arrête aussitôt, code 4, tant que intranet.enabled n'est pas vrai, sans que systemd le relance. La page
 	« Intranet » des paramètres du service la redémarre ou l'arrête, ce que permet la règle polkit. Son répertoire
-	d'état garde le certificat généré ; elle ne peut écrire nulle part ailleurs (INTRANET_HARDENING)."""
+	d'état garde le certificat généré ; elle ne peut écrire nulle part ailleurs (INTRANET_HARDENING), sauf son journal
+	(INTRANET_LOG)."""
 	hardening = "\n".join(INTRANET_HARDENING)
 	return f"""# MachinCast intranet server (https://github.com/dascritch/machincast/issues/538).
 # Installed by install.sh --service; do not edit here, run install.sh --service again. It is switched on by
@@ -707,6 +716,9 @@ Group={INTRANET_ACCOUNT}
 WorkingDirectory={directory}
 StateDirectory={INTRANET_STATE}
 StateDirectoryMode=0700
+# Son journal, que prépare tmpfiles ; sans lui, l'unité démarre quand même
+# (https://github.com/dascritch/machincast/issues/578).
+ReadWritePaths=-{INTRANET_LOG}
 ExecStart={directory}/bin/Machin intranet
 SuccessExitStatus={INTRANET_DISABLED}
 RestartPreventExitStatus={INTRANET_DISABLED}

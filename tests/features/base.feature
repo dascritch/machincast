@@ -115,6 +115,20 @@ Fonctionnalité: Socle de test
 		Alors la sortie d'erreur commence par « [horodatage] requête échouée », puis donne le traceback de la division par zéro
 		Et le fichier « Machin_essai.log » du répertoire des logs commence par « [horodatage] ERROR requête échouée », puis donne le traceback de la division par zéro
 
+	Scénario: Dans un répertoire des logs qu'il ne peut pas écrire, un exécutable écrit son fichier préparé pour lui
+		https://github.com/dascritch/machincast/issues/578 : le serveur intranet, sous son propre compte, ne peut ni
+		lister ni écrire /var/log/machincast ; install.sh --service y prépare Machin_intranet.log, qu'il peut écrire.
+		Étant donné le répertoire des logs créé, que l'exécutable ne peut pas écrire, avec « Machin_essai.log », qu'il peut écrire
+		Et les messages configurés pour l'exécutable "Machin_essai"
+		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
+		Alors le fichier « Machin_essai.log » du répertoire des logs contient « [horodatage] INFO 3 sonores vérifiés », « [horodatage] WARNING fichier endommagé »
+
+	Scénario: Dans un répertoire des logs qu'il ne peut pas écrire, sans fichier préparé, un exécutable n'écrit que sur ses sorties
+		Étant donné le répertoire des logs créé, que l'exécutable ne peut pas écrire
+		Et les messages configurés pour l'exécutable "Machin_essai"
+		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
+		Alors le répertoire des logs est vide
+
 	Scénario: Sans répertoire des logs, les messages ne vont que sur les sorties
 		Étant donné les messages configurés pour l'exécutable "Machin_essai"
 		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »

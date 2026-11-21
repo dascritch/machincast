@@ -227,3 +227,45 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 	Scénario: Un corps de requête trop gros est refusé
 		Quand j'envoie à « /login » un formulaire de 100000 octets
 		Alors la réponse est 413
+
+	# ─── Le journal, pour un analyseur de journal (https://github.com/dascritch/machincast/issues/578) ───
+
+	Scénario: Chaque connexion laisse une ligne au journal, l'adresse du client en tête, jamais le mot de passe
+		Un analyseur de journal (fail2ban) reconnaît un refus à son niveau, WARNING, et à l'adresse entre crochets en
+		tête du message, avant le nom saisi, qui ne peut donc pas la contrefaire.
+		Quand je me connecte en « regie », mot de passe « mauvais-mot »
+		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Et le pupitre accepte la connexion
+		Et je saisis un code faux
+		Et je saisis le code donné au pupitre
+		Alors le journal de l'intranet est :
+			| niveau  | message                                                                                                       |
+			| WARNING | [10.0.0.31] connexion à l'intranet refusée, compte « regie » : nom inconnu, compte désactivé ou mot de passe faux |
+			| INFO    | [10.0.0.31] connexion à l'intranet de « regie », à valider au pupitre                                         |
+			| WARNING | [10.0.0.31] code de validation faux, compte « regie »                                                         |
+			| INFO    | [10.0.0.31] connexion à l'intranet de « regie » validée au pupitre                                            |
+		Et le journal de l'intranet ne dit ni « mauvais-mot » ni « tisane-au-micro »
+
+	Scénario: Les refus d'une adresse freinée, et ceux des codes faux, se lisent au journal
+		Quand je me connecte 5 fois en « regie », mot de passe « mauvais-mot »
+		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors le journal de l'intranet finit par :
+			| niveau  | message                                                                                                       |
+			| WARNING | [10.0.0.31] connexion à l'intranet refusée, compte « regie » : nom inconnu, compte désactivé ou mot de passe faux |
+			| WARNING | [10.0.0.31] connexion à l'intranet refusée, compte « regie » : trop d'essais refusés, attente d'un quart d'heure  |
+
+	Scénario: Au cinquième code faux, la session invalide se lit au journal
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
+		Quand je saisis un code faux 5 fois
+		Alors le journal de l'intranet finit par :
+			| niveau  | message                                                                                                       |
+			| WARNING | [10.0.0.31] code de validation faux, compte « regie »                                                         |
+			| WARNING | [10.0.0.31] connexion à l'intranet de « regie » invalide : pas validée à temps, ou trop de codes faux         |
+
+	Scénario: Un nom saisi ne contrefait pas une ligne du journal
+		Quand je me connecte sous le nom « intrus », suivi d'un saut de ligne et d'une fausse ligne de refus de « 10.9.9.9 »
+		Alors le journal de l'intranet a une seule ligne, qui commence par « [10.0.0.31] », et ne passe pas à la ligne
+
+	Scénario: Dans chaque langue, un message de connexion de l'intranet commence par l'adresse entre crochets
+		Alors chaque traduction d'un message qui commence par « [{address}] » commence aussi par « [{address}] »

@@ -6837,12 +6837,73 @@ msgstr "Se déconnecter"
 
 #: machincast/intranet/portal.py
 #, python-brace-format
+msgid "[{address}] intranet connection of “{name}”, to validate at the desk"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », à valider au pupitre"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}” invalid: not validated in time, "
+"or too many wrong codes"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} » invalide : pas validée à "
+"temps, ou trop de codes faux"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: too many failed "
+"attempts, waiting a quarter of an hour"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : trop "
+"d'essais refusés, attente d'un quart d'heure"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: unknown user, "
+"disabled account or wrong password"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : nom "
+"inconnu, compte désactivé ou mot de passe faux"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: too many "
+"connections waiting for validation"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : trop de "
+"connexions à valider"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
 msgid ""
 "This account already has {count} connections waiting for validation: have "
 "them validated or refused at the desk, or wait for their delay."
 msgstr ""
 "Ce compte a déjà {count} connexions qui attendent leur validation : "
 "faites-les valider ou refuser au pupitre, ou attendez leur délai."
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] validation code refused, user “{name}”: too many wrong codes, "
+"waiting a quarter of an hour"
+msgstr ""
+"[{address}] code de validation refusé, compte « {name} » : trop de codes "
+"faux, attente d'un quart d'heure"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid "[{address}] intranet connection of “{name}” validated at the desk"
+msgstr "[{address}] connexion à l'intranet de « {name} » validée au pupitre"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid "[{address}] wrong validation code, user “{name}”"
+msgstr "[{address}] code de validation faux, compte « {name} »"
 
 #: machincast/maintenance.py
 msgid "Backs up, checks and optimises the MachinCast database."
