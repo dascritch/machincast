@@ -347,3 +347,13 @@ def played_at_once(bench: Bench, server: StreamServer, stream: str) -> None:
 	assert track.final_position is not None
 	assert timedelta(seconds=1.4) <= track.final_position <= timedelta(seconds=2.6), track.final_position
 	assert track.volume_to(track.final_position) == 1.0
+
+
+@then(parsers.parse("le log contient au moins une info « {kind} », qui donne l'adresse du flux « {stream} »"))
+def stream_information(server: StreamServer, empty_database: Connection, kind: str, stream: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/565"""
+	found = []
+	for _, level, message in log_lines(empty_database, kind):
+		if (level == "info") and (server.address(stream) in message):
+			found.append(message)
+	assert found != [], log_lines(empty_database, kind)

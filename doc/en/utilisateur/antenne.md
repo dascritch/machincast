@@ -231,7 +231,7 @@ The broadcast also keeps a **log** of what it does. The **Incidents** tab shows 
 | `skipped element` | info | An element calls again the « do not repeat » bank that has just played. |
 | `expired sound` | info | A sound has reached its maximum of plays or the end of its period. |
 | `analysis of the next sound` | info | The next sound has never been checked in full: it is, in the background, before it plays. |
-| `reconnection abandoned` | info | The event of a dropped stream is no longer on air. |
+| `reconnection abandoned` | info | The event of a dropped stream is no longer on air, or another stream, such as its fallback, dropped in turn ([#565](https://github.com/dascritch/machincast/issues/565)). |
 | `dead air` | warning | Nothing to broadcast: dead air; older warnings, noted `silence`, are renamed ([#291](https://github.com/dascritch/machincast/issues/291)). |
 | `event ended earlier` | warning | A show has nothing playable left once the « do not repeat » bank is skipped. |
 | `modified file` | warning | The file has changed since its last check; it is played all the same, and will be checked again. |

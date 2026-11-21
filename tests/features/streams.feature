@@ -233,6 +233,22 @@ Fonctionnalité: Diffusion des streams
 		Et la diffusion s'arrête
 		Alors l'airplay montre « Direct studio », puis des sonores de « Secours émission », puis « Direct studio »
 
+	Scénario: Un stream de secours qui tombe aussi ferme la sonde du premier, et le dit
+		https://github.com/dascritch/machincast/issues/565 : quand le réseau tombe, un secours qui est lui-même un
+		stream tombe aussi ; la nouvelle suspension remplaçait la sonde du premier stream sans fermer sa voie, ni le
+		dire.
+		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
+		Et le stream « Relais » à l'adresse du flux « relais »
+		Et l'événement de secours « Secours relais », avec les sonores « Relais »
+		Et le stream « Direct studio » est secouru par « Secours relais »
+		Et l'émission « Direct » de 19:59:50 à 20:30:00, avec le sonore « Direct studio »
+		Et le flux « studio » est hors ligne
+		Et le flux « relais » est hors ligne
+		Quand la diffusion démarre en temps réel
+		Et la diffusion tourne pendant 1,5 seconde en temps réel
+		Et la diffusion s'arrête
+		Alors le log contient au moins une info « reconnexion abandonnée », qui donne l'adresse du flux « studio »
+
 	Scénario: Un flux injoignable dès le début de son événement est remplacé de même
 		Étant donné le stream « Direct studio » à l'adresse du flux « studio »
 		Et l'événement de secours « Secours direct », avec les sonores « s1 »
