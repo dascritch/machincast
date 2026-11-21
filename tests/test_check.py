@@ -15,10 +15,10 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.i18n import _
-from machincast.indexer import decoding
+from machincast.indexer import check, decoding
 from machincast.indexer.decoding import Check, FileState, UnavailableDecoder, check_file
 from tests.database_fixtures import sample_configuration_path
-from tests.indexing_steps import DECIMAL, count
+from tests.indexing_steps import DECIMAL, Connection, Execution, count
 from tests.sounds import corrupt, sample_copy, truncate
 
 gi.require_version("Gst", "1.0")
@@ -262,3 +262,41 @@ def command_error(command: subprocess.CompletedProcess[str], text: str) -> None:
 @pytest.fixture(autouse=True)
 def gstreamer() -> None:
 	Gst.init(None)
+
+
+INTERFACE_CHANGES = {
+	"désactive son sonore": "UPDATE sounds SET state = 'disabled' WHERE id = %s",
+	"supprime son sonore": "UPDATE sounds SET deleted_at = clock_timestamp() WHERE id = %s",
+}
+"""Ce que l'interface change dans la ligne du sonore pendant l'examen de son fichier."""
+TITLE = "UPDATE sounds SET title = %s, edited_fields = array_append(edited_fields, 'title') WHERE id = %s"
+"""Un titre saisi à la main."""
+
+
+@given(parsers.re(r"pendant l'examen de ce fichier, l'interface (?P<change>.+)"))
+def interface_change(
+	monkeypatch: pytest.MonkeyPatch, empty_database: Connection, file: Path, sound: int, change: str
+) -> None:
+	"""L'interface écrit pendant l'examen du type du fichier, entre la lecture du lot et le verdict
+	(https://github.com/dascritch/machincast/issues/561)."""
+	query = INTERFACE_CHANGES.get(change, TITLE)
+	parameters: tuple[object, ...] = (sound,)
+	if query == TITLE:
+		parameters = (change.removeprefix("saisit le titre « ").removesuffix(" »"), sound)
+	true_type = check.type_mime
+
+	def type_mime(path: Path) -> str | None:
+		if path == file:
+			empty_database.execute(query, parameters)
+		return true_type(path)
+
+	monkeypatch.setattr(check, "type_mime", type_mime)
+
+
+@then(parsers.parse("le journal dit « {text} »"))
+def logged(execution: Execution, text: str) -> None:
+	found = []
+	for line in execution.information:
+		if text in line:
+			found.append(line)
+	assert found != [], execution.information

@@ -937,6 +937,11 @@ msgid "sound now {labels}"
 msgstr "sonore passé {labels}"
 
 #: machincast/indexer/check.py
+msgid "  sound deleted or moved during its check; left unchanged"
+msgstr ""
+"  sonore supprimé ou déplacé pendant sa vérification ; laissé tel quel"
+
+#: machincast/indexer/check.py
 #, python-brace-format
 msgid "{count} minute"
 msgid_plural "{count} minutes"

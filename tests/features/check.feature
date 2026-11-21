@@ -165,6 +165,34 @@ Fonctionnalité: Vérification d'un fichier par décodage complet
 		Alors sa durée en base est de 99 secondes à 0,1 seconde près
 		Et la date de modification et la taille du fichier sont enregistrées
 
+	# ─── Ce que l'interface change pendant l'examen (https://github.com/dascritch/machincast/issues/561) ───
+	# L'examen d'un fichier peut durer : le verdict s'écrit sur la ligne du sonore relue à la fin, pas sur celle du lot
+	# lu avant.
+
+	Scénario: Un titre saisi à la main pendant l'examen du fichier est gardé
+		Étant donné un fichier flac tagué
+		Et un sonore à l'état « active » pour ce fichier
+		Et pendant l'examen de ce fichier, l'interface saisit le titre « Titre saisi »
+		Quand l'indexeur fait un audit complet
+		Alors en base, l'artiste est « Les Gaufres Électriques » et le titre « Titre saisi »
+
+	Scénario: Un sonore désactivé pendant l'examen de son fichier le reste
+		Étant donné un fichier mp3 endommagé
+		Et un sonore à l'état « active » pour ce fichier
+		Et pendant l'examen de ce fichier, l'interface désactive son sonore
+		Quand l'indexeur fait un audit complet
+		Alors le sonore est à l'état « disabled »
+		Et la sortie d'erreur signale ce fichier comme « endommagé », avec « état désactivé conservé »
+
+	Scénario: Un sonore supprimé pendant l'examen de son fichier n'est pas réécrit
+		Étant donné un fichier flac tagué
+		Et un sonore à l'état « preview » pour ce fichier
+		Et pendant l'examen de ce fichier, l'interface supprime son sonore
+		Quand l'indexeur fait un audit complet
+		Alors le sonore est à l'état « preview »
+		Et le sonore n'a pas de date de vérification complète
+		Et le journal dit « sonore supprimé ou déplacé pendant sa vérification ; laissé tel quel »
+
 	# ─── Détection de silence (https://github.com/dascritch/machincast/issues/146) ───
 	# silences.flac : une demi-seconde de silence, une seconde à -6 dB, un quart de seconde à -50,5 dB, puis un quart de
 	# seconde de silence (tests.sounds.SILENCES). La fin détectée se compte depuis la fin du fichier.
