@@ -175,3 +175,19 @@ def preview_row(connection: Connection, sound: int) -> TupleRow | None:
 		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 		(sound,),
 	).fetchone()
+
+
+def present_file(connection: Connection, location: str) -> TupleRow | None:
+	"""Le sonore non supprimé de ce fichier (machincast.interface.adding)."""
+	return connection.execute(
+		"SELECT id FROM sounds WHERE location = %s AND deleted_at IS NULL", (location,)
+	).fetchone()
+
+
+def insert_preview(connection: Connection, location: str) -> int:
+	"""Un nouveau sonore pour ce fichier, en aperçu ; son identifiant (machincast.interface.adding)."""
+	created = connection.execute(
+		"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'preview') RETURNING id", (location,)
+	).fetchone()
+	assert created is not None
+	return int(str(created[0]))

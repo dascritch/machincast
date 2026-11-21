@@ -11,6 +11,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.i18n import _
+from machincast.interface.queries import events as queries
 
 NAME = _("Background programming")
 
@@ -18,24 +19,15 @@ NAME = _("Background programming")
 def guarantee(connection: psycopg.Connection[TupleRow]) -> str | None:
 	"""Crée un fil musical permanent et vide s'il n'en existe aucun ; son nom, ou None s'il en existait un."""
 	with connection.transaction():
-		existing = connection.execute(
-			"SELECT 1 FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL LIMIT 1"
-		).fetchone()
-		if existing is not None:
+		if queries.background_programming_exists(connection):
 			return None
 		taken = set()
-		for (taken_name,) in connection.execute(
-			"SELECT internal_name FROM events WHERE (internal_name = %s OR internal_name LIKE %s || ' %%')"
-			" AND deleted_at IS NULL",
-			(NAME, NAME),
-		):
+		for (taken_name,) in queries.names_like(connection, NAME):
 			taken.add(str(taken_name))
 		name = NAME
 		number = 1
 		while name in taken:
 			number += 1
 			name = f"{NAME} {number}"
-		connection.execute(
-			"INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming')", (name,)
-		)
+		queries.insert_background_programming(connection, name)
 	return name

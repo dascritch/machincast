@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.interface.queries import calendar as queries
 from machincast.shared.grid import NEVER, Event, overlap, read_grid, sessions, wall_hour
 
 Connection = psycopg.Connection[TupleRow]
@@ -71,7 +72,4 @@ def overlapped(connection: Connection, session: Session, now: datetime) -> tuple
 
 def reinstate(connection: Connection, session: Session) -> None:
 	"""La session joue de nouveau. À appeler dans une transaction."""
-	connection.execute(
-		"DELETE FROM event_skips WHERE event_id = %s AND day = %s",
-		(session.event.id, session.start.date()),
-	)
+	queries.reinstate_session(connection, session.event.id, session.start.date())

@@ -25,6 +25,7 @@ from psycopg.rows import TupleRow
 
 from machincast.i18n import _, counted
 from machincast.interface.intents import ADD, REMOVE, label, without_intent
+from machincast.interface.queries import groups as queries
 
 Connection = psycopg.Connection[TupleRow]
 RECHECK = _("The next indexing, even quick, will check them again in full.")
@@ -94,10 +95,7 @@ class Action:
 
 def _change_state(state: str, done: Callable[[int], str]) -> Callable[[Connection, list[int], list[int]], str]:
 	def run(connection: Connection, sounds: list[int], _banks: list[int]) -> str:
-		changes = connection.execute(
-			"UPDATE sounds SET state = %s WHERE id = ANY(%s) AND state NOT IN ('preview', %s) RETURNING id",
-			(state, sounds, state),
-		).fetchall()
+		changes = queries.change_state(connection, state, sounds)
 		return done(len(changes))
 
 	return run
@@ -116,28 +114,18 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 
 	def add_to_bank(bank: int) -> None:
 		nonlocal added_list
-		present_list = _identifiers(
-			connection.execute("SELECT sound_id FROM bank_sounds WHERE bank_id = %s FOR UPDATE", (bank,)).fetchall()
-		)
+		present_list = _identifiers(queries.bank_sounds_locked(connection, bank))
 		new_list = []
 		for sound in sounds:
 			if sound not in present_list:
 				new_list.append(sound)
 		if new_list == []:
 			return
-		line = connection.execute(
-			"SELECT COALESCE(MAX(position), 0) FROM bank_sounds WHERE bank_id = %s", (bank,)
-		).fetchone()
-		assert line is not None
-		end = int(str(line[0]))
-		with connection.cursor() as slider:
-			rank_list = []
-			for rank, sound in enumerate(new_list, start=1):
-				rank_list.append((bank, sound, end + rank))
-			slider.executemany(
-				"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, %s)",
-				rank_list,
-			)
+		end = queries.last_position(connection, bank)
+		rank_list = []
+		for rank, sound in enumerate(new_list, start=1):
+			rank_list.append((bank, sound, end + rank))
+		queries.append_to_bank(connection, rank_list)
 		added_list |= set(new_list)
 		touched_list.add(bank)
 
@@ -150,22 +138,12 @@ def _add(connection: Connection, sounds: list[int], banks: list[int]) -> str:
 
 
 def _remove(connection: Connection, sounds: list[int], banks: list[int]) -> str:
-	removed_list = connection.execute(
-		"DELETE FROM bank_sounds WHERE sound_id = ANY(%s) AND bank_id = ANY(%s) RETURNING sound_id, bank_id",
-		(sounds, banks),
-	).fetchall()
+	removed_list = queries.remove_from_banks(connection, sounds, banks)
 	sound_set = set()
 	for _sound, bank in removed_list:
 		sound_set.add(int(str(bank)))
 	touched_list = sorted(sound_set)
-	# Les positions restantes se resserrent ; leur unicité n'est vérifiée qu'en fin de transaction.
-	connection.execute(
-		"UPDATE bank_sounds bs SET position = r.rang FROM ("
-		" SELECT bank_id, sound_id, row_number() OVER (PARTITION BY bank_id ORDER BY position) AS rang"
-		" FROM bank_sounds WHERE bank_id = ANY(%s)) r"
-		" WHERE bs.bank_id = r.bank_id AND bs.sound_id = r.sound_id",
-		(touched_list,),
-	)
+	queries.tighten(connection, touched_list)
 	sound_count = len(_identifiers(removed_list))
 	return _("{sounds} {banks}.").format(
 		sounds=counted("{count} sound removed", "{count} sounds removed", sound_count),
@@ -182,9 +160,7 @@ def _audit_announcement(marks: int) -> str:
 
 
 def _ask_audit(connection: Connection, sounds: list[int], _banks: list[int]) -> str:
-	marks = connection.execute(
-		"UPDATE sounds SET audit_requested = true WHERE id = ANY(%s) AND type = 'file' RETURNING id", (sounds,)
-	).fetchall()
+	marks = queries.ask_audit(connection, sounds)
 	return _audit_announcement(len(marks))
 
 
@@ -235,19 +211,13 @@ SOUNDS: tuple[Action, ...] = (
 
 
 def _ask_bank_audit(connection: Connection, banks: list[int], _chosen_list: list[int]) -> str:
-	marks = connection.execute(
-		"UPDATE sounds SET audit_requested = true WHERE type = 'file'"
-		" AND id IN (SELECT sound_id FROM bank_sounds WHERE bank_id = ANY(%s)) RETURNING id",
-		(banks,),
-	).fetchall()
+	marks = queries.ask_bank_audit(connection, banks)
 	return _audit_announcement(len(marks))
 
 
 def _hide(*, value: bool | None, state: str) -> Callable[[Connection, list[int], list[int]], str]:
 	def run(connection: Connection, banks: list[int], _chosen_list: list[int]) -> str:
-		changed_list = connection.execute(
-			"UPDATE banks SET hide_metadata = %s WHERE id = ANY(%s) RETURNING id", (value, banks)
-		).fetchall()
+		changed_list = queries.hide(connection, banks, value=value)
 		return _("Artist and title {state} for {banks}.").format(state=state, banks=_banks(len(changed_list)))
 
 	return run
@@ -304,11 +274,7 @@ def action(category: str, key: str) -> Action:
 def sound_banks(connection: Connection, sounds: list[int]) -> list[int]:
 	"""Les banques où figure l'un des sonores, par nom. À appeler dans une transaction."""
 	sound_banks = []
-	for (bank,) in connection.execute(
-		"SELECT b.id FROM banks b WHERE b.id IN (SELECT bank_id FROM bank_sounds WHERE sound_id = ANY(%s))"
-		" ORDER BY b.internal_name, b.id",
-		(sounds,),
-	):
+	for (bank,) in queries.sound_banks(connection, sounds):
 		sound_banks.append(int(str(bank)))
 	return sound_banks
 
@@ -316,7 +282,7 @@ def sound_banks(connection: Connection, sounds: list[int]) -> list[int]:
 def bank_names(connection: Connection, banks: list[int]) -> list[str]:
 	"""Les noms des banques, dans l'ordre donné. À appeler dans une transaction."""
 	names = {}
-	for bank, name in connection.execute("SELECT id, internal_name FROM banks WHERE id = ANY(%s)", (banks,)):
+	for bank, name in queries.bank_names(connection, banks):
 		names[int(str(bank))] = str(name)
 	bank_names = []
 	for wanted in banks:

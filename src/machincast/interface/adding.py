@@ -15,6 +15,7 @@ from psycopg.rows import TupleRow
 
 from machincast.i18n import _, counted
 from machincast.interface.card import sound_files
+from machincast.interface.queries import sounds as queries
 
 
 @dataclass
@@ -56,18 +57,10 @@ def add_files(connection: psycopg.Connection[TupleRow], paths: list[Path]) -> Ad
 	with connection.transaction():
 
 		def add_file(file: str) -> None:
-			existing = connection.execute(
-				"SELECT id FROM sounds WHERE location = %s AND deleted_at IS NULL", (file,)
-			).fetchone()
-			if existing is not None:
+			if queries.present_file(connection, file) is not None:
 				adding.already.append(Path(file))
 				return
-			created = connection.execute(
-				"INSERT INTO sounds (type, location, state) VALUES ('file', %s, 'preview') RETURNING id",
-				(file,),
-			).fetchone()
-			assert created is not None
-			adding.added_list.append(int(str(created[0])))
+			adding.added_list.append(queries.insert_preview(connection, file))
 
 		for file in dict.fromkeys(files):
 			add_file(file)

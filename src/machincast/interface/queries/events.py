@@ -91,3 +91,27 @@ def fallback_events(connection: Connection) -> list[TupleRow]:
 		"SELECT id, internal_name FROM events WHERE priority = 'fallback' AND deleted_at IS NULL"
 		" ORDER BY internal_name, id"
 	).fetchall()
+
+
+def background_programming_exists(connection: Connection) -> bool:
+	"""Un fil musical non supprimé existe (machincast.interface.background_programming)."""
+	return (
+		connection.execute(
+			"SELECT 1 FROM events WHERE priority = 'background_programming' AND deleted_at IS NULL LIMIT 1"
+		).fetchone()
+		is not None
+	)
+
+
+def names_like(connection: Connection, name: str) -> list[TupleRow]:
+	"""Les noms des événements non supprimés qui sont ce nom, ou ce nom suivi d'une espace et d'autre chose."""
+	return connection.execute(
+		"SELECT internal_name FROM events WHERE (internal_name = %s OR internal_name LIKE %s || ' %%')"
+		" AND deleted_at IS NULL",
+		(name, name),
+	).fetchall()
+
+
+def insert_background_programming(connection: Connection, name: str) -> None:
+	"""Un fil musical permanent et vide, à ce nom."""
+	connection.execute("INSERT INTO events (internal_name, priority) VALUES (%s, 'background_programming')", (name,))

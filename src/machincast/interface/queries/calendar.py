@@ -30,3 +30,8 @@ def public_names(connection: Connection) -> list[TupleRow]:
 def skip_session(connection: Connection, event: int, day: date) -> None:
 	"""Saute la session de ce jour ; déjà sautée, elle le reste."""
 	connection.execute("INSERT INTO event_skips (event_id, day) VALUES (%s, %s) ON CONFLICT DO NOTHING", (event, day))
+
+
+def reinstate_session(connection: Connection, event: int, day: date) -> None:
+	"""La session de ce jour de l'événement joue de nouveau (machincast.interface.sessions)."""
+	connection.execute("DELETE FROM event_skips WHERE event_id = %s AND day = %s", (event, day))
