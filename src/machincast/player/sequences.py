@@ -12,6 +12,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
+from machincast.player import queries
 
 
 @dataclass(frozen=True)
@@ -35,13 +36,10 @@ class Sequence:
 
 def read_sequence(connection: psycopg.Connection[TupleRow], identifier: int) -> Sequence | None:
 	"""La séquence et ses éléments, dans leur ordre ; None si elle n'est pas en base."""
-	line = connection.execute("SELECT internal_name FROM sequences WHERE id = %s", (identifier,)).fetchone()
+	line = queries.sequence_name(connection, identifier)
 	if line is None:
 		return None
-	lines = connection.execute(
-		"SELECT id, position, sound_id, bank_id FROM sequence_items WHERE sequence_id = %s ORDER BY position",
-		(identifier,),
-	).fetchall()
+	lines = queries.sequence_items(connection, identifier)
 	items = []
 	for item, position, sound, bank in lines:
 		items.append(
@@ -58,7 +56,7 @@ def read_sequence(connection: psycopg.Connection[TupleRow], identifier: int) -> 
 
 def sequence_of_item(connection: psycopg.Connection[TupleRow], item: int) -> int | None:
 	"""La séquence de cet élément de séquence ; None s'il n'est plus en base."""
-	line = connection.execute("SELECT sequence_id FROM sequence_items WHERE id = %s", (item,)).fetchone()
+	line = queries.sequence_of_item(connection, item)
 	if line is None:
 		return None
 	return int(str(line[0]))

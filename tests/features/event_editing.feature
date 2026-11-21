@@ -7,7 +7,7 @@ Fonctionnalité: Un événement modifié vaut aussitôt à l'antenne
 	https://github.com/dascritch/machincast/issues/266. Après l'enregistrement, la suppression ou la restauration d'une
 	fiche, l'interface demande à Machin player, sur la socket d'état, de relire la grille, comme après une session
 	sautée (https://github.com/dascritch/machincast/issues/273). Si ce qui règle l'antenne a changé (dates, jours,
-	priorité, suppression, listes des événements et des séquences, sessions sautées : GRID_FINGERPRINT), la durée
+	priorité, suppression, listes des événements et des séquences, sessions sautées : queries.GRID_FINGERPRINT), la durée
 	de lecture du sonore en cours, le prochain sonore et les sonores à venir sont recalculés aussitôt. Sinon, rien ne
 	change : les sonores à venir, déjà tirés, restent ceux qui passeront. Les sonores durent une minute, sur un moteur
 	simulé qui suit l'horloge du binaire.

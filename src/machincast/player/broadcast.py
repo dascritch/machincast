@@ -87,6 +87,7 @@ from machincast import crash
 from machincast.clock import Clock
 from machincast.configuration import Crossfades, DeadAirSettings, Metadata
 from machincast.i18n import N_, _
+from machincast.player import queries
 from machincast.player.analysis import Analyser, to_analyse
 from machincast.player.broadcast_plan import (
 	_buffer,
@@ -164,20 +165,6 @@ SEQUENCE_START, SEQUENCE_END = N_("sequence start"), N_("sequence end")
 """Les priorités, en anglais, dans les messages du log."""
 UPCOMING = 5
 """Sonores prévus après le prochain : la playlist immédiate (https://github.com/dascritch/machincast/issues/228)."""
-GRID_FINGERPRINT = (
-	"SELECT md5(concat_ws('|',"
-	" (SELECT string_agg(concat_ws(';', e.id, e.priority, e.starts_at, e.ends_at, e.recurrence_days, e.deleted_at,"
-	" e.end_of_list, e.end_fallback_event_id, e.stream_fallback_event_id), ',' ORDER BY e.id) FROM events e),"
-	" (SELECT string_agg(x::text, ',' ORDER BY x.id) FROM event_items x),"
-	" (SELECT string_agg(l::text, ',' ORDER BY l.id) FROM sequence_items l),"
-	" (SELECT string_agg(s::text, ',' ORDER BY s.event_id, s.day) FROM event_skips s)))"
-)
-"""Empreinte de ce qui règle l'antenne dans la grille : les dates, les jours, la priorité et la suppression des
-événements, leur fin de liste et leurs secours (https://github.com/dascritch/machincast/issues/564), leurs listes,
-leurs sessions sautées et les listes des séquences. Changée, elle fait recalculer les
-sonores à venir ; un nom, un nom public, un masquage ou la date de modification n'y sont pas : les sonores à venir,
-déjà tirés, restent ceux qui passeront (https://github.com/dascritch/machincast/issues/266)."""
-
 RECONNECTION_DELAY = timedelta(seconds=5)
 """Délai entre deux tentatives de reconnexion d'un stream tombé."""
 
@@ -466,7 +453,7 @@ class Broadcast:
 	def reread_grid(self) -> None:
 		"""La grille a pu changer, et le changement doit valoir aussitôt
 		(https://github.com/dascritch/machincast/issues/273, https://github.com/dascritch/machincast/issues/266) : si
-		ce qui règle l'antenne a changé (GRID_FINGERPRINT), la coupure du sonore en cours, le prochain sonore et
+		ce qui règle l'antenne a changé (queries.GRID_FINGERPRINT), la coupure du sonore en cours, le prochain sonore et
 		les sonores à venir sont recalculés, comme au début d'un sonore ; sinon, rien ne change. Rien à recalculer sans
 		sonore à l'antenne, ni quand le suivant est déjà lancé, au crossfade de fin : la grille se relit alors au pas
 		suivant, comme toujours."""
@@ -701,7 +688,7 @@ class Broadcast:
 
 	def _grid_fingerprint(self) -> str:
 		with self.connection.transaction():
-			line = self.connection.execute(GRID_FINGERPRINT).fetchone()
+			line = queries.grid_fingerprint(self.connection)
 		if line is None:
 			return ""
 		return str(line[0])
@@ -1197,9 +1184,7 @@ class Broadcast:
 		if (choice.line is not None) and (not remainder):
 			# Dans sa propre transaction : la connexion n'en laisse jamais une ouverte, qui retiendrait l'airplay.
 			with self.connection.transaction():
-				line = self.connection.execute(
-					"SELECT internal_name FROM sequences WHERE id = %s", (choice.line.sequence,)
-				).fetchone()
+				line = queries.sequence_name(self.connection, choice.line.sequence)
 			name = str(choice.line.sequence)
 			if line is not None:
 				name = str(line[0])
@@ -1238,11 +1223,7 @@ class Broadcast:
 		occurrence = choice.occurrence
 		sequence = choice.item.sequence
 		with self.connection.transaction():
-			names = self.connection.execute(
-				"SELECT (SELECT internal_name FROM sequences WHERE id = %s),"
-				" (SELECT internal_name FROM banks WHERE id = %s)",
-				(sequence, choice.bank),
-			).fetchone()
+			names = queries.sequence_and_bank_names(self.connection, sequence, choice.bank)
 		assert names is not None
 		details: dict[str, Any] = {
 			"event_id": occurrence.event.id,

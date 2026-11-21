@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from machincast.i18n import N_, _, logged
+from machincast.player import queries
 from machincast.player.broadcast_plan import (
 	_continues_sequence,
 )
@@ -123,9 +124,7 @@ class Interruptions:
 		if event is None:
 			return _("none")
 		with self.broadcast.connection.transaction():
-			line = self.broadcast.connection.execute(
-				"SELECT internal_name FROM events WHERE id = %s", (event,)
-			).fetchone()
+			line = queries.event_name(self.broadcast.connection, event)
 		if line is None:
 			return _("event no. {event}, unknown").format(event=event)
 		return _("“{line}”").format(line=line[0])
@@ -279,13 +278,9 @@ class Interruptions:
 		"""Le nom de la séquence ou de la banque à insérer ; None si elle n'est pas en base, ou supprimée."""
 		with self.broadcast.connection.transaction():
 			if sequence is not None:
-				line = self.broadcast.connection.execute(
-					"SELECT internal_name FROM sequences WHERE id = %s AND deleted_at IS NULL", (sequence,)
-				).fetchone()
+				line = queries.present_sequence_name(self.broadcast.connection, sequence)
 			else:
-				line = self.broadcast.connection.execute(
-					"SELECT internal_name FROM banks WHERE id = %s AND deleted_at IS NULL", (bank,)
-				).fetchone()
+				line = queries.bank_name(self.broadcast.connection, bank)
 		if line is None:
 			return None
 		return str(line[0])
@@ -308,11 +303,7 @@ class Interruptions:
 		"""Coupe l'antenne par le stream actif qui suit ce feed, le plus ancien
 		(https://github.com/dascritch/machincast/issues/323) ; False si la demande est ignorée."""
 		with self.broadcast.connection.transaction():
-			line = self.broadcast.connection.execute(
-				"SELECT m.name, (SELECT s.id FROM sounds s WHERE s.feed_id = m.id AND s.type = 'stream'"
-				" AND s.state = 'active' AND s.deleted_at IS NULL ORDER BY s.id LIMIT 1) FROM feeds m WHERE m.id = %s",
-				(feed,),
-			).fetchone()
+			line = queries.feed_stream(self.broadcast.connection, feed)
 		if line is None:
 			log.warning(_("{ignored}: feed no. {feed} does not exist").format(ignored=logged(IGNORED), feed=feed))
 			return False
@@ -397,9 +388,7 @@ class Interruptions:
 
 	def _sound_name(self, sound: int) -> str:
 		with self.broadcast.connection.transaction():
-			line = self.broadcast.connection.execute(
-				"SELECT COALESCE(title, location, stream_url) FROM sounds WHERE id = %s", (sound,)
-			).fetchone()
+			line = queries.sound_name(self.broadcast.connection, sound)
 		if (line is None) or (line[0] is None):
 			return str(sound)
 		return str(line[0])

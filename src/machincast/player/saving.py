@@ -30,6 +30,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.i18n import N_, _, logged
+from machincast.player import queries
 
 Level = Literal["info", "warning", "incident"]
 LEVELS = {"info": _("info"), "warning": _("warning"), "incident": _("incident")}
@@ -108,43 +109,21 @@ def record(
 			)
 		)
 	with connection.transaction():
-		connection.execute(
-			"INSERT INTO log (logged_at, level, kind, message, sound_id, bank_id, event_id, origin, api_user)"
-			" VALUES (COALESCE(%s, clock_timestamp()), %s, %s, %s, %s, %s, %s, %s, %s)",
-			(instant, level, kind, message, sound, bank, event, origin, api_user),
-		)
+		queries.insert_log(connection, (instant, level, kind, message), (sound, bank, event), origin, api_user)
 
 
 def _start(connection: psycopg.Connection[TupleRow], play: Play) -> None:
-	connection.execute(
-		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
-		" sequence_id, sequence_item_id, lender_event_id, location, artist, title)"
-		" SELECT %s, 'start', %s, s.id, %s, %s, %s, %s, %s, %s, COALESCE(s.location, s.stream_url, m.url),"
-		" s.artist, s.title FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
-		(
-			play.id,
-			play.start,
-			play.bank,
-			play.event,
-			play.item,
-			play.sequence,
-			play.item_sequence,
-			play.lender,
-			play.sound,
-		),
+	queries.insert_play_start(
+		connection,
+		play.id,
+		play.start,
+		(play.bank, play.event, play.item, play.sequence, play.item_sequence, play.lender),
+		play.sound,
 	)
 
 
 def _end(connection: psycopg.Connection[TupleRow], play: Play, instant: datetime, *, without_incident: bool) -> None:
-	# La ligne de fin recopie la ligne de début : l'artiste et le titre restent ceux du moment du passage.
-	connection.execute(
-		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
-		" sequence_id, sequence_item_id, lender_event_id, location, artist, title, played_duration, without_incident)"
-		" SELECT play_id, 'end', %s, sound_id, bank_id, event_id, event_item_id, sequence_id,"
-		" sequence_item_id, lender_event_id, location, artist, title, %s, %s FROM airplay"
-		" WHERE play_id = %s AND line_type = 'start'",
-		(instant, instant - play.start, without_incident, play.id),
-	)
+	queries.insert_play_end(connection, play.id, instant, instant - play.start, without_incident=without_incident)
 
 
 def begin_play(connection: psycopg.Connection[TupleRow], start: PlayStart) -> Play:

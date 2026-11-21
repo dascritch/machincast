@@ -17,6 +17,7 @@ from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
 from machincast.i18n import N_
+from machincast.player import queries
 from machincast.player.history import IN_DATABASE, History
 
 
@@ -42,9 +43,7 @@ def check_before_playback(
 	La connexion a endossé le rôle de la lecture (machincast.database.open_connection).
 	"""
 	with connection.transaction():
-		line = connection.execute(
-			"SELECT location, file_modified_at, file_size FROM sounds WHERE id = %s", (sound,)
-		).fetchone()
+		line = queries.file_on_record(connection, sound)
 		if (line is None) or (line[0] is None):
 			return None
 		path = Path(str(line[0]))

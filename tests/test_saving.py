@@ -263,8 +263,13 @@ def dated_line(empty_database: Connection, level: str, kind: str, instant: str, 
 
 @then("aucun module du binaire lecture n'écrit dans le log autrement que par machincast.player.saving")
 def a_only_log() -> None:
+	"""La requête est dans machincast.player.queries (https://github.com/dascritch/machincast/issues/583), que seul
+	machincast.player.saving appelle."""
 	faults = []
 	for path in sorted(PLAYBACK_SOURCES.glob("*.py")):
-		if (path.name != "saving.py") and ("INSERT INTO log" in path.read_text(encoding="utf-8")):
+		text = path.read_text(encoding="utf-8")
+		if (path.name != "queries.py") and ("INSERT INTO log" in text):
+			faults.append(path.name)
+		if (path.name != "saving.py") and ("queries.insert_log(" in text):
 			faults.append(path.name)
 	assert not faults, faults

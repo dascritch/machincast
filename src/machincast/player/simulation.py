@@ -32,6 +32,7 @@ from machincast.clock import FixedClock
 from machincast.configuration import Crossfades, Metadata
 from machincast.conversion import boolean_or_none, integer_or_none, text_or_none
 from machincast.i18n import N_, _, current, logged, ngettext
+from machincast.player import queries
 from machincast.player.broadcast import Broadcast
 from machincast.player.engine import DeadAir, PlaybackTrack, TrackOptions, TrackState
 from machincast.player.expiry import KIND as EXPIRED_SOUND
@@ -67,7 +68,7 @@ def read_only(connection: Connection) -> Iterator[None]:
 	écriture (ReadOnlySqlTransaction).
 	"""
 	with connection.transaction() as transaction:
-		connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+		queries.read_only_transaction(connection)
 		yield
 		raise psycopg.Rollback(transaction)
 
@@ -244,11 +245,7 @@ class SimulatedHistory:
 		start: PlayStart,
 	) -> Play:
 		"""Note le passage sans l'écrire en base, avec l'artiste, le titre et l'emplacement lus à cet instant."""
-		line = connection.execute(
-			"SELECT s.artist, s.title, COALESCE(s.location, s.stream_url, m.url) FROM sounds s"
-			" LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
-			(start.sound,),
-		).fetchone()
+		line = queries.sound_metadata(connection, start.sound)
 		if line is not None:
 			artist, title, location = line
 		else:
@@ -323,12 +320,7 @@ class SimulatedHistory:
 
 	def expire(self, connection: Connection, instant: datetime, sound: int | None = None) -> list[Expiry]:
 		"""Les sonores que la simulation fait expirer à cet instant, sans écrire leur état ; ceux déjà expirés ne le sont pas deux fois."""
-		lines = connection.execute(
-			"SELECT id, max_plays, broadcast_end, COALESCE(title, location, stream_url) FROM sounds"
-			" WHERE state = 'active' AND (%s::bigint IS NULL OR id = %s::bigint)"
-			" AND (broadcast_end <= %s OR max_plays IS NOT NULL)",
-			(sound, sound, instant),
-		).fetchall()
+		lines = queries.expiry_candidates(connection, instant, sound)
 		candidates = {}
 		for i, m, f, n in lines:
 			if int(str(i)) not in self.expired_list:
@@ -365,38 +357,24 @@ class SimulatedHistory:
 		event_identifiers = []
 		for simulated in self.simulated_plays:
 			event_identifiers.append((simulated.play.lender) or (simulated.play.event))
-		for identifier, name, public_name, hidden in connection.execute(
-			"SELECT id, internal_name, public_name, hide_metadata FROM events WHERE id = ANY(%s)",
-			(event_identifiers,),
-		).fetchall():
+		for identifier, name, public_name, hidden in queries.event_hidings(connection, event_identifiers):
 			events[identifier] = (name, public_name, hidden)
 		sequences = {}
 		sequence_identifiers = []
 		for simulated in self.simulated_plays:
 			sequence_identifiers.append(simulated.play.sequence)
-		for identifier, name, public_name, hidden in connection.execute(
-			"SELECT id, internal_name, public_name, hide_metadata FROM sequences WHERE id = ANY(%s)",
-			(sequence_identifiers,),
-		).fetchall():
+		for identifier, name, public_name, hidden in queries.sequence_hidings(connection, sequence_identifiers):
 			sequences[identifier] = (name, public_name, hidden)
 		banks = {}
 		bank_identifiers = []
 		for simulated in self.simulated_plays:
 			bank_identifiers.append(simulated.play.bank)
-		for identifier, name, public_name, hidden in connection.execute(
-			"SELECT id, internal_name, public_name, hide_metadata FROM banks WHERE id = ANY(%s)",
-			(bank_identifiers,),
-		).fetchall():
+		for identifier, name, public_name, hidden in queries.bank_hidings(connection, bank_identifiers):
 			banks[identifier] = (name, public_name, hidden)
 		sound_identifiers = []
 		for simulated in self.simulated_plays:
 			sound_identifiers.append(simulated.play.sound)
-		sounds: dict[object, object] = dict(
-			connection.execute(
-				"SELECT id, hide_metadata FROM sounds WHERE id = ANY(%s)",
-				(sound_identifiers,),
-			).fetchall()
-		)
+		sounds: dict[object, object] = dict(queries.sound_hidings(connection, sound_identifiers))
 		result = []
 		for simulated in sorted(self.simulated_plays, key=lambda s: s.play.start):
 			play = simulated.play

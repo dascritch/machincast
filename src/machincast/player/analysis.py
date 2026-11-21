@@ -19,6 +19,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.fingerprint import audited_since_modification
+from machincast.player import queries
 
 RESTARTED = timedelta(hours=1)
 """Délai avant de redemander l'analyse d'un même sonore : celle d'avant a peut-être échoué, ou le fichier changé."""
@@ -40,9 +41,7 @@ def analysis_command(configuration: Path) -> list[str]:
 
 def to_analyse(connection: psycopg.Connection[TupleRow], sound: int) -> bool:
 	"""Un fichier sans audit complet depuis sa dernière modification ; la connexion a le rôle de la lecture."""
-	line = connection.execute(
-		"SELECT location, audited_at, file_modified_at, file_size FROM sounds WHERE id = %s", (sound,)
-	).fetchone()
+	line = queries.file_audit(connection, sound)
 	# Seul un fichier a un emplacement : la base le garantit (contrainte sounds_file_or_stream).
 	if (line is None) or (line[0] is None):
 		return False

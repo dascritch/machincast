@@ -25,7 +25,7 @@ from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
 from machincast.i18n import N_
-from machincast.player import saving
+from machincast.player import queries, saving
 from machincast.player.expiry import Expiry, expire
 from machincast.player.saving import Play, PlayStart
 
@@ -223,10 +223,7 @@ class HistoryInDatabase:
 	"""L'airplay et le log de la base, avec les droits de la lecture."""
 
 	def plays(self, connection: Connection, sounds: Collection[int]) -> dict[int, int]:
-		lines = connection.execute(
-			"SELECT sound_id, count(*) FROM airplay WHERE line_type = 'start' AND sound_id = ANY(%s) GROUP BY sound_id",
-			(list(sounds),),
-		).fetchall()
+		lines = queries.play_counts(connection, sounds)
 		counts = {}
 		for sound, count in lines:
 			counts[int(str(sound))] = int(str(count))
@@ -236,34 +233,21 @@ class HistoryInDatabase:
 		return plays
 
 	def played_via_bank(self, connection: Connection, bank: int) -> list[int]:
-		lines = connection.execute(
-			"SELECT sound_id FROM airplay WHERE bank_id = %s AND line_type = 'start' AND sound_id IS NOT NULL"
-			" ORDER BY logged_at DESC, id DESC",
-			(bank,),
-		).fetchall()
+		lines = queries.played_via_bank(connection, bank)
 		played_via_bank = []
 		for line in lines:
 			played_via_bank.append(int(str(line[0])))
 		return played_via_bank
 
 	def last_item(self, connection: Connection, event: int, since: datetime | None) -> int | None:
-		line = connection.execute(
-			"SELECT event_item_id FROM airplay WHERE event_id = %s AND line_type = 'start'"
-			" AND event_item_id IS NOT NULL"
-			" AND (%s::timestamptz IS NULL OR logged_at >= %s::timestamptz)"
-			" ORDER BY logged_at DESC, id DESC LIMIT 1",
-			(event, since, since),
-		).fetchone()
+		line = queries.last_item(connection, event, since)
 		if (line is None) or (line[0] is None):
 			return None
 		return int(str(line[0]))
 
 	def last_play(self, connection: Connection) -> LastPlay | None:
 		"""Le passage le plus récent, tous événements confondus ; None si l'historique est vide."""
-		line = connection.execute(
-			"SELECT play_id, bank_id, logged_at, event_id, event_item_id, sequence_item_id FROM airplay"
-			" WHERE line_type = 'start' ORDER BY logged_at DESC, id DESC LIMIT 1"
-		).fetchone()
+		line = queries.last_play(connection)
 		if line is None:
 			return None
 		play, bank, start, event, item, item_sequence = line

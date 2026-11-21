@@ -137,7 +137,7 @@ Le binaire tourne comme service systemd.
 
 Connexion par `machincast.database.open_connection(…, Role.PLAYBACK)`.
 Ces écritures sont garanties par les droits PostgreSQL ([spec.md § 3.2](../spec.md#32-rôles-et-droits)).
-L'airplay et le log ne s'écrivent que par `machincast.player.saving` (`begin_play`, `finish_play`, `record`) : un scénario d'`saving.feature` refuse tout autre `INSERT INTO log` dans le binaire lecture ([#17](https://github.com/dascritch/machincast/issues/17)).
+L'airplay et le log ne s'écrivent que par `machincast.player.saving` (`begin_play`, `finish_play`, `record`), qui appelle `machincast.player.queries` : un scénario d'`saving.feature` refuse tout autre `INSERT INTO log` dans le binaire lecture ([#17](https://github.com/dascritch/machincast/issues/17)), et tout autre appel de `queries.insert_log` ([#583](https://github.com/dascritch/machincast/issues/583)).
 
 - `airplay` : une ligne de début et une ligne de fin par passage.
 - `log` : toutes les opérations, normales et incidents.

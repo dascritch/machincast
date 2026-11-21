@@ -46,6 +46,7 @@ from machincast.configuration import Configuration, Metadata
 from machincast.configuration import Outputs as Paths
 from machincast.conversion import boolean_or_none, text_or_none
 from machincast.i18n import N_, _, current, logged
+from machincast.player import queries
 from machincast.player.saving import Play, record
 from machincast.protection import check_writing
 
@@ -173,22 +174,7 @@ def read_plays(
 	else:
 		lender = ongoing_lender[0]
 	with connection.transaction():
-		lines = connection.execute(
-			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title, d.location,"
-			" e.internal_name, e.public_name, q.public_name, b.public_name, q.internal_name, b.internal_name,"
-			" e.hide_metadata, q.hide_metadata, b.hide_metadata, s.hide_metadata"
-			" FROM airplay d"
-			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
-			" LEFT JOIN events e ON e.id = CASE WHEN %s AND f.play_id IS NULL THEN COALESCE(%s::bigint, d.event_id)"
-			" ELSE COALESCE(d.lender_event_id, d.event_id) END"
-			" LEFT JOIN sequences q ON q.id = d.sequence_id"
-			" LEFT JOIN banks b ON b.id = d.bank_id"
-			" LEFT JOIN sounds s ON s.id = d.sound_id"
-			" WHERE d.line_type = 'start' AND (%s::uuid IS NULL OR d.play_id = %s::uuid)"
-			" AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
-			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
-			(override, lender, play, play, since, since, count),
-		).fetchall()
+		lines = queries.plays(connection, count, play, since, (override, lender))
 	plays = []
 	for (
 		start,
