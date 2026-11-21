@@ -13,6 +13,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import boolean_or_none, integer_or_none, text_or_none
+from machincast.interface.queries import airplay as queries
 
 HOURS = 12
 """Heures de l'airplay que montre l'onglet Airplay, sans réglage du compte."""
@@ -47,18 +48,7 @@ def read_airplay(
 ) -> list[DisplayedPlay]:
 	"""Passages commencés depuis cet instant, ou les derniers, du plus récent au plus ancien ; nombre au plus."""
 	with connection.transaction():
-		lines = connection.execute(
-			"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title,"
-			" e.internal_name, q.internal_name, b.internal_name, d.sound_id, e.id, q.id, b.id, d.location"
-			" FROM airplay d"
-			" LEFT JOIN airplay f ON f.play_id = d.play_id AND f.line_type = 'end'"
-			" LEFT JOIN events e ON e.id = COALESCE(d.lender_event_id, d.event_id)"
-			" LEFT JOIN sequences q ON q.id = d.sequence_id"
-			" LEFT JOIN banks b ON b.id = d.bank_id"
-			" WHERE d.line_type = 'start' AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
-			" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
-			(since, since, count),
-		).fetchall()
+		lines = queries.plays(connection, since, count)
 	plays = []
 
 	def read_line(line: tuple[object, ...]) -> None:
