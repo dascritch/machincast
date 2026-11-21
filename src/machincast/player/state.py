@@ -52,6 +52,7 @@ from psycopg.rows import TupleRow
 
 from machincast import service
 from machincast.i18n import _
+from machincast.player import queries
 from machincast.protection import check_writing
 
 log = logging.getLogger(__name__)
@@ -223,13 +224,7 @@ def is_healthy(connection: psycopg.Connection[TupleRow], sound: int) -> bool | N
 	None pour un stream, qui n'est pas testé automatiquement.
 	"""
 	with connection.transaction():
-		line = connection.execute(
-			"SELECT s.type::text, s.state::text, s.location,"
-			" (SELECT f.without_incident FROM airplay f WHERE f.sound_id = s.id AND f.line_type = 'end'"
-			" ORDER BY f.logged_at DESC, f.id DESC LIMIT 1)"
-			" FROM sounds s WHERE s.id = %s",
-			(sound,),
-		).fetchone()
+		line = queries.health(connection, sound)
 	if line is None:
 		return False
 	sound_type, state, location, last = line

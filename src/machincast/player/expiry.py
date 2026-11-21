@@ -19,6 +19,7 @@ from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
 from machincast.i18n import N_, N_counted
+from machincast.player import queries
 from machincast.player.saving import record
 
 KIND = N_("expired sound")
@@ -46,19 +47,7 @@ def expire(connection: psycopg.Connection[TupleRow], instant: datetime, sound: i
 	La connexion a endossé le rôle de la lecture (machincast.database.open_connection).
 	"""
 	with connection.transaction():
-		lines = connection.execute(
-			"WITH candidats AS ("
-			" SELECT s.id, s.max_plays, s.broadcast_end,"
-			" (SELECT count(*) FROM airplay a WHERE a.sound_id = s.id AND a.line_type = 'start') AS lectures"
-			" FROM sounds s WHERE s.state = 'active' AND s.deleted_at IS NULL"
-			" AND (%s::bigint IS NULL OR s.id = %s::bigint)"
-			" AND (s.broadcast_end <= %s OR s.max_plays IS NOT NULL))"
-			" UPDATE sounds s SET state = 'expired' FROM candidats c"
-			" WHERE s.id = c.id AND (c.broadcast_end <= %s OR c.lectures >= c.max_plays)"
-			" RETURNING s.id, COALESCE(s.title, s.location, s.stream_url), c.max_plays, c.lectures,"
-			" c.broadcast_end",
-			(sound, sound, instant, instant),
-		).fetchall()
+		lines = queries.expire_sounds(connection, instant, sound)
 		expiries = []
 		for identifier, name, maximum, plays, end in lines:
 			if isinstance(end, datetime):

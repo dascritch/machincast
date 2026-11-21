@@ -13,6 +13,7 @@ from psycopg.rows import TupleRow
 from machincast.configuration import Crossfades
 from machincast.conversion import integer_or_none, text_or_none
 from machincast.i18n import N_
+from machincast.player import queries
 from machincast.player.engine import (
 	PlaybackTrack,
 )
@@ -158,17 +159,7 @@ def read_parameters(
 	silence, ou fourni par une banque qui l'active, est joué sans ses silences détectés
 	(https://github.com/dascritch/machincast/issues/146, machincast.shared.fades.put)."""
 	with connection.transaction():
-		line = connection.execute(
-			"SELECT s.duration, s.crossfade_start, s.crossfade_end, s.type::text, COALESCE(s.stream_url, m.url),"
-			" s.fallback_event_id, s.artist, s.title, COALESCE(s.location, s.stream_url, m.url),"
-			" s.silence_detection OR COALESCE(b.silence_detection, false), s.detected_start, s.detected_end,"
-			" b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text, b.crossfade_end,"
-			" m.buffer_duration"
-			" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
-			" LEFT JOIN banks b ON b.id = %s"
-			" WHERE s.id = %s",
-			(choice.bank, choice.sound),
-		).fetchone()
+		line = queries.playing_parameters(connection, choice.bank, choice.sound)
 	if line is None:
 		return Parameters(None, timedelta(0), timedelta(0))
 	duration, start, end, sound_type, address, fallback, artist, title, location, *remainder = line

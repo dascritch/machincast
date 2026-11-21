@@ -34,6 +34,7 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
+from machincast.player import queries
 from machincast.player.history import IN_DATABASE, History
 from machincast.randomness import Randomness
 
@@ -105,9 +106,8 @@ def cycle_rest(playable_list: set[int], history: list[int]) -> set[int]:
 
 
 def _read_candidates(
-	connection: psycopg.Connection[TupleRow], query: str, value: int, history: History
+	connection: psycopg.Connection[TupleRow], lines: list[TupleRow], history: History
 ) -> list[Candidate]:
-	lines = connection.execute(query, (value,)).fetchall()
 	line_list = []
 	for line in lines:
 		line_list.append(int(str(line[0])))
@@ -137,27 +137,14 @@ def _read_candidates(
 
 
 def _candidates(connection: psycopg.Connection[TupleRow], bank: int, history: History) -> list[Candidate]:
-	return _read_candidates(
-		connection,
-		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays,"
-		" COALESCE(s.location, s.stream_url) FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
-		" WHERE bs.bank_id = %s ORDER BY bs.position",
-		bank,
-		history,
-	)
+	return _read_candidates(connection, queries.bank_candidates(connection, bank), history)
 
 
 def playable_sound(
 	connection: psycopg.Connection[TupleRow], sound: int, instant: datetime, history: History = IN_DATABASE
 ) -> bool:
 	"""Le sonore est-il jouable à l'instant (§ 4.5) : pour un sonore placé directement dans un événement."""
-	candidates = _read_candidates(
-		connection,
-		"SELECT s.id, s.state::text, s.broadcast_start, s.broadcast_end, s.max_plays,"
-		" COALESCE(s.location, s.stream_url) FROM sounds s WHERE s.id = %s",
-		sound,
-		history,
-	)
+	candidates = _read_candidates(connection, queries.sound_candidate(connection, sound), history)
 	return (bool(candidates)) and (playable(candidates[0], instant))
 
 
@@ -201,7 +188,7 @@ def remaining_list(
 
 def has_no_repeat(connection: psycopg.Connection[TupleRow], bank: int) -> str | None:
 	"""Nom de la banque si elle est marquée « ne pas répéter », sinon None."""
-	line = connection.execute("SELECT internal_name FROM banks WHERE id = %s AND no_repeat", (bank,)).fetchone()
+	line = queries.no_repeat_bank(connection, bank)
 	if line is None:
 		return None
 	return str(line[0])
@@ -220,7 +207,7 @@ def choose_sound(
 	exclus : sonores écartés par le binaire lecture, comme un fichier introuvable, traités comme non jouables.
 	La connexion a endossé le rôle de la lecture (machincast.database.open_connection) : tout est lu, rien n'est écrit.
 	"""
-	line = connection.execute("SELECT mode::text FROM banks WHERE id = %s", (bank,)).fetchone()
+	line = queries.bank_mode(connection, bank)
 	if line is None:
 		return None
 	mode = str(line[0])

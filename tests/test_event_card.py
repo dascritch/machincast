@@ -15,7 +15,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface.event_card import EventCard
-from machincast.player.broadcast import GRID_FINGERPRINT
+from machincast.player.queries import GRID_FINGERPRINT
 from tests.interface_steps import NAME, Connection, Context, identifier, open_in, slide, window
 
 scenarios("event_card.feature")

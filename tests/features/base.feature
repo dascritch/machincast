@@ -198,6 +198,12 @@ Fonctionnalité: Socle de test
 	Scénario: Les classes Qt de l'interface n'écrivent aucune requête
 		Alors aucun module de l'interface qui importe Qt n'exécute de requête
 
+	Scénario: Les requêtes SQL d'un binaire sont toutes dans son module de requêtes
+		https://github.com/dascritch/machincast/issues/583 : player/queries.py, indexer/queries.py,
+		intranet/queries.py, le paquet interface/queries/, admin_queries.py pour les programmes d'administration et
+		shared/queries.py ; database.open_connection endosse le rôle. Ailleurs, ni execute, ni chaîne SQL.
+		Alors aucune requête SQL n'est écrite ni exécutée hors des modules de requêtes
+
 	Scénario: Une fonction publique longue est documentée, sans affectation à soi-même ni subprocess sans check
 		Alors la configuration de ruff active les règles PLW0127 et PLW1510 sur le code de src
 		Et chaque fonction publique de plus de 15 lignes a une docstring

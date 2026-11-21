@@ -87,6 +87,7 @@ from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
 from machincast.i18n import N_, _
+from machincast.player import queries
 from machincast.player.banks import choose_sound, has_no_repeat, playable_sound
 from machincast.player.history import IN_DATABASE, History, HistoryInPlayback, LastPlay, PlannedHistory
 from machincast.player.saving import Play
@@ -277,21 +278,11 @@ def _items(lines: list[TupleRow]) -> list[Item]:
 
 
 def read_items(connection: psycopg.Connection[TupleRow], event: int) -> list[Item]:
-	return _items(
-		connection.execute(
-			"SELECT id, position, sound_id, bank_id, sequence_id FROM event_items WHERE event_id = %s"
-			" ORDER BY position",
-			(event,),
-		).fetchall()
-	)
+	return _items(queries.event_items(connection, event))
 
 
 def read_item(connection: psycopg.Connection[TupleRow], item: int) -> Item | None:
-	items = _items(
-		connection.execute(
-			"SELECT id, position, sound_id, bank_id, sequence_id FROM event_items WHERE id = %s", (item,)
-		).fetchall()
-	)
+	items = _items(queries.event_item(connection, item))
 	if items:
 		return items[0]
 	return None

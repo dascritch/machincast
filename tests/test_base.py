@@ -650,6 +650,76 @@ def interface_without_queries() -> None:
 	assert not faults, faults
 
 
+QUERY_MODULES = (
+	"player/queries.py",
+	"indexer/queries.py",
+	"intranet/queries.py",
+	"interface/queries/",
+	"admin_queries.py",
+	"shared/queries.py",
+	# open_connection endosse le rôle (SET ROLE), avant toute requête.
+	"database.py",
+)
+"""Où s'écrivent les requêtes SQL, relatives à src/machincast (https://github.com/dascritch/machincast/issues/583)."""
+PENDING = (
+	"indexer/__main__.py",
+	"indexer/check.py",
+	"indexer/directories.py",
+	"indexer/indexer.py",
+	"intranet/sessions.py",
+	"interface/adding.py",
+	"interface/airplay.py",
+	"interface/background_programming.py",
+	"interface/deletion.py",
+	"interface/groups.py",
+	"interface/sessions.py",
+	"access.py",
+	"backup.py",
+	"maintenance.py",
+	"personal.py",
+	"purge.py",
+	"runs.py",
+	"shared/grid.py",
+)
+"""Les modules dont les requêtes restent à déplacer : ce tuple se vide, binaire après binaire."""
+"""Les modules dont les requêtes restent à déplacer : la liste se vide, binaire après binaire."""
+SQL_TEXT = re.compile(
+	r"^\s*\(?\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP|GRANT|REVOKE|SET|VACUUM|LOCK|NOTIFY|LISTEN"
+	r"|TRUNCATE|ANALYZE)\b"
+)
+"""Le début d'une chaîne SQL : un mot-clé en majuscules, comme le code les écrit. Sans COPY, que machincast.backup
+cherche dans le script de pg_restore, sans l'exécuter."""
+
+
+def _queries_outside(path: Path) -> list[int]:
+	"""Les lignes d'un module qui exécutent une requête ou écrivent une chaîne SQL."""
+	lines = []
+	for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+		executed = (
+			(isinstance(node, ast.Call))
+			and (isinstance(node.func, ast.Attribute))
+			and (node.func.attr in ("execute", "executemany"))
+		)
+		written = (isinstance(node, ast.Constant)) and (isinstance(node.value, str)) and (SQL_TEXT.match(node.value))
+		if (executed) or (written):
+			lines.append(node.lineno)
+	return sorted(lines)
+
+
+@then("aucune requête SQL n'est écrite ni exécutée hors des modules de requêtes")
+def queries_in_their_modules() -> None:
+	"""https://github.com/dascritch/machincast/issues/583 : un module de requêtes par binaire."""
+	package = ROOT / "src" / "machincast"
+	faults = []
+	for path in sorted(package.rglob("*.py")):
+		name = path.relative_to(package).as_posix()
+		if (not name.startswith("migrations/")) and (not name.startswith(QUERY_MODULES + PENDING)):
+			lines = _queries_outside(path)
+			if lines:
+				faults.append(f"{name}:{lines[0]}")
+	assert not faults, faults
+
+
 @then("la configuration de ruff active les règles PLW0127 et PLW1510 sur le code de src")
 def ruff_cleanups() -> None:
 	"""https://github.com/dascritch/machincast/issues/443 : pas d'affectation à soi-même, un subprocess.run avec son
