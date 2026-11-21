@@ -59,7 +59,9 @@ class Checker(QObject):
 		self._announce_remaining += 1
 		with self._lock:
 			self._waiting.append(identifiers)
-			if (self._feed is not None) and (self._feed.is_alive()):
+			# Un fil qui ne s'est pas déclaré fini, sous ce verrou, prendra cette demande : il ne sort qu'une file vide
+			# vue sous le verrou (https://github.com/dascritch/machincast/issues/552).
+			if self._feed is not None:
 				return
 			self._feed = threading.Thread(target=self._work, name="check", daemon=True)
 			self._feed.start()
@@ -80,9 +82,12 @@ class Checker(QObject):
 		self._announce_remaining = 0
 
 	def _work(self) -> None:
+		"""Les vérifications demandées, l'une après l'autre ; le fil se déclare fini sous le verrou, la file vide : une
+		demande qui arrive ensuite en lance un autre, jamais perdue."""
 		while True:
 			with self._lock:
 				if self._waiting == []:
+					self._feed = None
 					return
 				identifiers = self._waiting.pop(0)
 			self._finished.emit(self._check(identifiers))

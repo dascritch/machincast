@@ -40,6 +40,16 @@ Fonctionnalité: Ajout de fichiers sonores depuis la liste des sonores
 			| ⚠️ |                         |               | fichier | non supporté |       | …/emissions/faux.mp3   |
 		Et les fichiers déposés sont intacts
 
+	Scénario: Une vérification demandée juste quand le fil de la précédente se termine est faite, et annoncée
+		https://github.com/dascritch/machincast/issues/552 : le fil de la vérification a vu sa file vide, et va se
+		terminer ; une demande arrive à cet instant. Elle n'est pas perdue, et la vérification ne reste pas en cours.
+		Étant donné une vérification demandée juste quand le fil de la précédente se termine
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et j'ajoute les fichiers « …/emissions/cafe.flac »
+		Et la vérification des fichiers ajoutés se termine
+		Alors les deux vérifications ont été faites, et annoncées
+
 	Scénario: Un fichier ajouté entre en base à l'état aperçu, avant sa vérification
 		Étant donné une vérification des fichiers ajoutés qui attend
 		Quand la fenêtre de l'interface s'ouvre
