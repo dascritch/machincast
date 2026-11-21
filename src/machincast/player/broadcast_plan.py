@@ -184,6 +184,6 @@ def _without_progress(ongoing: object) -> object:
 		return ongoing
 	without_progress = {}
 	for key, value in ongoing.items():
-		if key not in ("position", "progression", "buffer"):
+		if key not in ("position", "progress", "buffer"):
 			without_progress[key] = value
 	return without_progress

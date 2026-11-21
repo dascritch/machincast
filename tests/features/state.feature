@@ -424,6 +424,17 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Et la diffusion tourne 3 pas d'une seconde
 		Et la diffusion s'arrête
 		Alors le client a vu passer en cours « f1 », « f2 », « f1 »
+
+	Scénario: La progression seule ne se publie qu'une fois par seconde, même pour un sonore court
+		https://github.com/dascritch/machincast/issues/562 : la comparaison des états ignorait « progression », clé
+		renommée « progress » ; l'état partait à chaque pas de la diffusion.
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la progression publiée au plus une fois par seconde
+		Quand la diffusion démarre en temps réel
+		Et un client reste connecté à la socket d'état
+		Et la diffusion tourne 8 pas de 0,1 seconde
+		Et la diffusion s'arrête
+		Alors le client a reçu au plus 2 messages avec « f1 » en cours
 		Et son dernier message est à l'état « stopped »
 		Et la socket d'état n'existe plus
 

@@ -104,6 +104,8 @@ class Bench:
 	"""Socket d'état de la diffusion ; aucune par défaut."""
 	files: dict[str, Path] = field(default_factory=dict)
 	crossfades: Crossfades = field(default_factory=Crossfades)
+	minimal_publication: float = 0.0
+	"""À chaque pas par défaut, pour que la socket d'état donne la progression du moment."""
 	"""Crossfades de la configuration : sans durée par défaut, sauf si le scénario en donne."""
 	analyser: Analyser | None = None
 	"""Analyse du prochain sonore (https://github.com/dascritch/machincast/issues/181) : aucune par défaut."""
@@ -606,8 +608,7 @@ def start(bench: Bench, empty_database: Connection, rhythm: str) -> None:
 		reconnection_delay=TEST_RECONNECTION_DELAY,
 		outputs=bench.outputs,
 		state=bench.state,
-		# À chaque pas, pour que la socket d'état donne la progression du moment.
-		minimal_publication=0.0,
+		minimal_publication=bench.minimal_publication,
 		crossfades=bench.crossfades,
 		analyser=bench.analyser,
 		dead_air=bench.dead_air,
