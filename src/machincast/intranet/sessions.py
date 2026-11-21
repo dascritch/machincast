@@ -10,8 +10,8 @@
    (https://github.com/dascritch/machincast/issues/547).
 3. Une session valide sert l'intranet comme l'API : le même cookie, ou « Authorization: Bearer ».
 
-Les heures sont celles de la base (clock_timestamp()). Ces fonctions, sans asyncio, s'appellent hors de la boucle
-du serveur (asyncio.to_thread), chacune dans sa transaction.
+Les heures sont celles de la base (clock_timestamp()) ; un délai passé se juge à la lecture (STATE_NOW). Ces
+fonctions, sans asyncio, s'appellent hors de la boucle du serveur (asyncio.to_thread), chacune dans sa transaction.
 """
 
 import hashlib
@@ -104,6 +104,13 @@ def open_pending(
 	return given
 
 
+STATE_NOW = (
+	"CASE WHEN (s.state = 'pending' AND s.validate_before < clock_timestamp())"
+	" OR (s.state = 'valid' AND s.expires_at < clock_timestamp()) THEN 'invalid' ELSE s.state::text END"
+)
+"""L'état d'une session à l'instant, son délai passé : invalide."""
+
+
 def _expire(connection: Connection) -> None:
 	"""Les sessions à valider dont le délai est passé, et les valides expirées, deviennent invalides."""
 	connection.execute(
@@ -116,9 +123,10 @@ def _expire(connection: Connection) -> None:
 def find(connection: Connection, value: str) -> Session | None:
 	"""La session de ce jeton, d'un compte actif ; None, jeton inconnu ou compte désactivé."""
 	with connection.transaction():
-		_expire(connection)
+		# Le délai se juge à la lecture, sans rien écrire : chaque requête lit, seule la connexion ou la validation
+		# écrit (https://github.com/dascritch/machincast/issues/553).
 		row = connection.execute(
-			"SELECT s.id, u.name, u.role::text, s.state::text, s.expires_at FROM api_sessions s"
+			f"SELECT s.id, u.name, u.role::text, {STATE_NOW}, s.expires_at FROM api_sessions s"
 			" JOIN api_users u ON u.id = s.user_id WHERE s.token_hash = %s AND u.disabled_at IS NULL",
 			(fingerprint(value),),
 		).fetchone()
@@ -136,15 +144,20 @@ def validate(connection: Connection, value: str, given: str, hours: int) -> str:
 	« exhausted », un code faux, le dernier permis, qui rend la session invalide ; « invalid », la session ne se
 	valide plus."""
 	with connection.transaction():
-		_expire(connection)
 		row = connection.execute(
-			"SELECT id, code, attempts, accepted_at FROM api_sessions WHERE token_hash = %s AND state = 'pending'"
-			" FOR UPDATE",
+			"SELECT id, code, attempts, accepted_at, validate_before < clock_timestamp() FROM api_sessions"
+			" WHERE token_hash = %s AND state = 'pending' FOR UPDATE",
 			(fingerprint(value),),
 		).fetchone()
 		if row is None:
 			return "invalid"
-		identifier, expected, attempts, accepted_at = row
+		identifier, expected, attempts, accepted_at, late = row
+		if late:
+			connection.execute(
+				"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp() WHERE id = %s",
+				(identifier,),
+			)
+			return "invalid"
 		if accepted_at is None:
 			# Pas encore acceptée au pupitre : le code n'y est pas encore donné, aucun n'est essayé.
 			return "waiting"

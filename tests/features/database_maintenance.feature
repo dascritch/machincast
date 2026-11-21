@@ -19,6 +19,7 @@ Fonctionnalité: Maintenance de la base de données
 		Quand je lance « Machin maintenance-db »
 		Alors la maintenance se termine avec le code 0
 		Et une sauvegarde datée de la base est dans le répertoire « sauvegardes » de la configuration, lisible par le pg_restore du serveur
+		Et cette sauvegarde n'est lisible que par son compte
 		Et la maintenance a annoncé, dans l'ordre :
 			| ligne                                                                                         |
 			| sauvegarde de la base machincast_test dans …/sauvegardes/machincast_test-2026-10-22T08-30-00.dump |

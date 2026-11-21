@@ -121,3 +121,6 @@ Fonctionnalité: Un fichier sonore n'est jamais supprimé par MachinCast
 			| mv "${A}" "${B}"                                                  | refuse   |
 			| chemin.unlink()  # fichier de MachinCast : socket d'état          | accepte  |
 			| texte.replace("a", "b")                                           | accepte  |
+			| cle.replace(paire.cle)                                            | refuse   |
+			| cle.replace(paire.cle)  # fichier de MachinCast : la clé générée  | accepte  |
+			| instant.replace(tzinfo=UTC)                                       | accepte  |

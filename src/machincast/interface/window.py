@@ -698,7 +698,7 @@ class MainWindow(QMainWindow):
 				self._open_api()
 			case "card":
 				card_type, _separator, identifier = rest.partition(":")
-				if (card_type in CARD_TABLES) and (identifier.isdigit()):
+				if (card_type in CARD_TABLES) and (identifier.isascii()) and (identifier.isdecimal()):
 					if self._in_database(card_type, int(identifier)):
 						self._open_card(card_type, int(identifier))
 					else:

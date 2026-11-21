@@ -8,6 +8,7 @@ après lecture, et la maintenance exécutée sans passer par le fichier. pg_dump
 import dataclasses
 import io
 import logging
+import stat
 import subprocess
 import time
 import tomllib
@@ -184,6 +185,13 @@ def backup(configuration: Configuration, directory: str) -> None:
 	assert restore is not None
 	list_ = subprocess.run([restore, "--list", str(file)], capture_output=True, text=True, timeout=60)
 	assert (list_.returncode == 0) and ("TABLE public sounds" in list_.stdout), list_.stderr
+
+
+@then("cette sauvegarde n'est lisible que par son compte")
+def private_backup(configuration: Configuration) -> None:
+	"""https://github.com/dascritch/machincast/issues/553 : elle garde les empreintes des mots de passe de l'intranet."""
+	(file,) = _backups(configuration, "sauvegardes")
+	assert stat.S_IMODE(file.stat().st_mode) == 0o600
 
 
 @then("la maintenance a annoncé, dans l'ordre :")
