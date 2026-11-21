@@ -17,7 +17,7 @@ import shutil
 import signal
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QProcess, QTimer, Signal
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, Signal
 
 from machincast import service
 from machincast.clock import Clock, SystemClock
@@ -108,14 +108,55 @@ class Control(QObject):
 
 	def control(self, verb: str) -> None:
 		"""systemctl <verbe> machincast.service, sans attendre : l'authentification peut prendre du temps."""
-		process = QProcess(self)
+		process = systemctl(self, [verb, UNIT])
 		self._process.append(process)
 		process.finished.connect(lambda code, _status: self._end(process, verb, code))
 		self._started_at = CLOCK.now()
-		process.start("systemctl", [verb, UNIT])
+		process.start()
 
 	def _end(self, process: QProcess, verb: str, code: int) -> None:
 		self._process.remove(process)
+		if code != 0:
+			said = bytes(process.readAllStandardError().data()).decode("utf-8", "replace")
+			if without_agent(said):
+				self._in_terminal(verb)
+				return
+			process.setProperty("said", said)
+		self._report(process, verb, code)
+
+	def _in_terminal(self, verb: str) -> None:
+		"""Sans agent graphique (ssh -X, su) : la même commande dans une fenêtre de terminal, où systemctl demande le
+		mot de passe ; le service suivi jusqu'à ce qu'il change (https://github.com/dascritch/machincast/issues/558)."""
+		before = service.invocation()
+		if not authenticate_in_terminal([verb, UNIT]):
+			self.finished.emit(NO_AUTHENTICATION.format(verb=verb, unit=UNIT))
+			self._unrestarted(verb)
+			return
+		self.finished.emit(IN_TERMINAL)
+		self._watch(round(AUTHENTICATION_WINDOW / STARTUP_STEP), before, verb)
+
+	def _watch(self, remaining: int, before: str, verb: str) -> None:
+		"""Un démarrage se voit à un nouveau démarrage de l'unité ; un arrêt, au service arrêté."""
+		changed = (verb == "stop") and (not service.read_startup().running)
+		if verb in ("start", "restart"):
+			changed = service.invocation() not in ("", before)
+		if changed:
+			self._started_at = CLOCK.now()
+			self._report(None, verb, 0)
+			return
+		if remaining <= 0:
+			self.finished.emit(NO_ANSWER)
+			self._unrestarted(verb)
+			return
+		# Rattachée à l'objet : elle ne part pas s'il est détruit entre-temps.
+		QTimer.singleShot(int(STARTUP_STEP * 1000), self, lambda: self._watch(remaining - 1, before, verb))
+
+	def _unrestarted(self, verb: str) -> None:
+		"""Un redémarrage sans authentification : les paramètres du service précédents reviennent."""
+		if verb == "restart":
+			self.restarted.emit(False)
+
+	def _report(self, process: QProcess | None, verb: str, code: int) -> None:
 		if verb == "restart":
 			success, failure = RESTART
 		else:
@@ -128,13 +169,13 @@ class Control(QObject):
 			# Après le message de systemctl : les paramètres du service gardés, ou revenus, ont le dernier mot.
 			self.restarted.emit(code == 0)
 
-	def _outcome(self, process: QProcess, verb: str, code: int, success: str, failure: str) -> str:
+	def _outcome(self, process: QProcess | None, verb: str, code: int, success: str, failure: str) -> str:
 		"""Ce qu'annonce la commande finie."""
 		if (code == 0) and (verb in ("start", "restart")):
 			return STARTING
-		if code == 0:
+		if (code == 0) or (process is None):
 			return success
-		error = bytes(process.readAllStandardError().data()).decode("utf-8", "replace").strip()
+		error = str((process.property("said")) or ("")).strip()
 		return _("{failure}: {error}").format(failure=failure, error=(error) or (process.errorString()))
 
 	def _follow(self, remaining: int) -> None:
@@ -149,7 +190,7 @@ class Control(QObject):
 			else:
 				self._not_started(startup)
 			return
-		QTimer.singleShot(int(STARTUP_STEP * 1000), lambda: self._follow(remaining - 1))
+		QTimer.singleShot(int(STARTUP_STEP * 1000), self, lambda: self._follow(remaining - 1))
 
 	def _not_started(self, startup: service.Startup) -> None:
 		text = NOT_STARTED_WITHOUT_CODE
@@ -160,6 +201,43 @@ class Control(QObject):
 			text = f"{text} {meaning}"
 		self.finished.emit(text)
 		self.not_started.emit(f"{text} {SEE_LOGS}", service.journal(self._started_at))
+
+
+IN_TERMINAL = _("No password dialog in this session: the password is asked in a terminal window.")
+NO_ANSWER = _("Service unchanged: no authentication in the terminal window.")
+NO_AUTHENTICATION = _("No way to ask for the password in this session: run “sudo systemctl {verb} {unit}”.")
+INTERACTIVE = "Interactive authentication required"
+"""Ce que répond systemctl, en anglais, quand aucun agent polkit ne peut demander le mot de passe : une session à
+distance (ssh -X), ou ouverte par su (https://github.com/dascritch/machincast/issues/558)."""
+AUTHENTICATION_WINDOW = 120.0
+"""Secondes laissées pour s'authentifier dans la fenêtre de terminal, sans agent graphique."""
+
+
+def systemctl(parent: QObject, arguments: list[str]) -> QProcess:
+	"""systemctl, à lancer, dans une session à lui, sans terminal : l'authentification passe par l'agent polkit du
+	bureau, jamais par celui, en mode texte, du terminal d'où l'interface a été lancée, que le shell lit aussi
+	(https://github.com/dascritch/machincast/issues/558). Ses messages en anglais, pour reconnaître INTERACTIVE."""
+	process = QProcess(parent)
+	parameters = QProcess.UnixProcessParameters()
+	parameters.flags = QProcess.UnixProcessFlag.CreateNewSession
+	process.setUnixProcessParameters(parameters)
+	environment = QProcessEnvironment.systemEnvironment()
+	environment.insert("LC_ALL", "C.UTF-8")
+	process.setProcessEnvironment(environment)
+	process.setProgram("systemctl")
+	process.setArguments(arguments)
+	return process
+
+
+def without_agent(said: str) -> bool:
+	"""systemctl n'a trouvé aucun agent pour demander le mot de passe."""
+	return INTERACTIVE in said
+
+
+def authenticate_in_terminal(arguments: list[str]) -> bool:
+	"""La même commande, dans une fenêtre de terminal à part, où systemctl demande le mot de passe, en mode texte ;
+	False sans terminal."""
+	return open_terminal(["systemctl", *arguments])
 
 
 def open_terminal(command: list[str]) -> bool:

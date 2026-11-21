@@ -653,6 +653,17 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| non installée | avertit      |
 			| installée    | n'avertit pas |
 
+	Plan du scénario: La page « Intranet » dit si le serveur tourne vraiment, quel que soit son réglage
+		https://github.com/dascritch/machincast/issues/558 : un démarrage échoué ne se cache pas derrière la case cochée.
+		Étant donné le serveur intranet <état>
+		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet <réglage>
+		Alors la page « Intranet » donne l'état « <dit> »
+
+		Exemples:
+			| état      | réglage | dit                           |
+			| en marche | éteint  | Serveur intranet : en marche. |
+			| arrêté    | allumé  | Serveur intranet : arrêté.    |
+
 	Scénario: Les réglages de l'intranet s'écrivent dans machincast.toml, l'adresse d'écoute et le certificat gardés
 		Étant donné un fichier de configuration dont l'intranet écoute « 10.0.0.12 », avec un certificat donné
 		Quand j'enregistre l'intranet allumé, sur le port 9443, avec 15 minutes pour valider une connexion

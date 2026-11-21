@@ -122,6 +122,8 @@ Its messages go to the system journal: `journalctl -u machincast-intranet`.
 
 - **Installing or removing the service**, `./install.sh --service` or `--remove-service`, asks for `sudo`: accounts, units, rules and fragments of the system. install.sh runs with your own account, and asks for `sudo` only for these steps.
 - **Starting, stopping or restarting** the broadcast service or the intranet server from the interface: the polkit rule allows it to the MachinCast account only, with the password of an administrator. It allows nothing else, nor on another unit.
+	An administrator account (group `sudo`) gives its own password, kept for a few minutes; another account, the password of an administrator ([#558](https://github.com/dascritch/machincast/issues/558)).
+	Without a password dialog on the desktop, in an `ssh -X` session for example, it is asked in a terminal window that the interface opens; without a terminal, the interface gives the `sudo systemctl …` command to run.
 - **Powering off, rebooting or suspending the computer** asks for the password of an administrator, from any account; the power keys, the lid and Ctrl+Alt+Del on the console are ignored ([#448](https://github.com/dascritch/machincast/issues/448)).
 
 ## The sound files

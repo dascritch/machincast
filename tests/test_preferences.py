@@ -1306,9 +1306,11 @@ def computer_address(monkeypatch: pytest.MonkeyPatch, address: str) -> None:
 	monkeypatch.setattr(network, "names", lambda: ["studio", "localhost"])
 
 
-@when("la fenêtre des paramètres du service s'ouvre sur l'intranet éteint")
-def open_on_intranet(opened: Opened, parent: QWidget) -> None:
+@when(parsers.re(r"la fenêtre des paramètres du service s'ouvre sur l'intranet (?P<setting>éteint|allumé)"))
+def open_on_intranet(opened: Opened, parent: QWidget, setting: str) -> None:
+	"""Allumé : la case cochée, l'état du serveur relu (https://github.com/dascritch/machincast/issues/558)."""
 	opened.window = PreferencesWindow(Settings(Crossfades(), None, TEST_PREVIEW), "dummy", parent, timers=True)
+	opened.window.ui.intranet_enabled.setChecked(setting == "allumé")
 
 
 @then("le port et le délai de validation de l'intranet sont grisés, et aucune adresse n'est donnée")
@@ -1418,3 +1420,14 @@ def warns_test_mode(opened: Opened, verdict: str) -> None:
 	label = the_window(opened).ui.intranet_test_mode
 	assert label.isHidden() is (verdict == "n'avertit pas")
 	assert label.text() == intranet_switch.TEST_MODE
+
+
+@given(parsers.re(r"le serveur intranet (?P<state>en marche|arrêté)"))
+def intranet_running(monkeypatch: pytest.MonkeyPatch, state: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/558"""
+	monkeypatch.setattr(intranet_switch, "running", lambda: state == "en marche")
+
+
+@then(parsers.parse("la page « Intranet » donne l'état « {said} »"))
+def intranet_state(opened: Opened, said: str) -> None:
+	assert the_window(opened).ui.intranet_running.text() == said

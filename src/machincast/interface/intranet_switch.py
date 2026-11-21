@@ -32,6 +32,14 @@ SWITCHED_ON = _("Intranet server switched on: {addresses}")
 SWITCHED_OFF = _("Intranet server switched off.")
 STARTING = _("Intranet server starting…")
 NOT_SWITCHED = _("Intranet server unchanged: systemctl said “{said}”.")
+SAVED_ON = _("The setting is saved: the intranet server will start with the computer.")
+SAVED_OFF = _("The setting is saved: the intranet server will not start with the computer any more.")
+"""Ce qu'ajoute l'alerte d'un échec (https://github.com/dascritch/machincast/issues/558)."""
+IN_TERMINAL = _("No password dialog in this session: the password is asked in a terminal window.")
+NO_ANSWER = _("Intranet server unchanged: no authentication in the terminal window.")
+NO_AUTHENTICATION = _(
+	"Intranet server unchanged: no way to ask for the password in this session; run “sudo systemctl {verb} {unit}”."
+)
 NOT_STARTED = _("Intranet server not started: Machin intranet stopped, exit code {code}.")
 NOT_STARTED_WITHOUT_CODE = _("Intranet server not started: Machin intranet stopped.")
 CODES = {
@@ -60,6 +68,18 @@ def service_installed() -> bool:
 	return UNIT_FILE.exists()
 
 
+RUNNING = _("Intranet server: running.")
+STOPPED = _("Intranet server: stopped.")
+"""L'état réel du serveur, à côté de la case de son réglage (https://github.com/dascritch/machincast/issues/558)."""
+
+
+def running() -> bool:
+	"""Le serveur intranet tourne : son unité, avec le service ; sinon, le Machin intranet du compte."""
+	if service_installed():
+		return service.read_startup(INTRANET_UNIT).running
+	return process.running_pid() is not None
+
+
 def command(configuration: Path | None) -> list[str]:
 	"""Machin intranet, sur la configuration de l'interface, son terminal gardé ouvert sur une erreur."""
 	called = [str(control.MACHIN)]
@@ -71,6 +91,9 @@ def command(configuration: Path | None) -> list[str]:
 class IntranetSwitch(QObject):
 	announced = Signal(str)
 	"""Ce qu'il advient du serveur, pour la barre d'état."""
+	alerted = Signal(str)
+	"""Un échec, pour une boîte d'alerte : le serveur ne tourne pas comme le dit le réglage
+	(https://github.com/dascritch/machincast/issues/558)."""
 
 	def __init__(
 		self,
@@ -89,28 +112,72 @@ class IntranetSwitch(QObject):
 		"""Rallume ou éteint le serveur, sans attendre : l'authentification peut prendre du temps."""
 		if not ((self.unit_file) or (UNIT_FILE)).exists():
 			# Après ce qu'annoncent les paramètres enregistrés, qui viennent juste ensuite.
-			QTimer.singleShot(0, lambda: self._by_hand(enabled=enabled, addresses=addresses))
+			QTimer.singleShot(0, self, lambda: self._by_hand(enabled=enabled, addresses=addresses))
 			return
 		verb = "stop"
 		if enabled:
 			verb = "restart"
 		started_at = self.clock.now()
-		systemctl = QProcess(self)
-		self.processes.append(systemctl)
-		systemctl.finished.connect(lambda code, _status: self._end(systemctl, code, verb, addresses, started_at))
-		systemctl.start("systemctl", [verb, INTRANET_UNIT])
+		launched = control.systemctl(self, [verb, INTRANET_UNIT])
+		self.processes.append(launched)
+		launched.finished.connect(lambda code, _status: self._end(launched, code, verb, addresses, started_at))
+		launched.start()
 
-	def _end(self, systemctl: QProcess, code: int, verb: str, addresses: list[str], started_at: datetime) -> None:
-		self.processes.remove(systemctl)
+	def _alert(self, said: str, verb: str) -> None:
+		"""Dans la barre d'état, et dans une boîte d'alerte, avec ce que devient le réglage enregistré."""
+		self.announced.emit(said)
+		saved = SAVED_OFF
+		if verb == "restart":
+			saved = SAVED_ON
+		self.alerted.emit(f"{said}\n\n{saved}")
+
+	def _end(self, launched: QProcess, code: int, verb: str, addresses: list[str], started_at: datetime) -> None:
+		self.processes.remove(launched)
 		if code != 0:
-			said = bytes(systemctl.readAllStandardError().data()).decode("utf-8", "replace").strip()
-			self.announced.emit(NOT_SWITCHED.format(said=said))
+			said = bytes(launched.readAllStandardError().data()).decode("utf-8", "replace").strip()
+			if control.without_agent(said):
+				self._in_terminal(verb, addresses, started_at)
+				return
+			self._alert(NOT_SWITCHED.format(said=said), verb)
 			return
+		self._done(verb, addresses, started_at)
+
+	def _done(self, verb: str, addresses: list[str], started_at: datetime) -> None:
 		if verb == "stop":
 			self.announced.emit(SWITCHED_OFF)
 			return
 		self.announced.emit(STARTING)
 		self._follow(round(control.STARTUP_WINDOW / control.STARTUP_STEP), addresses, started_at)
+
+	def _in_terminal(self, verb: str, addresses: list[str], started_at: datetime) -> None:
+		"""Sans agent graphique (ssh -X, su) : la même commande dans une fenêtre de terminal, où systemctl demande le
+		mot de passe ; l'unité suivie jusqu'à ce qu'elle change, ou que le délai passe."""
+		before = service.invocation(INTRANET_UNIT)
+		if not control.authenticate_in_terminal([verb, INTRANET_UNIT]):
+			self._alert(NO_AUTHENTICATION.format(verb=verb, unit=INTRANET_UNIT), verb)
+			return
+		self.announced.emit(IN_TERMINAL)
+		remaining = round(control.AUTHENTICATION_WINDOW / control.STARTUP_STEP)
+		self._watch(remaining, before, verb, addresses, started_at)
+
+	def _watch(self, remaining: int, before: str, verb: str, addresses: list[str], started_at: datetime) -> None:
+		"""Un redémarrage se voit à un nouveau démarrage de l'unité ; un arrêt, à l'unité arrêtée."""
+		startup = service.read_startup(INTRANET_UNIT)
+		changed = (verb == "stop") and (not startup.running)
+		if verb == "restart":
+			changed = service.invocation(INTRANET_UNIT) not in ("", before)
+		if changed:
+			self._done(verb, addresses, started_at)
+			return
+		if remaining <= 0:
+			self._alert(NO_ANSWER, verb)
+			return
+		# Rattachée à l'objet : elle ne part pas s'il est détruit entre-temps.
+		QTimer.singleShot(
+			int(control.STARTUP_STEP * 1000),
+			self,
+			lambda: self._watch(remaining - 1, before, verb, addresses, started_at),
+		)
 
 	def _follow(self, remaining: int, addresses: list[str], started_at: datetime) -> None:
 		"""Relit l'état de l'unité, encore remaining fois, une fois par control.STARTUP_STEP."""
@@ -121,7 +188,9 @@ class IntranetSwitch(QObject):
 		if remaining <= 0:
 			self.announced.emit(SWITCHED_ON.format(addresses=", ".join(addresses)))
 			return
-		QTimer.singleShot(int(control.STARTUP_STEP * 1000), lambda: self._follow(remaining - 1, addresses, started_at))
+		QTimer.singleShot(
+			int(control.STARTUP_STEP * 1000), self, lambda: self._follow(remaining - 1, addresses, started_at)
+		)
 
 	def _not_started(self, startup: service.Startup, started_at: datetime) -> None:
 		parts = [NOT_STARTED_WITHOUT_CODE]
@@ -132,7 +201,7 @@ class IntranetSwitch(QObject):
 			parts.append(meaning)
 		# La dernière ligne de son journal dit le plus souvent pourquoi.
 		parts.extend(service.journal(started_at, 1, INTRANET_UNIT)[-1:])
-		self.announced.emit(" ".join(parts))
+		self._alert(" ".join(parts), "restart")
 
 	def _by_hand(self, *, enabled: bool, addresses: list[str]) -> None:
 		"""Sans le service : arrête celui qui tourne, puis le relance s'il est allumé."""
@@ -156,7 +225,7 @@ class IntranetSwitch(QObject):
 			self.announced.emit(STILL_RUNNING.format(pid=pid))
 			return
 		QTimer.singleShot(
-			int(STOP_STEP * 1000), lambda: self._wait(pid, remaining - 1, enabled=enabled, addresses=addresses)
+			int(STOP_STEP * 1000), self, lambda: self._wait(pid, remaining - 1, enabled=enabled, addresses=addresses)
 		)
 
 	def _after_stop(self, *, enabled: bool, addresses: list[str]) -> None:

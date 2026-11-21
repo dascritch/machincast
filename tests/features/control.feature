@@ -366,7 +366,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 
 	Scénario: Un redémarrage refusé ramène les paramètres du service précédents, dans le fichier et dans l'interface
 		Étant donné le service de diffusion installé, en marche
-		Et systemctl refuse en disant « Interactive authentication required. »
+		Et systemctl refuse en disant « Access denied »
 		Et le fichier de configuration de l'interface noté tel qu'il est
 		Et les préférences régleront l'antenne « carte-2 » et la pré-écoute « preecoute-factice »
 		Quand la fenêtre de l'interface s'ouvre
@@ -506,11 +506,69 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 			| un éditeur ouvert sur « src/machincast/intranet/app.py »                          |
 			| un Machin intranet démarré une heure après l'écriture du fichier de son PID      |
 
-	Scénario: Un redémarrage refusé de l'intranet le dit, avec la réponse de systemctl
+	Scénario: Un redémarrage refusé de l'intranet le dit, avec la réponse de systemctl, et une alerte
+		https://github.com/dascritch/machincast/issues/558 : la barre d'état seule laisserait passer l'échec.
 		Étant donné le service de diffusion installé, arrêté
 		Et l'unité du serveur intranet installée
-		Et systemctl refuse en disant « Interactive authentication required. »
+		Et systemctl refuse en disant « Access denied »
 		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Paramètres du service… » dans le menu « Fichier »
-		Alors la barre d'état annonce bientôt « Serveur intranet inchangé : systemctl a dit « Interactive authentication required. ». »
+		Alors la barre d'état annonce bientôt « Serveur intranet inchangé : systemctl a dit « Access denied ». »
+		Et une alerte de l'intranet dit bientôt « Serveur intranet inchangé : systemctl a dit « Access denied ». » et « Le réglage est enregistré : le serveur intranet démarrera avec le poste. »
+
+	# ─── L'authentification (https://github.com/dascritch/machincast/issues/558) ───
+
+	Scénario: systemctl est lancé dans une session à lui, sans terminal : le mot de passe se demande au bureau
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors systemctl a reçu bientôt « restart machincast-intranet.service »
+		Et chaque systemctl a été lancé dans une session à lui, sans terminal
+
+	Scénario: Sans agent pour le mot de passe, il se demande dans une fenêtre de terminal, puis l'intranet est suivi
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et le terminal « konsole » du poste
+		Et systemctl refuse en disant « Failed to restart machincast-intranet.service: Interactive authentication required. »
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors la barre d'état annonce bientôt « Pas de fenêtre de mot de passe dans cette session : le mot de passe se demande dans une fenêtre de terminal. »
+		Et le terminal a lancé bientôt « systemctl restart machincast-intranet.service »
+		Quand le mot de passe est donné dans la fenêtre de terminal
+		Alors la barre d'état annonce bientôt « Serveur intranet allumé : https://127.0.0.1:9443/ »
+		Et aucune alerte de l'intranet
+
+	Scénario: Sans réponse dans la fenêtre de terminal, une alerte le dit
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et le terminal « konsole » du poste
+		Et systemctl refuse en disant « Failed to restart machincast-intranet.service: Interactive authentication required. »
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors une alerte de l'intranet dit bientôt « Serveur intranet inchangé : aucune authentification dans la fenêtre de terminal. » et « Le réglage est enregistré : le serveur intranet démarrera avec le poste. »
+
+	Scénario: Sans agent ni terminal, une alerte donne la commande à lancer
+		Étant donné le service de diffusion installé, arrêté
+		Et l'unité du serveur intranet installée
+		Et aucun terminal sur le poste
+		Et systemctl refuse en disant « Failed to restart machincast-intranet.service: Interactive authentication required. »
+		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Paramètres du service… » dans le menu « Fichier »
+		Alors une alerte de l'intranet dit bientôt « Serveur intranet inchangé : impossible de demander le mot de passe dans cette session ; lancez « sudo systemctl restart machincast-intranet.service ». » et « Le réglage est enregistré : le serveur intranet démarrera avec le poste. »
+
+	Scénario: Sans agent pour le mot de passe, démarrer la diffusion le demande aussi dans une fenêtre de terminal
+		Étant donné le service de diffusion installé, arrêté
+		Et le terminal « konsole » du poste
+		Et systemctl refuse en disant « Failed to start machincast.service: Interactive authentication required. »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Démarrer la diffusion » dans le menu « Diffusion »
+		Alors la barre d'état annonce bientôt « Pas de fenêtre de mot de passe dans cette session : le mot de passe se demande dans une fenêtre de terminal. »
+		Et le terminal a lancé bientôt « systemctl start machincast.service »
+		Quand le mot de passe est donné dans la fenêtre de terminal
+		Alors la barre d'état annonce bientôt « Diffusion démarrée. »

@@ -19,7 +19,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.configuration import PROJECT_DIRECTORY, Intranet, load
 from machincast.installation import systemd_unit
-from machincast.interface import broadcast_status, control, intranet_switch
+from machincast.interface import broadcast_status, control, dialogs, intranet_switch
 from machincast.interface.control import service_configuration
 from machincast.intranet import process
 from machincast.service import INTRANET_UNIT
@@ -35,8 +35,11 @@ if [ "$1" = show ]; then
 	case "$*" in *ActiveState*) echo "ActiveState=$(cat "${MACHINCAST_TEST_SERVICE}/actif")" ;; esac
 	case "$*" in *SubState*) echo "SubState=$(cat "${MACHINCAST_TEST_SERVICE}/sous" 2>/dev/null)" ;; esac
 	case "$*" in *ExecMainStatus*) echo "ExecMainStatus=$(cat "${MACHINCAST_TEST_SERVICE}/code" 2>/dev/null)" ;; esac
+	case "$*" in *InvocationID*) echo "InvocationID=$(cat "${MACHINCAST_TEST_SERVICE}/lancement" 2>/dev/null)" ;; esac
 	exit 0
 fi
+# Sa session et son terminal, de /proc, sans autre commande que le shell : « session tty_nr pid ».
+( read -r stat < /proc/$$/stat; set -- ${stat}; echo "$6 $7 $$" ) >> "${MACHINCAST_TEST_SYSTEMCTL}.session"
 if [ -n "${MACHINCAST_TEST_ERREUR}" ]; then
 	echo "${MACHINCAST_TEST_ERREUR}" >&2
 	exit 4
@@ -45,6 +48,7 @@ case "$1" in
 	start | restart)
 		echo active > "${MACHINCAST_TEST_SERVICE}/actif"
 		echo running > "${MACHINCAST_TEST_SERVICE}/sous"
+		echo "$$" > "${MACHINCAST_TEST_SERVICE}/lancement"
 		if [ -n "${MACHINCAST_TEST_ARRET}" ]; then
 			# Machin player lancé, puis aussitôt sorti : « code actif sous ».
 			set -- ${MACHINCAST_TEST_ARRET}
@@ -57,7 +61,9 @@ case "$1" in
 esac
 """
 """systemctl imité : « show » donne les propriétés demandées de l'état du service, noté dans deux fichiers ; les
-autres verbes le changent, ou échouent avec l'erreur et le code de systemctl pour une autorisation refusée (4)."""
+autres verbes le changent, chaque démarrage avec un nouvel InvocationID, ou échouent avec l'erreur et le code de
+systemctl pour une autorisation refusée (4) ; ils notent leur session et leur terminal
+(https://github.com/dascritch/machincast/issues/558)."""
 JOURNALCTL = """#!/bin/sh
 echo "$*" >> "${MACHINCAST_TEST_JOURNALCTL}.log"
 cat "${MACHINCAST_TEST_JOURNALCTL}" 2>/dev/null
@@ -154,6 +160,7 @@ def station(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Station
 	# Le suivi du démarrage, en dixièmes de seconde (https://github.com/dascritch/machincast/issues/376).
 	monkeypatch.setattr(control, "STARTUP_WINDOW", 0.5)
 	monkeypatch.setattr(control, "STARTUP_STEP", 0.1)
+	monkeypatch.setattr(control, "AUTHENTICATION_WINDOW", 1.0)
 	monkeypatch.setenv("PATH", f"{fake.commands}{os.pathsep}{os.environ['PATH']}")
 	monkeypatch.setenv("MACHINCAST_TEST_SYSTEMCTL", str(fake.systemctl))
 	monkeypatch.setenv("MACHINCAST_TEST_TERMINAL", str(fake.terminal))
@@ -167,6 +174,14 @@ def station(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Station
 		if launched is not None:
 			launched.kill()
 			launched.wait()
+
+
+@pytest.fixture(autouse=True)
+def intranet_alerts(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+	"""Les alertes du serveur intranet, notées au lieu d'être montrées (https://github.com/dascritch/machincast/issues/558)."""
+	shown: list[str] = []
+	monkeypatch.setattr(dialogs, "warn_intranet", lambda _parent, text: shown.append(text))
+	return shown
 
 
 @given(parsers.re(r"le service de diffusion installé, (?P<state>arrêté|en marche|en échec)"))
@@ -642,3 +657,37 @@ def reused_pid(station: Station, kind: str, file: str | None) -> None:
 def still_running(station: Station) -> None:
 	assert station.intranet is not None
 	assert station.intranet.poll() is None
+
+
+@then(parsers.parse("une alerte de l'intranet dit bientôt « {said} » et « {saved} »"))
+def intranet_alert(intranet_alerts: list[str], qtbot: QtBot, said: str, saved: str) -> None:
+	qtbot.waitUntil(lambda: intranet_alerts == [f"{said}\n\n{saved}"], timeout=5000)
+
+
+@then("aucune alerte de l'intranet")
+def no_intranet_alert(intranet_alerts: list[str]) -> None:
+	assert intranet_alerts == []
+
+
+@then("chaque systemctl a été lancé dans une session à lui, sans terminal")
+def own_session(station: Station) -> None:
+	"""Chef de sa session, sans terminal de contrôle : pkttyagent ne peut pas lire le terminal de l'interface
+	(https://github.com/dascritch/machincast/issues/558)."""
+	lines = station.systemctl.with_name(f"{station.systemctl.name}.session").read_text(encoding="utf-8").splitlines()
+	assert lines != []
+	for line in lines:
+		session, terminal, pid = line.split()
+		assert (session, terminal) == (pid, "0")
+
+
+@then(parsers.parse("le terminal a lancé bientôt « {call} »"))
+def terminal_call(station: Station, qtbot: QtBot, call: str) -> None:
+	qtbot.waitUntil(station.terminal.exists, timeout=5000)
+	assert station.terminal.read_text(encoding="utf-8").splitlines() == ["-e", *call.split()]
+
+
+@when("le mot de passe est donné dans la fenêtre de terminal")
+def password_in_terminal(station: Station) -> None:
+	"""systemctl, dans la fenêtre de terminal, réussit : l'authentification en mode texte acceptée."""
+	arguments = station.terminal.read_text(encoding="utf-8").splitlines()[1:]
+	subprocess.run(arguments, check=True, env={**os.environ, "MACHINCAST_TEST_ERREUR": ""})

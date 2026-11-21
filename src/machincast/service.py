@@ -163,6 +163,26 @@ class Startup:
 		return (self.active in ("failed", "inactive")) or (self.sub == "auto-restart")
 
 
+def invocation(unit: str = UNIT) -> str:
+	"""L'identifiant du dernier démarrage de l'unité, que chaque démarrage change ; vide si systemctl ne le dit pas
+	(https://github.com/dascritch/machincast/issues/558)."""
+	try:
+		shown = subprocess.run(
+			["systemctl", "show", unit, "--property=InvocationID"],
+			capture_output=True,
+			text=True,
+			timeout=DELAY,
+			check=False,
+		)
+	except (OSError, subprocess.SubprocessError):
+		return ""
+	for line in shown.stdout.splitlines():
+		key, _separator, value = line.partition("=")
+		if key == "InvocationID":
+			return value.strip()
+	return ""
+
+
 def read_startup(unit: str = UNIT) -> Startup:
 	"""L'état du service, ou d'une autre unité, et le code de sortie de son dernier programme, d'après systemctl ;
 	arrêté si systemctl manque ou échoue."""

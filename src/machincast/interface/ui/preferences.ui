@@ -847,6 +847,9 @@
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="intranet_running"/>
+       </item>
+       <item>
         <widget class="QLabel" name="intranet_test_mode">
          <property name="wordWrap">
           <bool>true</bool>

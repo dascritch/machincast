@@ -333,6 +333,8 @@ Fonctionnalité: Vérifications de l'installation
 		Et sa sortie annonce « monitor.libcamera = disabled »
 
 	Plan du scénario: La règle polkit n'autorise que démarrer, arrêter et redémarrer le service et le serveur intranet, par un administrateur, au compte de MachinCast
+		https://github.com/dascritch/machincast/issues/558 : un compte administrateur donne son propre mot de passe, sans
+		choisir parmi les administrateurs du poste ; un autre, celui d'un administrateur.
 		Quand je lance « python -m machincast.installation rule » avec la configuration de test
 		Alors la règle polkit répond <reponse> à l'action « <action> » sur « <unite> », verbe « <verbe> », pour <qui>
 
@@ -349,8 +351,13 @@ Fonctionnalité: Vérifications de l'installation
 			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | stop    | le compte | « auth_admin » |
 			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | restart | le compte | « auth_admin » |
 			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | enable  | le compte | rien           |
+			| org.freedesktop.systemd1.manage-units  | machincast.service | restart | le compte, administrateur | « auth_self_keep » |
+			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | restart | le compte, administrateur | « auth_self_keep » |
+			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | enable  | le compte, administrateur | rien |
+			| org.freedesktop.systemd1.manage-units  | machincast.service | stop    | un autre compte, administrateur | rien |
 
 	Plan du scénario: La règle polkit demande le mot de passe d'un administrateur pour éteindre, redémarrer ou mettre en veille le poste, à tout compte, écran de connexion compris
+		Un administrateur donne le sien (https://github.com/dascritch/machincast/issues/558).
 		https://github.com/dascritch/machincast/issues/448 : sur un poste d'antenne, une extinction, un redémarrage ou une
 		mise en veille par mégarde coupe l'antenne. Ubuntu les permet sans mot de passe à toute session active, écran de
 		connexion compris (allow_active de org.freedesktop.login1.policy) ; la règle du service les soumet à
@@ -362,6 +369,8 @@ Fonctionnalité: Vérifications de l'installation
 		Exemples:
 			| action                                            | qui             | reponse        |
 			| org.freedesktop.login1.power-off                  | le compte       | « auth_admin » |
+			| org.freedesktop.login1.power-off                  | le compte, administrateur | « auth_self_keep » |
+			| org.freedesktop.login1.reboot                     | un autre compte, administrateur | « auth_self_keep » |
 			| org.freedesktop.login1.power-off                  | un autre compte | « auth_admin » |
 			| org.freedesktop.login1.power-off-multiple-sessions | un autre compte | « auth_admin » |
 			| org.freedesktop.login1.power-off-ignore-inhibit   | un autre compte | « auth_admin » |

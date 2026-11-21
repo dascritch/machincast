@@ -203,6 +203,16 @@ def warn_not_started(parent: QWidget, text: str, journal: list[str]) -> None:
 	alert.exec()
 
 
+def warn_intranet(parent: QWidget, text: str) -> None:
+	"""Le serveur intranet ne tourne pas comme le dit son réglage (https://github.com/dascritch/machincast/issues/558) :
+	une alerte, que la barre d'état seule laisserait passer."""
+	alert = QMessageBox(parent)
+	alert.setIcon(QMessageBox.Icon.Warning)
+	alert.setWindowTitle(_("Intranet server"))
+	alert.setText(text)
+	alert.exec()
+
+
 def confirm_maintenance(parent: QWidget, backups: Path) -> Path | None:
 	"""Lancer la maintenance de la base, qui écrit une sauvegarde dans sauvegardes, ou dans un autre répertoire choisi
 	depuis la question ? L'emplacement de la sauvegarde, ou None si elle est annulée. Entrée et Échap l'annulent :

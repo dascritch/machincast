@@ -561,6 +561,11 @@ class Ui_PreferencesWindow(object):
 
         self.intranet_layout.addWidget(self.intranet_addresses)
 
+        self.intranet_running = QLabel(self.intranet_page)
+        self.intranet_running.setObjectName(u"intranet_running")
+
+        self.intranet_layout.addWidget(self.intranet_running)
+
         self.intranet_test_mode = QLabel(self.intranet_page)
         self.intranet_test_mode.setObjectName(u"intranet_test_mode")
         self.intranet_test_mode.setWordWrap(True)
