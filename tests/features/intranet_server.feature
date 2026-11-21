@@ -115,7 +115,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 			| strict-transport-security | max-age=31536000                                                |
 			| x-content-type-options    | nosniff                                                         |
 			| x-frame-options           | DENY                                                            |
-			| referrer-policy           | no-referrer                                                     |
+			| referrer-policy           | same-origin                                                     |
 			| content-security-policy   | default-src 'self'; frame-ancestors 'none'; form-action 'self' |
 			| cache-control             | no-store                                                        |
 		Et la réponse ne nomme pas son serveur

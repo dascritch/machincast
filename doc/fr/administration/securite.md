@@ -98,7 +98,7 @@ Pourquoi même sur le réseau de la radio : un Wi-Fi de locaux associatifs, un p
 
 Machin intranet est le seul programme de MachinCast qui écoute le réseau. Il est **éteint par défaut**, et s'allume dans **Fichier → Paramètres du service…**, page **Intranet** ([Serveur intranet](commandes.md#serveur-intranet--machin-intranet)).
 
-**Le transport** : HTTPS seulement ([ci-dessus](#https-seulement-même-par-une-simple-adresse-ip)). Chaque réponse interdit aussi au navigateur d'afficher la page dans un cadre, de charger une ressource d'ailleurs ou de garder la page en cache, et un formulaire envoyé d'un autre site est refusé.
+**Le transport** : HTTPS seulement ([ci-dessus](#https-seulement-même-par-une-simple-adresse-ip)). Chaque réponse interdit aussi au navigateur d'afficher la page dans un cadre, de charger une ressource d'ailleurs ou de garder la page en cache, et un formulaire envoyé d'un autre site est refusé : l'intranet se fie d'abord à ce que le navigateur dit de la provenance du formulaire, qu'une page ne peut pas falsifier ([#571](https://github.com/dascritch/machincast/issues/571)).
 
 **Les connexions**
 

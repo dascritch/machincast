@@ -106,6 +106,24 @@ def login_from(visit: Visit, name: str, password: str, origin: str) -> None:
 	_login(visit, name, password, origin)
 
 
+@when(parsers.parse("je me connecte en « {name} », mot de passe « {password} », avec les en-têtes « {given} »"))
+def login_with_headers(visit: Visit, name: str, password: str, given: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/571"""
+	headers = _cookie(visit)
+	for pair in given.split("; "):
+		key, value = pair.split(": ", 1)
+		headers[key] = value
+	answer = call(
+		visit.application,
+		"POST",
+		"/login",
+		form={"name": name, "password": password},
+		headers=headers,
+		client="10.0.0.31",
+	)
+	_keep(visit, answer)
+
+
 @when(parsers.parse("je me connecte en « {name} », mot de passe « {password} », depuis l'adresse « {address} »"))
 def login_from_address(visit: Visit, name: str, password: str, address: str) -> None:
 	_login(visit, name, password, address=address)
