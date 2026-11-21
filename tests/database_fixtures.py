@@ -11,6 +11,7 @@ from pathlib import Path
 import psycopg
 import pytest
 from psycopg import sql
+from psycopg.rows import TupleRow
 from yoyo import read_migrations
 
 from machincast.configuration import Configuration, load
@@ -38,6 +39,17 @@ def configuration_test() -> Configuration:
 def sample_database_parameters() -> tuple[Path, str]:
 	database = configuration_test().database
 	return database.socket, database.test
+
+
+def close_checked(connection: psycopg.Connection[TupleRow]) -> None:
+	"""Ferme une connexion de l'interface, qui n'a laissé aucune transaction ouverte : chaque requête de l'interface
+	passe dans un bloc de transaction, ou ce qu'elle écrit ensuite n'est validé qu'à sa fermeture
+	(https://github.com/dascritch/machincast/issues/560). Une connexion coupée, par un scénario de base injoignable, ne
+	dit plus rien (UNKNOWN)."""
+	status = connection.info.transaction_status
+	connection.close()
+	left = (psycopg.pq.TransactionStatus.INTRANS, psycopg.pq.TransactionStatus.INERROR)
+	assert status not in left, f"connexion de l'interface laissée en transaction : {status.name}"
 
 
 def sample_connection() -> psycopg.Connection[tuple[object, ...]]:

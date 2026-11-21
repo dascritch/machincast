@@ -28,7 +28,7 @@ from machincast.interface import card as card_module
 from machincast.interface.bank_card import SOUND, BankCard
 from machincast.interface.choice import Choice
 from machincast.interface.lists import IDENTIFIER, SOUNDS
-from tests.database_fixtures import sample_database_parameters
+from tests.database_fixtures import sample_connection, sample_database_parameters
 from tests.interface_steps import (
 	NAME,
 	Connection,
@@ -839,3 +839,11 @@ def save_text_shown(interface: Context) -> None:
 	button.ensurePolished()
 	assert button.width() >= button.sizeHint().width()
 	assert button.sizeHint().width() > button.fontMetrics().horizontalAdvance(button.text())
+
+
+@then(parsers.parse("une autre connexion voit la banque « {name} » de nom public « {public_name} »"))
+def seen_elsewhere(name: str, public_name: str) -> None:
+	"""Ce qu'a enregistré l'interface, validé : une autre connexion le lit (https://github.com/dascritch/machincast/issues/560)."""
+	with sample_connection() as connection:
+		row = connection.execute("SELECT public_name FROM banks WHERE internal_name = %s", (name,)).fetchone()
+	assert row == (public_name,)
