@@ -106,6 +106,15 @@ Fonctionnalité: Socle de test
 		Alors le fichier « Machin_essai.log » du répertoire des logs contient « [horodatage] INFO 3 sonores vérifiés », « [horodatage] WARNING fichier endommagé »
 		Et le fichier « Machin_essai.log » du répertoire des logs se lit et s'écrit par le groupe, pas par les autres
 
+	Scénario: Une erreur imprévue journalisée garde son traceback, sur la sortie d'erreur et dans le fichier de log
+		https://github.com/dascritch/machincast/issues/574 : les formateurs ne gardaient que le message, et
+		« intranet: request /login failed » ne disait pas pourquoi.
+		Étant donné le répertoire des logs créé
+		Et les messages configurés pour l'exécutable "Machin_essai"
+		Quand le code journalise l'erreur « requête échouée » d'une division par zéro
+		Alors la sortie d'erreur commence par « [horodatage] requête échouée », puis donne le traceback de la division par zéro
+		Et le fichier « Machin_essai.log » du répertoire des logs commence par « [horodatage] ERROR requête échouée », puis donne le traceback de la division par zéro
+
 	Scénario: Sans répertoire des logs, les messages ne vont que sur les sorties
 		Étant donné les messages configurés pour l'exécutable "Machin_essai"
 		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »
