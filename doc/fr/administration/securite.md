@@ -8,6 +8,8 @@
 - [Les comptes du poste](#les-comptes-du-poste)
 - [Les rôles dans la base](#les-rôles-dans-la-base)
 - [Les sockets de Machin player](#les-sockets-de-machin-player)
+- [Réservé au réseau de la radio, jamais à Internet](#réservé-au-réseau-de-la-radio-jamais-à-internet)
+- [HTTPS seulement, même par une simple adresse IP](#https-seulement-même-par-une-simple-adresse-ip)
 - [Le serveur intranet, exposé au réseau](#le-serveur-intranet-exposé-au-réseau)
 - [Ce qui demande un administrateur](#ce-qui-demande-un-administrateur)
 - [Les fichiers sonores](#les-fichiers-sonores)
@@ -63,14 +65,40 @@ Machin player publie son état et reçoit des demandes (couper l'antenne, interr
 - Machin player ne croit le compte d'une demande que sur la socket de l'intranet, où personne d'autre ne se connecte. Le serveur intranet le tient de la session de la personne connectée.
 - Le log de la base dit, pour chaque action d'antenne demandée, d'où elle vient (`interface` ou `intranet`) et quel compte de l'API l'a faite. Le nom du compte reste, même une fois le compte supprimé.
 
+## Réservé au réseau de la radio, jamais à Internet
+
+**MachinCast ne doit jamais être joignable directement depuis Internet.** Le poste de diffusion fait l'antenne : il se protège comme une régie, pas comme un serveur web.
+
+- **Aucune redirection de port** vers le poste depuis la box ou le routeur de la radio, ni vers le port de l'intranet (8443 par défaut), ni vers un autre.
+- **Pour travailler à distance, passer par le VPN de la radio** : on rejoint d'abord son réseau, puis l'intranet, comme depuis un poste de la radio.
+- **Limiter l'écoute au réseau de la radio** : Machin intranet écoute par défaut sur toutes les adresses du poste (`intranet.address`, `0.0.0.0`). Sur un poste qui a plusieurs cartes réseau, ou une adresse publique, `intranet.address` se règle sur l'adresse du réseau de la radio. Un pare-feu du poste peut aussi n'accepter le port de l'intranet que de ce réseau, par exemple `sudo ufw allow from 192.168.1.0/24 to any port 8443 proto tcp`.
+- **PostgreSQL n'écoute pas pour MachinCast** : tous ses programmes s'y connectent par la socket Unix du poste. Rien n'oblige la base à écouter le réseau.
+
+**Le nombre d'utilisateurs est limité, par conception.** L'intranet et son API servent l'équipe de la radio, pas un public :
+
+- chaque compte se crée à la main, dans l'onglet **API** de l'interface, au pupitre ; il n'y a ni inscription, ni récupération de mot de passe ;
+- chaque connexion s'accepte à la main, au pupitre, et un compte n'a que deux connexions en attente à la fois ;
+- chaque action d'antenne demandée depuis l'intranet est consignée avec le compte qui l'a faite.
+
+Il se gère donc comme les clés du studio : quelques comptes nominatifs, un par personne, jamais partagés, désactivés quand la personne quitte l'équipe. Pour un public, une page de la radio publie le titre en cours (la sortie HTML et `.pls` de Machin player) ; elle ne passe pas par l'intranet.
+
+## HTTPS seulement, même par une simple adresse IP
+
+**Toutes les communications avec Machin intranet sont chiffrées, en HTTPS, sans exception** ([#538](https://github.com/dascritch/machincast/issues/538)) : les pages, l'API, la connexion, ses cookies et ses jetons.
+
+- **Aucun port en clair.** Machin intranet n'écoute qu'en TLS ; une requête en HTTP clair sur son port ne reçoit aucune réponse HTTP. Il n'y a pas non plus de redirection du clair vers le chiffré, qui laisserait passer la première requête en clair.
+- **Même par une simple adresse IP.** Un réseau de radio n'a souvent ni nom de domaine interne ni autorité de certification. Sans certificat donné, Machin intranet en génère un, au nom du poste et de **chacune de ses adresses IP** : `https://10.0.0.12:8443/` est chiffré comme le serait un nom.
+- **Le premier contact se vérifie.** Ce certificat est auto-signé : le navigateur avertit à la première connexion. On compare alors l'empreinte qu'il affiche à celle que donne le journal de Machin intranet au démarrage (`intranet sur https://10.0.0.12:8443/, certificat 9B:21:…`), puis on l'accepte. Un certificat de l'autorité de certification de la radio, donné par `intranet.certificate` et `intranet.key`, évite cet avertissement.
+- **Le navigateur ne revient jamais en clair.** Chaque réponse le lui demande (`Strict-Transport-Security`), et le cookie de session ne part que sur une connexion chiffrée (`Secure`).
+- **Pour un script qui appelle l'API**, on lui donne le certificat à croire (par exemple `curl --cacert cert.pem`), plutôt que de désactiver la vérification (`curl -k`), qui l'exposerait à une interception.
+
+Pourquoi même sur le réseau de la radio : un Wi-Fi de locaux associatifs, un poste invité ou un appareil compromis suffisent à lire ce qui passe en clair. Le mot de passe, le code donné au pupitre et le jeton de session ne passent donc jamais en clair, quel que soit le réseau.
+
 ## Le serveur intranet, exposé au réseau
 
 Machin intranet est le seul programme de MachinCast qui écoute le réseau. Il est **éteint par défaut**, et s'allume dans **Fichier → Paramètres du service…**, page **Intranet** ([Serveur intranet](commandes.md#serveur-intranet--machin-intranet)).
 
-**Le transport**
-
-- HTTPS seulement : aucune réponse en clair. Sans certificat donné, Machin intranet en génère un auto-signé, dont le journal donne l'empreinte, à comparer à celle qu'affiche le navigateur à la première connexion.
-- Chaque réponse interdit au navigateur de revenir en clair, d'afficher la page dans un cadre, de charger une ressource d'ailleurs ou de garder la page en cache. Un formulaire envoyé d'un autre site est refusé.
+**Le transport** : HTTPS seulement ([ci-dessus](#https-seulement-même-par-une-simple-adresse-ip)). Chaque réponse interdit aussi au navigateur d'afficher la page dans un cadre, de charger une ressource d'ailleurs ou de garder la page en cache, et un formulaire envoyé d'un autre site est refusé.
 
 **Les connexions**
 
@@ -120,5 +148,4 @@ Le protocole des sockets est le même : le compte de l'API reste obligatoire sur
 ## Limites connues
 
 - Le certificat auto-signé se refait quand une adresse du poste change, en DHCP : chaque navigateur doit alors l'accepter de nouveau, en comparant son empreinte. Un certificat donné par l'autorité de certification de la radio (`intranet.certificate` et `intranet.key`) l'évite.
-- Machin intranet écoute par défaut sur toutes les adresses du poste (`intranet.address`, `0.0.0.0`). Sur un poste qui a aussi une adresse publique, mieux vaut le limiter à celle du réseau de la radio.
 - Les constats de la relecture de sécurité qui restent à corriger sont suivis dans [#546](https://github.com/dascritch/machincast/issues/546).

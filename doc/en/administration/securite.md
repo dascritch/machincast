@@ -8,6 +8,8 @@
 - [The accounts of the computer](#the-accounts-of-the-computer)
 - [The roles in the database](#the-roles-in-the-database)
 - [The sockets of Machin player](#the-sockets-of-machin-player)
+- [For the network of the radio, never for the Internet](#for-the-network-of-the-radio-never-for-the-internet)
+- [HTTPS only, even through a plain IP address](#https-only-even-through-a-plain-ip-address)
 - [The intranet server, open to the network](#the-intranet-server-open-to-the-network)
 - [What needs an administrator](#what-needs-an-administrator)
 - [The sound files](#the-sound-files)
@@ -63,14 +65,40 @@ Machin player publishes its state and receives requests (cutting the on-air outp
 - Machin player believes the account of a request only on the socket of the intranet, where nobody else connects. The intranet server takes it from the session of the person logged in.
 - The log of the database tells, for each on-air action requested, where it comes from (`interface` or `intranet`) and which API account made it. The name of the account stays, even once the account is deleted.
 
+## For the network of the radio, never for the Internet
+
+**MachinCast must never be reachable directly from the Internet.** The playout computer makes the on-air output: it is protected like a control room, not like a web server.
+
+- **No port forwarding** to the computer from the box or the router of the radio, neither to the port of the intranet (8443 by default) nor to any other.
+- **To work remotely, go through the VPN of the radio**: first join its network, then the intranet, as from a computer of the radio.
+- **Limit the listening to the network of the radio**: Machin intranet listens by default on all the addresses of the computer (`intranet.address`, `0.0.0.0`). On a computer with several network cards, or a public address, set `intranet.address` to the address on the network of the radio. A firewall on the computer can also accept the port of the intranet only from that network, for instance `sudo ufw allow from 192.168.1.0/24 to any port 8443 proto tcp`.
+- **PostgreSQL does not listen for MachinCast**: all its programs connect through the Unix socket of the computer. Nothing requires the database to listen to the network.
+
+**The number of users is limited, by design.** The intranet and its API serve the team of the radio, not a public:
+
+- each account is created by hand, in the **API** tab of the interface, at the desk; there is no sign-up, nor password recovery;
+- each connection is accepted by hand, at the desk, and an account has only two connections waiting at a time;
+- each on-air action requested from the intranet is logged with the account that made it.
+
+It is therefore managed like the keys of the studio: a few personal accounts, one per person, never shared, disabled when the person leaves the team. For a public, a page of the radio publishes the current title (the HTML and `.pls` outputs of Machin player); it does not go through the intranet.
+
+## HTTPS only, even through a plain IP address
+
+**All communications with Machin intranet are encrypted, in HTTPS, without exception** ([#538](https://github.com/dascritch/machincast/issues/538)): the pages, the API, the login, its cookies and its tokens.
+
+- **No port in clear.** Machin intranet listens only in TLS; a request in plain HTTP on its port gets no HTTP answer. There is no redirection from clear to encrypted either, which would let the first request through in clear.
+- **Even through a plain IP address.** The network of a radio often has neither an internal domain name nor a certificate authority. Without a certificate given, Machin intranet generates one, in the name of the computer and of **each of its IP addresses**: `https://10.0.0.12:8443/` is encrypted as a name would be.
+- **The first contact is checked.** This certificate is self-signed: the browser warns at the first connection. Compare the fingerprint it shows with the one the journal of Machin intranet gives at startup (`intranet on https://10.0.0.12:8443/, certificate 9B:21:…`), then accept it. A certificate from the certificate authority of the radio, given by `intranet.certificate` and `intranet.key`, avoids this warning.
+- **The browser never comes back in clear.** Each answer asks it to (`Strict-Transport-Security`), and the session cookie only leaves over an encrypted connection (`Secure`).
+- **For a script that calls the API**, give it the certificate to trust (for instance `curl --cacert cert.pem`), rather than disabling the check (`curl -k`), which would expose it to interception.
+
+Why even on the network of the radio: the Wi-Fi of shared premises, a guest computer or a compromised device are enough to read what passes in clear. The password, the code given at the desk and the session token therefore never pass in clear, whatever the network.
+
 ## The intranet server, open to the network
 
 Machin intranet is the only MachinCast program that listens to the network. It is **switched off by default**, and is switched on in **File → Service settings…**, **Intranet** page ([Commands and messages](commandes.md)).
 
-**The transport**
-
-- HTTPS only: no answer in clear. Without a certificate given, Machin intranet generates a self-signed one, whose fingerprint the journal gives, to compare with the one the browser shows at the first connection.
-- Each answer forbids the browser to come back in clear, to show the page in a frame, to load a resource from elsewhere or to keep the page in cache. A form sent from another site is refused.
+**The transport**: HTTPS only ([above](#https-only-even-through-a-plain-ip-address)). Each answer also forbids the browser to show the page in a frame, to load a resource from elsewhere or to keep the page in cache, and a form sent from another site is refused.
 
 **The connections**
 
@@ -120,5 +148,4 @@ The protocol of the sockets is the same: the API account stays mandatory on the 
 ## Known limits
 
 - The self-signed certificate is made again when an address of the computer changes, in DHCP: each browser must then accept it again, comparing its fingerprint. A certificate given by the certificate authority of the radio (`intranet.certificate` and `intranet.key`) avoids it.
-- Machin intranet listens by default on all the addresses of the computer (`intranet.address`, `0.0.0.0`). On a computer that also has a public address, better limit it to the one of the network of the radio.
 - The findings of the security review still to fix are followed in [#546](https://github.com/dascritch/machincast/issues/546).
