@@ -1967,10 +1967,16 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 - **Adresse à donner** (`network.to_give`) : celle d'écoute ; sur toutes les adresses, `0.0.0.0`, le nom de domaine interne du poste, s'il en a un, puis chacune de ses adresses IP, `https://10.0.0.12:8443/` par exemple.
 - **Service** : `install.sh --service` installe et active l'unité `machincast-intranet.service` (`installation.intranet_unit`), sous le compte de MachinCast, qui endosse le rôle `machincast_intranet` ; elle démarre avec le poste et s'arrête aussitôt tant que l'intranet est éteint, sans que systemd la relance (`SuccessExitStatus` et `RestartPreventExitStatus` 4).
 	La règle polkit permet à ce compte de la démarrer, l'arrêter et la redémarrer, avec le mot de passe d'un administrateur, comme le service de diffusion ; `install.sh --remove-service` la retire.
-	Sans le service, `Machin intranet` se lance à la main.
+	Sans le service, `Machin intranet` se lance à la main, ou par la page « Intranet » ci-dessous ([#544](https://github.com/dascritch/machincast/issues/544)).
+- **PID** (`machincast.intranet.process`) : tant qu'il sert, Machin intranet note son PID dans son répertoire d'état, `machincast-intranet.pid`, et l'efface en s'arrêtant.
+	Un PID resté d'un arrêt brutal, ou repris par un programme qui n'est pas Machin intranet, ne compte pas.
+- **`--keep-open`** : un arrêt sur une erreur garde le terminal ouvert sur sa raison, jusqu'à sa fermeture ; pour la fenêtre qu'ouvre l'interface.
 - **Paramètres du service**, page « Intranet » (`preferences.ui`, `PreferencesWindow._show_intranet`) : « Allumer le serveur intranet, en HTTPS seulement », le port et le délai de validation, grisés serveur éteint, et l'adresse à donner aux autres postes.
 	« OK » écrit `enabled`, `port` et `validation` (`preferences._write_intranet` ; une section absente ne reçoit pas les valeurs par défaut) ; l'adresse d'écoute et le certificat restent ceux du fichier.
-	Un réglage changé redémarre l'unité, ou l'arrête, l'intranet éteint (`machincast.interface.intranet_switch`) ; la barre d'état dit l'adresse, ou la réponse de systemctl, ou, sans le service, qu'il faut lancer `Machin intranet` à la main.
+	Un réglage changé redémarre l'unité, ou l'arrête, l'intranet éteint (`machincast.interface.intranet_switch`) ; la barre d'état dit la réponse de systemctl s'il refuse.
+	systemctl réussit dès que Machin intranet est lancé : l'unité est suivie quelques secondes, comme celle de Machin player ([§ 8.11](#811-menu)), et « Serveur intranet allumé » ne s'annonce, avec l'adresse, que si elle tourne encore ; sinon, son code de sortie, ce qu'il veut dire, et la dernière ligne de son journal ([#544](https://github.com/dascritch/machincast/issues/544)).
+	Sans le service, un réglage changé arrête le Machin intranet qui tourne, par SIGTERM comme <kbd>Ctrl</kbd>+<kbd>C</kbd>, retrouvé par son PID ; puis, l'intranet allumé, le relance dans un terminal, comme la diffusion d'essai : `bin/Machin --config <configuration de l'interface> intranet --keep-open`.
+	La barre d'état dit l'adresse à donner, ou qu'aucun terminal n'est trouvé, ou que Machin intranet tourne encore après 10 secondes.
 
 ### 13.2 Connexion validée au pupitre
 

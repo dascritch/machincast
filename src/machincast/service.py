@@ -147,12 +147,12 @@ class Startup:
 		return (self.active in ("failed", "inactive")) or (self.sub == "auto-restart")
 
 
-def read_startup() -> Startup:
-	"""L'état du service et le code de sortie de son dernier Machin player, d'après systemctl ; arrêté si systemctl
-	manque ou échoue."""
+def read_startup(unit: str = UNIT) -> Startup:
+	"""L'état du service, ou d'une autre unité, et le code de sortie de son dernier programme, d'après systemctl ;
+	arrêté si systemctl manque ou échoue."""
 	try:
 		output = subprocess.run(
-			["systemctl", "show", UNIT, "--property=ActiveState,SubState,Result,ExecMainStatus"],
+			["systemctl", "show", unit, "--property=ActiveState,SubState,Result,ExecMainStatus"],
 			capture_output=True,
 			text=True,
 			timeout=DELAY,
@@ -180,14 +180,14 @@ JOURNAL_LINES = 5
 """Les dernières lignes du journal du service montrées après un démarrage manqué."""
 
 
-def journal(since: datetime, lines: int = JOURNAL_LINES) -> list[str]:
+def journal(since: datetime, lines: int = JOURNAL_LINES, unit: str = UNIT) -> list[str]:
 	"""Les dernières lignes du journal du service depuis cet instant ; aucune si journalctl
 	manque, échoue, ou si le compte ne peut pas le lire (groupe systemd-journal, que donne install.sh)."""
 	try:
 		output = subprocess.run(
 			[
 				"journalctl",
-				f"--unit={UNIT}",
+				f"--unit={unit}",
 				f"--since=@{int(since.timestamp())}",
 				f"--lines={lines}",
 				"--output=cat",
