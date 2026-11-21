@@ -71,7 +71,8 @@ def _number(given: dict[str, list[str]], name: str, default: int, maximum: int) 
 	values = given.get(name)
 	if values is None:
 		return default
-	if not values[0].isdigit():
+	# isdigit accepte « ² », que int refuse (https://github.com/dascritch/machincast/issues/553).
+	if (not values[0].isascii()) or (not values[0].isdecimal()):
 		return None
 	number = int(values[0])
 	if number > maximum:

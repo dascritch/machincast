@@ -72,6 +72,17 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Quand je saisis le code donné au pupitre
 		Alors la session est invalide
 
+	Scénario: Une session valide dont le délai est passé mène à la mire, sans que sa lecture écrive en base
+		https://github.com/dascritch/machincast/issues/553 : chaque requête lit la session ; seules la connexion et la
+		validation écrivent.
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
+		Et que j'ai saisi le code donné au pupitre
+		Et que la session valide a expiré
+		Quand je demande « GET / »
+		Alors la réponse est 303, vers « /login »
+		Et la base garde la session à l'état « valid », sans l'avoir écrite
+
 	Scénario: Passé le délai de validation, la session est invalide
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
 		Et que le pupitre a accepté la connexion
@@ -184,6 +195,12 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 			| rang     |
 			| premier  |
 			| second   |
+
+	Scénario: Le freinage oublie les adresses sans échec récent, et sa mémoire ne grossit pas
+		https://github.com/dascritch/machincast/issues/553
+		Étant donné un freinage à l'horloge imitée
+		Quand l'adresse « 10.0.0.31 » échoue, puis, 16 minutes plus tard, l'adresse « 10.0.0.32 »
+		Alors le freinage ne se souvient que de « 10.0.0.32 »
 
 	Scénario: Un formulaire envoyé d'un autre site est refusé
 		Quand je me connecte en « regie », mot de passe « tisane-au-micro », depuis l'origine « https://ailleurs.example »

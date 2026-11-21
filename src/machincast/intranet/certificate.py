@@ -90,8 +90,8 @@ def generate(pair: Pair, names: list[str], addresses: list[str]) -> None:
 	finally:
 		os.umask(mask)
 	key.chmod(0o600)
-	key.replace(pair.key)
-	certificate.replace(pair.certificate)
+	key.replace(pair.key)  # fichier de MachinCast : la clé générée, à sa place
+	certificate.replace(pair.certificate)  # fichier de MachinCast : le certificat généré, à sa place
 	log.info(_("intranet certificate generated: {path}").format(path=pair.certificate))
 
 

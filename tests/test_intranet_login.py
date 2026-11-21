@@ -18,7 +18,7 @@ from machincast.interface.queries import api_users
 from machincast.intranet import sessions
 from machincast.intranet.app import Intranet
 from machincast.intranet.pages import Pages
-from machincast.intranet.portal import Portal
+from machincast.intranet.portal import Portal, Throttle
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import Connection
@@ -320,3 +320,42 @@ def pending_count(empty_database: Connection, name: str, count: str) -> None:
 		(name,),
 	).fetchone()
 	assert found == (int(count),)
+
+
+@given("la session valide a expiré")
+def expired(empty_database: Connection) -> None:
+	empty_database.execute(
+		"UPDATE api_sessions SET expires_at = clock_timestamp() - interval '1 second' WHERE id = %s",
+		(int(str(_row(empty_database)[8])),),
+	)
+
+
+@then(parsers.parse("la base garde la session à l'état « {state} », sans l'avoir écrite"))
+def unwritten(empty_database: Connection, state: str) -> None:
+	assert (_row(empty_database)[0], _row(empty_database)[1]) == (state, None)
+	row = empty_database.execute("SELECT ended_at FROM api_sessions ORDER BY id DESC LIMIT 1").fetchone()
+	assert row == (None,)
+
+
+@dataclass
+class Moments:
+	now: float = 1000.0
+
+
+@given("un freinage à l'horloge imitée", target_fixture="throttle")
+def imitated_throttle() -> tuple[Throttle, Moments]:
+	moments = Moments()
+	return Throttle(clock=lambda: moments.now), moments
+
+
+@when(parsers.parse("l'adresse « {first} » échoue, puis, {minutes:d} minutes plus tard, l'adresse « {second} »"))
+def two_failures(throttle: tuple[Throttle, Moments], first: str, minutes: int, second: str) -> None:
+	held, moments = throttle
+	held.failed(first)
+	moments.now += minutes * 60
+	held.failed(second)
+
+
+@then(parsers.parse("le freinage ne se souvient que de « {address} »"))
+def remembers_only(throttle: tuple[Throttle, Moments], address: str) -> None:
+	assert list(throttle[0].failures) == [address]

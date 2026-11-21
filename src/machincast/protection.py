@@ -32,6 +32,9 @@ machincast.personal)."""
 
 _PYTHON = re.compile(
 	r"\.(?:unlink|rmdir|rename)\(|\b(?:os\.(?:remove|unlink|rmdir|removedirs|rename|renames|replace)|shutil\.(?:rmtree|move))\("
+	# Le remplacement par Path.replace, qui écrase sa cible : un seul argument, ni texte ni mot-clé, à la différence de
+	# str.replace("a", "b") et de datetime.replace(tzinfo=…) (https://github.com/dascritch/machincast/issues/553).
+	r"|\.replace\(\s*[^,()\"'=\s][^,()\"'=]*\)"
 )
 _BASH = re.compile(r"(?:^|[\s;&|(`'\"])(?:rm|rmdir|mv|unlink|shred)\s")
 

@@ -82,7 +82,19 @@ class Throttle:
 		return len(self._recent(address)) >= FAILURES
 
 	def failed(self, address: str) -> None:
+		self._purge()
 		self._recent(address).append(self.clock())
+
+	def _purge(self) -> None:
+		"""Oublie les clés sans échec récent : la mémoire ne grossit pas avec les adresses qui changent
+		(https://github.com/dascritch/machincast/issues/553)."""
+		now = self.clock()
+		forgotten = []
+		for key, moments in self.failures.items():
+			if (moments == []) or (now - moments[-1] >= PENALTY):
+				forgotten.append(key)
+		for key in forgotten:
+			del self.failures[key]
 
 	def succeeded(self, address: str) -> None:
 		self.failures.pop(address, None)

@@ -54,6 +54,19 @@ Fonctionnalité: API REST v1 de l'intranet, en lecture
 		Quand je demande à l'API « GET /api/v1/sounds?limit=5000 »
 		Alors l'API répond 400
 
+	Plan du scénario: Un paramètre de page illisible est refusé, 400, jamais une erreur interne
+		https://github.com/dascritch/machincast/issues/553 : « ² » (%C2%B2) passe isdigit, mais pas int ; « ٣ » (%D9%A3), un
+		chiffre arabe-indien, passe les deux, mais n'est pas un identifiant de l'API.
+		Quand je demande à l'API « GET /api/v1/sounds?<paramètre> »
+		Alors l'API répond 400
+
+		Exemples:
+			| paramètre      |
+			| limit=%C2%B2   |
+			| after=%C2%B2   |
+			| limit=%D9%A3   |
+			| limit=-1       |
+
 	Scénario: La fiche d'une banque donne ses sonores, dans l'ordre, et ses répertoires
 		Étant donné les sonores :
 			| artist      | title         | type | state  | duration | location               |

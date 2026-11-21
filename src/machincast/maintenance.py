@@ -48,6 +48,8 @@ RECORDING = Recording(role=None)
 (https://github.com/dascritch/machincast/issues/341)."""
 BACKUP_DELAY = 3600
 """Secondes laissées à pg_dump : une grosse base, sur un disque lent, prend du temps."""
+BACKUP_UMASK = 0o077
+"""Une sauvegarde naît en 0600 : elle contient tout, empreintes des mots de passe de l'intranet comprises."""
 
 
 def _role_names() -> tuple[str, ...]:
@@ -126,6 +128,9 @@ def back_up(configuration: Configuration, directory: Path) -> Path:
 			timeout=BACKUP_DELAY,
 			stdin=subprocess.DEVNULL,
 			check=False,
+			# La sauvegarde garde les empreintes des mots de passe de l'intranet : lisible du seul compte
+			# (https://github.com/dascritch/machincast/issues/553).
+			umask=BACKUP_UMASK,
 		)
 	except (OSError, subprocess.SubprocessError) as error:
 		raise BackupFailure(str(error)) from error
