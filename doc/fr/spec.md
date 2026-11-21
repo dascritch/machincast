@@ -400,6 +400,10 @@ Quand l'interface supprime un élément, les références dans `airplay` et `log
 	Si deux occurrences bornées se chevauchent quand même, le binaire joue le **dernier modifié en base**.
 3. Plusieurs fils musicaux peuvent coexister selon l'heure (nuit, jour), régis par leur récurrence.
 4. Le changement d'heure ne fait l'objet d'aucune règle particulière : la diffusion est toujours en fil musical à cette heure de la nuit.
+	Un événement garde son heure murale ([#566](https://github.com/dascritch/machincast/issues/566)).
+	Pendant l'heure répétée du passage à l'heure d'hiver, il couvre chacune des deux occurrences de ses heures : une émission de 02:30 à 03:30 joue de 02:30 à 03:00 à l'heure d'été, laisse le fil musical de 02:00 à 02:30 à l'heure d'hiver, puis reprend jusqu'à 03:30 ; le recul de l'heure, lui, n'est pas annoncé comme une coupure.
+	Pendant l'heure sautée du passage à l'heure d'été, un début qui n'existe pas prend effet à 03:00, quand l'heure murale le dépasse.
+	Le prochain changement de la grille (`next_change`) n'est jamais un instant passé : à 02:10 de la seconde occurrence de l'heure, un début à 02:30 est celui de cette seconde occurrence.
 5. Occurrences ([#12](https://github.com/dascritch/machincast/issues/12), `machincast.shared.grid`) : `starts_at` et `ends_at` sont ceux de la première occurrence.
 	Sans récurrence, l'événement couvre `[debut, fin[`, ou `[debut, ∞[` sans fin.
 	Avec récurrence, il revient chaque jour coché à partir du jour de `starts_at`, à l'heure murale de `starts_at`, jusqu'à l'heure murale de `ends_at` autant de jours plus tard que la première occurrence : un événement peut passer minuit, et c'est le jour de son début qui compte.

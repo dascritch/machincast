@@ -29,7 +29,7 @@ At any moment, the air follows **a single event**, chosen this way:
 - **Past midnight**: an event can end the next day, for instance from 23:00 to 01:00; for a recurring event, the day of the start counts.
 - **Show or special without an end**: it stays on air until the end of its list, which does not loop; the event below then resumes. An event of the same priority that starts after it takes the air; it then resumes where it was, if its list is not exhausted.
 - **Overlap**: two events of the same priority do not overlap: the [card of an event](grille.md#card-of-an-event) refuses it.
-- **Change of time**: an event keeps its hour. A show at 21:00 stays at 21:00 after the change to summer or winter time; the hour skipped or repeated, the night of the change, falls into the night background programming.
+- **Change of time**: an event keeps its hour. A show at 21:00 stays at 21:00 after the change to summer or winter time; the hour skipped or repeated, the night of the change, falls into the night background programming. A show scheduled during that hour ([#566](https://github.com/dascritch/machincast/issues/566)): at the change to summer time, a show at 02:30 starts at 03:00, when the clock jumps; at the change to winter time, a show from 02:30 to 03:30 plays from 02:30 to 03:00, gives way to the background programming during the first half of the repeated hour, then resumes from 02:30 to 03:30.
 
 The [calendar](grille.md#calendar) shows the resulting schedule, week by week.
 

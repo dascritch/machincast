@@ -405,7 +405,37 @@ def next_change(events: Iterable[Event], instant: datetime) -> datetime | None:
 				after.append(candidate)
 	if not after:
 		return None
-	return min(after).astimezone()
+	return _instant_of(min(after), instant)
+
+
+def _instant_of(wall: datetime, instant: datetime) -> datetime:
+	"""L'instant où l'heure murale du poste atteint wall, après l'instant
+	(https://github.com/dascritch/machincast/issues/566) : dans l'heure répétée du passage à l'heure d'hiver, la seconde
+	occurrence quand la première est passée ; dans l'heure sautée du passage à l'heure d'été, la fin du saut, où l'heure
+	murale passe déjà wall."""
+	first = wall.astimezone()
+	if wall_hour(first) != wall:
+		return _end_of_skip(wall, first)
+	reference = instant
+	if reference.tzinfo is None:
+		reference = reference.astimezone()
+	if first > reference:
+		return first
+	return wall.replace(fold=1).astimezone()
+
+
+def _end_of_skip(wall: datetime, after: datetime) -> datetime:
+	"""Le premier instant, à la seconde, dont l'heure murale atteint wall, une heure murale sautée : entre l'instant
+	lu avec le décalage d'après le saut, encore avant lui, et celui lu avec le décalage d'avant, déjà après."""
+	low = wall.replace(fold=1).astimezone()
+	high = after
+	while high - low > timedelta(seconds=1):
+		middle = low + (high - low) / 2
+		if wall_hour(middle) >= wall:
+			high = middle
+		else:
+			low = middle
+	return (high - timedelta(microseconds=high.microsecond)).astimezone()
 
 
 FOLLOWING_EVENT_HORIZON = timedelta(days=7)
