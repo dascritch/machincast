@@ -10,7 +10,7 @@
    (https://github.com/dascritch/machincast/issues/547).
 3. Une session valide sert l'intranet comme l'API : le même cookie, ou « Authorization: Bearer ».
 
-Les heures sont celles de la base (clock_timestamp()) ; un délai passé se juge à la lecture (STATE_NOW). Ces
+Les heures sont celles de la base (clock_timestamp()) ; un délai passé se juge à la lecture (queries.STATE_NOW). Ces
 fonctions, sans asyncio, s'appellent hors de la boucle du serveur (asyncio.to_thread), chacune dans sa transaction.
 """
 
@@ -22,6 +22,7 @@ from datetime import datetime
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.intranet import queries
 from machincast.shared import passwords
 
 Connection = psycopg.Connection[TupleRow]
@@ -67,9 +68,7 @@ class Session:
 def authenticate(connection: Connection, name: str, password: str) -> int | None:
 	"""L'identifiant du compte actif à ce nom et ce mot de passe ; None sinon, dans le même temps."""
 	with connection.transaction():
-		row = connection.execute(
-			"SELECT id, password_hash FROM api_users WHERE name = %s AND disabled_at IS NULL", (name,)
-		).fetchone()
+		row = queries.password_of(connection, name)
 	if row is None:
 		passwords.matches(password, DECOY)
 		return None
@@ -90,34 +89,18 @@ def open_pending(
 		_expire(connection)
 		# Le compte verrouillé le temps de compter, sans droit d'écriture sur api_users : deux connexions simultanées ne
 		# dépassent pas la limite.
-		connection.execute("SELECT pg_advisory_xact_lock(%s, %s)", (PENDING_LOCK, user))
-		waiting = connection.execute(
-			"SELECT count(*) FROM api_sessions WHERE user_id = %s AND state = 'pending'", (user,)
-		).fetchone()
-		if (waiting is not None) and (int(waiting[0]) >= MAXIMUM_PENDING):
+		queries.lock_user(connection, PENDING_LOCK, user)
+		if queries.pending_count(connection, user) >= MAXIMUM_PENDING:
 			return None
-		connection.execute(
-			"INSERT INTO api_sessions (user_id, token_hash, code, user_agent, source_ip, validate_before)"
-			" VALUES (%s, %s, %s, %s, %s, clock_timestamp() + make_interval(mins => %s))",
-			(user, fingerprint(value), given, user_agent[:500], (address) or (None), validation),
+		queries.insert_pending(
+			connection, user, fingerprint(value), given, (user_agent[:500], (address) or (None)), validation
 		)
 	return given
 
 
-STATE_NOW = (
-	"CASE WHEN (s.state = 'pending' AND s.validate_before < clock_timestamp())"
-	" OR (s.state = 'valid' AND s.expires_at < clock_timestamp()) THEN 'invalid' ELSE s.state::text END"
-)
-"""L'état d'une session à l'instant, son délai passé : invalide."""
-
-
 def _expire(connection: Connection) -> None:
 	"""Les sessions à valider dont le délai est passé, et les valides expirées, deviennent invalides."""
-	connection.execute(
-		"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp()"
-		" WHERE (state = 'pending' AND validate_before < clock_timestamp())"
-		" OR (state = 'valid' AND expires_at < clock_timestamp())"
-	)
+	queries.expire_sessions(connection)
 
 
 def find(connection: Connection, value: str) -> Session | None:
@@ -125,11 +108,7 @@ def find(connection: Connection, value: str) -> Session | None:
 	with connection.transaction():
 		# Le délai se juge à la lecture, sans rien écrire : chaque requête lit, seule la connexion ou la validation
 		# écrit (https://github.com/dascritch/machincast/issues/553).
-		row = connection.execute(
-			f"SELECT s.id, u.name, u.role::text, {STATE_NOW}, s.expires_at FROM api_sessions s"
-			" JOIN api_users u ON u.id = s.user_id WHERE s.token_hash = %s AND u.disabled_at IS NULL",
-			(fingerprint(value),),
-		).fetchone()
+		row = queries.session_of(connection, fingerprint(value))
 	if row is None:
 		return None
 	identifier, user, role, state, expires_at = row
@@ -144,49 +123,28 @@ def validate(connection: Connection, value: str, given: str, hours: int) -> str:
 	« exhausted », un code faux, le dernier permis, qui rend la session invalide ; « invalid », la session ne se
 	valide plus."""
 	with connection.transaction():
-		row = connection.execute(
-			"SELECT id, code, attempts, accepted_at, validate_before < clock_timestamp() FROM api_sessions"
-			" WHERE token_hash = %s AND state = 'pending' FOR UPDATE",
-			(fingerprint(value),),
-		).fetchone()
+		row = queries.pending_session(connection, fingerprint(value))
 		if row is None:
 			return "invalid"
 		identifier, expected, attempts, accepted_at, late = row
 		if late:
-			connection.execute(
-				"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp() WHERE id = %s",
-				(identifier,),
-			)
+			queries.invalidate(connection, identifier)
 			return "invalid"
 		if accepted_at is None:
 			# Pas encore acceptée au pupitre : le code n'y est pas encore donné, aucun n'est essayé.
 			return "waiting"
 		if secrets.compare_digest(str(expected), given.strip().replace(" ", "")):
-			connection.execute(
-				# Un seul instant pour la validation et la fin de la session : elle dure exactement hours.
-				"UPDATE api_sessions SET state = 'valid', code = NULL, validated_at = moment.now,"
-				" expires_at = moment.now + make_interval(hours => %s) FROM (SELECT clock_timestamp() AS now) moment"
-				" WHERE id = %s",
-				(hours, identifier),
-			)
+			queries.validate(connection, identifier, hours)
 			return "valid"
 		assert isinstance(attempts, int)
 		if attempts + 1 >= ATTEMPTS:
-			connection.execute(
-				"UPDATE api_sessions SET state = 'invalid', code = NULL, attempts = attempts + 1,"
-				" ended_at = clock_timestamp() WHERE id = %s",
-				(identifier,),
-			)
+			queries.exhaust(connection, identifier)
 			return "exhausted"
-		connection.execute("UPDATE api_sessions SET attempts = attempts + 1 WHERE id = %s", (identifier,))
+		queries.wrong_attempt(connection, identifier)
 		return "wrong"
 
 
 def end(connection: Connection, value: str) -> None:
 	"""La déconnexion : la session devient invalide."""
 	with connection.transaction():
-		connection.execute(
-			"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp()"
-			" WHERE token_hash = %s AND state <> 'invalid'",
-			(fingerprint(value),),
-		)
+		queries.end(connection, fingerprint(value))

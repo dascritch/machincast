@@ -120,3 +120,115 @@ def previous_plays(connection: Connection, count: int = PLAYS) -> list[Row]:
 		" WHERE d.line_type = 'start' ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
 		(count,),
 	)
+
+
+# ─── Sessions (machincast.intranet.sessions, https://github.com/dascritch/machincast/issues/539) ───
+# Sans transaction : machincast.intranet.sessions les ouvre, et y enchaîne ces requêtes.
+
+STATE_NOW = (
+	"CASE WHEN (s.state = 'pending' AND s.validate_before < clock_timestamp())"
+	" OR (s.state = 'valid' AND s.expires_at < clock_timestamp()) THEN 'invalid' ELSE s.state::text END"
+)
+"""L'état d'une session à l'instant, son délai passé : invalide."""
+
+
+def password_of(connection: Connection, name: str) -> TupleRow | None:
+	"""L'identifiant et l'empreinte du mot de passe du compte actif à ce nom."""
+	return connection.execute(
+		"SELECT id, password_hash FROM api_users WHERE name = %s AND disabled_at IS NULL", (name,)
+	).fetchone()
+
+
+def lock_user(connection: Connection, lock: int, user: int) -> None:
+	"""Le compte verrouillé jusqu'à la fin de la transaction, sans droit d'écriture sur api_users."""
+	connection.execute("SELECT pg_advisory_xact_lock(%s, %s)", (lock, user))
+
+
+def pending_count(connection: Connection, user: int) -> int:
+	"""Les sessions à valider du compte."""
+	row = connection.execute(
+		"SELECT count(*) FROM api_sessions WHERE user_id = %s AND state = 'pending'", (user,)
+	).fetchone()
+	assert row is not None
+	return int(row[0])
+
+
+def insert_pending(
+	connection: Connection, user: int, token_hash: str, code: str, client: tuple[str, str | None], minutes: int
+) -> None:
+	"""Une session à valider dans les minutes données : l'empreinte de son jeton, son code, et le navigateur et
+	l'adresse du poste distant."""
+	user_agent, address = client
+	connection.execute(
+		"INSERT INTO api_sessions (user_id, token_hash, code, user_agent, source_ip, validate_before)"
+		" VALUES (%s, %s, %s, %s, %s, clock_timestamp() + make_interval(mins => %s))",
+		(user, token_hash, code, user_agent, address, minutes),
+	)
+
+
+def expire_sessions(connection: Connection) -> None:
+	"""Les sessions à valider dont le délai est passé, et les valides expirées, deviennent invalides."""
+	connection.execute(
+		"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp()"
+		" WHERE (state = 'pending' AND validate_before < clock_timestamp())"
+		" OR (state = 'valid' AND expires_at < clock_timestamp())"
+	)
+
+
+def session_of(connection: Connection, token_hash: str) -> TupleRow | None:
+	"""La session de ce jeton, d'un compte actif : son identifiant, son compte, son rôle, son état à l'instant et sa
+	fin ; sans rien écrire (https://github.com/dascritch/machincast/issues/553)."""
+	return connection.execute(
+		f"SELECT s.id, u.name, u.role::text, {STATE_NOW}, s.expires_at FROM api_sessions s"
+		" JOIN api_users u ON u.id = s.user_id WHERE s.token_hash = %s AND u.disabled_at IS NULL",
+		(token_hash,),
+	).fetchone()
+
+
+def pending_session(connection: Connection, token_hash: str) -> TupleRow | None:
+	"""La session à valider de ce jeton, verrouillée : son identifiant, son code, ses essais, son acceptation au
+	pupitre, et si son délai est passé."""
+	return connection.execute(
+		"SELECT id, code, attempts, accepted_at, validate_before < clock_timestamp() FROM api_sessions"
+		" WHERE token_hash = %s AND state = 'pending' FOR UPDATE",
+		(token_hash,),
+	).fetchone()
+
+
+def invalidate(connection: Connection, session: object) -> None:
+	connection.execute(
+		"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp() WHERE id = %s",
+		(session,),
+	)
+
+
+def validate(connection: Connection, session: object, hours: int) -> None:
+	"""La session validée pour hours heures : un seul instant pour la validation et la fin, elle dure exactement hours."""
+	connection.execute(
+		"UPDATE api_sessions SET state = 'valid', code = NULL, validated_at = moment.now,"
+		" expires_at = moment.now + make_interval(hours => %s) FROM (SELECT clock_timestamp() AS now) moment"
+		" WHERE id = %s",
+		(hours, session),
+	)
+
+
+def exhaust(connection: Connection, session: object) -> None:
+	"""Le dernier code faux permis : la session devient invalide."""
+	connection.execute(
+		"UPDATE api_sessions SET state = 'invalid', code = NULL, attempts = attempts + 1,"
+		" ended_at = clock_timestamp() WHERE id = %s",
+		(session,),
+	)
+
+
+def wrong_attempt(connection: Connection, session: object) -> None:
+	connection.execute("UPDATE api_sessions SET attempts = attempts + 1 WHERE id = %s", (session,))
+
+
+def end(connection: Connection, token_hash: str) -> None:
+	"""La déconnexion : la session de ce jeton devient invalide."""
+	connection.execute(
+		"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp()"
+		" WHERE token_hash = %s AND state <> 'invalid'",
+		(token_hash,),
+	)
