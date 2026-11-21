@@ -35,7 +35,7 @@ def recorded(directory: Path | None = None) -> Iterator[Path]:
 	try:
 		yield path
 	finally:
-		path.unlink(missing_ok=True)
+		path.unlink(missing_ok=True)  # fichier de MachinCast : le PID de Machin intranet
 
 
 def _is_intranet(pid: int) -> bool:
