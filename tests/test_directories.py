@@ -15,6 +15,7 @@ from psycopg.rows import TupleRow
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.database import Role, open_connection
+from machincast.i18n import _
 from machincast.indexer import check
 from machincast.indexer.check import Report
 from machincast.indexer.decoding import Check, check_file
@@ -443,3 +444,10 @@ def contains_stream(empty_database: Connection, name: str, title: str) -> None:
 		(bank(empty_database, name), title),
 	).fetchone()
 	assert line == (1,), line
+
+
+@then(parsers.parse("la sortie d'erreur signale que les sonores du répertoire « {directory} » ne sont pas vérifiés"))
+def unchecked_directory(execution: Execution, root: Path, directory: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/563"""
+	expected = _("{directory}: bank directory not found, its sounds are not checked").format(directory=root / directory)
+	assert expected in execution.errors.splitlines(), execution.errors

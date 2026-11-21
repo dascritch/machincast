@@ -43,9 +43,11 @@ Only the files added from the list of sounds are checked at once: a file dropped
 | `expired` | Maximum of plays reached, or broadcast period over ([Expiry of sounds](antenne.md#expiry-of-sounds)). | no | Through the interface only. |
 | `corrupt` | File `damaged` or `unreadable`. | no | On its own, when a check finds the file healthy again. |
 | `unsupported` | File that is not sound, whatever its extension. | no | On its own, when the file is replaced by real sound. The interface can also move it to `active` or `disabled`. |
-| `missing` | File `not found`: erased or moved. | no | Through the interface only. A file moved into the directory of a bank comes back as a new sound. |
+| `missing` | File `not found`: erased, moved, or on an unplugged disk. | no | On its own, when a check finds the file healthy again ([#563](https://github.com/dascritch/machincast/issues/563)). The interface can also set it `active` or `disabled`. A file moved into the directory of a bank comes back as a new sound. |
 
-The check never changes a `disabled`, `expired` or `missing` sound: it only reports a problem with its file. It never deletes a sound.
+The check never changes a `disabled` or `expired` sound: it only reports a problem with its file. It never deletes a sound.
+
+An absent bank directory, such as a disk or a network share not mounted yet, does not make its sounds `missing`: the check leaves them as they are, and says so in its log. They are checked again as soon as the directory is back.
 
 ## Checking a file
 

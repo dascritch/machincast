@@ -62,7 +62,8 @@ STATES = {
 	"expired": _("expired"),
 	"corrupt": _("corrupt"),
 	"unsupported": _("unsupported"),
-	"missing": _("deleted"),
+	# Le fichier a disparu ; le sonore, lui, reste (https://github.com/dascritch/machincast/issues/563).
+	"missing": _("missing"),
 }
 TYPES = {"file": "fichier", "stream": "stream"}
 """Le type d'un sonore à l'écran, par sa valeur en base (https://github.com/dascritch/machincast/issues/358)."""

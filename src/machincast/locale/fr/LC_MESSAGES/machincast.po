@@ -892,8 +892,9 @@ msgid "unsupported"
 msgstr "non supporté"
 
 #: machincast/indexer/check.py
+#: machincast/interface/lists.py
 msgid "missing"
-msgstr "supprimé"
+msgstr "introuvable"
 
 #: machincast/indexer/check.py
 msgid "quick indexing"
@@ -1089,6 +1090,13 @@ msgstr "sonore toujours {labels}"
 #, python-brace-format
 msgid "  {problem}; {consequence}"
 msgstr "  {problem} ; {consequence}"
+
+#: machincast/indexer/check.py
+#, python-brace-format
+msgid "{directory}: bank directory not found, its sounds are not checked"
+msgstr ""
+"{directory} : répertoire de banque introuvable, ses sonores ne sont pas "
+"vérifiés"
 
 #: machincast/indexer/check.py
 #, python-brace-format
@@ -4596,11 +4604,6 @@ msgstr "Anomalie : la ligne a un problème, que dit son infobulle"
 
 #: machincast/interface/lists.py
 #: machincast/intranet/calendar.py
-msgid "deleted"
-msgstr "supprimé"
-
-#: machincast/interface/lists.py
-#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
 msgid "breaking"
 msgstr "imprévu"
@@ -6671,6 +6674,10 @@ msgstr "secours"
 #: machincast/intranet/calendar.py
 msgid "covered"
 msgstr "couvert"
+
+#: machincast/intranet/calendar.py
+msgid "deleted"
+msgstr "supprimé"
 
 #: machincast/intranet/certificate.py
 #, python-brace-format

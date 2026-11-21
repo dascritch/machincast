@@ -336,6 +336,17 @@ Fonctionnalité: Indexation récursive des répertoires de banques
 		Alors la sortie d'erreur signale le répertoire « nulle-part » comme introuvable, pour la banque « Absente »
 		Et la banque « Jingles » contient, dans l'ordre, « jingles/intro.flac »
 
+	Scénario: Les sonores d'un répertoire de banque absent ne sont pas vérifiés, comme ceux d'un disque démonté
+		https://github.com/dascritch/machincast/issues/563 : un disque pas encore monté ne retire pas ses sonores de
+		l'antenne ; ils restent dans leur état, jusqu'à son retour.
+		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
+		Et le fichier « jingles/intro.flac », sain
+		Et l'indexeur a fait une indexation rapide
+		Et « jingles » déplacé en « demonte/jingles »
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore de « jingles/intro.flac » est à l'état « active »
+		Et la sortie d'erreur signale que les sonores du répertoire « jingles » ne sont pas vérifiés
+
 	Scénario: Un fichier défectueux déposé dans une banque y est ajouté, puis signalé et passé erroné
 		Étant donné une banque « Jingles » alimentée par le répertoire « jingles »
 		Et le fichier « jingles/abime.mp3 », endommagé

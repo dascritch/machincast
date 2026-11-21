@@ -51,10 +51,23 @@ Fonctionnalité: Indexation rapide
 
 		Exemples:
 			| avant     | apres     | consequence             |
-			| active     | missing  | sonore passé supprimé   |
-			| corrupt    | missing  | sonore passé supprimé   |
+			| active     | missing  | sonore passé introuvable |
+			| corrupt    | missing  | sonore passé introuvable |
 			| disabled | disabled | état désactivé conservé |
 			| expired    | expired    | état expiré conservé    |
+
+	Scénario: Un sonore introuvable dont le fichier revient, inchangé, redevient actif à l'indexation rapide
+		https://github.com/dascritch/machincast/issues/563 : comme un sonore erroné, l'indexeur rétablit ce qu'il a
+		lui-même déclaré. Le fichier revenu a gardé sa date et sa taille : il est quand même décodé.
+		Étant donné un fichier mp3 sain
+		Et un sonore à l'état « active » pour ce fichier
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier mis de côté
+		Et l'indexeur a fait une indexation rapide
+		Et ce fichier remis en place
+		Quand l'indexeur fait une indexation rapide
+		Alors le sonore est à l'état « active »
+		Et le bilan indique « indexation rapide : 0 nouveau sonore, 0 rattachement, 0 retrait ; 1 sonore vérifié ; 0 erroné, 0 non supporté, 0 supprimé, 1 rétabli, 0 sorti d'aperçu »
 
 	Scénario: L'audit complet fait aussi sortir les sonores de l'aperçu
 		Étant donné un fichier mp3 sain

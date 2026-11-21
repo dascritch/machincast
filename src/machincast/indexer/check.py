@@ -12,10 +12,13 @@ Les streams ne sont jamais vérifiés. Un fichier sain enregistre sa durée, la 
 du fichier. L'état du sonore suit le verdict (https://github.com/dascritch/machincast/issues/66) :
 
 	apercu    + sain         →  actif
-	apercu, actif + défectueux  →  errone, ou supprime si le fichier est introuvable
-	errone    + sain         →  actif : l'indexeur rétablit ce qu'il a lui-même posé
-	errone    + introuvable  →  supprime
-	desactive, expire, supprime : jamais modifiés par l'indexeur, qui signale quand même le fichier défectueux
+	apercu, actif + défectueux  →  errone, ou introuvable si le fichier est introuvable
+	errone, introuvable + sain  →  actif : l'indexeur rétablit ce qu'il a lui-même posé
+	errone    + introuvable  →  introuvable
+	desactive, expire : jamais modifiés par l'indexeur, qui signale quand même le fichier défectueux
+
+Un fichier revenu rend son sonore introuvable actif, et les sonores d'un répertoire de banque absent, comme un disque
+pas encore monté, ne sont pas vérifiés : ils restent dans leur état (https://github.com/dascritch/machincast/issues/563).
 
 Un fichier sain met aussi à jour l'artiste, le titre et les clés de music_metadata tenues par l'indexeur,
 depuis ses tags (https://github.com/dascritch/machincast/issues/8) ; un tag absent vide le champ correspondant.
@@ -176,7 +179,13 @@ def report_detail(report: Report) -> str:
 
 def new_state(state: SoundState, verdict: FileState) -> SoundState:
 	"""État du sonore après la vérification de son fichier."""
-	if state not in (SoundState.PREVIEW, SoundState.ACTIVE, SoundState.CORRUPT, SoundState.UNSUPPORTED):
+	if state not in (
+		SoundState.PREVIEW,
+		SoundState.ACTIVE,
+		SoundState.CORRUPT,
+		SoundState.UNSUPPORTED,
+		SoundState.DELETED,
+	):
 		return state
 	if verdict is FileState.HEALTHY:
 		return SoundState.ACTIVE
@@ -236,7 +245,8 @@ def check_sounds(
 	"""
 	if report is None:
 		report = Report(full_audit=full_audit)
-	for line in _sounds(connection, identifiers):
+	absent = absent_directories(connection)
+	for line in _sounds(connection, identifiers, absent):
 		if (stop is not None) and (stop.is_set()):
 			break
 		try:
@@ -259,15 +269,42 @@ def check_sounds(
 	return report
 
 
+def absent_directories(connection: psycopg.Connection[TupleRow]) -> list[Path]:
+	"""Les répertoires des banques qui ne sont pas là, comme un disque pas encore monté : leurs sonores ne sont pas
+	vérifiés, pour ne pas les déclarer introuvables (https://github.com/dascritch/machincast/issues/563). Le journal
+	le dit, une fois par répertoire."""
+	with connection.transaction():
+		rows = connection.execute(
+			"SELECT DISTINCT d.directory FROM bank_directories d JOIN banks b ON b.id = d.bank_id"
+			" WHERE b.deleted_at IS NULL ORDER BY 1"
+		).fetchall()
+	absent = []
+	for (directory,) in rows:
+		path = Path(str(directory))
+		if (path.is_absolute()) and (not path.is_dir()):
+			log.warning(_("{directory}: bank directory not found, its sounds are not checked").format(directory=path))
+			absent.append(path)
+	return absent
+
+
+def _under(path: Path, directories: list[Path]) -> bool:
+	for directory in directories:
+		if path.is_relative_to(directory):
+			return True
+	return False
+
+
 BATCH = 500
 """Les sonores que la vérification lit à la fois : la mémoire ne croît pas avec leur nombre
 (https://github.com/dascritch/machincast/issues/390)."""
 
 
-def _sounds(connection: psycopg.Connection[TupleRow], identifiers: Collection[int] | None) -> Iterator[TupleRow]:
+def _sounds(
+	connection: psycopg.Connection[TupleRow], identifiers: Collection[int] | None, absent: list[Path]
+) -> Iterator[TupleRow]:
 	"""Les sonores à vérifier, par identifiant croissant, lus par lots de BATCH, chacun dans sa transaction : la
 	vérification d'un sonore a la sienne. Un sonore ajouté pendant la vérification, d'identifiant plus grand, est
-	vérifié aussi."""
+	vérifié aussi ; pas ceux des répertoires absents."""
 	last = 0
 	while True:
 		with connection.transaction():
@@ -279,7 +316,9 @@ def _sounds(connection: psycopg.Connection[TupleRow], identifiers: Collection[in
 				" AND (%s::bigint[] IS NULL OR id = ANY(%s)) AND id > %s ORDER BY id LIMIT %s",
 				(list_or_none(identifiers), list_or_none(identifiers), last, BATCH),
 			).fetchall()
-		yield from lines
+		for line in lines:
+			if not _under(Path(str(line[1])), absent):
+				yield line
 		if len(lines) < BATCH:
 			return
 		last = int(str(lines[-1][0]))
@@ -422,7 +461,7 @@ def _count_change(report: Report, before: SoundState, after: SoundState) -> None
 		report.not_supported += 1
 	if after is SoundState.DELETED:
 		report.deleted_list += 1
-	if (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED)):
+	if (after is SoundState.ACTIVE) and (before in (SoundState.CORRUPT, SoundState.UNSUPPORTED, SoundState.DELETED)):
 		report.restored += 1
 
 
@@ -467,7 +506,13 @@ def _check_sound(
 	):
 		audited = False
 		report.already_audited.append(int(str(identifier)))
-	decode = (audited) or (before is SoundState.PREVIEW) or (modified(path, modified_before, size_before))
+	# Un fichier revenu garde souvent sa date et sa taille : un sonore introuvable est décodé quand même
+	# (https://github.com/dascritch/machincast/issues/563).
+	decode = (
+		(audited)
+		or (before in (SoundState.PREVIEW, SoundState.DELETED))
+		or (modified(path, modified_before, size_before))
+	)
 	if (not decode) and (path.exists()):
 		if asks is True:
 			# La demande est faite : le dernier audit vaut toujours.
