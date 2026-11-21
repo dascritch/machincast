@@ -229,7 +229,7 @@ Machin status && echo "à l'antenne : $(Machin status event)"
 
 ## Suivre le journal : Machin logs
 
-Chaque programme écrit aussi ses messages dans son fichier de `/var/log/machincast/`, `Machin_player.log`, `Machin_indexer.log`, `Machin_interface.log`…, chaque ligne précédée de son heure et de son niveau, `INFO`, `WARNING` ou `ERROR` ([#381](https://github.com/dascritch/machincast/issues/381)). `install.sh` crée ce répertoire, au groupe `machincast`, que partagent le compte du service de diffusion et le vôtre : chacun lit ce que l'autre y écrit. `logrotate` fait tourner ces fichiers chaque semaine.
+Chaque programme écrit aussi ses messages dans son fichier de `/var/log/machincast/`, `Machin_player.log`, `Machin_indexer.log`, `Machin_interface.log`…, chaque ligne précédée de son heure et de son niveau, `INFO`, `WARNING` ou `ERROR` ([#381](https://github.com/dascritch/machincast/issues/381)). Une erreur imprévue, comme une page de l'intranet qui répond 500, garde son traceback sous sa ligne, sur la sortie d'erreur comme dans ce fichier, et donc dans `journalctl` pour un service ([#574](https://github.com/dascritch/machincast/issues/574)). `install.sh` crée ce répertoire, au groupe `machincast`, que partagent le compte du service de diffusion et le vôtre : chacun lit ce que l'autre y écrit. `logrotate` fait tourner ces fichiers chaque semaine.
 
 `Machin logs` suit en direct le journal du service de diffusion, `machincast.service`. Les options qui suivent sont transmises à `journalctl`, par exemple :
 

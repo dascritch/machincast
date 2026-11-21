@@ -130,6 +130,7 @@ https://github.com/dascritch/machincast/issues/31
 - Python pour tout le projet, typé strictement : `mypy --strict` doit passer.
 - Linter et formateur : ruff.
 - Jamais de `print` : les messages passent par `logging`, avec un journal par module (`logging.getLogger(__name__)`).
+	Une erreur imprévue rattrapée se journalise par `log.exception`, qui garde son traceback : les formateurs de `machincast.log` l'écrivent sous la ligne ([#574](https://github.com/dascritch/machincast/issues/574)).
 	`machincast.log.configured` envoie les informations sur la sortie standard, les anomalies (`warning`) et les erreurs (`error`) sur la sortie d'erreur ; chaque ligne commence par l'heure de son message, en ISO 8601 à la seconde, avec le décalage horaire du poste ([#253](https://github.com/dascritch/machincast/issues/253)), au lieu du nom de l'exécutable.
 	Un scénario de [`base.feature`](../../../tests/features/base.feature) refuse tout `print` dans `src/` (revue de [PR #65](https://github.com/dascritch/machincast/pull/65)).
 - Chaînes Python : f-strings (ou t-strings), jamais la notation `str % valeur`, même indirectement : un message de journal est une f-string (`log.error(f"base {nom} injoignable : {erreur}")`), un format de `logging` s'écrit avec `style="{"` ([#73](https://github.com/dascritch/machincast/issues/73)).

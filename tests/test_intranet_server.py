@@ -19,12 +19,16 @@ from pathlib import Path
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import service
+from machincast import log, service
 from machincast.configuration import Configuration, InvalidConfiguration, load
 from machincast.intranet import __main__ as server
 from machincast.intranet import certificate, live, network, process
+from machincast.intranet.app import Intranet as App
+from machincast.intranet.app import Request, Response
 from machincast.player.state import StateSocket
+from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_configuration_path
+from tests.timestamp import without_timestamp
 
 scenarios("intranet_server.feature")
 
@@ -471,3 +475,38 @@ def loop_exception(caplog: pytest.LogCaptureFixture, given: str) -> list[str]:
 @then(parsers.re(r"le journal de la boucle (?P<verdict>ne dit rien|dit l'exception)"))
 def loop_journal_says(loop_journal: list[str], verdict: str) -> None:
 	assert (loop_journal == []) == (verdict == "ne dit rien"), loop_journal
+
+
+@given(parsers.parse("une page « {path} » de l'intranet qui plante sur « {message} »"), target_fixture="failing")
+def failing_page(path: str, message: str) -> App:
+	"""https://github.com/dascritch/machincast/issues/574"""
+
+	async def fails(_request: Request) -> Response:
+		raise RuntimeError(message)
+
+	return App({("GET", path): fails})
+
+
+@when(parsers.parse("je demande la page « {path} », le journal de Machin intranet configuré"), target_fixture="failed")
+def ask_failing(
+	failing: App, path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> tuple[Answer, str]:
+	monkeypatch.setenv(log.ENVIRONMENT, str(tmp_path / "sans-logs"))
+	capsys.readouterr()
+	log.configure("Machin_intranet")
+	answer = call(failing, "GET", path)
+	return answer, capsys.readouterr().err
+
+
+@then(parsers.parse("la réponse est {status:d}, « {text} »"))
+def failed_answer(failed: tuple[Answer, str], status: int, text: str) -> None:
+	answer, _err = failed
+	assert (answer.status, answer.text().strip()) == (status, text), answer
+
+
+@then(parsers.parse("la sortie d'erreur dit « {first} », puis le traceback de « {last} »"))
+def failed_journal(failed: tuple[Answer, str], first: str, last: str) -> None:
+	lines = failed[1].splitlines()
+	assert without_timestamp(f"{lines[0]}\n") == f"[horodatage] {first}\n", lines
+	assert lines[1] == "Traceback (most recent call last):", lines
+	assert lines[-1] == last, lines

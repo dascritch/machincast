@@ -185,7 +185,7 @@ Code 0 when the service reads everything; 1 otherwise, or without a `machincast`
 
 ## Following the journal: Machin logs
 
-Each program also writes its messages to its file in `/var/log/machincast/`, `Machin_player.log`, `Machin_indexer.log`, `Machin_interface.log`…, each line preceded by its time and its level, `INFO`, `WARNING` or `ERROR` ([#381](https://github.com/dascritch/machincast/issues/381)). `install.sh` creates this directory, owned by the `machincast` group, shared by the account of the playout service and yours: each reads what the other writes there. `logrotate` rotates these files every week.
+Each program also writes its messages to its file in `/var/log/machincast/`, `Machin_player.log`, `Machin_indexer.log`, `Machin_interface.log`…, each line preceded by its time and its level, `INFO`, `WARNING` or `ERROR` ([#381](https://github.com/dascritch/machincast/issues/381)). An unexpected error, such as a page of the intranet answering 500, keeps its traceback under its line, on the error output as in this file, and so in `journalctl` for a service ([#574](https://github.com/dascritch/machincast/issues/574)). `install.sh` creates this directory, owned by the `machincast` group, shared by the account of the playout service and yours: each reads what the other writes there. `logrotate` rotates these files every week.
 
 `Machin logs` follows live the journal of the playout service, `machincast.service`. The options that follow are passed to `journalctl`, for instance:
 

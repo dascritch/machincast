@@ -119,6 +119,13 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 			| SSLError: [SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1029)                           | dit l'exception  |
 			| RuntimeError: panne imitée                                                                         | dit l'exception  |
 
+	Scénario: Une page qui plante répond 500, et le journal donne le traceback de son erreur
+		https://github.com/dascritch/machincast/issues/574 : le journal ne disait que « intranet: request … failed ».
+		Étant donné une page « /panne » de l'intranet qui plante sur « base injoignable »
+		Quand je demande la page « /panne », le journal de Machin intranet configuré
+		Alors la réponse est 500, « Erreur interne. »
+		Et la sortie d'erreur dit « intranet : la requête /panne a échoué », puis le traceback de « RuntimeError: base injoignable »
+
 	Scénario: Allumé, Machin intranet répond en HTTPS, avec ses en-têtes de sécurité
 		Quand je lance Machin intranet avec l'intranet allumé
 		Alors une requête HTTPS « GET /login » reçoit 200, une page « Machin intranet »

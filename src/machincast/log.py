@@ -8,7 +8,9 @@ précédait (https://github.com/dascritch/machincast/issues/253).
 
 Les mêmes lignes vont aussi, quand il existe et s'écrit, dans le fichier « <exécutable>.log » de /var/log/machincast
 (DIRECTORY, ou celui de la variable d'environnement MACHINCAST_LOG_DIRECTORY), précédées de leur niveau
-(https://github.com/dascritch/machincast/issues/381) : les règles usuelles d'administration d'un service. install.sh le
+(https://github.com/dascritch/machincast/issues/381) : les règles usuelles d'administration d'un service. Une erreur
+imprévue, journalisée par log.exception, y garde son traceback, sous sa ligne
+(https://github.com/dascritch/machincast/issues/574). install.sh le
 crée, au groupe machincast, que partagent le compte du service et celui du bureau : chacun lit ce que l'autre y écrit.
 Le fichier se crée lisible et modifiable par le groupe (FILE_MODE) ; logrotate le fait tourner.
 """
@@ -48,15 +50,27 @@ def line(saving: logging.LogRecord) -> str:
 	return f"{hour} {saving.getMessage()}"
 
 
+def _with_trace(formatter: logging.Formatter, record: logging.LogRecord, text: str) -> str:
+	"""La ligne, puis, comme logging.Formatter, le traceback d'une exception journalisée et la pile demandée : sans
+	eux, une erreur imprévue ne disait pas pourquoi (https://github.com/dascritch/machincast/issues/574)."""
+	if (record.exc_info) and (not record.exc_text):
+		record.exc_text = formatter.formatException(record.exc_info)
+	if record.exc_text:
+		text = f"{text}\n{record.exc_text}"
+	if record.stack_info:
+		text = f"{text}\n{formatter.formatStack(record.stack_info)}"
+	return text
+
+
 class _Timestamped(logging.Formatter):
 	def format(self, record: logging.LogRecord) -> str:
-		return line(record)
+		return _with_trace(self, record, line(record))
 
 
 class _Levelled(logging.Formatter):
 	def format(self, record: logging.LogRecord) -> str:
 		hour, _space, message = line(record).partition(" ")
-		return f"{hour} {record.levelname} {message}"
+		return _with_trace(self, record, f"{hour} {record.levelname} {message}")
 
 
 class _File(logging.FileHandler):

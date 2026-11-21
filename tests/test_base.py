@@ -346,6 +346,41 @@ def emit(information: str, anomaly: str) -> None:
 	log.warning(anomaly)
 
 
+@when(parsers.parse("le code journalise l'erreur « {text} » d'une division par zéro"))
+def logged_exception(text: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/574"""
+	try:
+		_ = 1 / 0
+	except ZeroDivisionError:
+		logging.getLogger("machincast.trial").exception(text)
+
+
+def _with_traceback(content: str, first: str) -> None:
+	"""La ligne horodatée, puis le traceback de l'exception, jusqu'à sa dernière ligne."""
+	lines = without_timestamp(content.splitlines()[0] + "\n").splitlines() + content.splitlines()[1:]
+	assert lines[0] == first, content
+	assert lines[1] == "Traceback (most recent call last):", content
+	assert "_ = 1 / 0" in content, content
+	assert lines[-1] == "ZeroDivisionError: division by zero", content
+
+
+@then(parsers.parse("la sortie d'erreur commence par « {first} », puis donne le traceback de la division par zéro"))
+def error_with_traceback(capsys: pytest.CaptureFixture[str], first: str) -> None:
+	_with_traceback(capsys.readouterr().err, first)
+
+
+@then(
+	parsers.parse(
+		"le fichier « {name} » du répertoire des logs commence par « {first} », puis donne le traceback de la division"
+		" par zéro"
+	)
+)
+def file_with_traceback(log_directory: Path, name: str, first: str) -> None:
+	for handler in logging.getLogger("machincast").handlers:
+		handler.flush()
+	_with_traceback((log_directory / name).read_text(encoding="utf-8"), first)
+
+
 @then(parsers.parse("la sortie standard contient seulement « {text} »"))
 def standard_output(capsys: pytest.CaptureFixture[str], context: Context, text: str) -> None:
 	screenshot = capsys.readouterr()
