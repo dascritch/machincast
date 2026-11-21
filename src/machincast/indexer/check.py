@@ -46,13 +46,13 @@ from typing import Any
 
 import psycopg
 from psycopg.rows import TupleRow
-from psycopg.types.json import Jsonb
 
 from machincast import crash
 from machincast.configuration import SILENCE_THRESHOLD
-from machincast.conversion import duration_or_none, list_or_none
+from machincast.conversion import duration_or_none
 from machincast.fingerprint import audited_since_modification, file_state, modified
 from machincast.i18n import _, decimal, ngettext
+from machincast.indexer import queries
 from machincast.indexer.audit import Anomaly
 from machincast.indexer.decoding import Check, Checker, FileState, UnavailableDecoder, check_file
 from machincast.indexer.file_type import Kind, kind, type_mime
@@ -274,10 +274,7 @@ def absent_directories(connection: psycopg.Connection[TupleRow]) -> list[Path]:
 	vérifiés, pour ne pas les déclarer introuvables (https://github.com/dascritch/machincast/issues/563). Le journal
 	le dit, une fois par répertoire."""
 	with connection.transaction():
-		rows = connection.execute(
-			"SELECT DISTINCT d.directory FROM bank_directories d JOIN banks b ON b.id = d.bank_id"
-			" WHERE b.deleted_at IS NULL ORDER BY 1"
-		).fetchall()
+		rows = queries.directories(connection)
 	absent = []
 	for (directory,) in rows:
 		path = Path(str(directory))
@@ -310,12 +307,7 @@ def _sounds(
 		with connection.transaction():
 			# Ce que le verdict change dans la ligne se relit à son écriture (_write_check) : seul ce qui décide de
 			# l'examen se lit ici.
-			lines = connection.execute(
-				"SELECT id, location, state::text, file_modified_at, file_size, audit_requested, audited_at,"
-				" audit_threshold FROM sounds WHERE type = 'file' AND deleted_at IS NULL"
-				" AND (%s::bigint[] IS NULL OR id = ANY(%s)) AND id > %s ORDER BY id LIMIT %s",
-				(list_or_none(identifiers), list_or_none(identifiers), last, BATCH),
-			).fetchall()
+			lines = queries.sounds_to_check(connection, identifiers, last, BATCH)
 		for line in lines:
 			if not _under(Path(str(line[1])), absent):
 				yield line
@@ -398,52 +390,32 @@ def _write_check(
 	if file is not None:
 		modified_at, size = file
 	with connection.transaction():
-		row = connection.execute(
-			"SELECT state::text, edited_fields, artist, title, music_metadata, detected_start, detected_end"
-			" FROM sounds WHERE id = %s AND type = 'file' AND deleted_at IS NULL AND location = %s FOR UPDATE",
-			(identifier, str(location)),
-		).fetchone()
+		row = queries.locked_sound(connection, identifier, str(location))
 		if row is None:
 			return None
 		text_state, edited_fields, artist, title, metadata, detected_start, detected_end = row
 		before = SoundState(str(text_state))
 		after = new_state(before, result.state)
 		merged = _merge_result(result, edited_fields, artist, title, metadata, detected_start, detected_end)
-		# Un fichier introuvable garde la date et la taille de son dernier passage.
-		connection.execute(
-			"UPDATE sounds SET state = %s, duration = COALESCE(%s, duration),"
-			" file_modified_at = COALESCE(%s, file_modified_at), file_size = COALESCE(%s, file_size),"
-			" artist = %s, title = %s, music_metadata = %s, mime_type = COALESCE(%s, mime_type),"
-			" checked_at = CASE WHEN %s THEN clock_timestamp() ELSE checked_at END,"
-			" detected_start = %s, detected_end = %s, audit_requested = audit_requested AND NOT %s,"
-			" audited_at = CASE WHEN %s THEN clock_timestamp() ELSE audited_at END,"
-			" audit_threshold = CASE WHEN %s THEN %s ELSE audit_threshold END,"
-			# La disparition du fichier est datée une fois ; un fichier revenu ne l'est plus
-			# (https://github.com/dascritch/machincast/issues/267).
-			" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END"
-			" WHERE id = %s",
-			(
-				after.value,
-				merged.duration,
-				modified_at,
-				size,
-				merged.artist,
-				merged.title,
-				Jsonb(merged.metadata),
-				file_type,
-				# Un fichier trouvé arrive ici vérifié en entier ; un fichier disparu garde la date de sa dernière
-				# vérification.
-				file is not None,
-				duration_or_none(merged.detected_start),
-				duration_or_none(merged.detected_end),
-				# La marque d'un audit demandé tombe avec la vérification du fichier, pas avant.
-				file is not None,
-				# Un audit complet d'un fichier trouvé est retenu, avec son seuil, quel que soit le verdict.
-				(audited) and (file is not None),
-				(audited) and (file is not None),
-				silence_threshold,
-				after is SoundState.DELETED,
-				identifier,
+		found = file is not None
+		queries.write_check(
+			connection,
+			identifier,
+			queries.Verdict(
+				state=after.value,
+				duration=merged.duration,
+				modified_at=modified_at,
+				size=size,
+				artist=merged.artist,
+				title=merged.title,
+				metadata=merged.metadata,
+				file_type=file_type,
+				detected_start=duration_or_none(merged.detected_start),
+				detected_end=duration_or_none(merged.detected_end),
+				found=found,
+				audited=(audited) and (found),
+				silence_threshold=silence_threshold,
+				missing=after is SoundState.DELETED,
 			),
 		)
 	return _Written(before, after, merged)
@@ -517,7 +489,7 @@ def _check_sound(
 		if asks is True:
 			# La demande est faite : le dernier audit vaut toujours.
 			with connection.transaction():
-				connection.execute("UPDATE sounds SET audit_requested = false WHERE id = %s", (identifier,))
+				queries.audit_done(connection, identifier)
 		return
 	log.info(_("{location}: analysis…").format(location=location))
 	# Un fichier introuvable est déclaré tel sans décodage : l'indexation rapide repère donc les disparus.

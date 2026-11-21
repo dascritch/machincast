@@ -19,7 +19,7 @@ from machincast.cli import INVALID_CONFIGURATION_CODE, launch
 from machincast.configuration import Configuration
 from machincast.database import Role, open_connection
 from machincast.i18n import _
-from machincast.indexer import audit
+from machincast.indexer import audit, queries
 from machincast.indexer.check import report_text
 from machincast.indexer.decoding import UnavailableDecoder
 from machincast.indexer.indexer import ONGOING_CODE, OngoingIndexing, index, index_sound
@@ -132,8 +132,8 @@ def check_sound(configuration: Configuration, sound: int, *, full_audit: bool, f
 	try:
 		with open_connection(database.socket, database.production, Role.INDEXING) as connection:
 			with connection.transaction():
-				file = connection.execute("SELECT 1 FROM sounds WHERE id = %s AND type = 'file'", (sound,)).fetchone()
-			if file is None:
+				file = queries.is_file(connection, sound)
+			if not file:
 				log.error(_("sound {sound}: unknown, or not a file").format(sound=sound))
 				return FAILURE_CODE
 			report = index_sound(
