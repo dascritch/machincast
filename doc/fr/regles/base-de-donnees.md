@@ -18,16 +18,29 @@ Modèle complet : [spec.md § 3](../spec.md#3-base-de-données).
 
 ## Où écrire une requête
 
-([#442](https://github.com/dascritch/machincast/issues/442))
+([#442](https://github.com/dascritch/machincast/issues/442), [#583](https://github.com/dascritch/machincast/issues/583))
 
-- **Interface** : une requête d'une fiche ou d'une liste s'écrit dans `src/machincast/interface/queries/`, un module par entité (`banks`, `sounds`, `events`, `sequences`, `feeds`, `items` pour les listes d'éléments d'une séquence ou d'un événement, `lists`, `search`, `incidents`, `indexing`, `suggestions`, `calendar`, `cards` pour ce que les fiches ont en commun).
-	Ces modules n'importent pas Qt : une fonction prend la connexion et ses paramètres, rend des lignes ou des valeurs simples, et s'essaie sans ouvrir de fenêtre.
-	La classe Qt l'appelle, dans sa transaction.
-	Toujours dans un bloc `with connection.transaction()`, même pour une simple lecture ([#560](https://github.com/dascritch/machincast/issues/560)) : la connexion de l'interface n'est pas en autocommit, et une requête hors d'un bloc ouvre une transaction que rien ne valide ; chaque bloc qui suit n'y est plus qu'un savepoint, et ce que l'interface écrit n'est validé qu'à sa fermeture.
+Toutes les requêtes d'un binaire sont dans son module de requêtes : ce que chaque rôle lit et écrit se relit d'un coup, à comparer à la matrice de [`roles.feature`](../../../tests/features/roles.feature).
+
+| Binaire | Module |
+| --- | --- |
+| `Machin_player` | `src/machincast/player/queries.py` |
+| `Machin_indexer` | `src/machincast/indexer/queries.py` |
+| `Machin_intranet` | `src/machincast/intranet/queries.py` : l'API et les sessions |
+| `Machin_interface` | le paquet `src/machincast/interface/queries/`, un module par entité |
+| Administration : `Machin purge`, `Machin maintenance-db`, `Machin restore-db`, `Machin grant-read`, les sonores personnels d'`install.sh --service` | `src/machincast/admin_queries.py` |
+| Commun à plusieurs binaires : la grille, le démarrage précédent d'un binaire | `src/machincast/shared/queries.py` |
+
+- Ailleurs, ni `execute`, ni chaîne SQL ; seul `database.open_connection` endosse le rôle (`SET ROLE`).
+	Un scénario de `base.feature` le vérifie : il cherche chaque appel à `execute` ou `executemany`, et chaque chaîne qui commence par un mot-clé SQL en majuscules (`SELECT`, `UPDATE`…) ; une docstring ne commence donc pas par l'un d'eux.
+	Les migrations sont des fichiers `.sql`, hors de cette règle.
+- Ces modules n'importent ni Qt ni GStreamer : une fonction prend la connexion et ses paramètres, exécute une requête, et rend ses lignes telles quelles, ou ce qu'elle a changé ; l'appelant en tire ses objets.
+	Elles s'essaient sans ouvrir de fenêtre ni de pipeline.
+- Les transactions restent à l'appelant, qui enchaîne dans une même transaction ce qui doit l'être (une relecture `FOR UPDATE` puis son écriture, un verrou consultatif puis ce qu'il protège) ; seules les lectures de l'API (`intranet/queries.py`, `_rows`) ouvrent la leur.
+- **Interface** : toujours dans un bloc `with connection.transaction()`, même pour une simple lecture ([#560](https://github.com/dascritch/machincast/issues/560)) : la connexion de l'interface n'est pas en autocommit, et une requête hors d'un bloc ouvre une transaction que rien ne valide ; chaque bloc qui suit n'y est plus qu'un savepoint, et ce que l'interface écrit n'est validé qu'à sa fermeture.
 	Les scénarios de l'interface le vérifient en fermant sa connexion (`database_fixtures.close_checked`).
-	Un scénario de `base.feature` refuse un `execute` dans un module de l'interface qui importe Qt.
-	Les modules sans Qt qui font déjà de l'accès aux données (`deletion`, `groups`, `sessions`, `adding`, `airplay`, `background_programming`) restent où ils sont.
-- **Diffusion** : les requêtes de `Machin_player` sont dans ses modules (`saving`, `history`, `banks`, `sequences`, `outputs`…), jamais dans `broadcast`.
+	Les modules de l'interface (`deletion`, `groups`, `adding`, `airplay`, `background_programming`, `sessions`…) gardent leur logique, et appellent `interface/queries/`.
+- **Diffusion** : `broadcast` n'exécute rien lui-même, comme les autres modules du binaire.
 - **Partagé** : ce que l'interface et la diffusion calculent de la même façon, sans Qt ni GStreamer (`grid`, `fades`, `no_repeat`), et ce que l'interface et l'intranet dessinent de la même façon (`side_by_side`, [#580](https://github.com/dascritch/machincast/issues/580)), est dans `src/machincast/shared/`.
 	L'interface n'importe ni `broadcast`, ni `engine`, ni `rundown` (`base.feature`).
 - Un nom de table ou de colonne qui entre dans une requête est une constante du code, jamais une saisie ; une valeur passe toujours en paramètre.

@@ -661,16 +661,6 @@ QUERY_MODULES = (
 	"database.py",
 )
 """Où s'écrivent les requêtes SQL, relatives à src/machincast (https://github.com/dascritch/machincast/issues/583)."""
-PENDING = (
-	"access.py",
-	"backup.py",
-	"maintenance.py",
-	"personal.py",
-	"purge.py",
-	"runs.py",
-	"shared/grid.py",
-)
-"""Les modules dont les requêtes restent à déplacer : ce tuple se vide, binaire après binaire."""
 """Les modules dont les requêtes restent à déplacer : la liste se vide, binaire après binaire."""
 SQL_TEXT = re.compile(
 	r"^\s*\(?\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE|ALTER|DROP|GRANT|REVOKE|SET|VACUUM|LOCK|NOTIFY|LISTEN"
@@ -702,7 +692,7 @@ def queries_in_their_modules() -> None:
 	faults = []
 	for path in sorted(package.rglob("*.py")):
 		name = path.relative_to(package).as_posix()
-		if (not name.startswith("migrations/")) and (not name.startswith(QUERY_MODULES + PENDING)):
+		if (not name.startswith("migrations/")) and (not name.startswith(QUERY_MODULES)):
 			lines = _queries_outside(path)
 			if lines:
 				faults.append(f"{name}:{lines[0]}")

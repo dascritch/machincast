@@ -27,7 +27,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast import access
+from machincast import access, admin_queries
 from machincast.i18n import _
 
 FILES = "fichiers"
@@ -72,19 +72,12 @@ def find(connection: psycopg.Connection[TupleRow]) -> Found:
 	l'administrateur du poste, reste en place."""
 	account = access.service_account()
 	directories: list[Path] = []
-	rows = connection.execute(
-		"SELECT DISTINCT d.directory FROM bank_directories d JOIN banks b ON b.id = d.bank_id"
-		" WHERE b.deleted_at IS NULL ORDER BY 1"
-	).fetchall()
-	for (directory,) in rows:
+	for (directory,) in admin_queries.bank_directories(connection):
 		path = Path(str(directory))
 		if (access.personal_home(path) is not None) and (_closed(path, account)):
 			directories.append(path)
 	files: list[Path] = []
-	rows = connection.execute(
-		"SELECT location FROM sounds WHERE deleted_at IS NULL AND location IS NOT NULL ORDER BY 1"
-	).fetchall()
-	for (location,) in rows:
+	for (location,) in admin_queries.files(connection):
 		path = Path(str(location))
 		if (access.personal_home(path) is not None) and (not _in_any(path, directories)) and (_closed(path, account)):
 			files.append(path)
@@ -151,12 +144,6 @@ def _rename(source: Path, target: Path) -> None:
 		shutil.move(str(source), str(target))
 
 
-RELOCATE = (
-	"UPDATE {table} SET {column} = %s || substr({column}, length(%s) + 1)"
-	" WHERE {column} = %s OR left({column}, length(%s) + 1) = %s || '/'"
-)
-
-
 def move(connection: psycopg.Connection[TupleRow], moves: list[Move]) -> None:
 	"""Déplace, puis met à jour les emplacements de la base, en une transaction ; si elle échoue, chaque fichier
 	revient à sa place."""
@@ -168,12 +155,7 @@ def move(connection: psycopg.Connection[TupleRow], moves: list[Move]) -> None:
 			log.info(_("{source} moved to {target}").format(source=item.source, target=item.target))
 		with connection.transaction():
 			for item in done:
-				old, new = str(item.source), str(item.target)
-				for table, column in (("bank_directories", "directory"), ("sounds", "location")):
-					connection.execute(
-						RELOCATE.format(table=table, column=column),
-						(new, old, old, old, old),
-					)
+				admin_queries.relocate(connection, str(item.source), str(item.target))
 	except BaseException:
 		for item in reversed(done):
 			_rename(item.target, item.source)
@@ -184,14 +166,6 @@ def forget(connection: psycopg.Connection[TupleRow], found: Found) -> None:
 	"""Retire de la base ce qui est dans des répertoires personnels, sans toucher aucun fichier."""
 	with connection.transaction():
 		for directory in found.directories:
-			old = str(directory)
-			connection.execute(
-				"UPDATE sounds SET deleted_at = now() WHERE deleted_at IS NULL"
-				" AND (location = %s OR left(location, length(%s) + 1) = %s || '/')",
-				(old, old, old),
-			)
-			connection.execute("DELETE FROM bank_directories WHERE directory = %s", (old,))
+			admin_queries.forget_directory(connection, str(directory))
 		for file in found.files:
-			connection.execute(
-				"UPDATE sounds SET deleted_at = now() WHERE deleted_at IS NULL AND location = %s", (str(file),)
-			)
+			admin_queries.forget_file(connection, str(file))

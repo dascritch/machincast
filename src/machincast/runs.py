@@ -35,6 +35,7 @@ from machincast.configuration import Database
 from machincast.database import Role, open_connection
 from machincast.i18n import N_, _, logged
 from machincast.player.saving import record
+from machincast.shared import queries
 
 log = logging.getLogger(__name__)
 
@@ -107,9 +108,7 @@ def _connect(database: Database, role: Role | None) -> psycopg.Connection[TupleR
 def _check_previous(connection: psycopg.Connection[TupleRow], program: str) -> None:
 	"""Un incident si le démarrage précédent de ce binaire n'a pas de fin et que son processus ne tourne plus."""
 	with connection.transaction():
-		previous = connection.execute(
-			"SELECT started_at, pid, ended FROM machincast_previous_start(%s)", (program,)
-		).fetchone()
+		previous = queries.previous_start(connection, program)
 	if previous is None:
 		return
 	started_at, previous_pid, finished = previous

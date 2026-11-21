@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 
 import psycopg
 
+from machincast import admin_queries
 from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration
@@ -47,13 +48,6 @@ CLOCK: Clock = SystemClock()
 # Nom explicite : lancé par son script, ce module garde le journal « machincast ».
 log = logging.getLogger("machincast.purge")
 
-PLAYS = """
-	WITH erased AS (
-		DELETE FROM airplay WHERE play_id IN (
-			SELECT play_id FROM airplay GROUP BY play_id HAVING max(logged_at) < %s
-		) RETURNING play_id
-	) SELECT count(DISTINCT play_id) FROM erased
-"""
 """Efface les passages d'avant la limite et les compte, dans la base : ni leurs identifiants, ni leurs lignes ne
 viennent jusqu'ici (https://github.com/dascritch/machincast/issues/390)."""
 ITEMS: tuple[tuple[Callable[[int], str], str, str], ...] = (
@@ -70,19 +64,17 @@ ligne."""
 
 def purge(connection: psycopg.Connection[tuple[object, ...]], limit: datetime) -> list[str]:
 	"""Efface ce qui est d'avant la limite, dans la transaction de la connexion ; le bilan, genre par genre."""
-	counted = connection.execute(PLAYS, (limit,)).fetchone()
-	assert counted is not None
-	plays = int(str(counted[0]))
-	lines = connection.execute("DELETE FROM log WHERE logged_at < %s", (limit,)).rowcount
+	plays = admin_queries.erase_plays(connection, limit)
+	lines = admin_queries.erase_log(connection, limit)
 	report = [
 		N_counted("{count} play of the airplay", "{count} plays of the airplay", plays),
 		N_counted("{count} line of the log", "{count} lines of the log", lines),
 	]
 	for counting, table, date in ITEMS:
-		erased_list = connection.execute(f"DELETE FROM {table} WHERE {date} < %s", (limit,)).rowcount
+		erased_list = admin_queries.erase_deleted(connection, table, date, limit)
 		report.append(counting(erased_list))
 	# Une session sautée d'avant la limite ne compte plus pour rien (https://github.com/dascritch/machincast/issues/273).
-	connection.execute("DELETE FROM event_skips WHERE day < %s", (limit.date(),))
+	admin_queries.erase_skips(connection, limit.date())
 	return report
 
 
@@ -104,7 +96,7 @@ def run(configuration: Configuration, _options: argparse.Namespace) -> int:
 				limit=f"{limit:%Y-%m-%d %H:%M}",
 				report=", ".join(report),
 			)
-			connection.execute("INSERT INTO log (level, kind, message) VALUES ('info', 'purge', %s)", (announces,))
+			admin_queries.log_purge(connection, announces)
 	except psycopg.OperationalError as error:
 		log.error(
 			_("database unreachable ({production}): {error}; nothing was erased").format(
