@@ -14,7 +14,7 @@ import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import access, installation, personal
+from machincast import access, admin_queries, installation, personal
 from machincast.configuration import Configuration
 from tests.database_fixtures import configuration_test
 
@@ -98,7 +98,9 @@ def present(tmp_path: Path, context: SimpleNamespace, name: str) -> None:
 
 @given("une base qui refuse la mise à jour des emplacements")
 def refusing(monkeypatch: pytest.MonkeyPatch) -> None:
-	monkeypatch.setattr(personal, "RELOCATE", "UPDATE {table} SET {column} = nothing_like_this(%s, %s, %s, %s, %s)")
+	monkeypatch.setattr(
+		admin_queries, "RELOCATE", "UPDATE {table} SET {column} = nothing_like_this(%s, %s, %s, %s, %s)"
+	)
 
 
 @when("les sonores des répertoires personnels sont listés")

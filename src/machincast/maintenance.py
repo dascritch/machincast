@@ -32,6 +32,7 @@ from pathlib import Path
 
 import psycopg
 
+from machincast import admin_queries
 from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration, Database
@@ -98,12 +99,12 @@ def server_version(database: Database) -> int | None:
 	"""La version majeure du serveur de la base de production ; None s'il est injoignable."""
 	try:
 		with psycopg.connect(host=str(database.socket), dbname=database.production) as connection:
-			line = connection.execute("SHOW server_version_num").fetchone()
+			number = admin_queries.server_version(connection)
 	except psycopg.Error:
 		return None
-	if line is None:
+	if number is None:
 		return None
-	return int(str(line[0])) // 10000
+	return number // 10000
 
 
 def back_up(configuration: Configuration, directory: Path) -> Path:
@@ -163,12 +164,7 @@ def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
 
 	def check_role(role: str) -> None:
 		nonlocal in_order
-		line = connection.execute(
-			"SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = %s)"
-			" AND pg_has_role(current_user, (SELECT oid FROM pg_roles WHERE rolname = %s), 'SET')",
-			(role, role),
-		).fetchone()
-		if (line is not None) and (line[0] is True):
+		if admin_queries.role_assumable(connection, role):
 			return
 		in_order = False
 		log.error(
@@ -187,8 +183,8 @@ def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
 
 
 def optimise(connection: psycopg.Connection[tuple[object, ...]], name: str) -> None:
-	"""VACUUM ne s'exécute pas dans une transaction : la connexion est en autocommit."""
-	connection.execute("VACUUM (ANALYZE)")
+	"""Optimise la base ; VACUUM ne s'exécute pas dans une transaction : la connexion est en autocommit."""
+	admin_queries.vacuum(connection)
 	log.info(_("database {name} optimised (VACUUM ANALYZE)").format(name=name))
 
 

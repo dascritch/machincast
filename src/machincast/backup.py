@@ -27,6 +27,7 @@ from pathlib import Path
 import psycopg
 from yoyo import read_migrations
 
+from machincast import admin_queries
 from machincast.cli import launch
 from machincast.configuration import Configuration
 from machincast.database import MIGRATION_DIRECTORY
@@ -138,11 +139,8 @@ def _check_empty(configuration: Configuration) -> None:
 	"""La base de production ne doit rien contenir : ni table, ni séquence, ni vue dans son schéma public."""
 	database = configuration.database
 	with psycopg.connect(host=str(database.socket), dbname=database.production) as connection:
-		line = connection.execute(
-			"SELECT count(*) FROM pg_class JOIN pg_namespace ON pg_namespace.oid = relnamespace"
-			" WHERE nspname = 'public'"
-		).fetchone()
-	if (line is None) or (line[0] != 0):
+		relations = admin_queries.public_relations(connection)
+	if relations != 0:
 		raise Refusal(
 			_(
 				"database {production} is not empty: a backup is only restored into a new database, as install.sh"

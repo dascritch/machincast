@@ -38,6 +38,7 @@ from psycopg.rows import TupleRow
 
 from machincast.conversion import integer_or_none
 from machincast.i18n import _
+from machincast.shared import queries
 
 
 class Priority(StrEnum):
@@ -657,34 +658,17 @@ def _winning(covering: list[Occurrence]) -> Occurrence | None:
 	return max(kept_list, key=lambda o: (o.event.modified_at, o.event.id))
 
 
-COLUMNS = (
-	"id, internal_name, priority::text, starts_at, ends_at, recurrence_days::text[], modified_at, deleted_at,"
-	" ARRAY(SELECT s.day FROM event_skips s WHERE s.event_id = events.id), end_of_list::text, end_fallback_event_id,"
-	" stream_fallback_event_id"
-)
-
-
 def read_grid(connection: psycopg.Connection[TupleRow], *, deleted_list: bool = False) -> list[Event]:
 	"""Événements de la grille, sans les événements de secours ; la connexion a endossé le rôle de la lecture
 	(machincast.database.open_connection). Un événement supprimé ne joue plus
 	(https://github.com/dascritch/machincast/issues/267) : seul le calendrier les demande (deleted_list), pour leurs
 	occurrences d'avant leur suppression."""
-	condition = "deleted_at IS NULL"
-	if deleted_list:
-		condition = "TRUE"
-	lines = connection.execute(
-		f"SELECT {COLUMNS} FROM events WHERE priority <> 'fallback' AND {condition} ORDER BY id"
-	).fetchall()
-	return _events(lines)
+	return _events(queries.grid_events(connection, deleted_list=deleted_list))
 
 
 def read_event(connection: psycopg.Connection[TupleRow], identifier: int) -> Event | None:
 	"""Un événement, quelle que soit sa priorité : par exemple l'événement de secours d'un stream."""
-	lines = connection.execute(
-		f"SELECT {COLUMNS} FROM events WHERE id = %s",
-		(identifier,),
-	).fetchall()
-	return next(iter(_events(lines)), None)
+	return next(iter(_events(queries.event(connection, identifier))), None)
 
 
 def _events(lines: list[TupleRow]) -> list[Event]:

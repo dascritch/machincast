@@ -42,7 +42,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from machincast import service
+from machincast import admin_queries, service
 from machincast.cli import launch
 from machincast.configuration import Configuration
 from machincast.database import Role, open_connection
@@ -391,14 +391,8 @@ def database_paths(configuration: Configuration) -> list[Path]:
 	"""Les répertoires des banques, et les fichiers ajoutés hors de ces répertoires, de la base de production."""
 	database = configuration.database
 	with open_connection(database.socket, database.production, Role.INTERFACE) as connection:
-		directories = connection.execute(
-			"SELECT DISTINCT d.directory FROM bank_directories d JOIN banks b ON b.id = d.bank_id"
-			" WHERE b.deleted_at IS NULL ORDER BY 1"
-		).fetchall()
-		files = connection.execute(
-			"SELECT location FROM sounds s WHERE s.deleted_at IS NULL AND s.location IS NOT NULL AND NOT EXISTS ("
-			" SELECT 1 FROM bank_directories d WHERE s.location LIKE d.directory || '/%%') ORDER BY 1"
-		).fetchall()
+		directories = admin_queries.bank_directories(connection)
+		files = admin_queries.files_outside_directories(connection)
 	paths = []
 	for (directory,) in directories:
 		paths.append(Path(str(directory)))
