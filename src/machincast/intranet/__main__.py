@@ -16,7 +16,9 @@ import asyncio
 import ipaddress
 import logging
 import signal
+import ssl
 from collections.abc import Sequence
+from typing import Any
 
 import psycopg
 from hypercorn.asyncio import serve
@@ -127,9 +129,27 @@ def serve_intranet(configuration: Configuration) -> int:
 	return 0
 
 
+CLOSED_BY_THE_BROWSER = "APPLICATION_DATA_AFTER_CLOSE_NOTIFY"
+"""L'erreur SSL d'une connexion que le navigateur a déjà fermée, mais où il envoie encore des données
+(https://github.com/dascritch/machincast/issues/572)."""
+
+
+def exception_handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+	"""Ce qu'asyncio écrit d'une exception qu'un rappel n'a pas rattrapée, sauf l'erreur SSL d'une connexion déjà
+	fermée par le navigateur : Hypercorn ne la rattrape pas en fermant la connexion, qui est déjà finie, et rien n'est
+	perdu."""
+	error = context.get("exception")
+	if (isinstance(error, ssl.SSLError)) and (
+		(getattr(error, "reason", None) == CLOSED_BY_THE_BROWSER) or (CLOSED_BY_THE_BROWSER in str(error))
+	):
+		return
+	loop.default_exception_handler(context)
+
+
 async def _serve(application: Application, config: Config) -> None:
 	stopped = asyncio.Event()
 	loop = asyncio.get_running_loop()
+	loop.set_exception_handler(exception_handler)
 	for received in (signal.SIGTERM, signal.SIGINT):
 		loop.add_signal_handler(received, stopped.set)
 	await serve(application, config, shutdown_trigger=stopped.wait)  # type: ignore[arg-type]
