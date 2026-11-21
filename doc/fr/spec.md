@@ -2087,6 +2087,13 @@ Il donne aussi les occurrences qu'un événement de priorité plus haute couvre,
 - Chaque occurrence a `id`, `name`, `priority`, `start` et `end`, ses heures dessinées, et `on_air`, les moments où elle serait à l'antenne.
 - `covered` : couverte entièrement par d'autres, `on_air` vide ; `skipped` : une session sautée, qui ne joue rien ; `deleted` : d'un événement supprimé.
 - En HTML hCalendar, chaque occurrence est un `vevent` (et `h-event`) : son nom en `summary`, ses heures en `dtstart` et `dtend`, sa priorité en `category`.
-- La page `/calendar` montre une semaine, du lundi au dimanche, jour par jour, chaque occurrence sous chacun des jours qu'elle touche, à ses heures de ce jour ; une occurrence couverte ou sautée est barrée.
+- La page `/calendar` montre une semaine en grille horaire, comme le calendrier de l'interface ([#580](https://github.com/dascritch/machincast/issues/580), `machincast.intranet.hour_grid`) : une colonne par jour, du lundi au dimanche, de 0 h à 24 h, les heures à gauche ; aujourd'hui en gras, l'heure actuelle d'un trait rouge.
+  La grille montre 12 heures dans sa hauteur, défile, et s'ouvre à 07:00.
   `?week=<un jour de la semaine>` choisit la semaine ; la page mène à la précédente, à celle d'aujourd'hui et à la suivante.
+- Chaque occurrence y est un bloc à ses heures de chaque jour qu'elle touche, de la couleur de sa priorité, comme dans l'interface : pleine où elle est à l'antenne, estompée où un autre événement la couvre, hachurée pour une session sautée ; une occurrence couverte ou sautée a son nom barré.
+  Deux blocs qui se chevauchent se placent côte à côte, de la même façon que dans l'interface (`shared.side_by_side`).
+  Une occurrence de 24 heures ou plus, dont le fil musical permanent, va dans la bande de la journée entière, sous le nom des jours.
+  Le survol d'un bloc donne son nom, sa priorité, ses heures et ce qui en joue.
+- La grille est en SVG, sans script ni attribut `style`, que la Content-Security-Policy refuse : chaque bloc se place par les attributs de son SVG, et son texte reste en hCalendar.
+  Le script ne fait que l'ouvrir à 07:00 ; sans lui, elle s'ouvre à 0 h.
 - La page `/documentation` mène au guide de l'antenne et à cette spécification de l'intranet, à la version installée : celle du tag de la release, ou `main` (`interface.version.documentation`).

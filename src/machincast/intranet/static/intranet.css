@@ -71,11 +71,61 @@ dl { display: grid; grid-template-columns: 9rem 1fr; gap: 0.2rem 1rem; margin: 0
 dt { color: var(--discret); }
 dd { margin: 0; }
 nav.semaines { display: flex; gap: 1rem; margin: 0 0 1rem; }
+/* La semaine en grille horaire, comme le calendrier de l'interface (https://github.com/dascritch/machincast/issues/580,
+   machincast.intranet.hour_grid) : les couleurs des priorités de machincast.interface.calendar.COLOURS. Les blocs se
+   placent par les attributs de leur SVG ; la feuille ne donne que leur aspect. */
+main:has(.calendrier) { max-width: 90rem; }
+.calendrier { border: 1px solid var(--cadre); border-radius: 6px; overflow: hidden; }
+.calendrier .entete, .calendrier .defilement {
+	display: grid;
+	grid-template-columns: 3.5rem 1fr;
+	scrollbar-gutter: stable;
+	overflow-y: hidden;
+}
+.calendrier .entete { border-bottom: 1px solid var(--cadre); }
+.calendrier .defilement { max-height: 36rem; overflow-y: auto; }
+.calendrier svg { display: block; overflow: hidden; }
+.calendrier svg.bloc { overflow: hidden; }
+.calendrier text { fill: var(--texte); font-size: 0.85rem; }
+.calendrier text.heure { fill: var(--discret); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.calendrier text.aujourdhui { font-weight: 700; }
+/* Le nom court des jours, sur un écran étroit. */
+.calendrier text.nom-court { display: none; }
+@media (max-width: 60rem) {
+	.calendrier text.nom-du-jour { display: none; }
+	.calendrier text.nom-court { display: inline; }
+}
+.calendrier line.trait { stroke: var(--cadre); }
+.calendrier line.separation { stroke: var(--cadre); }
+.calendrier line.maintenant { stroke: #d03030; stroke-width: 2; }
+.bloc { --bloc: #8cb4f0; }
+.bloc.breaking { --bloc: #c48cf0; }
+.bloc.special { --bloc: #f08c8c; }
+.bloc.show { --bloc: #8cb4f0; }
+.bloc.background_programming { --bloc: #8fd19e; }
+.bloc.fallback { --bloc: #e8b45c; }
+/* Estompé : une teinte claire, opaque, sur laquelle le texte sombre se lit aussi en thème sombre. */
+.bloc .fond { fill: color-mix(in srgb, var(--bloc) 30%, #ffffff); }
+.bloc .antenne { fill: var(--bloc); }
+.bloc .cadre { fill: none; stroke: color-mix(in srgb, var(--bloc), #000000 30%); stroke-width: 2; }
+.bloc .vevent {
+	height: 100%;
+	padding: 1px 4px;
+	overflow: hidden;
+	color: #202020;
+	font-size: 0.78rem;
+	line-height: 1.2;
+	font-variant-numeric: tabular-nums;
+}
+.bloc .vevent .summary { font-weight: 600; }
+.bande .vevent { white-space: nowrap; text-overflow: ellipsis; }
+.bloc .vevent .category, .bloc .vevent .remarque { color: #404040; font-size: 0.72rem; }
+.bloc .vevent.couvert .summary, .bloc .vevent.saute .summary { text-decoration: line-through; }
 ol.vcalendar { list-style: none; margin: 0; padding: 0; }
 ol.vcalendar li { padding: 0.15rem 0; font-variant-numeric: tabular-nums; }
-.vevent .category, .vevent .remarque { color: var(--discret); font-size: 0.9rem; }
-.vevent.couvert, .vevent.saute { color: var(--discret); }
-.vevent.couvert .summary, .vevent.saute .summary { text-decoration: line-through; }
+ol.vcalendar .vevent .category, ol.vcalendar .vevent .remarque { color: var(--discret); font-size: 0.9rem; }
+ol.vcalendar .vevent.couvert, ol.vcalendar .vevent.saute { color: var(--discret); }
+ol.vcalendar .vevent.couvert .summary, ol.vcalendar .vevent.saute .summary { text-decoration: line-through; }
 .documentation li { margin: 0.3rem 0; }
 form.connexion { max-width: 22rem; }
 form.connexion input { width: 100%; padding: 0.4rem; }

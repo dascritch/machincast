@@ -112,6 +112,13 @@
 		}
 	};
 
+	// La grille du calendrier s'ouvre à data-premiere-heure, comme celle de l'interface
+	// (https://github.com/dascritch/machincast/issues/580).
+	const grille = element("grille");
+	if (grille !== null) {
+		grille.scrollTop = (grille.scrollHeight * Number(grille.dataset.premiereHeure || 0)) / 24;
+	}
+
 	if (element("direct") !== null) {
 		relire();
 		window.setInterval(relire, RELECTURE);

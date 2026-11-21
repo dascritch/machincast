@@ -5,9 +5,10 @@ venir, même celles d'un événement supprimé d'avant sa suppression, et même 
 haute couvre (une émission sous un spécial) : `on_air` dit les moments où chacune serait à l'antenne, vide pour une
 occurrence couverte entièrement (`covered`) ; une session sautée (`skipped`) ne joue rien.
 
-En JSON, pour /api/v1/calendar, et en HTML hCalendar, pour la page /calendar comme pour
-/api/v1/calendar?format=html : chaque occurrence est un `vevent` (`h-event`), son nom en `summary`, ses heures en
-`dtstart` et `dtend`, sa priorité en `category`.
+En JSON, pour /api/v1/calendar, et en HTML hCalendar, pour /api/v1/calendar?format=html : chaque occurrence est un
+`vevent` (`h-event`), son nom en `summary`, ses heures en `dtstart` et `dtend`, sa priorité en `category`. La page
+/calendar les montre en grille horaire, toujours en hCalendar (machincast.intranet.hour_grid,
+https://github.com/dascritch/machincast/issues/580).
 
 Les heures sont celles du poste, avec leur décalage horaire.
 """
@@ -109,18 +110,19 @@ def _entry(planned: Planned) -> dict[str, Any]:
 	}
 
 
-def _hour(moment: datetime) -> str:
+def hour(moment: datetime) -> str:
+	"""« 07:45 », à l'heure de moment."""
 	return f"{moment.hour:02d}:{moment.minute:02d}"
 
 
-def _end_hour(start: datetime, end: datetime) -> str:
+def end_hour(start: datetime, end: datetime) -> str:
 	"""La fin, « 24:00 » à minuit le jour d'après le début."""
 	if (end.date() > start.date()) and (end.time() == time()):
 		return "24:00"
-	return _hour(end)
+	return hour(end)
 
 
-def _remark(entry: dict[str, Any]) -> str:
+def remark(entry: dict[str, Any]) -> str:
 	remarks = []
 	if entry["covered"]:
 		remarks.append(_("covered"))
@@ -143,10 +145,10 @@ def vevent(entry: dict[str, Any], start: datetime, end: datetime) -> str:
 	label = PRIORITIES.get(Priority(entry["priority"]), entry["priority"])
 	return (
 		f'<li class="{" ".join(classes)}">'
-		f'<time class="dtstart dt-start" datetime="{start.isoformat()}">{_hour(start)}</time>–'
-		f'<time class="dtend dt-end" datetime="{end.isoformat()}">{_end_hour(start, end)}</time> '
+		f'<time class="dtstart dt-start" datetime="{start.isoformat()}">{hour(start)}</time>–'
+		f'<time class="dtend dt-end" datetime="{end.isoformat()}">{end_hour(start, end)}</time> '
 		f'<span class="summary p-name">{escape(entry["name"])}</span> '
-		f'<span class="category p-category">{escape(label)}</span>{_remark(entry)}</li>'
+		f'<span class="category p-category">{escape(label)}</span>{remark(entry)}</li>'
 	)
 
 
@@ -158,23 +160,5 @@ def hcalendar(found: list[dict[str, Any]]) -> str:
 	return f'<ol class="vcalendar">\n{"\n".join(lines)}\n</ol>'
 
 
-def _day_title(day: date) -> str:
+def day_title(day: date) -> str:
 	return f"{DAY_NAMES[day.weekday()]} {day.day:02d}/{day.month:02d}"
-
-
-def weekly(found: list[dict[str, Any]], first: date) -> str:
-	"""La semaine de first, jour par jour : chaque occurrence sous chacun des jours qu'elle touche, à ses heures
-	de ce jour."""
-	days = []
-	for offset in range(WEEK):
-		day = first + timedelta(days=offset)
-		begins, ends = midnight(day), midnight(day + ONE_DAY)
-		lines = []
-		for entry in found:
-			if (entry["start"] < ends) and (entry["end"] > begins):
-				lines.append(vevent(entry, max(entry["start"], begins), min(entry["end"], ends)))
-		days.append(
-			f'<section class="jour" id="jour-{day.isoformat()}">\n<h2>{escape(_day_title(day))}</h2>\n'
-			f'<ol class="vcalendar">\n{"\n".join(lines)}\n</ol>\n</section>'
-		)
-	return "\n".join(days)

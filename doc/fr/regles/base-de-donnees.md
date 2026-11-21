@@ -28,7 +28,7 @@ Modèle complet : [spec.md § 3](../spec.md#3-base-de-données).
 	Un scénario de `base.feature` refuse un `execute` dans un module de l'interface qui importe Qt.
 	Les modules sans Qt qui font déjà de l'accès aux données (`deletion`, `groups`, `sessions`, `adding`, `airplay`, `background_programming`) restent où ils sont.
 - **Diffusion** : les requêtes de `Machin_player` sont dans ses modules (`saving`, `history`, `banks`, `sequences`, `outputs`…), jamais dans `broadcast`.
-- **Partagé** : ce que l'interface et la diffusion calculent de la même façon, sans Qt ni GStreamer (`grid`, `fades`, `no_repeat`), est dans `src/machincast/shared/`.
+- **Partagé** : ce que l'interface et la diffusion calculent de la même façon, sans Qt ni GStreamer (`grid`, `fades`, `no_repeat`), et ce que l'interface et l'intranet dessinent de la même façon (`side_by_side`, [#580](https://github.com/dascritch/machincast/issues/580)), est dans `src/machincast/shared/`.
 	L'interface n'importe ni `broadcast`, ni `engine`, ni `rundown` (`base.feature`).
 - Un nom de table ou de colonne qui entre dans une requête est une constante du code, jamais une saisie ; une valeur passe toujours en paramètre.
 

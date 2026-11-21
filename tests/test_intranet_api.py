@@ -498,11 +498,162 @@ def weeks(api: Api, before: str, after: str) -> None:
 	assert f'rel="next" href="{after}"' in text
 
 
-@then(parsers.re(r"le « (?P<day>[^»]+) » montre (?P<names>.+)"))
-def day_shows(api: Api, day: str, names: str) -> None:
-	found = re.search(rf"<h2>{day}</h2>\n<ol class=\"vcalendar\">(?P<items>.*?)</ol>", _page(api), re.DOTALL)
-	assert found is not None, day
-	assert re.findall(r'<span class="summary p-name">([^<]*)</span>', found["items"]) == NAME.findall(names)
+DAY_NAME = re.compile(r'<text class="nom-du-jour(?P<today>[^"]*)"[^>]*>(?P<name>[^<]*)</text>')
+BLOCK = re.compile(
+	r'<svg class="bloc (?P<priority>[^"]+)" x="(?P<x>[\d.]+)%" y="(?P<y>[^"]+)" width="(?P<width>[\d.]+)%"'
+	r' height="(?P<height>[^"]+)">(?P<inside>.*?)</svg>',
+	re.DOTALL,
+)
+SUMMARY = re.compile(r'<span class="summary p-name">([^<]*)</span>')
+PERCENT = r'="(?P<value>[\d.]+)%"'
+MINUTES = 24 * 60
+
+
+def _days(api: Api) -> list[str]:
+	names = []
+	for found in DAY_NAME.finditer(_page(api)):
+		names.append(html.unescape(found["name"]))
+	return names
+
+
+def _group(api: Api, kind: str, day: str) -> str:
+	"""Les blocs d'un jour : ceux de ses heures (« jour »), ou de sa bande de la journée entière (« bande »)."""
+	found = re.search(
+		rf'<g class="{kind}[^"]*" aria-label="{re.escape(day)}">(?P<inside>.*?)</g>', _page(api), re.DOTALL
+	)
+	assert found is not None, (kind, day)
+	return found["inside"]
+
+
+def _clock(minutes: float) -> str:
+	whole = round(minutes)
+	return f"{whole // 60:02d}:{whole % 60:02d}"
+
+
+def _share(inside: str, name: str, axis: str, length: str) -> list[tuple[float, float]]:
+	"""Les moments pleins d'un bloc, en parts de lui-même : de haut en bas (y), ou de gauche à droite (x)."""
+	shares = []
+	for rectangle in re.findall(r'<rect class="antenne"[^>]*/>', inside):
+		start = re.search(f"{axis}{PERCENT}", rectangle)
+		size = re.search(f"{length}{PERCENT}", rectangle)
+		assert (start is not None) and (size is not None), (name, rectangle)
+		shares.append((float(start["value"]) / 100, (float(start["value"]) + float(size["value"])) / 100))
+	return shares
+
+
+def _blocks(inside: str) -> dict[str, re.Match[str]]:
+	found = {}
+	for block in BLOCK.finditer(inside):
+		names = SUMMARY.findall(block["inside"])
+		assert len(names) == 1, block["inside"]
+		found[html.unescape(names[0])] = block
+	return found
+
+
+@then(parsers.re(r"la grille a pour jours (?P<names>.+)"))
+def grid_days(api: Api, names: str) -> None:
+	assert _days(api) == NAME.findall(names)
+
+
+@then(parsers.parse("la grille a pour heures « {first} » à « {last} », et s'ouvre à {opening}"))
+def grid_hours(api: Api, first: str, last: str, opening: str) -> None:
+	text = _page(api)
+	hours = re.findall(r'<text class="heure"[^>]*>(\d\d:\d\d)</text>', text)
+	assert (hours[0], hours[-1], len(hours)) == (first, last, 24)
+	assert f'id="grille" data-premiere-heure="{int(opening[:2])}"' in text
+
+
+@then(parsers.parse("le « {day} » est aujourd'hui, l'heure actuelle à {moment}"))
+def today(api: Api, day: str, moment: str) -> None:
+	text = _page(api)
+	marked = []
+	for found in DAY_NAME.finditer(text):
+		if found["today"] == " aujourdhui":
+			marked.append(found["name"])
+	assert marked == [day]
+	assert f'<g class="jour aujourdhui" aria-label="{day}">' in text
+	line = re.search(r'<line class="maintenant" x1="(?P<x>[\d.]+)%"[^>]* y1="(?P<y>[\d.]+)%"', text)
+	assert line is not None
+	assert round(float(line["x"]) * 7 / 100) == _days(api).index(day)
+	assert _clock(float(line["y"]) / 100 * MINUTES) == moment
+
+
+@then(parsers.re(r"la bande de la journée entière du « (?P<day>[^»]+) » montre (?P<names>.+)"))
+def band_shows(api: Api, day: str, names: str) -> None:
+	assert list(_blocks(_group(api, "bande", day))) == NAME.findall(names)
+
+
+@then(parsers.re(r"les heures du « (?P<day>[^»]+) » montrent (?P<names>.+)"))
+def hours_show(api: Api, day: str, names: str) -> None:
+	assert list(_blocks(_group(api, "jour", day))) == NAME.findall(names)
+
+
+@then(parsers.parse("les heures du « {day} » ne montrent rien"))
+def hours_empty(api: Api, day: str) -> None:
+	assert _blocks(_group(api, "jour", day)) == {}
+
+
+@then("la page n'a aucun attribut style")
+def without_style(api: Api) -> None:
+	assert re.search(r"\sstyle=", _page(api)) is None
+
+
+def _fading(inside: str) -> str:
+	if 'class="hachures"' in inside:
+		return "hachuré"
+	if re.search(r'<div class="vevent[^"]* couvert', inside):
+		return "oui"
+	return "non"
+
+
+@then(parsers.parse("les heures du « {day} » ont pour blocs :"))
+def day_blocks(api: Api, day: str, datatable: list[list[str]]) -> None:
+	index = _days(api).index(day)
+	found = _blocks(_group(api, "jour", day))
+	headers, *rows = datatable
+	names = []
+	for row in rows:
+		names.append(row[0].strip())
+	assert list(found) == names
+	for row in rows:
+		cells = []
+		for cell in row:
+			cells.append(cell.strip())
+		expected = dict(zip(headers, cells, strict=True))
+		name = expected.pop("nom")
+		block = found[name]
+		width = float(block["width"])
+		count = round(100 / 7 / width)
+		column = round((float(block["x"]) - index * 100 / 7) / width) + 1
+		start = float(block["y"].rstrip("%")) / 100 * MINUTES
+		end = start + float(block["height"].rstrip("%")) / 100 * MINUTES
+		moments = []
+		for top, bottom in _share(block["inside"], name, "y", "height"):
+			moments.append(f"{_clock(start + top * (end - start))} – {_clock(start + bottom * (end - start))}")
+		assert {
+			"priorité": block["priority"],
+			"heures": f"{_clock(start)} – {_clock(end)}",
+			"colonne": f"{column} sur {count}",
+			"à l'antenne": (", ".join(moments)) or ("—"),
+			"estompé": _fading(block["inside"]),
+		} == expected, name
+
+
+@then(parsers.parse("le bloc « {name} » du « {day} » dit :"))
+def block_says(api: Api, name: str, day: str, docstring: str) -> None:
+	inside = _blocks(_group(api, "jour", day))[name]["inside"]
+	title = re.search(r'<div class="vevent[^"]*" title="(?P<title>[^"]*)"', inside)
+	assert title is not None
+	assert html.unescape(title["title"]) == docstring
+
+
+@then(parsers.re(r"le bloc « (?P<name>[^»]+) » de la bande du « (?P<day>[^»]+) » est à l'antenne (?P<moments>de .+)"))
+def band_on_air(api: Api, name: str, day: str, moments: str) -> None:
+	inside = _blocks(_group(api, "bande", day))[name]["inside"]
+	found = []
+	for left, right in _share(inside, name, "x", "width"):
+		found.append((_clock(left * MINUTES), _clock(right * MINUTES)))
+	assert found == re.findall(r"de (\d\d:\d\d) à (\d\d:\d\d)", moments)
 
 
 @then("la page mène au guide de l'antenne et à la spécification de l'intranet, à la version installée")
