@@ -113,7 +113,7 @@ Machin intranet est le seul programme de MachinCast qui écoute le réseau. Il e
 
 - Tout le système est en lecture seule, le dépôt et `machincast.toml` compris ; seul son répertoire d'état, `/var/lib/machincast-intranet`, s'écrit.
 - Aucun répertoire personnel n'est visible, aucun périphérique, aucune capacité du noyau.
-- Seules les sockets Unix, IP et netlink sont permises (netlink pour lire les adresses du poste), et seuls les appels système d'un service ordinaire.
+- Seules les sockets Unix, IP et netlink sont permises (netlink pour lire les adresses du poste), et seuls les appels système d'un service ordinaire, sans les appels privilégiés ; `capset` reste permis, que `ip` appelle pour lâcher ses capacités, même sans en avoir ([#556](https://github.com/dascritch/machincast/issues/556)) : il ne peut qu'en retirer.
 - `systemd-analyze security machincast-intranet` mesure ce cloisonnement.
 
 Ses messages vont dans le journal du système : `journalctl -u machincast-intranet`.

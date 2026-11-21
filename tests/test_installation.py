@@ -1391,3 +1391,14 @@ def sh_intranet_account(account: str, role: str) -> None:
 	for step in ("creer_le_compte_de_l_intranet", "autoriser_l_intranet_en_base", "systemd-tmpfiles --create"):
 		order.append(installing.index(step))
 	assert order == sorted(order)
+
+
+@then(parsers.re(r"les filtres des appels système de l'unité sont, dans l'ordre, (?P<filters>.+)"))
+def system_call_filters(command: subprocess.CompletedProcess[str], filters: str) -> None:
+	"""Chaque ligne SystemCallFilter compte, dans son ordre : une liste permise, puis ce qui en est retiré ou ajouté
+	(https://github.com/dascritch/machincast/issues/556)."""
+	found = []
+	for line in command.stdout.splitlines():
+		if line.startswith("SystemCallFilter="):
+			found.append(line.removeprefix("SystemCallFilter="))
+	assert found == re.findall(r"« ([^»]+) »", filters), found
