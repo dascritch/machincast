@@ -145,9 +145,9 @@ BUREAU=demander
 # (https://github.com/dascritch/machincast/issues/347) : demander, oui (celle de --restore) ou non.
 REIMPORTER=demander
 SAUVEGARDE=""
-# Service déjà installé mais pas à jour, sans --service (https://github.com/dascritch/machincast/issues/376) : le mettre à
-# jour, demandé à la question.
-METTRE_A_JOUR_LE_SERVICE=false
+# Service déjà installé, sans --service ni --remove-service (https://github.com/dascritch/machincast/issues/557) : cette
+# installation le met à jour, comme avec --service, sans redemander de dédier le poste.
+SERVICE_DEJA_INSTALLE=false
 # Programmes de MachinCast en cours (https://github.com/dascritch/machincast/issues/254) : demander, oui ou non ;
 # ceux qu'install.sh a arrêtés, à relancer à la fin, même après un échec.
 ARRETER=demander
@@ -239,7 +239,8 @@ Options:
   --verbose     shows all the information, the technical lines too (links, SQL operations, files already up
                 to date); without it, nor --simulation, only the steps, the warnings and what must be read
   --dev         also installs the tools of the development computer
-  --service     also installs the broadcast service (computer dedicated to the on-air output only)
+  --service     also installs the broadcast service (computer dedicated to the on-air output only);
+                once installed, install.sh updates it even without --service
   --no-timers   with --service, installs neither timer of the tasks, and removes those installed before:
                 the tasks are run by another tool, such as Ansible
   --remove-service
@@ -810,25 +811,23 @@ fichiers_du_service_perimes() {
 	fi
 }
 
-vouloir_mettre_a_jour_le_service() {
-	if "${SIMULATION}"; then
-		info '[simulation] question: update the broadcast service?'
+# Sans --service ni --remove-service, un service déjà installé se met à jour comme avec --service : une mise à jour du
+# poste n'oublie pas le service (https://github.com/dascritch/machincast/issues/557). Le poste est déjà dédié à
+# l'antenne ; le choix de --no-timers tient : sans minuteur installé, aucun n'est ajouté.
+reprendre_le_service_installe() {
+	if "${SERVICE}" || "${RETIRER_SERVICE}" || [[ ! -e "${FICHIER_UNITE}" ]]; then
 		return 0
 	fi
-	if ! peut_demander; then
-		annonce 'no question without a terminal: ./install.sh --service updates it'
-		return 1
+	annonce 'broadcast service installed: this installation updates it too, as ./install.sh --service'
+	SERVICE=true
+	SERVICE_DEJA_INSTALLE=true
+	if [[ ! -e "${FICHIER_MINUTEUR_TACHES}" ]] && [[ ! -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]]; then
+		MINUTEURS=false
 	fi
-	interroger "$(t 'Update the broadcast service? It restarts if it is running. [Y/n] ')" o
 }
 
-# Sans --service, le service déjà installé est vérifié : pas à jour, la question est posée de le mettre à jour.
-verifier_le_service_installe() {
-	if [[ ! -e "${FICHIER_UNITE}" ]]; then
-		annonce 'not installed: the broadcast is launched by hand, with Machin player'
-		annonce 'on a computer dedicated to the on-air output: ./install.sh --service'
-		return
-	fi
+# Le service déjà installé : ce qui n'est plus à jour pour cette version de MachinCast, et que l'installation refait.
+dire_le_service_perime() {
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
 		info '[simulation] installed service compared with machincast.installation once the virtual environment is created'
 		return
@@ -839,12 +838,7 @@ verifier_le_service_installe() {
 		info 'installed and up to date'
 		return
 	fi
-	avertissement 'installed, but not up to date for this version of MachinCast, it may no longer start: %s' "${perimes//$'\n'/, }"
-	if vouloir_mettre_a_jour_le_service; then
-		METTRE_A_JOUR_LE_SERVICE=true
-	else
-		annonce 'left as is; ./install.sh --service updates it'
-	fi
+	annonce 'installed, not up to date for this version of MachinCast, updated now: %s' "${perimes//$'\n'/, }"
 }
 
 # Le compte du service et son groupe, que rejoint le compte de MachinCast : il lit ses logs et pré-écoute l'antenne.
@@ -1201,8 +1195,12 @@ relancer_le_wireplumber_du_bureau() {
 installer_service() {
 	etape 'Broadcast service'
 	if ! "${SERVICE}"; then
-		verifier_le_service_installe
-		"${METTRE_A_JOUR_LE_SERVICE}" || return 0
+		annonce 'not installed: the broadcast is launched by hand, with Machin player'
+		annonce 'on a computer dedicated to the on-air output: ./install.sh --service'
+		return 0
+	fi
+	if "${SERVICE_DEJA_INSTALLE}"; then
+		dire_le_service_perime
 	fi
 	# L'antenne d'un poste dédié joue toujours sur une carte son (https://github.com/dascritch/machincast/issues/339),
 	# par le PipeWire du service (https://github.com/dascritch/machincast/issues/381).
@@ -1257,10 +1255,8 @@ installer_service() {
 		executer sudo systemctl try-restart "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}" "${UNITE_INTRANET}"
 	fi
 	# Les tâches du service (https://github.com/dascritch/machincast/issues/455) : sans --service, une mise à jour garde
-	# les minuteurs s'ils sont installés, l'ancien de la purge compris, et n'en ajoute pas sinon.
-	if ! "${SERVICE}" && [[ ! -e "${FICHIER_MINUTEUR_TACHES}" ]] && [[ ! -e "${FICHIER_ANCIEN_MINUTEUR_PURGE}" ]]; then
-		MINUTEURS=false
-	fi
+	# les minuteurs s'ils sont installés, l'ancien de la purge compris, et n'en ajoute pas sinon
+	# (reprendre_le_service_installe).
 	retirer_ancienne_purge
 	if "${MINUTEURS}"; then
 		installer_minuteurs
@@ -1500,8 +1496,9 @@ principal() {
 	fi
 	cd "${RACINE}"
 	"${RACINE}/bin/Machin" banner
+	reprendre_le_service_installe
 	if "${SERVICE}"; then
-		confirmer_le_poste_dedie
+		"${SERVICE_DEJA_INSTALLE}" || confirmer_le_poste_dedie
 		relocaliser_machincast
 	fi
 	verifier_systeme

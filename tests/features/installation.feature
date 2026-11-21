@@ -128,6 +128,25 @@ Fonctionnalité: Vérifications de l'installation
 			| dummy      | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie factice : le service de diffusion ne jouerait aucun son ; choisir une autre carte son dans Machin interface, Fichier → Paramètres du service…, page Audio, puis relancer ./install.sh --service |
 			| pulseaudio | « carte-1 »    | 1    | d'erreur mentionne | antenne sur la sortie PulseAudio : le service de diffusion joue par son propre PipeWire ; choisir la sortie PipeWire dans Machin interface, Fichier → Paramètres du service…, page Audio, puis relancer ./install.sh --service |
 
+	Plan du scénario: Sans --service, un service déjà installé se met à jour comme avec --service, ses minuteurs comme ils étaient
+		https://github.com/dascritch/machincast/issues/557 : une mise à jour du poste par ./install.sh, sans
+		--service, mettait à jour le reste, mais laissait le service tel quel s'il semblait à jour, ou demandait de le
+		faire. Le poste est déjà dédié à l'antenne : la question n'est pas reposée. Le choix de --no-timers tient.
+		Étant donné l'unité du service <unité>, et le minuteur des tâches <minuteur>
+		Quand install.sh décide du service, avec les options « <options> »
+		Alors install.sh <décision>
+
+		Exemples:
+			| options          | unité     | minuteur | décision                                                                   |
+			|                  | installée | installé | met le service à jour, avec ses minuteurs, sans redemander le poste dédié |
+			|                  | installée | absent   | met le service à jour, sans minuteurs, sans redemander le poste dédié     |
+			|                  | absente   | absent   | n'installe pas le service                                                  |
+			| --service        | absente   | absent   | installe le service, avec ses minuteurs, en demandant le poste dédié      |
+			| --remove-service | installée | installé | retire le service                                                          |
+
+	Scénario: install.sh reprend le service installé avant de demander le poste dédié, et dès le début
+		Alors install.sh reprend le service installé avant de demander le poste dédié, seulement s'il n'est pas déjà installé
+
 	Scénario: install.sh vérifie l'antenne avant d'installer le service
 		Alors install.sh vérifie l'antenne par « installation on-air » avant la première étape du service, et s'arrête si elle échoue
 

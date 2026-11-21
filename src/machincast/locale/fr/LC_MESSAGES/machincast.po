@@ -9888,7 +9888,9 @@ msgid ""
 "warnings and what must be read\n"
 "  --dev         also installs the tools of the development computer\n"
 "  --service     also installs the broadcast service (computer dedicated to "
-"the on-air output only)\n"
+"the on-air output only);\n"
+"                once installed, install.sh updates it even without "
+"--service\n"
 "  --no-timers   with --service, installs neither timer of the tasks, and "
 "removes those installed before:\n"
 "                the tasks are run by another tool, such as Ansible\n"
@@ -10014,7 +10016,9 @@ msgstr ""
 "avertissements et ce qu'il faut lire\n"
 "  --dev         installe aussi les outils du poste de développement\n"
 "  --service     installe aussi le service de diffusion (ordinateur dédié à "
-"l'antenne seulement)\n"
+"l'antenne seulement) ;\n"
+"                une fois installé, install.sh le met à jour même sans "
+"--service\n"
 "  --no-timers   avec --service, n'installe aucun des minuteurs des tâches, "
 "et retire ceux installés avant :\n"
 "                les tâches sont lancées par un autre outil, comme Ansible\n"
@@ -10386,25 +10390,12 @@ msgid "no shortcut on the desktop; ./install.sh --desktop puts it there"
 msgstr "pas de raccourci sur le bureau ; ./install.sh --desktop l'y dépose"
 
 #: install.sh
-msgid "[simulation] question: update the broadcast service?"
-msgstr "[simulation] question : mettre à jour le service de diffusion ?"
-
-#: install.sh
-msgid "no question without a terminal: ./install.sh --service updates it"
-msgstr "pas de question sans terminal : ./install.sh --service le met à jour"
-
-#: install.sh
-msgid "Update the broadcast service? It restarts if it is running. [Y/n] "
+msgid ""
+"broadcast service installed: this installation updates it too, as "
+"./install.sh --service"
 msgstr ""
-"Mettre à jour le service de diffusion ? Il redémarre s'il tourne. [O/n] "
-
-#: install.sh
-msgid "not installed: the broadcast is launched by hand, with Machin player"
-msgstr "non installé : la diffusion se lance à la main, par Machin player"
-
-#: install.sh
-msgid "on a computer dedicated to the on-air output: ./install.sh --service"
-msgstr "sur un ordinateur dédié à l'antenne : ./install.sh --service"
+"service de diffusion installé : cette installation le met à jour aussi, "
+"comme ./install.sh --service"
 
 #: install.sh
 msgid ""
@@ -10420,15 +10411,10 @@ msgstr "installé et à jour"
 
 #: install.sh
 msgid ""
-"installed, but not up to date for this version of MachinCast, it may no "
-"longer start: %s"
+"installed, not up to date for this version of MachinCast, updated now: %s"
 msgstr ""
-"installé, mais pas à jour pour cette version de MachinCast, il pourrait ne "
-"plus démarrer : %s"
-
-#: install.sh
-msgid "left as is; ./install.sh --service updates it"
-msgstr "laissé tel quel ; ./install.sh --service le met à jour"
+"installé, pas à jour pour cette version de MachinCast, mis à jour "
+"maintenant : %s"
 
 #: install.sh
 msgid "account %s present"
@@ -10705,6 +10691,14 @@ msgstr "%s gardé : il contient des sonores, comme %s"
 #: install.sh
 msgid "Broadcast service"
 msgstr "Service de diffusion"
+
+#: install.sh
+msgid "not installed: the broadcast is launched by hand, with Machin player"
+msgstr "non installé : la diffusion se lance à la main, par Machin player"
+
+#: install.sh
+msgid "on a computer dedicated to the on-air output: ./install.sh --service"
+msgstr "sur un ordinateur dédié à l'antenne : ./install.sh --service"
 
 #: install.sh
 msgid ""

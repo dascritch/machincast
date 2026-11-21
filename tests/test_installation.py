@@ -1402,3 +1402,68 @@ def system_call_filters(command: subprocess.CompletedProcess[str], filters: str)
 		if line.startswith("SystemCallFilter="):
 			found.append(line.removeprefix("SystemCallFilter="))
 	assert found == re.findall(r"« ([^»]+) »", filters), found
+
+
+@given(
+	parsers.re(r"l'unité du service (?P<unit>installée|absente), et le minuteur des tâches (?P<timer>installé|absent)")
+)
+def installed_service(reimport: SimpleNamespace, unit: str, timer: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/557"""
+	for name, present in (("FICHIER_UNITE", unit == "installée"), ("FICHIER_MINUTEUR_TACHES", timer == "installé")):
+		path = reimport.tmp / name.lower()
+		if present:
+			path.write_text("[Unit]\n", encoding="utf-8")
+		reimport.variables[name] = str(path)
+	reimport.variables["FICHIER_ANCIEN_MINUTEUR_PURGE"] = str(reimport.tmp / "ancienne-purge")
+
+
+@when(parsers.re(r"install.sh décide du service, avec les options « (?P<options>[^»]*) »"))
+def decides_service(reimport: SimpleNamespace, options: str) -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	reimport.variables.update(
+		{
+			"SERVICE": str("--service" in options).lower(),
+			"RETIRER_SERVICE": str("--remove-service" in options).lower(),
+			"MINUTEURS": "true",
+			"SERVICE_DEJA_INSTALLE": "false",
+		}
+	)
+	_run_shell(
+		reimport,
+		_function(install, "reprendre_le_service_installe") + "\n}",
+		"reprendre_le_service_installe",
+		'echo "décision ${SERVICE} ${MINUTEURS} ${SERVICE_DEJA_INSTALLE} ${RETIRER_SERVICE}"',
+	)
+
+
+DECISIONS = {
+	"met le service à jour, avec ses minuteurs, sans redemander le poste dédié": "true true true false",
+	"met le service à jour, sans minuteurs, sans redemander le poste dédié": "true false true false",
+	"n'installe pas le service": "false true false false",
+	"installe le service, avec ses minuteurs, en demandant le poste dédié": "true true false false",
+	"retire le service": "false true false true",
+}
+"""SERVICE, MINUTEURS, SERVICE_DEJA_INSTALLE et RETIRER_SERVICE, après la décision."""
+
+
+@then(
+	parsers.re(
+		r"install.sh (?P<decision>met le service à jour, .+|n'installe pas le service|installe le service, .+|retire le service)$"
+	)
+)
+def service_decision(reimport: SimpleNamespace, decision: str) -> None:
+	assert reimport.result is not None
+	output = reimport.result.stdout
+	assert f"décision {DECISIONS[decision]}" in output.splitlines(), (output, reimport.result.stderr)
+	updated = "met le service à jour" in decision
+	announced = "service de diffusion installé : cette installation le met à jour aussi, comme ./install.sh --service"
+	assert (announced in output) == updated, output
+
+
+@then("install.sh reprend le service installé avant de demander le poste dédié, seulement s'il n'est pas déjà installé")
+def sh_resumes_service() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	body = _function(install, "principal")
+	resumed = body.index("\treprendre_le_service_installe\n")
+	assert resumed < body.index("confirmer_le_poste_dedie") < body.index("verifier_systeme")
+	assert '"${SERVICE_DEJA_INSTALLE}" || confirmer_le_poste_dedie' in body
