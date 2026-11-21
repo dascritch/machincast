@@ -25,7 +25,7 @@ from machincast import shortcut
 from machincast.configuration import Crossfades, DeadAirSettings, Intranet, load
 from machincast.interface import __main__ as module_interface
 from machincast.interface import application as module_application
-from machincast.interface import dialogs, preferences
+from machincast.interface import dialogs, intranet_switch, preferences
 from machincast.interface.bank_card import BankCard
 from machincast.interface.preferences import PreferencesWindow, Settings
 from machincast.interface.sound_card import SoundCard
@@ -1402,3 +1402,19 @@ def written_intranet(intranet_file: Path, address: str, port: int, minutes: int)
 @then("le fichier n'a toujours pas de section [intranet]")
 def still_no_intranet(intranet_file: Path) -> None:
 	assert "intranet" not in tomllib.loads(intranet_file.read_text(encoding="utf-8"))
+
+
+@given(parsers.re(r"l'unité du serveur intranet (?P<state>installée|non installée)"))
+def intranet_unit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, state: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/549"""
+	unit = tmp_path / "machincast-intranet.service"
+	if state == "installée":
+		unit.write_text("[Unit]\n", encoding="utf-8")
+	monkeypatch.setattr(intranet_switch, "UNIT_FILE", unit)
+
+
+@then(parsers.re(r"la page « Intranet » (?P<verdict>avertit|n'avertit pas) du mode test"))
+def warns_test_mode(opened: Opened, verdict: str) -> None:
+	label = the_window(opened).ui.intranet_test_mode
+	assert label.isHidden() is (verdict == "n'avertit pas")
+	assert label.text() == intranet_switch.TEST_MODE

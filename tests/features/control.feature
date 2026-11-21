@@ -441,7 +441,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Paramètres du service… » dans le menu « Fichier »
-		Alors la barre d'état annonce bientôt « Machin intranet lancé dans un terminal : https://127.0.0.1:9443/ »
+		Alors la barre d'état annonce bientôt « Machin intranet lancé dans un terminal, en mode test sous votre compte : https://127.0.0.1:9443/ »
 		Et le terminal a lancé bientôt Machin intranet sur la configuration de l'interface, gardé ouvert sur une erreur
 		Et systemctl n'a pas reçu « restart machincast-intranet.service »
 
@@ -474,7 +474,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9444
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Paramètres du service… » dans le menu « Fichier »
-		Alors la barre d'état annonce bientôt « Machin intranet lancé dans un terminal : https://127.0.0.1:9444/ »
+		Alors la barre d'état annonce bientôt « Machin intranet lancé dans un terminal, en mode test sous votre compte : https://127.0.0.1:9444/ »
 		Et le Machin intranet lancé sans le service a reçu SIGTERM, et ne tourne plus
 		Et le terminal a lancé bientôt Machin intranet sur la configuration de l'interface, gardé ouvert sur une erreur
 

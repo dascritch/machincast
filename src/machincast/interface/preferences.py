@@ -59,6 +59,7 @@ from machincast.configuration import (
 	load,
 )
 from machincast.i18n import _
+from machincast.interface import intranet_switch
 from machincast.interface.application import ICON, readable
 from machincast.interface.power_save_switch import PowerSaveSwitch
 from machincast.interface.sound_cards import SoundCards
@@ -515,6 +516,9 @@ class PreferencesWindow(QDialog):
 		for widget in (ui.intranet_port, ui.intranet_validation):
 			widget.setEnabled(enabled)
 		ui.intranet_addresses.setVisible(enabled)
+		# Sans le service, sous le compte qui le lance, sans cloisonnement (https://github.com/dascritch/machincast/issues/549).
+		ui.intranet_test_mode.setText(intranet_switch.TEST_MODE)
+		ui.intranet_test_mode.setVisible(not intranet_switch.service_installed())
 		if enabled:
 			addresses = network.to_give(self.intranet.address, ui.intranet_port.value())
 			ui.intranet_addresses.setText(
