@@ -63,6 +63,22 @@ def sound_page(
 	).fetchall()
 
 
+def sound_page_after(
+	connection: Connection, where: str, values: list[object], order: str, limit: int, after: int, offset: int
+) -> list[TupleRow]:
+	"""La page des sonores qui suivent le sonore after dans l'ordre et le filtre d'aujourd'hui, pas au rang qu'il avait
+	(https://github.com/dascritch/machincast/issues/567) : un sonore ajouté ou retiré avant lui ne fait ni répéter ni
+	sauter de ligne. Sorti du filtre ou supprimé, la page commence à offset, comme sound_page. where, order et leurs
+	values sont du code, jamais une saisie, ceux de l'ordre avant ceux du filtre ; chaque ligne finit par son rang, à
+	retirer."""
+	return connection.execute(
+		f"WITH ordered AS (SELECT {SOUND_FIELDS}, row_number() OVER (ORDER BY {order}) AS rank {SOUND_TABLES}"
+		f" AND ({where})) SELECT * FROM ordered"
+		" WHERE rank > COALESCE((SELECT rank FROM ordered WHERE id = %s), %s) ORDER BY rank LIMIT %s",
+		[*values, after, offset, limit],
+	).fetchall()
+
+
 def banks(connection: Connection) -> list[TupleRow]:
 	"""Les banques non supprimées, par nom, avec leur premier répertoire et leurs sonores en anomalie."""
 	return connection.execute(

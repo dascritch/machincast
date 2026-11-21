@@ -133,6 +133,13 @@ def ongoing_shape(trial: Trial, file: str, duration: int) -> None:
 	trial.ongoing_to_returned = not trial.shape.finished
 
 
+@given(parsers.parse("la forme d'onde du fichier de test « {file} », de durée inconnue, en cours de calcul"))
+def shape_without_duration(trial: Trial, file: str) -> None:
+	"""Une mesure toutes les STEP_WITHOUT_DURATION secondes (https://github.com/dascritch/machincast/issues/567)."""
+	trial.shape = WaveShape(SOUND_FILES / file, None)
+	trial.shape.start()
+
+
 @given("la forme d'onde d'un fichier qui n'est pas un sonore, en cours de calcul")
 def unreadable_shape(trial: Trial, tmp_path: Path) -> None:
 	fake = tmp_path / "faux.flac"
@@ -431,3 +438,26 @@ def centred_legend(trial: Trial) -> None:
 	text = timeline.fontMetrics().boundingRect(timeline.legend)
 	assert (background.width() > text.width()) and (background.height() > text.height()), (background, text)
 	assert QRectF(timeline.rect()).contains(background), (background, timeline.rect())
+
+
+@then("dessinée une deuxième fois sur la même frise, la forme d'onde n'est pas reparcourue")
+def drawn_twice(trial: Trial, monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Chaque mesure parcourue se place par seconds_to_x : le second dessin, sans nouvelle mesure, n'en place aucune."""
+	assert trial.shape is not None
+	timeline = Timeline(trial.parent)
+	timeline.resize(400, 40)
+	timeline.display(None, None)
+	timeline.show_shape(trial.shape)
+	placed: list[float] = []
+	true_place = timeline.seconds_to_x
+
+	def place(moment: float) -> float:
+		placed.append(moment)
+		return true_place(moment)
+
+	monkeypatch.setattr(timeline, "seconds_to_x", place)
+	timeline.grab()
+	first = len(placed)
+	timeline.grab()
+	assert first > len(trial.shape.peaks)
+	assert len(placed) - first < len(trial.shape.peaks), (first, len(placed) - first)

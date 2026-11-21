@@ -90,6 +90,32 @@ def open_preferences(variables: str) -> Context:
 	return Context(process=process)
 
 
+@when(
+	parsers.parse("je demande les noms des états d'un sonore dans une session « {variables} »"),
+	target_fixture="context",
+)
+def state_names(variables: str) -> Context:
+	"""https://github.com/dascritch/machincast/issues/567"""
+	program = (
+		"from machincast.indexer.check import LABELS\n"
+		"from machincast.interface.lists import STATES\n"
+		"print('|'.join(LABELS.values()))\n"
+		"print('|'.join(STATES.values()))\n"
+	)
+	environment = _session(variables) | {"QT_QPA_PLATFORM": "offscreen"}
+	process = subprocess.run(
+		[sys.executable, "-c", program], capture_output=True, text=True, timeout=60, env=environment
+	)
+	return Context(process=process)
+
+
+@then(parsers.re("l'indexeur et la liste des sonores les nomment (?P<names>.+)"))
+def named_states(context: Context, names: str) -> None:
+	assert context.process is not None
+	expected = "|".join(re.findall(r"« ([^»]+) »", names))
+	assert context.process.stdout.splitlines() == [expected, expected], (context.process.stdout, context.process.stderr)
+
+
 @then(parsers.parse("leur titre est « {title} »"))
 def preferences_title(context: Context, title: str) -> None:
 	assert context.process is not None

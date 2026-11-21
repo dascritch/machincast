@@ -8,7 +8,7 @@ from PySide6.QtCore import QPoint, Qt
 from pytest_bdd import given, parsers, then, when
 from pytestqt.qtbot import QtBot
 
-from machincast.interface.lists import List
+from machincast.interface.lists import IDENTIFIER, List
 from tests.interface_steps import NAME, Connection, Context, lines, list_, marked_list, tab_title, type_, window
 from tests.waiting import settle
 
@@ -146,3 +146,21 @@ def without_column(interface: Context, title: str) -> None:
 @then(parsers.parse("le compte de la liste est « {text} »"))
 def count(interface: Context, text: str) -> None:
 	assert list_(interface).count.text() == text
+
+
+@when(parsers.parse("le sonore « {location} » est supprimé hors de l'interface"))
+def deleted_elsewhere(empty_database: Connection, location: str) -> None:
+	"""Comme l'indexeur ou une autre interface (https://github.com/dascritch/machincast/issues/567)."""
+	empty_database.execute("UPDATE sounds SET deleted_at = clock_timestamp() WHERE location = %s", (location,))
+
+
+@then("la table de la liste montre les sonores dans l'ordre, sans doublon ni trou")
+def without_gap(interface: Context, empty_database: Connection) -> None:
+	model = list_(interface).table.model()
+	shown = []
+	for row in range(model.rowCount()):
+		shown.append(model.index(row, 0).data(IDENTIFIER))
+	every_one = []
+	for (identifier,) in empty_database.execute("SELECT id FROM sounds ORDER BY id").fetchall():
+		every_one.append(identifier)
+	assert shown == every_one[: len(shown)], shown

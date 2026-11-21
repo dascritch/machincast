@@ -75,10 +75,13 @@ class Arrangement:
 
 
 def _valid_list(levels: list[float]) -> list[float]:
+	"""Un niveau par canal, une mesure manquante (NaN) au plancher : retirée, elle décalerait les canaux suivants
+	(https://github.com/dascritch/machincast/issues/567)."""
 	valid_list = []
 	for level in levels:
-		if not math.isnan(level):
-			valid_list.append(level)
+		if math.isnan(level):
+			level = FLOOR
+		valid_list.append(level)
 	return valid_list
 
 
@@ -106,7 +109,11 @@ class VuMeter(QWidget):
 	def display(self, levels: list[float], peaks: list[float] | None = None) -> None:
 		"""Montre ces niveaux, et ces crêtes (les niveaux sans elles) ; chaque crête est tenue un moment avant de retomber."""
 		self.levels = _valid_list(levels)
-		self.peaks = _valid_list((peaks) or (levels))
+		# Une crête par niveau : sinon, les niveaux eux-mêmes.
+		given = levels
+		if (peaks is not None) and (len(peaks) == len(levels)):
+			given = peaks
+		self.peaks = _valid_list(given)
 		now = self.clock()
 		if len(self.maintained) != len(self.peaks):
 			peak_list = []

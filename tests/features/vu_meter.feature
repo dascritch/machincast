@@ -74,6 +74,14 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 			| 3,1     | -30, -30 | -25, -25 | -20, -25 |
 			| 3,5     | -30, -30 | -5, -30  | -5, -25  |
 
+	Scénario: Un canal sans mesure reste à sa place, au plancher, et le VU-mètre se dessine
+		https://github.com/dascritch/machincast/issues/567 : une valeur NaN retirée d'un seul relevé décalait les
+		canaux, et le dessin échouait quand un VU n'avait plus sa crête.
+		Étant donné un VU-mètre, à l'horloge fictive
+		Quand il reçoit le VU « -30, -20 » et la crête « nan, -12 »
+		Alors il montre le VU « -30, -20 » et la crête « -60, -12 »
+		Et il se dessine sans erreur
+
 	# ─── Échelle ───────────────────────────────────────────────
 
 	Scénario: Le VU-mètre de l'antenne sépare ses canaux gauche et droit par son échelle en dB

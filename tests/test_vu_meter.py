@@ -759,3 +759,22 @@ def monitor_button(interface: Context, qtbot: QtBot, soon: str | None, text: str
 @when("je clique sur le bouton sous le voyant de la diffusion")
 def click_monitor(interface: Context, qtbot: QtBot) -> None:
 	qtbot.mouseClick(home(interface).ui.monitor, Qt.MouseButton.LeftButton)
+
+
+@when(parsers.parse("il reçoit le VU « {levels} » et la crête « {peaks} »"))
+def received(pendulum: tuple[Pendulum, VuMeter], levels: str, peaks: str) -> None:
+	pendulum[1].display(decibels(levels), decibels(peaks))
+
+
+@then(parsers.parse("il montre le VU « {levels} » et la crête « {peaks} »"))
+def shown(pendulum: tuple[Pendulum, VuMeter], levels: str, peaks: str) -> None:
+	vu_meter = pendulum[1]
+	assert (vu_meter.levels, vu_meter.peaks) == (decibels(levels), decibels(peaks))
+
+
+@then("il se dessine sans erreur")
+def drawn(pendulum: tuple[Pendulum, VuMeter]) -> None:
+	"""pytest-qt fait échouer le scénario sur une exception levée dans paintEvent."""
+	vu_meter = pendulum[1]
+	vu_meter.resize(120, 40)
+	assert not vu_meter.grab().isNull()

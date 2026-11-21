@@ -156,6 +156,13 @@ Fonctionnalité: Frise de la pré-écoute d'un fichier
 		Et dessinée sur une frise de 400 points, le niveau moyen reste sous les crêtes, en chaque point
 		Et la frise de cette forme d'onde dessine le niveau moyen par-dessus les crêtes, plus foncé
 
+	Scénario: Une frise redessinée sans nouvelle mesure ne reparcourt pas toute la forme d'onde
+		https://github.com/dascritch/machincast/issues/567 : un fichier sans durée connue a une mesure toutes les
+		50 ms, soit 72 000 pour une heure, que chaque dessin reparcourait deux fois pendant la lecture.
+		Étant donné la forme d'onde du fichier de test « silences.flac », de durée inconnue, en cours de calcul
+		Et la forme d'onde est bientôt complète
+		Alors dessinée une deuxième fois sur la même frise, la forme d'onde n'est pas reparcourue
+
 	Scénario: Un fichier illisible n'a pas de forme d'onde, et la frise le dit
 		Étant donné la forme d'onde d'un fichier qui n'est pas un sonore, en cours de calcul
 		Alors la forme d'onde est bientôt indisponible

@@ -872,6 +872,12 @@ msgstr "aperçu"
 #: machincast/indexer/check.py
 #: machincast/interface/api_tab.py
 #: machincast/interface/lists.py
+msgid "active"
+msgstr "actif"
+
+#: machincast/indexer/check.py
+#: machincast/interface/api_tab.py
+#: machincast/interface/lists.py
 msgid "disabled"
 msgstr "désactivé"
 
@@ -1487,10 +1493,6 @@ msgstr "airplay illisible : {error}"
 #, python-brace-format
 msgid "Export impossible: {error}"
 msgstr "Export impossible : {error}"
-
-#: machincast/interface/api_tab.py
-msgid "active"
-msgstr "actif"
 
 #: machincast/interface/api_tab.py
 #: machincast/interface/bank_card.py

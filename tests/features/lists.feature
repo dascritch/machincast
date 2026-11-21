@@ -341,6 +341,20 @@ Fonctionnalité: Listes filtrables des sonores, des banques, des séquences et d
 		Quand je descends au bas de la table de la liste
 		Alors la table de la liste a 250 lignes
 
+	Scénario: Un sonore retiré par l'indexeur pendant la lecture ne fait sauter aucune ligne à la page suivante
+		https://github.com/dascritch/machincast/issues/567 : la page suivante se lit après le dernier sonore montré,
+		pas au rang qu'il avait ; par OFFSET, un sonore retiré avant lui faisait sauter le premier de la page suivante.
+		Étant donné 250 sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/250.flac
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je tape « grande » dans le filtre de la liste
+		Et je clique sur le titre de la colonne « État »
+		Et le sonore « /srv/grande/50.flac » est supprimé hors de l'interface
+		Et je descends au bas de la table de la liste
+		Alors la table de la liste a 200 lignes
+		Et la table de la liste montre les sonores dans l'ordre, sans doublon ni trou
+
 	Scénario: Le tri d'une colonne porte sur tous les sonores, pas seulement ceux déjà lus
 		Étant donné 250 sonores sans artiste ni titre, de /srv/grande/1.flac à /srv/grande/250.flac
 		Et les sonores :
