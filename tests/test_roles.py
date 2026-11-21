@@ -188,6 +188,12 @@ def column(context: Context, role: str, verdict: str, column: str) -> None:
 	assert allowed(context, role, query) is (verdict == "peut")
 
 
+@then(parsers.parse('le rôle "{role}" {verdict} modifier la colonne "{column}" des sessions'))
+def session_column(context: Context, role: str, verdict: str, column: str) -> None:
+	query = f"UPDATE api_sessions SET {column} = {column} WHERE false"
+	assert allowed(context, role, query) is (verdict == "peut")
+
+
 @then(parsers.parse('le rôle "{role}" {verdict} retrouver le démarrage précédent d\'un binaire'))
 def previous_start(context: Context, role: str, verdict: str) -> None:
 	query = "SELECT * FROM machincast_previous_start('Machin_purge')"

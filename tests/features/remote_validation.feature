@@ -20,15 +20,28 @@ Fonctionnalité: Validation au pupitre des connexions à distance, et sessions d
 		Et le bandeau des connexions à distance se relit
 		Alors le bandeau des connexions à distance est caché
 
-	Scénario: Une connexion à valider montre le compte, l'adresse, le navigateur et le code à donner
+	Scénario: Une connexion demandée montre qui la demande, d'où et avec quel navigateur, mais pas encore son code
+		https://github.com/dascritch/machincast/issues/547 : le pupitre accepte la connexion avant d'en donner le code.
 		Étant donné une connexion à valider de « regie », depuis « 10.0.0.31 », navigateur « Firefox/140 », code « 042917 »
 		Quand la fenêtre de l'interface s'ouvre
 		Et le bandeau des connexions à distance se relit
+		Alors le bandeau des connexions à distance montre 1 connexion demandée, qui nomme « regie », « 10.0.0.31 » et « Firefox/140 », sans code
+		Et le bandeau propose d'accepter et de refuser la connexion
+
+	Scénario: Accepter une connexion montre le code à donner
+		Étant donné une connexion à valider de « regie », depuis « 10.0.0.31 », navigateur « Firefox/140 », code « 042917 »
+		Quand la fenêtre de l'interface s'ouvre
+		Et le bandeau des connexions à distance se relit
+		Et j'accepte la connexion à distance
 		Alors le bandeau des connexions à distance montre 1 connexion, qui nomme « regie », « 10.0.0.31 », « Firefox/140 » et le code « 042 917 »
+		Et le bandeau ne propose plus que de refuser la connexion
+		Et la dernière session de « regie » est acceptée au pupitre
+		Et la barre d'état annonce « Connexion à distance de regie acceptée : donnez-lui son code. »
 
 	Scénario: Une connexion qui a reçu des codes faux le dit au pupitre
 		https://github.com/dascritch/machincast/issues/547 : peut-être quelqu'un qui essaie de deviner le code.
 		Étant donné une connexion à valider de « regie », depuis « 10.0.0.31 », navigateur « Firefox/140 », code « 042917 »
+		Et la connexion à valider de « regie » est acceptée au pupitre
 		Et la connexion à valider de « regie » a déjà reçu 3 codes faux
 		Quand la fenêtre de l'interface s'ouvre
 		Et le bandeau des connexions à distance se relit

@@ -6,6 +6,7 @@ from datetime import timedelta
 import pytest
 from PySide6.QtWidgets import QPushButton
 from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
 from machincast.interface import api_tab
 from machincast.interface.remote_connections import RemoteConnections
@@ -58,6 +59,59 @@ def refuse(interface: Context) -> None:
 	shown = banner(interface)
 	(button,) = shown.findChildren(QPushButton, "refuse_remote_connection")
 	button.click()
+
+
+@when("j'accepte la connexion à distance")
+def accept(interface: Context) -> None:
+	(button,) = banner(interface).findChildren(QPushButton, "accept_remote_connection")
+	button.click()
+
+
+@given(parsers.parse("la connexion à valider de « {name} » est acceptée au pupitre"))
+def accepted(empty_database: Connection, name: str) -> None:
+	empty_database.execute(
+		"UPDATE api_sessions SET accepted_at = clock_timestamp() WHERE token_hash = %s",
+		(sessions.fingerprint(f"jeton-{name}"),),
+	)
+
+
+@then(
+	parsers.re(r"le bandeau des connexions à distance montre 1 connexion demandée, qui nomme (?P<names>.+), sans code")
+)
+def requested(interface: Context, names: str) -> None:
+	assert not banner(interface).isHidden()
+	(text,) = banner(interface).texts()
+	for name in NAME.findall(names):
+		assert name in text, text
+	assert "042" not in text, text
+
+
+def _buttons(interface: Context) -> list[str]:
+	found = []
+	for name in ("accept_remote_connection", "refuse_remote_connection"):
+		if banner(interface).findChildren(QPushButton, name) != []:
+			found.append(name)
+	return found
+
+
+@then("le bandeau propose d'accepter et de refuser la connexion")
+def both_buttons(interface: Context) -> None:
+	assert _buttons(interface) == ["accept_remote_connection", "refuse_remote_connection"]
+
+
+@then("le bandeau ne propose plus que de refuser la connexion")
+def refuse_only(interface: Context, qtbot: QtBot) -> None:
+	qtbot.waitUntil(lambda: _buttons(interface) == ["refuse_remote_connection"], timeout=5000)
+
+
+@then(parsers.parse("la dernière session de « {name} » est acceptée au pupitre"))
+def last_accepted(empty_database: Connection, name: str) -> None:
+	found = empty_database.execute(
+		"SELECT s.accepted_at IS NOT NULL FROM api_sessions s JOIN api_users u ON u.id = s.user_id"
+		" WHERE u.name = %s ORDER BY s.id DESC LIMIT 1",
+		(name,),
+	).fetchone()
+	assert found == (True,)
 
 
 @then("le bandeau des connexions à distance est caché")

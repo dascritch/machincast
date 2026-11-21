@@ -1,8 +1,9 @@
 """Les connexions à distance à valider au pupitre (https://github.com/dascritch/machincast/issues/539).
 
 Une connexion à l'intranet, par nom et mot de passe valides, attend d'être validée : au-dessus des onglets, un
-bandeau nomme le compte, l'adresse IP source, le navigateur, l'heure limite et le code à 6 chiffres à donner à la
-personne qui se connecte, qui le saisit sur son poste. « Refuser » rend la session invalide. Le bandeau relit les
+bandeau nomme le compte, l'adresse IP source, le navigateur et l'heure limite. « Accepter » montre le code à 6
+chiffres à donner à la personne qui se connecte, qui le saisit sur son poste ; aucun code n'est essayé avant
+(https://github.com/dascritch/machincast/issues/547). « Refuser » rend la session invalide, acceptée ou non. Le bandeau relit les
 connexions toutes les POLL millisecondes, et disparaît sans connexion à valider.
 """
 
@@ -24,21 +25,27 @@ POLL = 3000
 OUTLINE = "QFrame#remote_connections { border: 2px solid #ef6c00; border-radius: 4px; }"
 """Orange, lisible sur un thème clair comme sombre : une action est attendue au pupitre."""
 REFUSE = _("Refuse")
+ACCEPT = _("Accept")
 
 
 def describe(connection: queries.Pending) -> str:
-	"""La ligne d'une connexion à valider, en texte riche : le code en gras, chiffres groupés par trois."""
-	code = f"{connection.code[:3]} {connection.code[3:]}"
+	"""La ligne d'une connexion à valider, en texte riche : qui la demande, d'où, avec quel navigateur ; une fois
+	acceptée, le code en gras, chiffres groupés par trois (https://github.com/dascritch/machincast/issues/547)."""
+	fields = {
+		"user": escape(connection.user),
+		"address": escape((connection.address) or ("?")),
+		"browser": escape((connection.user_agent[:80]) or ("?")),
+		"limit": f"{connection.validate_before.astimezone():%H:%M}",
+	}
+	if not connection.accepted:
+		return _(
+			"Remote connection requested: <b>{user}</b>, from {address}, {browser}, until {limit}. "
+			"Accept it before giving its code."
+		).format(**fields)
 	said = _(
 		"Remote connection to validate: <b>{user}</b>, from {address}, {browser}, until {limit}. "
 		"Code to give: <b>{code}</b>"
-	).format(
-		user=escape(connection.user),
-		address=escape((connection.address) or ("?")),
-		browser=escape((connection.user_agent[:80]) or ("?")),
-		limit=f"{connection.validate_before.astimezone():%H:%M}",
-		code=code,
-	)
+	).format(**fields, code=f"{connection.code[:3]} {connection.code[3:]}")
 	if connection.attempts > 0:
 		# Des codes faux : peut-être quelqu'un qui essaie de deviner (https://github.com/dascritch/machincast/issues/547).
 		said += " — " + escape(
@@ -51,7 +58,7 @@ class RemoteConnections(QFrame):
 	"""Le bandeau des connexions à valider."""
 
 	refused = Signal(str)
-	"""Ce que vient de refuser le pupitre, pour la barre d'état."""
+	"""Ce que vient d'accepter ou de refuser le pupitre, pour la barre d'état."""
 
 	def __init__(self, connection: psycopg.Connection[TupleRow], parent: QWidget | None = None) -> None:
 		super().__init__(parent)
@@ -101,11 +108,23 @@ class RemoteConnections(QFrame):
 		said.setWordWrap(True)
 		arrangement.addWidget(said, 1)
 		self.labels.append(said)
+		if not pending.accepted:
+			accept = QPushButton(ACCEPT, line)
+			accept.setObjectName("accept_remote_connection")
+			accept.clicked.connect(lambda _checked=False, chosen=pending: self.accept(chosen))
+			arrangement.addWidget(accept)
 		refuse = QPushButton(REFUSE, line)
 		refuse.setObjectName("refuse_remote_connection")
 		refuse.clicked.connect(lambda _checked=False, chosen=pending: self.refuse(chosen))
 		arrangement.addWidget(refuse)
 		return line
+
+	def accept(self, pending: queries.Pending) -> None:
+		"""Le code de la connexion apparaît, à donner au poste distant."""
+		with self.connection.transaction():
+			queries.accept(self.connection, pending.identifier)
+		self.refused.emit(_("Remote connection of {user} accepted: give it its code.").format(user=pending.user))
+		self.refresh()
 
 	def refuse(self, pending: queries.Pending) -> None:
 		with self.connection.transaction():

@@ -319,6 +319,7 @@ Les sessions de l'intranet et de l'API ([#539](https://github.com/dascritch/mach
 | `origin` | `intranet` (la mire de connexion) ou `interface` (générée au pupitre, pour l'API), type `api_session_origin`. |
 | `state` | `pending` (à valider), `valid` ou `invalid`, type `api_session_state`. |
 | `code`, `attempts` | Le code à 6 chiffres à donner au poste distant, tant que la session est à valider ; les codes faux saisis. |
+| `accepted_at` | L'acceptation de la connexion au pupitre, avant laquelle son code n'est ni montré ni essayé ([#547](https://github.com/dascritch/machincast/issues/547), migration `0008.api-sessions-acceptance`). |
 | `user_agent`, `source_ip` | Le navigateur et l'adresse du poste distant. |
 | `created_at`, `validate_before`, `validated_at`, `expires_at`, `ended_at` | L'ouverture, la limite de validation, la validation, la limite de la session valide, sa fin. |
 
@@ -351,6 +352,7 @@ Les migrations `0002` à `0007` l'ont rejointe, MachinCast étant encore en alph
 ### 3.2 Rôles et droits
 
 Un rôle PostgreSQL par binaire : `machincast_player`, `machincast_indexer`, `machincast_interface`, et `machincast_intranet` pour le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)), qui lit la programmation, l'airplay et le log pour son API ([#540](https://github.com/dascritch/machincast/issues/540), migration `0007.intranet-reading`).
+Des sessions, il ne modifie que les colonnes de la validation, jamais `accepted_at` : seule l'interface accepte une connexion, au pupitre ([#547](https://github.com/dascritch/machincast/issues/547), migration `0008.api-sessions-acceptance`).
 Ils sont créés par la migration `0001.initial-schema` ([#4](https://github.com/dascritch/machincast/issues/4)), `machincast_intranet` par `0005.api-users`, et partagés par la base de production et la base de test.
 
 - Ce sont des **rôles de groupe**, sans connexion.
@@ -1988,11 +1990,12 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 	Cinq codes faux d'une même adresse, ou d'un même compte, font aussi attendre un quart d'heure, avant même que le mot de passe soit lu : la réponse ne dit pas s'il était bon ([#547](https://github.com/dascritch/machincast/issues/547), `Portal.codes`).
 	Une connexion réussie efface les mots de passe refusés de l'adresse, mais pas ses codes faux : seule une session validée au pupitre les efface.
 2. **Session à valider** : des identifiants valides ouvrent une session `pending`, si le compte n'en a pas déjà deux (`sessions.MAXIMUM_PENDING`, 429 sinon ; se reconnecter du même navigateur remplace sa session d'avant), un jeton aléatoire de 32 octets dans le cookie `machincast_session` (`Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`), dont la base ne garde que l'empreinte SHA-256, et un code à 6 chiffres ; la réponse mène à `/validation`, qui dit qu'une action doit être faite au pupitre.
-3. **Au pupitre** : l'interface relit toutes les 3 secondes les connexions à valider (`machincast.interface.remote_connections`) ; un bandeau orange, au-dessus des onglets, nomme le compte, l'adresse IP source, le navigateur, l'heure limite, et le code à donner, en deux groupes de trois chiffres.
-	« Refuser » rend la session invalide.
+3. **Au pupitre** : l'interface relit toutes les 3 secondes les connexions à valider (`machincast.interface.remote_connections`) ; un bandeau orange, au-dessus des onglets, nomme le compte, l'adresse IP source, le navigateur et l'heure limite.
+	« Accepter » montre le code à donner, en deux groupes de trois chiffres ([#547](https://github.com/dascritch/machincast/issues/547), `api_users.accept`) : le studio décide qui il laisse entrer avant de donner un code.
+	« Refuser » rend la session invalide, acceptée ou non.
 	Une session qui a déjà reçu des codes faux le dit, « 3 codes faux déjà saisis » : peut-être quelqu'un qui essaie de deviner.
 	Le délai est `intranet.validation` minutes, 30 par défaut.
-4. **Code** (`POST /validation`) : le code exact, espaces ignorées, rend la session valide pour `intranet.session` heures, 12 par défaut, et mène à l'accueil ; un code faux le redemande, 400 ; au cinquième (`sessions.ATTEMPTS`), comme le délai passé, la session est invalide, 401, et il faut se reconnecter.
+4. **Code** (`POST /validation`) : avant que le pupitre accepte la connexion, aucun code n'est essayé, pas même le bon, ni compté, 409 ; ensuite, le code exact, espaces ignorées, rend la session valide pour `intranet.session` heures, 12 par défaut, et mène à l'accueil ; un code faux le redemande, 400 ; au cinquième (`sessions.ATTEMPTS`), comme le délai passé, la session est invalide, 401, et il faut se reconnecter.
 	Une adresse ou un compte qui a saisi cinq codes faux en un quart d'heure n'essaie plus aucun code, pas même le bon, avant un quart d'heure, 429 : un mot de passe volé ne suffit pas à forcer le code, qui demanderait des années à ce rythme.
 5. **Session valide** : le même jeton sert l'intranet et l'API, en cookie ou en `Authorization: Bearer` (`portal.bearer`) ; un compte désactivé perd ses sessions.
 	`POST /logout` rend la session invalide et efface le cookie.

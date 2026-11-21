@@ -68,6 +68,18 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| api_users        | oui  | non     | non      | non       |
 			| api_sessions     | oui  | oui     | oui      | non       |
 
+	Plan du scénario: Seule l'interface accepte une connexion à distance, au pupitre
+		https://github.com/dascritch/machincast/issues/547 : le serveur intranet, exposé au réseau, ne modifie que les
+		colonnes de la validation d'une session, jamais son acceptation.
+		Alors le rôle "<rôle>" <verdict> modifier la colonne "<colonne>" des sessions
+
+		Exemples:
+			| rôle                 | colonne     | verdict     |
+			| machincast_intranet  | accepted_at | ne peut pas |
+			| machincast_intranet  | state       | peut        |
+			| machincast_intranet  | attempts    | peut        |
+			| machincast_interface | accepted_at | peut        |
+
 	Scénario: Droits de l'interface
 		Alors le rôle "machincast_interface" a exactement ces droits :
 			| table            | lire | inserer | modifier | supprimer |

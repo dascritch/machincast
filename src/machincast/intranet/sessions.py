@@ -1,7 +1,9 @@
 """Les sessions de l'intranet et de l'API, côté serveur (https://github.com/dascritch/machincast/issues/539).
 
 1. Nom et mot de passe valides, d'un compte actif : une session à valider (pending), un cookie aléatoire dont la base
-   ne garde que l'empreinte SHA-256, et un code à 6 chiffres que l'interface montre au pupitre.
+   ne garde que l'empreinte SHA-256, et un code à 6 chiffres. L'interface montre au pupitre qui demande à se
+   connecter ; elle n'en montre le code qu'une fois la connexion acceptée (accepted_at), et aucun code n'est essayé
+   avant (https://github.com/dascritch/machincast/issues/547).
 2. Le code saisi sur le poste distant, avant validate_before : la session devient valide, jusqu'à expires_at.
    Un code faux est compté ; au cinquième, comme passé le délai, la session est invalide. Un compte n'a que
    MAXIMUM_PENDING sessions à valider à la fois ; le portail freine aussi les codes faux, par adresse et par compte
@@ -129,18 +131,23 @@ def find(connection: Connection, value: str) -> Session | None:
 
 
 def validate(connection: Connection, value: str, given: str, hours: int) -> str:
-	"""Le code saisi : « valid », la session validée pour hours heures ; « wrong », un code faux, encore permis ;
+	"""Le code saisi : « waiting », la connexion pas encore acceptée au pupitre, sans essayer le code ; « valid », la
+	session validée pour hours heures ; « wrong », un code faux, encore permis ;
 	« exhausted », un code faux, le dernier permis, qui rend la session invalide ; « invalid », la session ne se
 	valide plus."""
 	with connection.transaction():
 		_expire(connection)
 		row = connection.execute(
-			"SELECT id, code, attempts FROM api_sessions WHERE token_hash = %s AND state = 'pending' FOR UPDATE",
+			"SELECT id, code, attempts, accepted_at FROM api_sessions WHERE token_hash = %s AND state = 'pending'"
+			" FOR UPDATE",
 			(fingerprint(value),),
 		).fetchone()
 		if row is None:
 			return "invalid"
-		identifier, expected, attempts = row
+		identifier, expected, attempts, accepted_at = row
+		if accepted_at is None:
+			# Pas encore acceptée au pupitre : le code n'y est pas encore donné, aucun n'est essayé.
+			return "waiting"
 		if secrets.compare_digest(str(expected), given.strip().replace(" ", "")):
 			connection.execute(
 				# Un seul instant pour la validation et la fin de la session : elle dure exactement hours.

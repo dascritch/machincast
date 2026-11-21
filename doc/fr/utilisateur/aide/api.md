@@ -15,6 +15,6 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 8. **➕ Nouvelle session API…** (`new_session`) : une session valide aussitôt, pour un outil qui lit l'API ; son jeton n'est montré qu'une fois.
 9. **Invalider la session** (`invalidate_session`) : la session choisie ne sert plus.
 
-Une connexion à distance à valider s'annonce au-dessus des onglets, dans un bandeau orange : le compte, l'adresse, le navigateur, l'heure limite et le code à 6 chiffres à donner ; **Refuser** la ferme.
+Une connexion à distance à valider s'annonce au-dessus des onglets, dans un bandeau orange : le compte, l'adresse, le navigateur et l'heure limite ; **Accepter** montre le code à 6 chiffres à donner, **Refuser** la ferme.
 
 Pour aller plus loin : [Comptes de l'intranet](../../administration/configuration.md#comptes-de-lintranet).

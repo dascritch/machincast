@@ -4,7 +4,8 @@
 - POST /login : des identifiants valides ouvrent une session à valider, son cookie posé, et mènent à /validation ;
   sinon 401, sans dire si le nom existe. Trop d'échecs d'une même adresse la font attendre (Throttle).
 - GET /validation : la page qui dit qu'une action doit être faite au pupitre, et demande le code à 6 chiffres que
-  l'interface y montre.
+  l'interface y montre, une fois la connexion acceptée ; un code saisi avant n'est pas essayé
+  (https://github.com/dascritch/machincast/issues/547).
 - POST /validation : le code exact valide la session, et mène à l'accueil ; un code faux le redemande ; au cinquième,
   ou le délai passé, la session est invalide, et il faut se reconnecter. Les codes faux sont freinés par adresse et par
   compte, et un compte n'a que deux sessions à valider à la fois : un mot de passe volé ne suffit pas à forcer le
@@ -134,8 +135,9 @@ def validation_page(message: str = "", status: int = 200) -> Response:
 			title=escape(_("Validation at the desk")),
 			explanation=escape(
 				_(
-					"An action must be done at the studio desk: MachinCast shows there your name, your browser, your "
-					"address and a 6-digit code. Enter this code here."
+					"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
+					"address. Once your connection is accepted there, the studio gives you a 6-digit code: enter it "
+					"here."
 				)
 			),
 			code_label=escape(_("6-digit code")),
@@ -257,6 +259,14 @@ class Portal:
 		given = request.form().get("code", "")
 		hours = self.settings.session
 		outcome = await self._database(lambda connection: sessions.validate(connection, value, given, hours))
+		if outcome == "waiting":
+			return validation_page(
+				_(
+					"Your connection is not accepted at the desk yet: once the studio accepts it, it gives you the "
+					"code."
+				),
+				409,
+			)
 		if outcome == "valid":
 			self.codes.succeeded(address)
 			self.codes.succeeded(f"{ACCOUNT}{found.user}")
