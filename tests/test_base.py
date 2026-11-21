@@ -662,10 +662,6 @@ QUERY_MODULES = (
 )
 """Où s'écrivent les requêtes SQL, relatives à src/machincast (https://github.com/dascritch/machincast/issues/583)."""
 PENDING = (
-	"indexer/__main__.py",
-	"indexer/check.py",
-	"indexer/directories.py",
-	"indexer/indexer.py",
 	"intranet/sessions.py",
 	"interface/adding.py",
 	"interface/airplay.py",

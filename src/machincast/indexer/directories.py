@@ -47,16 +47,14 @@ import psycopg
 from psycopg.rows import TupleRow
 
 from machincast import crash
-from machincast.conversion import list_or_none
 from machincast.i18n import _
+from machincast.indexer import queries
 from machincast.indexer.check import ANALYSED, Report, SoundState
 from machincast.protection import INDEXED_EXTENSIONS
 
 log = logging.getLogger(__name__)
 
-DIRECTORIES_LOCK = 0x4D616368_64697273
-"""Clé du verrou consultatif, le temps d'une transaction, des enregistrements et rattachements du parcours :
-« Machdirs »."""
+DIRECTORIES_LOCK = queries.DIRECTORIES_LOCK
 
 EXTENSIONS = INDEXED_EXTENSIONS
 """Extensions des formats de la spec § 6.2, en minuscules (machincast.protection)."""
@@ -64,14 +62,6 @@ EXTENSIONS = INDEXED_EXTENSIONS
 
 def _cache(name: str) -> bool:
 	return name.startswith(".")
-
-
-OUTSIDE_DURATIONS = (
-	"s.duration IS NOT NULL AND ((b.min_duration IS NOT NULL AND s.duration < b.min_duration)"
-	" OR (b.max_duration IS NOT NULL AND s.duration > b.max_duration))"
-)
-"""Condition SQL : le sonore s, de durée connue, sort des durées de la banque b, bornes comprises dans les durées
-(https://github.com/dascritch/machincast/issues/147, https://github.com/dascritch/machincast/issues/195)."""
 
 
 def sound_files(directory: Path) -> Iterator[Path]:
@@ -119,22 +109,13 @@ class Scan:
 def _attach(connection: psycopg.Connection[TupleRow], bank: int, sound: int) -> bool:
 	"""Rattache le sonore à la fin de la banque, s'il n'y est pas et qu'il ne sort pas de ses durées."""
 	_take_lock(connection)
-	return (
-		connection.execute(
-			"INSERT INTO bank_sounds (bank_id, sound_id, position)"
-			" SELECT %s, %s, (SELECT COALESCE(MAX(position), 0) + 1 FROM bank_sounds WHERE bank_id = %s)"
-			f" WHERE NOT EXISTS (SELECT 1 FROM sounds s, banks b WHERE s.id = %s AND b.id = %s AND {OUTSIDE_DURATIONS})"
-			" ON CONFLICT (bank_id, sound_id) DO NOTHING",
-			(bank, sound, bank, sound, bank),
-		).rowcount
-		> 0
-	)
+	return queries.attach(connection, bank, sound)
 
 
 def _take_lock(connection: psycopg.Connection[TupleRow]) -> None:
 	"""Le verrou des enregistrements du parcours, jusqu'à la fin de la transaction en cours ; attend l'autre parcours
 	qui le tient."""
-	connection.execute("SELECT pg_advisory_xact_lock(%s)", (DIRECTORIES_LOCK,))
+	queries.take_directories_lock(connection)
 
 
 def _announce(report: Report, scan: Scan, sound: int, name: str, location: str) -> None:
@@ -154,19 +135,9 @@ def _save(
 	de sa vérification ; une ligne dit chaque rattachement."""
 	with connection.transaction():
 		_take_lock(connection)
-		line = connection.execute(
-			"SELECT s.id, s.duration IS NULL AND (b.min_duration IS NOT NULL OR b.max_duration IS NOT NULL)"
-			" FROM sounds s, banks b WHERE s.location = %s AND s.deleted_at IS NULL AND b.id = %s",
-			(location, bank),
-		).fetchone()
+		line = queries.known_file(connection, location, bank)
 		if line is None:
-			line = connection.execute(
-				"INSERT INTO sounds (type, location, state, indexed_at)"
-				" VALUES ('file', %s, %s, clock_timestamp())"
-				" RETURNING id, EXISTS (SELECT 1 FROM banks WHERE id = %s"
-				" AND (min_duration IS NOT NULL OR max_duration IS NOT NULL))",
-				(location, SoundState.PREVIEW.value, bank),
-			).fetchone()
+			line = queries.insert_file(connection, location, SoundState.PREVIEW.value, bank)
 			assert line is not None
 			report.new_list += 1
 			scan.unannounced[int(str(line[0]))] = location
@@ -208,10 +179,7 @@ def index_directories(
 	"""
 	scan = Scan()
 	with connection.transaction():
-		directories = connection.execute(
-			"SELECT b.id, b.internal_name, r.directory FROM bank_directories r JOIN banks b ON b.id = r.bank_id"
-			" WHERE b.deleted_at IS NULL ORDER BY b.id, r.directory"
-		).fetchall()
+		directories = queries.bank_directories(connection)
 	# Les fichiers déjà rattachés à chaque banque, lus une fois : leur fichier ne demande rien à la base. Seuls les
 	# nouveaux fichiers et les rattachements manquants passent par _save, une transaction chacun
 	# (https://github.com/dascritch/machincast/issues/390).
@@ -236,10 +204,7 @@ def _scanned(connection: psycopg.Connection[TupleRow], bank: int, directory: str
 	"""Le répertoire est parcouru jusqu'au bout : le statut des indexations le compte
 	(https://github.com/dascritch/machincast/issues/392)."""
 	with connection.transaction():
-		connection.execute(
-			"UPDATE bank_directories SET scanned_at = clock_timestamp() WHERE bank_id = %s AND directory = %s",
-			(bank, directory),
-		)
+		queries.scanned(connection, bank, directory)
 
 
 def _readable_directory(path: Path, directory: object, name: object) -> bool:
@@ -259,11 +224,7 @@ def _attached_files(connection: psycopg.Connection[TupleRow], bank: int) -> set[
 	"""Les emplacements des sonores de la banque qui ne sont pas supprimés."""
 	with connection.transaction():
 		attached_files = set()
-		for (location,) in connection.execute(
-			"SELECT s.location FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id"
-			" WHERE bs.bank_id = %s AND s.deleted_at IS NULL AND s.location IS NOT NULL",
-			(bank,),
-		):
+		for (location,) in queries.attached_files(connection, bank):
 			attached_files.add(str(location))
 		return attached_files
 
@@ -280,15 +241,7 @@ def remove_outside_durations(
 	"""
 	# Une seule requête, quel que soit le nombre de retraits (https://github.com/dascritch/machincast/issues/390).
 	with connection.transaction():
-		removed = connection.execute(
-			"WITH removed AS (DELETE FROM bank_sounds bs USING banks b, sounds s"
-			" WHERE b.id = bs.bank_id AND s.id = bs.sound_id"
-			f" AND (%s::bigint[] IS NULL OR s.id = ANY(%s)) AND b.deleted_at IS NULL AND {OUTSIDE_DURATIONS}"
-			" RETURNING bs.bank_id, bs.position, b.internal_name, s.location, s.duration, b.min_duration, b.max_duration)"
-			" SELECT internal_name, location, duration, min_duration, max_duration FROM removed"
-			" ORDER BY bank_id, position",
-			(list_or_none(identifiers), list_or_none(identifiers)),
-		).fetchall()
+		removed = queries.remove_outside_durations(connection, identifiers)
 		for name, location, duration, minimum, maximum in removed:
 			report.removals += 1
 			log.info(

@@ -21,6 +21,7 @@ from psycopg.rows import TupleRow
 
 from machincast.configuration import SILENCE_THRESHOLD
 from machincast.i18n import _
+from machincast.indexer import queries
 from machincast.indexer.check import Report, check_sounds
 from machincast.indexer.decoding import Checker, check_file
 from machincast.indexer.directories import attach_in_waiting, index_directories, remove_outside_durations
@@ -67,9 +68,8 @@ def index(
 	"""
 	lock = LOCKS[full_audit]
 	with connection.transaction():
-		taken = connection.execute("SELECT pg_try_advisory_lock(%s)", (lock,)).fetchone()
-	assert taken is not None
-	if not taken[0]:
+		taken = queries.try_lock(connection, lock)
+	if not taken:
 		raise OngoingIndexing(ONGOING[full_audit])
 	try:
 		report = Report(full_audit=full_audit)
@@ -91,7 +91,7 @@ def index(
 			remove_outside_durations(connection, report)
 	finally:
 		with connection.transaction():
-			connection.execute("SELECT pg_advisory_unlock(%s)", (lock,))
+			queries.unlock(connection, lock)
 	return report
 
 
