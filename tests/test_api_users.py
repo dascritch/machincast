@@ -2,11 +2,12 @@
 (https://github.com/dascritch/machincast/issues/537)."""
 
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QWidget
-from pytest_bdd import parsers, scenarios, then, when
+from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.interface import api_tab
 from machincast.interface.api_tab import Account, ApiUserDialog
+from machincast.intranet import sessions
 from machincast.shared import passwords
 from tests.interface_steps import NAME, Connection, Context, window
 from tests.intranet_steps import ROLES, screen
@@ -122,3 +123,38 @@ def fingerprint(empty_database: Connection, name: str, password: str) -> None:
 	assert password not in stored
 	assert passwords.matches(password, stored)
 	assert not passwords.matches(password + "!", stored)
+
+
+@given(parsers.parse("« {name} » a une session valide et une session à valider"))
+def two_sessions(empty_database: Connection, name: str) -> None:
+	empty_database.execute(
+		"INSERT INTO api_sessions (user_id, token_hash, state, validated_at, expires_at)"
+		" SELECT id, %s, 'valid', clock_timestamp(), clock_timestamp() + interval '1 hour' FROM api_users"
+		" WHERE name = %s",
+		(sessions.fingerprint(f"valide-{name}"), name),
+	)
+	empty_database.execute(
+		"INSERT INTO api_sessions (user_id, token_hash, code, validate_before)"
+		" SELECT id, %s, '123456', clock_timestamp() + interval '10 minutes' FROM api_users WHERE name = %s",
+		(sessions.fingerprint(f"attente-{name}"), name),
+	)
+
+
+def _states(empty_database: Connection, name: str) -> list[str]:
+	found = []
+	for (state,) in empty_database.execute(
+		"SELECT s.state::text FROM api_sessions s JOIN api_users u ON u.id = s.user_id WHERE u.name = %s ORDER BY s.id",
+		(name,),
+	).fetchall():
+		found.append(str(state))
+	return found
+
+
+@then(parsers.parse("les sessions de « {name} » sont toutes invalides"))
+def all_invalid(empty_database: Connection, name: str) -> None:
+	assert _states(empty_database, name) == ["invalid", "invalid"]
+
+
+@then(parsers.parse("« {name} » a encore 1 session valide et 1 session à valider"))
+def untouched(empty_database: Connection, name: str) -> None:
+	assert _states(empty_database, name) == ["valid", "pending"]

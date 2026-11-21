@@ -95,6 +95,37 @@ Fonctionnalité: Comptes de l'intranet et de l'API, dans l'onglet « API »
 			| utilisateur | rôle      | état  |
 			| regie       | consulter | actif |
 
+	# ─── Un mot de passe qui a fuité (https://github.com/dascritch/machincast/issues/548) ───
+
+	Scénario: Changer le mot de passe met fin aux sessions du compte, et à elles seules
+		Étant donné les comptes de l'intranet :
+			| nom       | mot de passe    | rôle      | état  |
+			| regie     | tisane-au-micro | consulter | actif |
+			| stagiaire | cafe-du-matin-1 | consulter | actif |
+		Et « regie » a une session valide et une session à valider
+		Et « stagiaire » a une session valide et une session à valider
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
+		Et je choisis le compte « regie » dans l'onglet API
+		Et je change le mot de passe du compte pour « café-du-matin-42 »
+		Alors la barre d'état annonce « Mot de passe de regie changé. 2 sessions terminées. »
+		Et les sessions de « regie » sont toutes invalides
+		Et « stagiaire » a encore 1 session valide et 1 session à valider
+
+	Scénario: Désactiver un compte met fin à ses sessions, et le réactiver n'en fait revivre aucune
+		Étant donné les comptes de l'intranet :
+			| nom   | mot de passe    | rôle      | état  |
+			| regie | tisane-au-micro | consulter | actif |
+		Et « regie » a une session valide et une session à valider
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
+		Et je choisis le compte « regie » dans l'onglet API
+		Et je clique sur « Désactiver »
+		Alors la barre d'état annonce « regie désactivé : il ne peut plus se connecter. 2 sessions terminées. »
+		Quand je clique sur « Réactiver »
+		Alors la barre d'état annonce « regie réactivé. »
+		Et les sessions de « regie » sont toutes invalides
+
 	Scénario: Supprimer un compte, après confirmation
 		Étant donné les comptes de l'intranet :
 			| nom   | mot de passe    | rôle      | état  |

@@ -1790,6 +1790,7 @@ L'onglet porte la clé, `icons/api.svg`, se ferme, et se rouvre au lancement sui
 - « ➕ Nouveau compte… » ouvre la fenêtre d'un compte (`ApiUserDialog`, `ui/api_user.ui`) : nom, mot de passe, confirmation, rôle.
 	Elle reste ouverte et dit pourquoi tant que la saisie ne convient pas (`api_tab.refusal`) : nom vide, nom hors des lettres sans accent, chiffres, point, tiret et souligné, nom déjà pris, mot de passe de moins de 12 caractères (`passwords.MINIMUM_LENGTH`), confirmation différente.
 - Le compte choisi : « Rôle » le change aussitôt ; « Changer le mot de passe… » rouvre la même fenêtre, sans le nom ni le rôle ; « Désactiver » le désactive, et devient « Réactiver » ; « ❌ Supprimer… » le supprime, après confirmation.
+	Changer le mot de passe, comme désactiver le compte, met fin à toutes ses sessions, valides comme à valider, et la barre d'état dit combien ; le réactiver n'en fait revivre aucune : un mot de passe qui a fuité cesse aussitôt de servir ([#548](https://github.com/dascritch/machincast/issues/548), `api_users.end_sessions`).
 	Chaque action le dit dans la barre d'état.
 - Le mot de passe n'est jamais gardé : seule son empreinte scrypt salée, calculée par la bibliothèque standard (`machincast.shared.passwords`), va en base, et se vérifie en temps constant.
 - Sous les comptes, les sessions du compte choisi ([#539](https://github.com/dascritch/machincast/issues/539), vue `api-sessions`) : leur état (`à valider`, `valide`, `invalide`), leur origine (`intranet` ou `pupitre`), leur ouverture, leur limite, l'adresse et le navigateur du poste distant, la plus récente en tête.
@@ -1997,7 +1998,7 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 	Le délai est `intranet.validation` minutes, 30 par défaut.
 4. **Code** (`POST /validation`) : avant que le pupitre accepte la connexion, aucun code n'est essayé, pas même le bon, ni compté, 409 ; ensuite, le code exact, espaces ignorées, rend la session valide pour `intranet.session` heures, 12 par défaut, et mène à l'accueil ; un code faux le redemande, 400 ; au cinquième (`sessions.ATTEMPTS`), comme le délai passé, la session est invalide, 401, et il faut se reconnecter.
 	Une adresse ou un compte qui a saisi cinq codes faux en un quart d'heure n'essaie plus aucun code, pas même le bon, avant un quart d'heure, 429 : un mot de passe volé ne suffit pas à forcer le code, qui demanderait des années à ce rythme.
-5. **Session valide** : le même jeton sert l'intranet et l'API, en cookie ou en `Authorization: Bearer` (`portal.bearer`) ; un compte désactivé perd ses sessions.
+5. **Session valide** : le même jeton sert l'intranet et l'API, en cookie ou en `Authorization: Bearer` (`portal.bearer`) ; un compte désactivé, ou dont le mot de passe change, perd toutes ses sessions, que sa réactivation ne fait pas revivre ([#548](https://github.com/dascritch/machincast/issues/548)).
 	`POST /logout` rend la session invalide et efface le cookie.
 - Un formulaire envoyé d'une autre origine (en-tête `Origin` d'un autre hôte) est refusé, 403 ; un corps de plus de 64 Kio, 413.
 - Les heures sont celles de la base (`clock_timestamp()`) ; chaque lecture rend d'abord invalides les sessions dont le délai est passé.

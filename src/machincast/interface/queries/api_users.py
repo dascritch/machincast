@@ -62,18 +62,32 @@ def set_role(connection: Connection, identifier: int, role: str) -> None:
 	connection.execute("UPDATE api_users SET role = %s WHERE id = %s", (role, identifier))
 
 
-def set_password(connection: Connection, identifier: int, password_hash: str) -> None:
+def end_sessions(connection: Connection, identifier: int) -> int:
+	"""Toutes les sessions du compte, valides comme à valider, deviennent invalides ; leur nombre."""
+	return connection.execute(
+		"UPDATE api_sessions SET state = 'invalid', code = NULL, ended_at = clock_timestamp()"
+		" WHERE user_id = %s AND state <> 'invalid'",
+		(identifier,),
+	).rowcount
+
+
+def set_password(connection: Connection, identifier: int, password_hash: str) -> int:
+	"""Le nouveau mot de passe, qui met fin aux sessions du compte : un mot de passe qui a fuité cesse aussitôt de
+	servir (https://github.com/dascritch/machincast/issues/548). Le nombre de sessions terminées."""
 	connection.execute("UPDATE api_users SET password_hash = %s WHERE id = %s", (password_hash, identifier))
+	return end_sessions(connection, identifier)
 
 
-def set_disabled(connection: Connection, identifier: int, *, disabled: bool) -> None:
-	"""Désactive le compte, à l'heure de la base, ou le réactive."""
+def set_disabled(connection: Connection, identifier: int, *, disabled: bool) -> int:
+	"""Désactive le compte, à l'heure de la base, et met fin à ses sessions : le réactiver n'en fait revivre aucune
+	(https://github.com/dascritch/machincast/issues/548) ; ou le réactive. Le nombre de sessions terminées."""
 	if disabled:
 		connection.execute(
 			"UPDATE api_users SET disabled_at = clock_timestamp() WHERE id = %s AND disabled_at IS NULL", (identifier,)
 		)
-		return
+		return end_sessions(connection, identifier)
 	connection.execute("UPDATE api_users SET disabled_at = NULL WHERE id = %s", (identifier,))
+	return 0
 
 
 def delete(connection: Connection, identifier: int) -> None:
