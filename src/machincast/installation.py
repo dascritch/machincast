@@ -668,6 +668,10 @@ INTRANET_HARDENING = (
 	"SystemCallArchitectures=native",
 	"SystemCallFilter=@system-service",
 	"SystemCallFilter=~@privileged @resources",
+	# ip, qui lit les adresses du poste, lâche ses capacités au démarrage par capset (drop_cap), même sans en avoir :
+	# interdit par @privileged, il était tué par SIGSYS (https://github.com/dascritch/machincast/issues/556). capset ne
+	# peut que retirer des capacités, et l'unité n'en donne aucune.
+	"SystemCallFilter=capset",
 	"UMask=0077",
 )
 """Ce que le serveur intranet, exposé au réseau, ne peut pas faire (https://github.com/dascritch/machincast/issues/549) :

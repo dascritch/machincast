@@ -278,6 +278,15 @@ Fonctionnalité: Vérifications de l'installation
 			| UMask                   | 0077                                     |
 		Et install.sh crée le compte « machincast-intranet », hors du groupe du service, et son rôle qui n'endosse que « machincast_intranet », et les retire avec le service
 
+	Scénario: Le filtre des appels système du serveur intranet laisse ip lâcher ses capacités
+		https://github.com/dascritch/machincast/issues/556 : « ~@privileged » interdit capset, que ip appelle au
+		démarrage pour lâcher ses capacités (drop_cap), même sans en avoir ; tué par SIGSYS, ip laissait un core dump à
+		chaque lecture des adresses du poste, devinées à la place. capset ne peut que retirer des capacités : l'unité
+		n'en donne aucune (CapabilityBoundingSet vide).
+		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et les filtres des appels système de l'unité sont, dans l'ordre, « @system-service », « ~@privileged @resources », « capset »
+
 	Scénario: systemd accepte l'unité du serveur intranet
 		Étant donné l'outil « systemd-analyze » du poste
 		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
