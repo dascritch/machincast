@@ -560,7 +560,11 @@ class PagedSounds(QAbstractTableModel):
 	def fetchMore(self, parent: QModelIndex | QPersistentModelIndex) -> None:
 		if not self.canFetchMore(parent):
 			return
-		lines = self._page(len(self._lines))
+		# Dans une transaction, comme toute requête de l'interface : hors d'un bloc, psycopg en ouvrirait une, qui
+		# resterait ouverte, et ce que l'interface écrit ensuite ne serait validé qu'à sa fermeture
+		# (https://github.com/dascritch/machincast/issues/560).
+		with self.connection.transaction():
+			lines = self._page(len(self._lines))
 		if lines == []:
 			self.total = len(self._lines)
 			return

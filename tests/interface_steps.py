@@ -58,7 +58,7 @@ from machincast.interface.suggestions import Response, Shortfalls
 from machincast.interface.window import MainWindow
 from machincast.service import ABSENT, ServiceState
 from tests.categories import SCENARIO
-from tests.database_fixtures import configuration_test, sample_database_parameters
+from tests.database_fixtures import close_checked, configuration_test, sample_database_parameters
 from tests.menu_entries import find_entry
 from tests.sounds import SOUND_FILES
 
@@ -260,7 +260,7 @@ def interface(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Conte
 	if interface.window is not None:
 		interface.window.close()
 	if interface.connection is not None:
-		interface.connection.close()
+		close_checked(interface.connection)
 	# pytest-qt a fermé la fenêtre et demandé sa suppression (deleteLater), qui n'est faite que dans une boucle
 	# d'événements : elle se fait ici, avec celle de ce que la fenêtre emporte. Sinon, les fenêtres des scénarios qui
 	# n'attendent rien s'accumulent, et le premier scénario qui attend les supprime toutes, au détriment de son délai
