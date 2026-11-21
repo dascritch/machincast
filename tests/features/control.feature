@@ -528,11 +528,13 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Alors systemctl a reçu bientôt « restart machincast-intranet.service »
 		Et chaque systemctl a été lancé dans une session à lui, sans terminal
 
-	Scénario: Sans agent pour le mot de passe, il se demande dans une fenêtre de terminal, puis l'intranet est suivi
+	Plan du scénario: Sans agent pour le mot de passe, il se demande dans une fenêtre de terminal, puis l'intranet est suivi
+		Le message de systemctl dépend de sa version : celui de systemd 255, et celui des versions récentes, quand
+		aucun agent polkit n'est là (https://github.com/dascritch/machincast/issues/558).
 		Étant donné le service de diffusion installé, arrêté
 		Et l'unité du serveur intranet installée
 		Et le terminal « konsole » du poste
-		Et systemctl refuse en disant « Failed to restart machincast-intranet.service: Interactive authentication required. »
+		Et systemctl refuse en disant « Failed to restart machincast-intranet.service: <réponse> »
 		Et les paramètres du service allumeront l'intranet sur « 127.0.0.1 », port 9443
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Paramètres du service… » dans le menu « Fichier »
@@ -541,6 +543,11 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Quand le mot de passe est donné dans la fenêtre de terminal
 		Alors la barre d'état annonce bientôt « Serveur intranet allumé : https://127.0.0.1:9443/ »
 		Et aucune alerte de l'intranet
+
+		Exemples:
+			| réponse                                                                                                                                                       |
+			| Interactive authentication required.                                                                                                                          |
+			| Access denied as the requested operation requires interactive authentication. However, interactive authentication has not been enabled by the calling program. |
 
 	Scénario: Sans réponse dans la fenêtre de terminal, une alerte le dit
 		Étant donné le service de diffusion installé, arrêté
