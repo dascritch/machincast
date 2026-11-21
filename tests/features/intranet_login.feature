@@ -171,6 +171,20 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Alors la réponse est 303, vers « /validation »
 		Et « regie » a 1 session à valider
 
+	Plan du scénario: La session se lit même dans un en-tête Cookie parmi plusieurs, comme HTTP/2 les envoie
+		https://github.com/dascritch/machincast/issues/551 : un autre service du même poste, sur un autre port, partage
+		les cookies de l'hôte.
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
+		Et que j'ai saisi le code donné au pupitre
+		Quand je demande « GET / », la session dans le <rang> de deux en-têtes Cookie
+		Alors la réponse est 200, et dit « Accueil — Machin intranet »
+
+		Exemples:
+			| rang     |
+			| premier  |
+			| second   |
+
 	Scénario: Un formulaire envoyé d'un autre site est refusé
 		Quand je me connecte en « regie », mot de passe « tisane-au-micro », depuis l'origine « https://ailleurs.example »
 		Alors la réponse est 403

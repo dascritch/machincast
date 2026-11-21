@@ -68,6 +68,17 @@ def ask(visit: Visit, method: str, path: str) -> None:
 	_keep(visit, call(visit.application, method, path, headers=_cookie(visit)))
 
 
+@when(parsers.re(r"je demande « GET / », la session dans le (?P<rank>premier|second) de deux en-têtes Cookie"))
+def ask_split_cookies(visit: Visit, rank: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/551"""
+	other = ("cookie", "preferences=sombre; langue=fr")
+	session = ("cookie", f"{sessions.COOKIE}={visit.token}")
+	repeated = [session, other]
+	if rank == "second":
+		repeated = [other, session]
+	_keep(visit, call(visit.application, "GET", "/", repeated=repeated))
+
+
 @when(parsers.parse("je demande « GET / » avec le jeton en « Authorization: Bearer », sans cookie"))
 def ask_bearer(visit: Visit) -> None:
 	_keep(visit, call(visit.application, "GET", "/", headers={"authorization": f"Bearer {visit.token}"}))

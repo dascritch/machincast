@@ -2010,6 +2010,7 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 5. **Session valide** : le même jeton sert l'intranet et l'API, en cookie ou en `Authorization: Bearer` (`portal.bearer`) ; un compte désactivé, ou dont le mot de passe change, perd toutes ses sessions, que sa réactivation ne fait pas revivre ([#548](https://github.com/dascritch/machincast/issues/548)).
 	`POST /logout` rend la session invalide et efface le cookie.
 - Un formulaire envoyé d'une autre origine (en-tête `Origin` d'un autre hôte) est refusé, 403 ; un corps de plus de 64 Kio, 413.
+- Un en-tête répété se joint, par « , » (RFC 9110 § 5.3), et les en-têtes `Cookie` par « ; » : en HTTP/2, qu'Hypercorn négocie, un navigateur peut envoyer chaque cookie dans son propre en-tête, et un autre service du même poste partage les cookies de l'hôte ([#551](https://github.com/dascritch/machincast/issues/551)).
 - Les heures sont celles de la base (`clock_timestamp()`) ; chaque lecture rend d'abord invalides les sessions dont le délai est passé.
 - Le serveur lit la base de production au rôle `machincast_intranet`, une connexion par requête, hors de la boucle du serveur (`asyncio.to_thread`).
 
