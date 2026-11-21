@@ -107,6 +107,18 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Alors Machin intranet s'arrête avec le code 4
 		Et son journal dit « l'intranet est éteint : intranet.enabled, ou la page « Intranet » des paramètres du service »
 
+	Plan du scénario: Une connexion TLS que le navigateur a déjà fermée ne laisse pas de traceback au journal
+		https://github.com/dascritch/machincast/issues/572 : le navigateur envoie encore des données après sa
+		fermeture TLS ; Hypercorn ne rattrape pas l'erreur de wait_closed, qu'asyncio écrivait en exception non gérée.
+		Quand la boucle de Machin intranet rencontre l'exception « <exception> »
+		Alors le journal de la boucle <verdict>
+
+		Exemples:
+			| exception                                                                                          | verdict          |
+			| SSLError: [SSL: APPLICATION_DATA_AFTER_CLOSE_NOTIFY] application data after close notify (_ssl.c:2839) | ne dit rien      |
+			| SSLError: [SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1029)                           | dit l'exception  |
+			| RuntimeError: panne imitée                                                                         | dit l'exception  |
+
 	Scénario: Allumé, Machin intranet répond en HTTPS, avec ses en-têtes de sécurité
 		Quand je lance Machin intranet avec l'intranet allumé
 		Alors une requête HTTPS « GET /login » reçoit 200, une page « Machin intranet »

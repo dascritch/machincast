@@ -1,7 +1,9 @@
 """Scénarios du serveur intranet, de sa configuration et de son certificat
 (https://github.com/dascritch/machincast/issues/538)."""
 
+import asyncio
 import http.client
+import logging
 import os
 import re
 import signal
@@ -442,3 +444,30 @@ def other_account(context: Context, monkeypatch: pytest.MonkeyPatch) -> int | No
 @then("elle ne le trouve pas")
 def not_found(found: int | None) -> None:
 	assert found is None
+
+
+@when(parsers.parse("la boucle de Machin intranet rencontre l'exception « {given} »"), target_fixture="loop_journal")
+def loop_exception(caplog: pytest.LogCaptureFixture, given: str) -> list[str]:
+	"""Comme asyncio pour une exception qu'un rappel n'a pas rattrapée (https://github.com/dascritch/machincast/issues/572)."""
+	kind, _, message = given.partition(": ")
+	error: Exception = RuntimeError(message)
+	if kind == "SSLError":
+		error = ssl.SSLError(1, message)
+	loop = asyncio.new_event_loop()
+	try:
+		caplog.clear()
+		with caplog.at_level(logging.ERROR, logger="asyncio"):
+			server.exception_handler(
+				loop, {"message": "Unhandled exception in client_connected_cb", "exception": error}
+			)
+	finally:
+		loop.close()
+	journal = []
+	for record in caplog.records:
+		journal.append(record.getMessage())
+	return journal
+
+
+@then(parsers.re(r"le journal de la boucle (?P<verdict>ne dit rien|dit l'exception)"))
+def loop_journal_says(loop_journal: list[str], verdict: str) -> None:
+	assert (loop_journal == []) == (verdict == "ne dit rien"), loop_journal
