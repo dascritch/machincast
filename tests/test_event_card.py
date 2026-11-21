@@ -438,3 +438,23 @@ def compared_fingerprint(empty_database: Connection, fingerprints: list[str], ve
 def shown_bounds(interface: Context, start: str, end: str) -> None:
 	ui = card(interface).ui
 	assert (ui.start.text(), ui.end.text()) == (start, end)
+
+
+EVENT_CHANGES = {
+	"end_of_list": "UPDATE events SET end_of_list = 'background_programming' WHERE internal_name = %s",
+	"end_fallback_event_id": (
+		"UPDATE events SET end_of_list = 'fallback', end_fallback_event_id ="
+		" (SELECT id FROM events WHERE internal_name = 'Panne') WHERE internal_name = %s"
+	),
+	"stream_fallback_event_id": (
+		"UPDATE events SET stream_fallback_event_id = (SELECT id FROM events WHERE internal_name = 'Panne')"
+		" WHERE internal_name = %s"
+	),
+}
+"""Un changement de chaque colonne de l'événement qui décide de ce qui passera
+(https://github.com/dascritch/machincast/issues/564)."""
+
+
+@when(parsers.parse("la colonne {column} de l'événement « {name} » change"))
+def changed_column(empty_database: Connection, column: str, name: str) -> None:
+	empty_database.execute(EVENT_CHANGES[column], (name,))
