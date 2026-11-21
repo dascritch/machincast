@@ -100,7 +100,7 @@ Fonctionnalité: Encarts dépliables et vérification complète dans la fiche d'
 			| expiré      | grisé     |
 			| erroné      | grisé     |
 			| non supporté| grisé     |
-			| supprimé    | grisé     |
+			| introuvable | grisé     |
 
 	# ─── Frise (https://github.com/dascritch/machincast/issues/223) ─────
 
