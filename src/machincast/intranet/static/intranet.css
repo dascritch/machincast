@@ -63,6 +63,9 @@ section h2 { font-size: 1rem; margin: 0 0 0.4rem; color: var(--discret); text-tr
 .texte-public { font-size: 1.4rem; }
 .decompte { font-variant-numeric: tabular-nums; font-weight: 600; }
 .discret { color: var(--discret); }
+/* L'événement en cours et le suivant côte à côte, le sonore en cours et le suivant aussi ; l'un sous l'autre sur un
+   écran étroit (https://github.com/dascritch/machincast/issues/579). */
+.paire { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 0 1rem; }
 section.airplay ol { margin: 0; padding-left: 1.4rem; }
 dl { display: grid; grid-template-columns: 9rem 1fr; gap: 0.2rem 1rem; margin: 0; }
 dt { color: var(--discret); }

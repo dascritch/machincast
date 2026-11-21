@@ -2070,8 +2070,10 @@ L'accueil, `GET /`, montre l'antenne en direct, dans cet ordre :
 6. le sonore suivant : son nom, sa durée et le temps avant son début ;
 7. les derniers sonores diffusés, avec leur heure de début.
 
+- L'événement en cours et le suivant sont côte à côte, le sonore en cours et le suivant aussi ; sur un écran étroit, l'un passe sous l'autre ([#579](https://github.com/dascritch/machincast/issues/579)).
+- Durées et décomptes s'écrivent `HH:MM:SS`, sans les fractions de seconde, les heures au-delà de 24 comprises ; un décompte écoulé reste à `00:00:00`.
 - Le serveur écrit la page telle qu'est l'antenne à son chargement, d'après les mêmes sources que `/api/v1/live` ; sans JavaScript, elle reste lisible.
-- Le script relit `/api/v1/live` toutes les 5 secondes, et tient les décomptes, affichés en secondes, au centième de seconde, à l'heure du serveur ; une session devenue invalide le ramène à la mire.
+- Le script relit `/api/v1/live` toutes les 5 secondes, et tient les décomptes, à la seconde, à l'heure du serveur ; une session devenue invalide le ramène à la mire.
 - Les heures sont celles du poste de diffusion ; l'API les donne avec leur décalage horaire.
 - Sans session, l'accueil mène à la mire ; une session à valider, à la page de validation.
 

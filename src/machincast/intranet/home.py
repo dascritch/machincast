@@ -2,8 +2,10 @@
 
 Dans l'ordre : l'heure, le texte public en cours, l'événement en cours (début, fin, temps restant), l'événement
 suivant (début, fin), le sonore en cours (durée, temps restant), le sonore suivant (durée, attente avant son début),
-puis les derniers sonores diffusés. Le serveur écrit la page telle qu'est l'antenne à son chargement ; son script
-(static/intranet.js) la relit sur /api/v1/live et tient les décomptes au centième de seconde.
+puis les derniers sonores diffusés ; l'événement en cours et le suivant côte à côte, le sonore en cours et le suivant
+aussi (https://github.com/dascritch/machincast/issues/579). Le serveur écrit la page telle qu'est l'antenne à son
+chargement ; son script (static/intranet.js) la relit sur /api/v1/live et tient les décomptes, à la seconde. Durées et
+décomptes s'écrivent HH:MM:SS.
 
 Sans session, l'accueil mène à la mire ; une session à valider, à la page de validation.
 """
@@ -44,10 +46,13 @@ def hour(value: Any, *, seconds: bool = False) -> str:
 
 
 def duration(value: Any) -> str:
-	"""Une durée en secondes, au centième, à la française : « 12,50 s » ; EMPTY sans elle."""
+	"""Une durée en secondes, en HH:MM:SS, sans les fractions de seconde, les heures au-delà de 24 comprises : « 26:03:04 » ;
+	« 00:00:00 » pour une durée écoulée ; EMPTY sans elle (https://github.com/dascritch/machincast/issues/579)."""
 	if (not isinstance(value, (int, float))) or (isinstance(value, bool)):
 		return EMPTY
-	return f"{max(0.0, float(value)):.2f}".replace(".", ",") + " s"
+	hours, rest = divmod(int(max(0.0, float(value))), 3600)
+	minutes, seconds = divmod(rest, 60)
+	return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
 def remaining(limit: Any, now: datetime) -> str:
@@ -94,6 +99,11 @@ def _section(identifier: str, title: str, fields: list[str]) -> str:
 	return f'<section class="{identifier}">\n<h2>{escape(title)}</h2>\n<dl>{"".join(fields)}</dl>\n</section>'
 
 
+def _pair(first: str, second: str) -> str:
+	"""Deux sections côte à côte, l'une sous l'autre sur un écran étroit."""
+	return f'<div class="paire">\n{first}\n{second}\n</div>'
+
+
 def _airplay(plays: list[dict[str, Any]]) -> str:
 	lines = []
 	for play in plays:
@@ -118,42 +128,48 @@ def body(direct: dict[str, Any], now: datetime) -> str:
 			'<div id="direct">',
 			f'<p class="heure">{_span("heure", hour(now, seconds=True))}</p>',
 			f'<p class="texte-public">{_span("texte-public", (direct.get("public_text")) or (EMPTY))}</p>',
-			_section(
-				"evenement",
-				_("Current event"),
-				[
-					_field(_("Name"), _span("evenement-nom", (current_event.get("name")) or (EMPTY))),
-					_field(_("Start"), _span("evenement-debut", hour(current_event.get("start")))),
-					_field(_("End"), _span("evenement-fin", hour(current_event.get("end")))),
-					_field(_("Remaining"), _countdown("evenement-reste", current_event.get("end"), now)),
-				],
+			_pair(
+				_section(
+					"evenement",
+					_("Current event"),
+					[
+						_field(_("Name"), _span("evenement-nom", (current_event.get("name")) or (EMPTY))),
+						_field(_("Start"), _span("evenement-debut", hour(current_event.get("start")))),
+						_field(_("End"), _span("evenement-fin", hour(current_event.get("end")))),
+						_field(_("Remaining"), _countdown("evenement-reste", current_event.get("end"), now)),
+					],
+				),
+				_section(
+					"suivant",
+					_("Next event"),
+					[
+						_field(_("Name"), _span("suivant-nom", (next_event.get("name")) or (EMPTY))),
+						_field(_("Start"), _span("suivant-debut", hour(next_event.get("start")))),
+						_field(_("End"), _span("suivant-fin", hour(next_event.get("end")))),
+					],
+				),
 			),
-			_section(
-				"suivant",
-				_("Next event"),
-				[
-					_field(_("Name"), _span("suivant-nom", (next_event.get("name")) or (EMPTY))),
-					_field(_("Start"), _span("suivant-debut", hour(next_event.get("start")))),
-					_field(_("End"), _span("suivant-fin", hour(next_event.get("end")))),
-				],
-			),
-			_section(
-				"sonore",
-				_("Current sound"),
-				[
-					_field(_("Sound"), _span("sonore-nom", name(current))),
-					_field(_("Duration"), _span("sonore-duree", duration(current_fields.get("duration")))),
-					_field(_("Remaining"), _countdown("sonore-reste", current_fields.get("estimated_end"), now)),
-				],
-			),
-			_section(
-				"prochain",
-				_("Next sound"),
-				[
-					_field(_("Sound"), _span("prochain-nom", name(upcoming))),
-					_field(_("Duration"), _span("prochain-duree", duration(upcoming_fields.get("duration")))),
-					_field(_("Starts in"), _countdown("prochain-attente", upcoming_fields.get("estimated_start"), now)),
-				],
+			_pair(
+				_section(
+					"sonore",
+					_("Current sound"),
+					[
+						_field(_("Sound"), _span("sonore-nom", name(current))),
+						_field(_("Duration"), _span("sonore-duree", duration(current_fields.get("duration")))),
+						_field(_("Remaining"), _countdown("sonore-reste", current_fields.get("estimated_end"), now)),
+					],
+				),
+				_section(
+					"prochain",
+					_("Next sound"),
+					[
+						_field(_("Sound"), _span("prochain-nom", name(upcoming))),
+						_field(_("Duration"), _span("prochain-duree", duration(upcoming_fields.get("duration")))),
+						_field(
+							_("Starts in"), _countdown("prochain-attente", upcoming_fields.get("estimated_start"), now)
+						),
+					],
+				),
 			),
 			_airplay((direct.get("previous")) or ([])),
 			"</div>",

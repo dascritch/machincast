@@ -1,11 +1,12 @@
 // L'accueil de « Machin intranet », en direct (https://github.com/dascritch/machincast/issues/541) : il relit
-// /api/v1/live toutes les RELECTURE millisecondes, et tient ses décomptes au centième de seconde, à l'heure du
-// serveur. Sans JavaScript, la page montre ce qu'en a dit le serveur à son chargement.
+// /api/v1/live toutes les RELECTURE millisecondes, et tient ses décomptes à la seconde, à l'heure du serveur ; durées
+// et décomptes en HH:MM:SS, comme machincast.intranet.home.duration
+// (https://github.com/dascritch/machincast/issues/579). Sans JavaScript, la page montre ce qu'en a dit le serveur à
+// son chargement.
 "use strict";
 
 (() => {
 	const RELECTURE = 5000;
-	const secondes = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 	const heure = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 	const heureCourte = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 	let ecart = 0;
@@ -29,7 +30,16 @@
 		const nom = [son.artist, son.title].filter((partie) => partie).join(" – ");
 		return nom || son.location || "—";
 	};
-	const duree = (valeur) => (valeur === null || valeur === undefined ? "—" : `${secondes.format(valeur)} s`);
+	const deuxChiffres = (nombre) => String(nombre).padStart(2, "0");
+	const duree = (valeur) => {
+		if (valeur === null || valeur === undefined) {
+			return "—";
+		}
+		const total = Math.floor(Math.max(0, valeur));
+		const heures = Math.floor(total / 3600);
+		const minutes = Math.floor((total % 3600) / 60);
+		return `${deuxChiffres(heures)}:${deuxChiffres(minutes)}:${deuxChiffres(total % 60)}`;
+	};
 
 	const poser = (id, limite) => {
 		const cible = element(id);

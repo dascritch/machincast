@@ -23,7 +23,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast.clock import FixedClock
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
-from machincast.intranet import sessions
+from machincast.intranet import home, sessions
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet
 from machincast.intranet.pages import Pages
@@ -372,6 +372,31 @@ def sections(api: Api, names: str) -> None:
 def shown(api: Api, datatable: list[list[str]]) -> None:
 	for element, text in datatable[1:]:
 		assert _element(api, element.strip()) == text.strip(), element
+
+
+@then(
+	parsers.re(
+		r"l'accueil met côte à côte « (?P<a>[^»]+) » et « (?P<b>[^»]+) », puis « (?P<c>[^»]+) » et « (?P<d>[^»]+) »"
+	)
+)
+def side_by_side(api: Api, a: str, b: str, c: str, d: str) -> None:
+	pairs = []
+	for pair in re.findall(r'<div class="paire">(.*?)</div>', _page(api), re.DOTALL):
+		pairs.append(re.findall(r'<section class="([^"]+)">', pair))
+	assert pairs == [[a, b], [c, d]]
+
+
+@when(parsers.parse("l'accueil écrit la durée {value}"), target_fixture="written")
+def write_duration(value: str) -> str:
+	given: object = None
+	if value != "inconnue":
+		given = float(value)
+	return home.duration(given)
+
+
+@then(parsers.parse("il écrit « {text} »"))
+def written_as(written: str, text: str) -> None:
+	assert written == text
 
 
 @then(parsers.re(r"les décomptes (?P<names>.+) ont leur limite, pour le script"))

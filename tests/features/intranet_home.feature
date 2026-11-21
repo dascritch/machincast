@@ -6,8 +6,9 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 
 	https://github.com/dascritch/machincast/issues/541, ticket enfant de
 	https://github.com/dascritch/machincast/issues/524. Le serveur écrit l'accueil tel qu'est l'antenne à son
-	chargement ; son script le relit sur /api/v1/live et tient les décomptes, en secondes, au centième. Les requêtes
-	passent directement à l'application ASGI (tests/asgi_client.py), sur la base de test.
+	chargement ; son script le relit sur /api/v1/live et tient les décomptes, à la seconde. Durées et décomptes
+	s'écrivent HH:MM:SS (https://github.com/dascritch/machincast/issues/579). Les requêtes passent directement à
+	l'application ASGI (tests/asgi_client.py), sur la base de test.
 
 	Contexte:
 		Étant donné les comptes de l'intranet :
@@ -32,6 +33,7 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 		Et le bandeau mène à « / » « Accueil », la page en cours, et permet de se déconnecter
 		Et la page charge /static/intranet.css et /static/intranet.js, sans script dans la page
 		Et les sections de l'accueil sont, dans l'ordre, « heure », « texte-public », « evenement », « suivant », « sonore », « prochain », « airplay »
+		Et l'accueil met côte à côte « evenement » et « suivant », puis « sonore » et « prochain »
 		Et l'accueil montre :
 			| élément          | texte                     |
 			| heure            | 10:00:00                  |
@@ -39,16 +41,16 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 			| evenement-nom    | Journal                   |
 			| evenement-debut  | 09:30                     |
 			| evenement-fin    | 10:30                     |
-			| evenement-reste  | 1800,00 s                 |
+			| evenement-reste  | 00:30:00                  |
 			| suivant-nom      | Fil de jour               |
 			| suivant-debut    | 10:30                     |
 			| suivant-fin      | 12:00                     |
 			| sonore-nom       | Le journal                |
-			| sonore-duree     | 180,00 s                  |
-			| sonore-reste     | 167,50 s                  |
+			| sonore-duree     | 00:03:00                  |
+			| sonore-reste     | 00:02:47                  |
 			| prochain-nom     | Spot                      |
-			| prochain-duree   | 180,00 s                  |
-			| prochain-attente | 167,50 s                  |
+			| prochain-duree   | 00:03:00                  |
+			| prochain-attente | 00:02:47                  |
 		Et les décomptes « evenement-reste », « sonore-reste », « prochain-attente » ont leur limite, pour le script
 		Et l'airplay de l'accueil est « 09:03 B – Deux », « 09:00 A – Un »
 
@@ -61,6 +63,20 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 			| sonore-nom   | —     |
 			| sonore-reste | —     |
 			| prochain-nom | —     |
+
+	Plan du scénario: Une durée de l'accueil s'écrit HH:MM:SS, à la seconde
+		Quand l'accueil écrit la durée <durée>
+		Alors il écrit « <texte> »
+
+		Exemples:
+			| durée    | texte    |
+			| 0        | 00:00:00 |
+			| 59.99    | 00:00:59 |
+			| 167.5    | 00:02:47 |
+			| 3600     | 01:00:00 |
+			| 93784    | 26:03:04 |
+			| -5       | 00:00:00 |
+			| inconnue | —        |
 
 	Plan du scénario: Sans session valide, l'accueil mène à la connexion
 		Étant donné une session à valider de « regie », de jeton « jeton-en-attente »
