@@ -281,6 +281,19 @@ Fonctionnalité: Fiche d'une banque
 		Et la liste des sonores de la fiche a pour titre « Sonores »
 		Et les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
 
+	Scénario: Après la page suivante de la liste des sonores, ce que la fiche enregistre est aussitôt en base
+		https://github.com/dascritch/machincast/issues/560 : la page suivante lue hors d'une transaction laissait la
+		connexion de l'interface dans une transaction jamais validée, jusqu'à sa fermeture.
+		Étant donné 250 sonores de 3:00 de plus dans la banque « Jingles »
+		Et les fiches chargent leurs tableaux par 100 lignes
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Sonores »
+		Et je descends au bas de la table de la liste
+		Et j'ouvre la fiche de la banque « Jingles »
+		Et je saisis le nom public « Les jingles »
+		Et j'enregistre la fiche
+		Alors une autre connexion voit la banque « Jingles » de nom public « Les jingles »
+
 	Scénario: L'avertissement d'une banque compte aussi ses sonores pas encore montrés
 		Étant donné 250 sonores de 3:00 de plus dans la banque « Jingles »
 		Et le dernier sonore de la banque « Jingles » est à l'état « erroné »

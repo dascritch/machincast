@@ -23,6 +23,8 @@ Modèle complet : [spec.md § 3](../spec.md#3-base-de-données).
 - **Interface** : une requête d'une fiche ou d'une liste s'écrit dans `src/machincast/interface/queries/`, un module par entité (`banks`, `sounds`, `events`, `sequences`, `feeds`, `items` pour les listes d'éléments d'une séquence ou d'un événement, `lists`, `search`, `incidents`, `indexing`, `suggestions`, `calendar`, `cards` pour ce que les fiches ont en commun).
 	Ces modules n'importent pas Qt : une fonction prend la connexion et ses paramètres, rend des lignes ou des valeurs simples, et s'essaie sans ouvrir de fenêtre.
 	La classe Qt l'appelle, dans sa transaction.
+	Toujours dans un bloc `with connection.transaction()`, même pour une simple lecture ([#560](https://github.com/dascritch/machincast/issues/560)) : la connexion de l'interface n'est pas en autocommit, et une requête hors d'un bloc ouvre une transaction que rien ne valide ; chaque bloc qui suit n'y est plus qu'un savepoint, et ce que l'interface écrit n'est validé qu'à sa fermeture.
+	Les scénarios de l'interface le vérifient en fermant sa connexion (`database_fixtures.close_checked`).
 	Un scénario de `base.feature` refuse un `execute` dans un module de l'interface qui importe Qt.
 	Les modules sans Qt qui font déjà de l'accès aux données (`deletion`, `groups`, `sessions`, `adding`, `airplay`, `background_programming`) restent où ils sont.
 - **Diffusion** : les requêtes de `Machin_player` sont dans ses modules (`saving`, `history`, `banks`, `sequences`, `outputs`…), jamais dans `broadcast`.
