@@ -2435,6 +2435,29 @@ msgid "Trial broadcast stopped."
 msgstr "Diffusion d'essai arrêtée."
 
 #: machincast/interface/control.py
+#: machincast/interface/intranet_switch.py
+msgid ""
+"No password dialog in this session: the password is asked in a terminal "
+"window."
+msgstr ""
+"Pas de fenêtre de mot de passe dans cette session : le mot de passe se "
+"demande dans une fenêtre de terminal."
+
+#: machincast/interface/control.py
+msgid "Service unchanged: no authentication in the terminal window."
+msgstr ""
+"Service inchangé : aucune authentification dans la fenêtre de terminal."
+
+#: machincast/interface/control.py
+#, python-brace-format
+msgid ""
+"No way to ask for the password in this session: run “sudo systemctl {verb} "
+"{unit}”."
+msgstr ""
+"Impossible de demander le mot de passe dans cette session : lancez « sudo "
+"systemctl {verb} {unit} »."
+
+#: machincast/interface/control.py
 msgid "Broadcast restarted."
 msgstr "Diffusion redémarrée."
 
@@ -3138,6 +3161,10 @@ msgstr "Nouvel événement"
 #: machincast/interface/suggestions.py
 msgid "Create"
 msgstr "Créer"
+
+#: machincast/interface/dialogs.py
+msgid "Intranet server"
+msgstr "Serveur intranet"
 
 #: machincast/interface/dialogs.py
 msgid "Add sound files"
@@ -4376,6 +4403,35 @@ msgid "Intranet server unchanged: systemctl said “{said}”."
 msgstr "Serveur intranet inchangé : systemctl a dit « {said} »."
 
 #: machincast/interface/intranet_switch.py
+msgid ""
+"The setting is saved: the intranet server will start with the computer."
+msgstr ""
+"Le réglage est enregistré : le serveur intranet démarrera avec le poste."
+
+#: machincast/interface/intranet_switch.py
+msgid ""
+"The setting is saved: the intranet server will not start with the computer "
+"any more."
+msgstr ""
+"Le réglage est enregistré : le serveur intranet ne démarrera plus avec le "
+"poste."
+
+#: machincast/interface/intranet_switch.py
+msgid "Intranet server unchanged: no authentication in the terminal window."
+msgstr ""
+"Serveur intranet inchangé : aucune authentification dans la fenêtre de "
+"terminal."
+
+#: machincast/interface/intranet_switch.py
+#, python-brace-format
+msgid ""
+"Intranet server unchanged: no way to ask for the password in this session; "
+"run “sudo systemctl {verb} {unit}”."
+msgstr ""
+"Serveur intranet inchangé : impossible de demander le mot de passe dans "
+"cette session ; lancez « sudo systemctl {verb} {unit} »."
+
+#: machincast/interface/intranet_switch.py
 #, python-brace-format
 msgid ""
 "Intranet server not started: Machin intranet stopped, exit code {code}."
@@ -4422,6 +4478,14 @@ msgid ""
 msgstr ""
 "Machin intranet tourne encore (PID {pid}) : arrêtez-le dans son terminal, "
 "par Ctrl-C."
+
+#: machincast/interface/intranet_switch.py
+msgid "Intranet server: running."
+msgstr "Serveur intranet : en marche."
+
+#: machincast/interface/intranet_switch.py
+msgid "Intranet server: stopped."
+msgstr "Serveur intranet : arrêté."
 
 #: machincast/interface/intranet_switch.py
 msgid "Its configuration is invalid."

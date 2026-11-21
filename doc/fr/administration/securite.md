@@ -122,6 +122,8 @@ Ses messages vont dans le journal du système : `journalctl -u machincast-intran
 
 - **Installer ou retirer le service**, `./install.sh --service` ou `--remove-service`, demande `sudo` : comptes, unités, règles et fragments du système. install.sh se lance avec son propre compte, et ne demande `sudo` que pour ces étapes.
 - **Démarrer, arrêter ou redémarrer** le service de diffusion ou le serveur intranet depuis l'interface : la règle polkit le permet au seul compte de MachinCast, avec le mot de passe d'un administrateur. Elle ne permet rien d'autre, ni sur une autre unité.
+	Un compte administrateur (groupe `sudo`) donne son propre mot de passe, gardé quelques minutes ; un autre compte, celui d'un administrateur ([#558](https://github.com/dascritch/machincast/issues/558)).
+	Sans fenêtre de mot de passe sur le bureau, par exemple dans une session `ssh -X`, il se demande dans une fenêtre de terminal qu'ouvre l'interface ; sans terminal, l'interface donne la commande `sudo systemctl …` à lancer.
 - **Éteindre, redémarrer ou mettre en veille le poste** demande le mot de passe d'un administrateur, à tout compte ; les touches d'alimentation, le capot et Ctrl+Alt+Suppr en console sont ignorés ([#448](https://github.com/dascritch/machincast/issues/448)).
 
 ## Les fichiers sonores

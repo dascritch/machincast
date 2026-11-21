@@ -402,7 +402,8 @@ var polkit = {
 	addRule: function (rule) { this.rules.push(rule); }
 };
 var action = {id: dukpy.action, lookup: function (key) { return {unit: dukpy.unit, verb: dukpy.verb}[key]; }};
-var subject = {user: dukpy.user, local: true, active: true};
+var subject = {user: dukpy.user, local: true, active: true,
+	isInGroup: function (group) { return dukpy.groups.indexOf(group) >= 0; }};
 """
 """Ce que polkit donne à une règle : polkit.addRule, et une action sur une unité. En ES5, comme le moteur de polkitd,
 Duktape, que dukpy embarque (https://github.com/dascritch/machincast/issues/470)."""
@@ -424,6 +425,7 @@ answer;
 	parsers.re(
 		r"la règle polkit répond (?:« (?P<response>[^»]+) »|rien) à l'action « (?P<action>[^»]+) »"
 		r"(?: sur « (?P<unit>[^»]+) », verbe « (?P<verb>[^»]+) »)?, pour (?P<who>le compte|un autre compte)"
+		r"(?P<administrator>, administrateur)?$"
 	)
 )
 def polkit_response(
@@ -433,18 +435,24 @@ def polkit_response(
 	unit: str | None,
 	verb: str | None,
 	who: str,
+	administrator: str | None,
 ) -> None:
-	"""Une action sur une unité (systemd1), ou sans unité (login1, https://github.com/dascritch/machincast/issues/448)."""
+	"""Une action sur une unité (systemd1), ou sans unité (login1, https://github.com/dascritch/machincast/issues/448) ;
+	administrateur, le compte est du groupe sudo (https://github.com/dascritch/machincast/issues/558)."""
 	assert command.returncode == 0, command.stderr
 	user = _account()[0]
 	if who == "un autre compte":
 		user = f"autre-que-{user}"
+	groups = [user]
+	if administrator is not None:
+		groups.append("sudo")
 	answer = dukpy.evaljs(
 		[POLKIT_SIMULATOR, command.stdout, POLKIT_ANSWER],
 		action=action,
 		unit=(unit) or (""),
 		verb=(verb) or (""),
 		user=user,
+		groups=groups,
 	)
 	assert answer == ((response) or ("rien")), answer
 

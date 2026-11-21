@@ -519,6 +519,11 @@ class PreferencesWindow(QDialog):
 		# Sans le service, sous le compte qui le lance, sans cloisonnement (https://github.com/dascritch/machincast/issues/549).
 		ui.intranet_test_mode.setText(intranet_switch.TEST_MODE)
 		ui.intranet_test_mode.setVisible(not intranet_switch.service_installed())
+		# Ce qui tourne vraiment, quel que soit le réglage (https://github.com/dascritch/machincast/issues/558).
+		said = intranet_switch.STOPPED
+		if intranet_switch.running():
+			said = intranet_switch.RUNNING
+		ui.intranet_running.setText(said)
 		if enabled:
 			addresses = network.to_give(self.intranet.address, ui.intranet_port.value())
 			ui.intranet_addresses.setText(

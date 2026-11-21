@@ -753,9 +753,22 @@ sans mot de passe sur Ubuntu, écran de connexion compris (allow_active de org.f
 d'antenne, elles demandent l'authentification d'un administrateur (https://github.com/dascritch/machincast/issues/448)."""
 
 
+ADMINISTRATOR_GROUPS = ("sudo", "admin")
+"""Les groupes des administrateurs d'Ubuntu : admin, d'avant 12.04, que polkit reconnaît encore."""
+
+
+def _administrators() -> str:
+	"""La condition, en ES5, d'un compte administrateur."""
+	tests = []
+	for group in ADMINISTRATOR_GROUPS:
+		tests.append(f'subject.isInGroup("{group}")')
+	return " || ".join(tests)
+
+
 def polkit_rule(account: Account) -> str:
-	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec
-	l'authentification d'un administrateur, et de même le serveur intranet
+	"""La règle polkit du service de lecture : son compte le démarre, l'arrête ou le redémarre, avec son propre mot de
+	passe s'il est administrateur, sinon celui d'un administrateur (https://github.com/dascritch/machincast/issues/558),
+	et de même le serveur intranet
 	(https://github.com/dascritch/machincast/issues/538) ; rien d'autre, ni sur une autre unité. Elle protège aussi le poste :
 	l'éteindre, le redémarrer ou le mettre en veille demande l'authentification d'un administrateur, à tout compte
 	(https://github.com/dascritch/machincast/issues/448). Elle est en ES5, comme Duktape, le moteur de polkitd."""
@@ -765,11 +778,21 @@ def polkit_rule(account: Account) -> str:
 	actions = ",\n\t\t".join(quoted)
 	return f"""// Control of the MachinCast broadcast service (https://github.com/dascritch/machincast/issues/22).
 // Installed by install.sh --service; do not edit here, run install.sh --service again.
+
+// An administrator gives their own password, without choosing among the administrators of the computer; another
+// account, the password of an administrator (https://github.com/dascritch/machincast/issues/558).
+function byAdministrator(subject) {{
+	if ({_administrators()}) {{
+		return polkit.Result.AUTH_SELF_KEEP;
+	}}
+	return polkit.Result.AUTH_ADMIN;
+}}
+
 polkit.addRule(function (action, subject) {{
 	if ((action.id == "org.freedesktop.systemd1.manage-units")
 		&& (["{UNIT}", "{service.INTRANET_UNIT}"].indexOf(action.lookup("unit")) >= 0)
 		&& (["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0) && (subject.user == "{account.name}")) {{
-		return polkit.Result.AUTH_ADMIN;
+		return byAdministrator(subject);
 	}}
 	return polkit.Result.NOT_HANDLED;
 }});
@@ -780,7 +803,7 @@ polkit.addRule(function (action, subject) {{
 	if ([
 		{actions}
 	].indexOf(action.id) >= 0) {{
-		return polkit.Result.AUTH_ADMIN;
+		return byAdministrator(subject);
 	}}
 	return polkit.Result.NOT_HANDLED;
 }});

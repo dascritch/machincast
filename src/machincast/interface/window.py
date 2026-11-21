@@ -268,6 +268,7 @@ class MainWindow(QMainWindow):
 		self.key_hints = key_hints.KeyHints(self)
 		self.intranet_switch = IntranetSwitch(self, configuration=self.configuration)
 		self.intranet_switch.announced.connect(self.ui.state_bar.showMessage)
+		self.intranet_switch.alerted.connect(lambda text: dialogs.warn_intranet(self, text))
 		# Les connexions à distance à valider au pupitre (https://github.com/dascritch/machincast/issues/539).
 		self.remote_connections = RemoteConnections(connection, self)
 		self.remote_connections.refused.connect(self.ui.state_bar.showMessage)
