@@ -61,22 +61,22 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 7 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading »
+		Alors 8 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance »
 
 	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
 		https://github.com/dascritch/machincast/issues/454
 		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
 		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
-		Et j'annule les 5 dernières migrations
+		Et j'annule les 6 dernières migrations
 		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	Scénario: Annuler l'ordre ascendant du tableau ramène ces banques à l'ordre descendant, le mode séquentiel
 		https://github.com/dascritch/machincast/issues/535
 		Quand j'enregistre dans "banks" : internal_name = 'Jingles', mode = 'sequential_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
-		Et j'annule les 4 dernières migrations
+		Et j'annule les 5 dernières migrations
 		Alors les banques « Jingles », « Chroniques » sont en modes « sequential », « filename_ascending »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───

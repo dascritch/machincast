@@ -94,6 +94,8 @@ class Pending(NamedTuple):
 	validate_before: datetime
 	attempts: int = 0
 	"""Les codes faux déjà saisis (https://github.com/dascritch/machincast/issues/547)."""
+	accepted: bool = False
+	"""Acceptée au pupitre : son code peut être donné (https://github.com/dascritch/machincast/issues/547)."""
 
 
 class Opened(NamedTuple):
@@ -123,13 +125,15 @@ def pending(connection: Connection) -> list[Pending]:
 	found = []
 	for row in connection.execute(
 		"SELECT s.id, u.name, COALESCE(s.user_agent, ''), COALESCE(host(s.source_ip), ''), s.code,"
-		" s.validate_before, s.attempts FROM api_sessions s JOIN api_users u ON u.id = s.user_id"
+		" s.validate_before, s.attempts, s.accepted_at IS NOT NULL FROM api_sessions s JOIN api_users u ON u.id = s.user_id"
 		" WHERE s.state = 'pending' AND u.disabled_at IS NULL ORDER BY s.created_at, s.id"
 	).fetchall():
-		identifier, user, agent, address, code, before, attempts = row
+		identifier, user, agent, address, code, before, attempts, accepted = row
 		assert isinstance(identifier, int)
 		assert isinstance(before, datetime)
-		found.append(Pending(identifier, str(user), str(agent), str(address), str(code), before, int(attempts)))
+		found.append(
+			Pending(identifier, str(user), str(agent), str(address), str(code), before, int(attempts), bool(accepted))
+		)
 	return found
 
 
@@ -150,6 +154,15 @@ def sessions_of(connection: Connection, user: int) -> list[Opened]:
 		assert (limit is None) or (isinstance(limit, datetime))
 		found.append(Opened(identifier, str(state), str(origin), created_at, limit, str(address), str(agent)))
 	return found
+
+
+def accept(connection: Connection, session: int) -> None:
+	"""Acceptée au pupitre : la connexion peut recevoir son code (https://github.com/dascritch/machincast/issues/547)."""
+	connection.execute(
+		"UPDATE api_sessions SET accepted_at = clock_timestamp()"
+		" WHERE id = %s AND state = 'pending' AND accepted_at IS NULL",
+		(session,),
+	)
 
 
 def invalidate(connection: Connection, session: int) -> None:

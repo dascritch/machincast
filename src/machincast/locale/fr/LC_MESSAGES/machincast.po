@@ -5100,6 +5100,10 @@ msgid "Refuse"
 msgstr "Refuser"
 
 #: machincast/interface/remote_connections.py
+msgid "Accept"
+msgstr "Accepter"
+
+#: machincast/interface/remote_connections.py
 #, python-brace-format
 msgid ""
 "Remote connection to validate: <b>{user}</b>, from {address}, {browser}, "
@@ -5110,10 +5114,24 @@ msgstr ""
 
 #: machincast/interface/remote_connections.py
 #, python-brace-format
+msgid ""
+"Remote connection requested: <b>{user}</b>, from {address}, {browser}, "
+"until {limit}. Accept it before giving its code."
+msgstr ""
+"Connexion à distance demandée : <b>{user}</b>, depuis {address}, {browser}, "
+"jusqu'à {limit}. Acceptez-la avant d'en donner le code."
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
 msgid "{count} wrong code already entered"
 msgid_plural "{count} wrong codes already entered"
 msgstr[0] "{count} code faux déjà saisi"
 msgstr[1] "{count} codes faux déjà saisis"
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
+msgid "Remote connection of {user} accepted: give it its code."
+msgstr "Connexion à distance de {user} acceptée : donnez-lui son code."
 
 #: machincast/interface/remote_connections.py
 #, python-brace-format
@@ -6659,6 +6677,14 @@ msgid "Too many wrong codes: wait a quarter of an hour."
 msgstr "Trop de codes faux : attendez un quart d'heure."
 
 #: machincast/intranet/portal.py
+msgid ""
+"Your connection is not accepted at the desk yet: once the studio accepts "
+"it, it gives you the code."
+msgstr ""
+"Votre connexion n'est pas encore acceptée au pupitre : une fois qu'il "
+"l'aura acceptée, le studio vous donnera le code."
+
+#: machincast/intranet/portal.py
 msgid "Wrong code: ask again at the desk."
 msgstr "Code faux : redemandez-le au pupitre."
 
@@ -6677,11 +6703,12 @@ msgstr "Se connecter"
 #: machincast/intranet/portal.py
 msgid ""
 "An action must be done at the studio desk: MachinCast shows there your "
-"name, your browser, your address and a 6-digit code. Enter this code here."
+"name, your browser and your address. Once your connection is accepted "
+"there, the studio gives you a 6-digit code: enter it here."
 msgstr ""
 "Une action doit être faite au pupitre : MachinCast y montre votre nom, "
-"votre navigateur, votre adresse et un code à 6 chiffres. Saisissez ce code "
-"ici."
+"votre navigateur et votre adresse. Une fois votre connexion acceptée, le "
+"studio vous donne un code à 6 chiffres : saisissez-le ici."
 
 #: machincast/intranet/portal.py
 msgid "6-digit code"

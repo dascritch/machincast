@@ -48,6 +48,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Le code donné au pupitre valide la session, pour 12 heures, et mène à l'accueil
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Quand je saisis le code donné au pupitre
 		Alors la réponse est 303, vers « / »
 		Et la session est valide, pour 12 heures
@@ -56,11 +57,13 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Le code se saisit aussi avec une espace entre ses deux moitiés, comme le pupitre le montre
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Quand je saisis le code donné au pupitre, en deux groupes de trois chiffres
 		Alors la session est valide, pour 12 heures
 
 	Scénario: Un code faux se redemande ; au cinquième, la session est invalide, et il faut se reconnecter
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Quand je saisis un code faux
 		Alors la réponse est 400, et dit « Code faux : redemandez-le au pupitre. »
 		Quand je saisis un code faux 4 fois
@@ -71,6 +74,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Passé le délai de validation, la session est invalide
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que le délai de validation est passé
 		Quand je saisis le code donné au pupitre
 		Alors la réponse est 401, et dit « Connexion non validée à temps, ou trop de codes faux : reconnectez-vous. »
@@ -78,6 +82,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Se déconnecter rend la session invalide, et efface son cookie
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi le code donné au pupitre
 		Quand je demande « POST /logout »
 		Alors la réponse est 303, vers « /login »
@@ -86,12 +91,14 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Le jeton de la session sert aussi en « Authorization: Bearer », pour l'API
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi le code donné au pupitre
 		Quand je demande « GET / » avec le jeton en « Authorization: Bearer », sans cookie
 		Alors la réponse est 200, et dit « Accueil — Machin intranet »
 
 	Scénario: Un compte désactivé perd ses sessions valides
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi le code donné au pupitre
 		Et que le compte « regie » est désactivé
 		Quand je demande « GET / »
@@ -107,6 +114,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Avec le bon mot de passe, des codes faux répétés font attendre l'adresse, même en se reconnectant
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Quand je saisis un code faux 5 fois
 		Et je me connecte en « regie », mot de passe « tisane-au-micro »
 		Alors la réponse est 429, et dit « Trop d'essais refusés : attendez un quart d'heure. »
@@ -114,6 +122,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Des codes faux répétés font attendre le compte, même depuis une autre adresse
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi un code faux 5 fois
 		Quand je me connecte en « regie », mot de passe « tisane-au-micro », depuis l'adresse « 10.0.0.32 »
 		Alors la réponse est 429, et dit « Trop d'essais refusés : attendez un quart d'heure. »
@@ -121,8 +130,10 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Freiné, un code n'est même pas essayé, pas même le bon
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi un code faux 4 fois
 		Et que je me suis connecté depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi un code faux
 		Quand je saisis le code donné au pupitre
 		Alors la réponse est 429, et dit « Trop de codes faux : attendez un quart d'heure. »
@@ -130,13 +141,21 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	Scénario: Une session validée au pupitre efface les codes faux du compte
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi un code faux 4 fois
 		Quand je saisis le code donné au pupitre
 		Alors la session est valide, pour 12 heures
 		Quand je me déconnecte
 		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Et le pupitre accepte la connexion
 		Et je saisis un code faux 4 fois
 		Alors la réponse est 400, et dit « Code faux : redemandez-le au pupitre. »
+
+	Scénario: Avant que le pupitre accepte la connexion, aucun code n'est essayé, pas même le bon
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Quand je saisis le code donné au pupitre
+		Alors la réponse est 409, et dit « Votre connexion n'est pas encore acceptée au pupitre : une fois qu'il l'aura acceptée, le studio vous donnera le code. »
+		Et la session est à valider, sans code faux compté
 
 	Scénario: Un compte n'a que deux sessions à valider à la fois
 		Étant donné que je me suis connecté depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »

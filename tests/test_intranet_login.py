@@ -14,6 +14,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
+from machincast.interface.queries import api_users
 from machincast.intranet import sessions
 from machincast.intranet.app import Intranet
 from machincast.intranet.pages import Pages
@@ -275,6 +276,19 @@ def valid(empty_database: Connection, hours: int) -> None:
 @then("la session est invalide")
 def invalid(empty_database: Connection) -> None:
 	assert _row(empty_database)[0] == "invalid"
+
+
+@given("le pupitre a accepté la connexion")
+@when("le pupitre accepte la connexion")
+def desk_accepts(empty_database: Connection) -> None:
+	"""Comme « Accepter » dans le bandeau du pupitre, au rôle de l'interface."""
+	api_users.accept(empty_database, int(str(_row(empty_database)[8])))
+
+
+@then("la session est à valider, sans code faux compté")
+def pending_untried(empty_database: Connection) -> None:
+	found = empty_database.execute("SELECT state::text, attempts FROM api_sessions ORDER BY id DESC LIMIT 1").fetchone()
+	assert found == ("pending", 0)
 
 
 @then("aucune nouvelle session n'est ouverte")

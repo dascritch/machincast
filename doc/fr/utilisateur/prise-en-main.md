@@ -57,7 +57,7 @@ Après la suppression ou l'enregistrement d'un événement, l'interface recrée 
 
 ## Connexions à distance
 
-Quand l'intranet est allumé ([#524](https://github.com/dascritch/machincast/issues/524)), quelqu'un qui s'y connecte d'un autre poste doit être validé au studio ([#539](https://github.com/dascritch/machincast/issues/539)) : un **bandeau orange** s'affiche au-dessus des onglets, avec son nom de compte, l'adresse et le navigateur de son poste, l'heure limite et un **code à 6 chiffres**. Si vous attendiez cette connexion, donnez-lui ce code, par téléphone par exemple : il le saisit sur son poste. Sinon, **Refuser** la ferme. Le bandeau disparaît dès que la connexion est validée, refusée ou trop vieille.
+Quand l'intranet est allumé ([#524](https://github.com/dascritch/machincast/issues/524)), quelqu'un qui s'y connecte d'un autre poste doit être validé au studio ([#539](https://github.com/dascritch/machincast/issues/539)) : un **bandeau orange** s'affiche au-dessus des onglets, avec son nom de compte, l'adresse et le navigateur de son poste, et l'heure limite. Si vous attendiez cette connexion, **Accepter** montre un **code à 6 chiffres** : donnez-le-lui, par téléphone par exemple, il le saisit sur son poste ([#547](https://github.com/dascritch/machincast/issues/547)). Sinon, **Refuser** la ferme. Le bandeau disparaît dès que la connexion est validée, refusée ou trop vieille.
 
 ## Antenne
 
