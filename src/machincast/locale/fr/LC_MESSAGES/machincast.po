@@ -7538,8 +7538,16 @@ msgid "request ignored on the state socket"
 msgstr "demande ignorée sur la socket d'état"
 
 #: machincast/player/state.py
+msgid "a request of the intranet names the user who makes it"
+msgstr "une demande de l'intranet nomme le compte qui la fait"
+
+#: machincast/player/state.py
 msgid "a request is a JSON object"
 msgstr "une demande est un objet JSON"
+
+#: machincast/player/state.py
+msgid "the user of a request is given only on the socket of the intranet"
+msgstr "le compte d'une demande ne se donne que sur la socket de l'intranet"
 
 #: machincast/player/state.py
 msgid "an advance names the identifier of the next event, and nothing else"
@@ -9746,8 +9754,10 @@ msgid ""
 "the group %s, which\n"
 "reads its logs (%s) and pre-listens to the on-air output; the on-air card "
 "is reserved for the\n"
-"service. The sound files go in /home/machincast: those of the database in a "
-"personal directory\n"
+"service. The intranet server, switched off by default, runs under its own "
+"account, machincast-intranet,\n"
+"outside that group. The sound files go in /home/machincast: those of the "
+"database in a personal directory\n"
 "are moved there, removed from the database, or left, not played, as chosen. "
 "A polkit rule lets it start, stop and\n"
 "restart with the password of an administrator, and asks for that password "
@@ -9785,7 +9795,7 @@ msgid ""
 "removes those installed before:\n"
 "                the tasks are run by another tool, such as Ansible\n"
 "  --remove-service\n"
-"                removes the broadcast service, its PipeWire, its account, "
+"                removes the broadcast service, its PipeWire, its accounts, "
 "its polkit rule, the\n"
 "                protection of the computer and the timers of the tasks; the "
 "logs and /home/machincast stay\n"
@@ -9869,8 +9879,10 @@ msgstr ""
 "plantage. %s rejoint\n"
 "le groupe %s, qui lit ses logs (%s) et pré-écoute l'antenne ; la carte de "
 "l'antenne est réservée\n"
-"au service. Les sonores vont dans /home/machincast : ceux de la base dans "
-"un répertoire personnel\n"
+"au service. Le serveur intranet, éteint par défaut, tourne sous son propre "
+"compte, machincast-intranet,\n"
+"hors de ce groupe. Les sonores vont dans /home/machincast : ceux de la base "
+"dans un répertoire personnel\n"
 "y sont déplacés, retirés de la base, ou laissés, sans passer à l'antenne, "
 "au choix. Une règle polkit le laisse démarrer, arrêter et redémarrer avec "
 "le mot\n"
@@ -9909,7 +9921,7 @@ msgstr ""
 "et retire ceux installés avant :\n"
 "                les tâches sont lancées par un autre outil, comme Ansible\n"
 "  --remove-service\n"
-"                retire le service de diffusion, son PipeWire, son compte, "
+"                retire le service de diffusion, son PipeWire, ses comptes, "
 "sa règle polkit, la\n"
 "                protection du poste et les minuteurs des tâches ; les logs "
 "et /home/machincast restent\n"
@@ -10330,6 +10342,18 @@ msgstr "%s appartient déjà au groupe %s"
 
 #: install.sh
 msgid ""
+"[simulation] sudo -u postgres psql: CREATE ROLE \"%s\" LOGIN; GRANT "
+"machincast_intranet TO \"%s\" WITH INHERIT FALSE, SET TRUE"
+msgstr ""
+"[simulation] sudo -u postgres psql : CREATE ROLE \"%s\" LOGIN ; GRANT "
+"machincast_intranet TO \"%s\" WITH INHERIT FALSE, SET TRUE"
+
+#: install.sh
+msgid "%s can assume the role machincast_intranet"
+msgstr "%s peut endosser le rôle machincast_intranet"
+
+#: install.sh
+msgid ""
 "[simulation] sudo -u postgres psql: CREATE ROLE %s LOGIN; GRANT "
 "machincast_player TO %s WITH INHERIT FALSE, SET TRUE"
 msgstr ""
@@ -10644,6 +10668,10 @@ msgstr "[simulation] sudo -u postgres psql : DROP ROLE IF EXISTS %s"
 #: install.sh
 msgid "account %s missing"
 msgstr "compte %s absent"
+
+#: install.sh
+msgid "[simulation] sudo -u postgres psql: DROP ROLE IF EXISTS \"%s\""
+msgstr "[simulation] sudo -u postgres psql : DROP ROLE IF EXISTS \"%s\""
 
 #: install.sh
 msgid "the logs stay in %s: sudo rm -r %s removes them"

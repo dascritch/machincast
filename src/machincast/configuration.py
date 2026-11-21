@@ -132,9 +132,23 @@ class Metadata:
 class Player:
 	state_socket: Path
 	"""Socket Unix d'état du binaire lecture, lue par l'interface (https://github.com/dascritch/machincast/issues/20)."""
+	intranet_socket: Path
+	"""La socket au même protocole que Machin player réserve au serveur intranet, qui y nomme le compte de l'API de
+	chaque demande (https://github.com/dascritch/machincast/issues/549)."""
 
 
 STATE_SOCKET = "lecture.sock"
+INTRANET_SOCKET = "intranet.sock"
+
+
+def default_intranet_socket(state_socket: Path | None) -> Path:
+	"""À côté de la socket d'état donnée par la configuration ; sinon dans le répertoire que le service réserve au
+	serveur intranet, quand il est installé ; sinon à côté de la socket d'état par défaut, privée au compte."""
+	if state_socket is not None:
+		return state_socket.with_name(INTRANET_SOCKET)
+	if service.intranet_runtime().is_dir():
+		return service.intranet_runtime() / INTRANET_SOCKET
+	return default_state_socket().with_name(INTRANET_SOCKET)
 
 
 def default_state_socket() -> Path:
@@ -319,7 +333,7 @@ KEYS: dict[str, frozenset[str]] = {
 	"audio": frozenset({"output", "device", "preview"}),
 	"outputs": frozenset({"csv", "pls", "html"}),
 	"metadata": frozenset({"hide", "public_text"}),
-	"player": frozenset({"state_socket"}),
+	"player": frozenset({"state_socket", "intranet_socket"}),
 	"crossfades": frozenset({"granularity", "maximum", "start", "end", "fade_in_position", "fade_out_position"}),
 	"silences": frozenset({"threshold"}),
 	"dead_air": frozenset({"duration", "threshold", "fallback"}),
@@ -713,13 +727,18 @@ def load(path: Path | None = None) -> Configuration:
 		pls=reader.file_path("outputs", "pls"),
 		html=reader.file_path("outputs", "html"),
 	)
-	player = Player(state_socket=(reader.optional_path("player", "state_socket")) or (default_state_socket()))
+	given_socket = reader.optional_path("player", "state_socket")
+	player = Player(
+		state_socket=(given_socket) or (default_state_socket()),
+		intranet_socket=(reader.optional_path("player", "intranet_socket")) or (default_intranet_socket(given_socket)),
+	)
 	# Un fichier sonore n'est jamais écrit ni remplacé (https://github.com/dascritch/machincast/issues/96).
 	for key, value in (
 		("outputs.csv", outputs.csv),
 		("outputs.pls", outputs.pls),
 		("outputs.html", outputs.html),
 		("player.state_socket", player.state_socket),
+		("player.intranet_socket", player.intranet_socket),
 	):
 		if is_sound_file(value):
 			raise reader.error(

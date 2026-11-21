@@ -93,9 +93,13 @@ def record(
 	sound: int | None = None,
 	bank: int | None = None,
 	event: int | None = None,
+	*,
+	origin: str | None = None,
+	api_user: str | None = None,
 ) -> None:
 	"""Ajoute une ligne au log ; sans instant, l'heure du serveur PostgreSQL. Jamais de RETURNING : la lecture
-	n'a pas le droit de lire le log."""
+	n'a pas le droit de lire le log. Pour une demande d'un client de la socket d'état, origin dit d'où elle vient,
+	et api_user, le compte de l'API qui l'a faite depuis l'intranet (https://github.com/dascritch/machincast/issues/549)."""
 	if level != "info":
 		# Sortie privée stderr (https://github.com/dascritch/machincast/issues/19) : alertes et incidents.
 		log.warning(
@@ -105,9 +109,9 @@ def record(
 		)
 	with connection.transaction():
 		connection.execute(
-			"INSERT INTO log (logged_at, level, kind, message, sound_id, bank_id, event_id)"
-			" VALUES (COALESCE(%s, clock_timestamp()), %s, %s, %s, %s, %s, %s)",
-			(instant, level, kind, message, sound, bank, event),
+			"INSERT INTO log (logged_at, level, kind, message, sound_id, bank_id, event_id, origin, api_user)"
+			" VALUES (COALESCE(%s, clock_timestamp()), %s, %s, %s, %s, %s, %s, %s, %s)",
+			(instant, level, kind, message, sound, bank, event, origin, api_user),
 		)
 
 
@@ -164,9 +168,17 @@ def finish_play(
 	l'erreur en incident de la nature donnée."""
 	with connection.transaction():
 		_end(connection, play, instant, without_incident=error is None)
-		references = {"sound": play.sound, "bank": play.bank, "event": play.event}
 		if error is not None:
-			record(connection, "incident", kind, error, instant, **references)
+			record(connection, "incident", kind, error, instant, play.sound, play.bank, play.event)
 		else:
 			if cut:
-				record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)
+				record(
+					connection,
+					"info",
+					N_("clean cut"),
+					N_("start of an event"),
+					instant,
+					play.sound,
+					play.bank,
+					play.event,
+				)

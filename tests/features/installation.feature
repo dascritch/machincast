@@ -238,8 +238,8 @@ Fonctionnalité: Vérifications de l'installation
 		Alors « systemd-analyze verify » accepte ensemble « machincast.service », « machincast-pipewire.service » et « machincast-wireplumber.service »
 
 	Scénario: Le serveur intranet démarre avec le poste, et s'arrête aussitôt tant qu'il est éteint
-		https://github.com/dascritch/machincast/issues/538 : sous le compte de MachinCast, qui endosse le rôle
-		machincast_intranet ; Machin intranet éteint s'arrête, code 4, sans que systemd le relance.
+		https://github.com/dascritch/machincast/issues/538 : Machin intranet éteint s'arrête, code 4, sans que systemd le
+		relance.
 
 		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
 		Alors la commande se termine sans erreur
@@ -257,6 +257,27 @@ Fonctionnalité: Vérifications de l'installation
 			| WantedBy | multi-user.target |
 		Et install.sh installe l'unité du serveur intranet, l'active, et la retire avec le service
 
+	Scénario: Le serveur intranet tourne sous son propre compte, et ne peut écrire que dans son répertoire d'état
+		https://github.com/dascritch/machincast/issues/549 : exposé au réseau, il n'est ni le compte de MachinCast,
+		propriétaire de la base et du dépôt, ni dans le groupe du service de diffusion, qui donne son PipeWire, ses logs
+		et les sonores de /home/machincast. Son rôle PostgreSQL n'endosse que machincast_intranet.
+
+		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
+		Alors la commande se termine sans erreur
+		Et l'unité de la commande a, dans la section « Service », entre autres :
+			| clé                     | valeur                                   |
+			| User                    | machincast-intranet                      |
+			| Group                   | machincast-intranet                      |
+			| ProtectSystem           | strict                                   |
+			| ProtectHome             | yes                                      |
+			| PrivateTmp              | yes                                      |
+			| PrivateDevices          | yes                                      |
+			| CapabilityBoundingSet   |                                          |
+			| RestrictAddressFamilies | AF_UNIX AF_INET AF_INET6 AF_NETLINK      |
+			| MemoryDenyWriteExecute  | yes                                      |
+			| UMask                   | 0077                                     |
+		Et install.sh crée le compte « machincast-intranet », hors du groupe du service, et son rôle qui n'endosse que « machincast_intranet », et les retire avec le service
+
 	Scénario: systemd accepte l'unité du serveur intranet
 		Étant donné l'outil « systemd-analyze » du poste
 		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
@@ -271,6 +292,7 @@ Fonctionnalité: Vérifications de l'installation
 			| d /run/machincast 2770 machincast machincast -             |
 			| d /var/log/machincast 2770 machincast machincast -         |
 			| d /var/log/machincast/crash-dump 2770 machincast machincast - |
+			| d /run/machincast-intranet 2750 machincast machincast-intranet - |
 
 	Scénario: Les logs tournent chaque semaine, sans couper les programmes qui y écrivent
 		Quand je lance « python -m machincast.installation logrotate » avec la configuration de test

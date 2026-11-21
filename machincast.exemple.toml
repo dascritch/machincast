@@ -59,6 +59,11 @@ public_text = "Radio FMR"
 # the broadcast service, shared with its group; otherwise $XDG_RUNTIME_DIR/machincast/lecture.sock, private to the
 # account. Both are deleted when the machine restarts.
 # state_socket = "/run/user/1000/machincast/lecture.sock"
+# Socket that Machin player keeps for the intranet server, with the same protocol, where each request names the API
+# account that makes it (https://github.com/dascritch/machincast/issues/549). Optional: by default next to
+# state_socket when it is given, otherwise /run/machincast-intranet/intranet.sock with the broadcast service, shared
+# with the group of the intranet server; otherwise next to the default state socket, private to the account.
+# intranet_socket = "/run/user/1000/machincast/intranet.sock"
 
 [crossfades]
 # Crossfade settings (https://github.com/dascritch/machincast/issues/145), which can be changed in the interface's

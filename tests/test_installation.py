@@ -610,6 +610,8 @@ def sh_service_names() -> None:
 		f'COMPTE_SERVICE="{SERVICE_ACCOUNT}"',
 		f'DOSSIER_DU_COMPTE_SERVICE="{SERVICE_STATE}"',
 		f'DOSSIER_D_EXECUTION_SERVICE="{SERVICE_RUNTIME}"',
+		f'COMPTE_INTRANET="{installation.INTRANET_ACCOUNT}"',
+		f'DOSSIER_D_EXECUTION_INTRANET="{installation.INTRANET_RUNTIME}"',
 		f'DOSSIER_DES_LOGS="{log_directory.DIRECTORY}"',
 		f'UNITE="{UNIT}"',
 		f'UNITE_PIPEWIRE="{PIPEWIRE_UNIT}"',
@@ -1356,3 +1358,28 @@ def session_silent(session: SimpleNamespace) -> None:
 @then(parsers.parse("le script de session a lancé « {command} »"))
 def session_launched(session: SimpleNamespace, command: str) -> None:
 	assert session.shown.strip() == f"appel: {command}", session.shown
+
+
+@then(
+	parsers.parse(
+		"install.sh crée le compte « {account} », hors du groupe du service, et son rôle qui n'endosse que « {role} »,"
+		" et les retire avec le service"
+	)
+)
+def sh_intranet_account(account: str, role: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/549"""
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	creating = _function(install, "creer_le_compte_de_l_intranet")
+	assert '"${COMPTE_INTRANET}"' in creating
+	assert "--groups" not in creating
+	granting = _function(install, "autoriser_l_intranet_en_base")
+	assert f'CREATE ROLE "{account}" LOGIN;' in granting
+	assert f'GRANT {role} TO "{account}" WITH INHERIT FALSE, SET TRUE;' in granting
+	removing = _function(install, "retirer_service")
+	assert f'DROP ROLE IF EXISTS "{account}"' in removing
+	assert 'executer sudo userdel "${COMPTE_INTRANET}"' in removing
+	installing = _function(install, "installer_service")
+	order = []
+	for step in ("creer_le_compte_de_l_intranet", "autoriser_l_intranet_en_base", "systemd-tmpfiles --create"):
+		order.append(installing.index(step))
+	assert order == sorted(order)

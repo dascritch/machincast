@@ -17,6 +17,7 @@ from typing import Any
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import service
 from machincast.player.state import BusyStateSocket, StateSocket
 from tests.broadcast_steps import Bench, Connection, create_sound, event, hour, plays, quoted_names, sound
 
@@ -255,6 +256,60 @@ def private_directory(bench: Bench) -> None:
 @then("la socket d'état n'est lisible et modifiable que par son propriétaire")
 def private_socket(bench: Bench) -> None:
 	assert stat.S_IMODE(bench_socket(bench).path.stat().st_mode) == 0o600
+
+
+@given("la socket de l'intranet dans le répertoire que le service lui réserve, imité")
+def reserved_directory(bench: Bench, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Le répertoire de tmpfiles.d, imité : il existe déjà, au mode qu'il lui donne (2750)."""
+	reserved = tmp_path / "run" / "machincast-intranet"
+	reserved.mkdir(parents=True)
+	reserved.chmod(0o2750)
+	monkeypatch.setenv(service.INTRANET_RUNTIME_ENVIRONMENT, str(reserved))
+	bench.state = StateSocket(tmp_path / "run" / "machincast" / "lecture.sock", reserved / "intranet.sock")
+
+
+def _intranet(bench: Bench) -> Path:
+	path = bench_socket(bench).intranet
+	assert path is not None
+	return path
+
+
+def _first_state(path: Path) -> dict[str, Any]:
+	with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+		connection.settimeout(DELAY)
+		connection.connect(str(path))
+		received = b""
+		while b"\n" not in received:
+			received += connection.recv(65536)
+	found = json.loads(received.split(b"\n", 1)[0])
+	assert isinstance(found, dict)
+	found.pop("timestamp", None)
+	return found
+
+
+@then("la socket de l'intranet donne le même état que la socket d'état")
+def same_state(bench: Bench) -> None:
+	assert _first_state(_intranet(bench)) == _first_state(bench_socket(bench).path)
+
+
+@then("la socket de l'intranet n'est lisible et modifiable que par son propriétaire")
+def private_intranet(bench: Bench) -> None:
+	assert stat.S_IMODE(_intranet(bench).stat().st_mode) == 0o600
+
+
+@then("la socket de l'intranet est lisible et modifiable par son groupe")
+def shared_intranet(bench: Bench) -> None:
+	assert stat.S_IMODE(_intranet(bench).stat().st_mode) == 0o660
+
+
+@then("le répertoire que le service réserve au serveur intranet garde ses droits")
+def reserved_kept(bench: Bench) -> None:
+	assert stat.S_IMODE(_intranet(bench).parent.stat().st_mode) == 0o2750
+
+
+@then("la socket de l'intranet n'existe plus")
+def intranet_gone(bench: Bench) -> None:
+	assert not _intranet(bench).exists()
 
 
 @then("une seconde diffusion sur la même socket d'état est refusée, car un autre Machin player diffuse déjà")

@@ -15,7 +15,12 @@ import pytest
 from pytest_bdd import parsers, scenarios, then, when
 
 from machincast.player.interruptions import ADVANCED_EVENT, MANUAL_INSERTION, MANUAL_INTERRUPTION
-from machincast.player.state import IGNORED_REQUEST, advance_request, cutoff_request_by_fallback
+from machincast.player.state import (
+	IGNORED_REQUEST,
+	advance_request,
+	cutoff_request_by_fallback,
+	from_user,
+)
 from tests.broadcast_steps import Bench, broadcast, clock
 from tests.log_texts import shown
 
@@ -75,12 +80,36 @@ def ask_fallback(bench: Bench, empty_database: Connection, caplog: pytest.LogCap
 	ask(bench, caplog, cutoff_request_by_fallback(identifier(empty_database, name)).strip())
 
 
-@when(parsers.parse("un client de la socket d'état demande « {asks} »"))
+@when(
+	parsers.parse(
+		"le serveur intranet demande, pour le compte « {user} », de couper l'antenne par le secours « {name} »"
+	)
+)
+def intranet_asks_fallback(
+	bench: Bench, empty_database: Connection, caplog: pytest.LogCaptureFixture, user: str, name: str
+) -> None:
+	line = from_user(cutoff_request_by_fallback(identifier(empty_database, name)), user)
+	_send(bench, caplog, line.strip(), intranet=True)
+
+
+@when(parsers.re(r"un client de la socket (?P<which>de l'intranet|d'état) demande « (?P<asks>.+) »$"))
+def ask_on(bench: Bench, caplog: pytest.LogCaptureFixture, which: str, asks: str) -> None:
+	_send(bench, caplog, asks, intranet=which == "de l'intranet")
+
+
 def ask(bench: Bench, caplog: pytest.LogCaptureFixture, asks: str) -> None:
+	_send(bench, caplog, asks, intranet=False)
+
+
+def _send(bench: Bench, caplog: pytest.LogCaptureFixture, asks: str, *, intranet: bool) -> None:
 	"""La demande est envoyée, puis le scénario attend qu'elle arrive, ou que le journal du binaire dise qu'elle est
 	ignorée : jamais la fin d'un délai (https://github.com/dascritch/machincast/issues/280)."""
 	state = bench.state
 	assert state is not None
+	path = state.path
+	if intranet:
+		assert state.intranet is not None
+		path = state.intranet
 
 	def ignored() -> bool:
 		for r in caplog.records:
@@ -89,7 +118,7 @@ def ask(bench: Bench, caplog: pytest.LogCaptureFixture, asks: str) -> None:
 		return False
 
 	with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-		client.connect(str(state.path))
+		client.connect(str(path))
 		client.sendall(f"{asks}\n".encode())
 		# Le message d'état qu'envoie la socket à la connexion montre qu'elle sert ce client.
 		client.settimeout(WAITING)
@@ -105,6 +134,22 @@ def ask(bench: Bench, caplog: pytest.LogCaptureFixture, asks: str) -> None:
 @then(parsers.parse("le log note l'interruption manuelle « {message} »"))
 def noted_interruption(empty_database: Connection, message: str) -> None:
 	assert interruption_log(empty_database) == [message]
+
+
+@then(
+	parsers.re(
+		r"le log note, depuis « (?P<origin>\w+) », (?:par « (?P<user>[^»]+) »|sans compte), "
+		r"l'interruption manuelle « (?P<message>.+) »$"
+	)
+)
+def noted_with_origin(empty_database: Connection, message: str, origin: str, user: str | None) -> None:
+	found = []
+	for logged_message, logged_origin, api_user in empty_database.execute(
+		"SELECT message, origin::text, api_user FROM log WHERE level = 'info' AND kind = %s ORDER BY id",
+		(MANUAL_INTERRUPTION,),
+	).fetchall():
+		found.append((shown(logged_message), logged_origin, api_user))
+	assert found == [(message, origin, user)]
 
 
 @then(parsers.parse("le log note l'avance « {message} »"))

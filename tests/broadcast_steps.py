@@ -195,6 +195,13 @@ def event(
 # ─── Étant donné ───────────────────────────────────────────
 
 
+@given("la socket d'état et celle de l'intranet dans un répertoire temporaire")
+def both_sockets(bench: Bench, tmp_path: Path) -> None:
+	"""https://github.com/dascritch/machincast/issues/549"""
+	directory = tmp_path / "run" / "machincast"
+	bench.state = StateSocket(directory / "lecture.sock", directory / "intranet.sock")
+
+
 @given(parsers.parse("l'horloge du binaire au « {instant} »"))
 def clock_to(bench: Bench, instant: str) -> None:
 	bench.clock = FixedClock(hour(instant))

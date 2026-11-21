@@ -5,7 +5,10 @@ dernier état, puis chaque nouvel état : une ligne JSON par état, en UTF-8, av
 (VERSION). La diffusion publie à chaque changement, et au moins toutes les MINIMAL_PUBLICATION secondes pour la
 progression. Le format est décrit champ par champ dans la spécification, § 5.4.
 
-La socket est réservée au compte qui diffuse : son répertoire est en 0700, la socket en 0600. Une socket déjà
+La socket est réservée au compte qui diffuse : son répertoire est en 0700, la socket en 0600 ; avec le service,
+au groupe du service, 0660, dans son répertoire d'exécution. Une seconde socket, au même protocole, est réservée au
+serveur intranet, dont chaque demande nomme le compte de l'API qui la fait
+(https://github.com/dascritch/machincast/issues/549). Une socket déjà
 ouverte par un autre Machin player refuse la seconde diffusion (BusyStateSocket) ; une socket laissée par un
 binaire arrêté brutalement est remplacée.
 
@@ -29,11 +32,13 @@ signalée dans le journal du binaire. Seul le compte qui diffuse peut ouvrir la 
 vérifier.
 """
 
+import dataclasses
 import functools
 import json
 import logging
 import os
 import queue
+import re
 import socket
 import stat
 import threading
@@ -71,6 +76,14 @@ INTERRUPTIONS = ("sound", "sequence", "event", "restart_sound", "restart_event",
 ou de l'événement à l'antenne (https://github.com/dascritch/machincast/issues/366)."""
 MAXIMAL_SIZE = 4096
 """Octets d'une demande, au plus : au-delà, ce qui a été reçu est ignoré."""
+INTERFACE = "interface"
+INTRANET = "intranet"
+"""D'où vient une demande : de la socket d'état, que lisent l'interface et le compte de MachinCast, ou de celle de
+l'intranet, que seul le serveur intranet joint (https://github.com/dascritch/machincast/issues/549)."""
+USER = "user"
+"""Le champ du compte de l'API qui fait la demande, sur la socket de l'intranet seulement."""
+USER_NAME = re.compile(r"^[A-Za-z0-9._-]{1,255}$")
+"""Un nom de compte de l'API, comme api_users.name l'accepte."""
 IGNORED_REQUEST = _("request ignored on the state socket")
 
 
@@ -89,6 +102,10 @@ class Request:
 	sequence: int | None = None
 	bank: int | None = None
 	"""Pour une insertion : la séquence, ou la banque, à jouer après le sonore en cours."""
+	origin: str = INTERFACE
+	"""La socket qui l'a reçue : INTERFACE ou INTRANET (https://github.com/dascritch/machincast/issues/549)."""
+	user: str | None = None
+	"""Le compte de l'API qui la fait, pour une demande de l'intranet : le serveur intranet le tient de la session."""
 
 
 def interruption_request(item: str) -> str:
@@ -139,14 +156,38 @@ def _identifier(message: dict[str, Any], key: str) -> int:
 	return value
 
 
-def read_request(line: bytes) -> Request:
-	"""Une demande reçue ; ValueError si elle est illisible ou inconnue."""
+def from_user(line: str, user: str) -> str:
+	"""La ligne d'une demande, avec le compte de l'API qui la fait : ce qu'envoie le serveur intranet."""
+	return json.dumps({**json.loads(line), USER: user}) + "\n"
+
+
+def _user(message: dict[str, Any], origin: str) -> str | None:
+	"""Le compte de l'API d'une demande, retiré du message : obligatoire de l'intranet, refusé d'ailleurs, où rien ne
+	dit qui l'a écrit."""
+	if origin != INTRANET:
+		if USER in message:
+			raise ValueError(_("the user of a request is given only on the socket of the intranet"))
+		return None
+	user = message.pop(USER, None)
+	if (not isinstance(user, str)) or (USER_NAME.fullmatch(user) is None):
+		raise ValueError(_("a request of the intranet names the user who makes it"))
+	return user
+
+
+def read_request(line: bytes, origin: str = INTERFACE) -> Request:
+	"""Une demande reçue de la socket d'origin ; ValueError si elle est illisible ou inconnue."""
 	try:
 		message = json.loads(line.decode())
 	except (UnicodeDecodeError, json.JSONDecodeError) as error:
 		raise ValueError(_("unreadable: {error}").format(error=error)) from error
 	if not isinstance(message, dict):
 		raise ValueError(_("a request is a JSON object"))
+	user = _user(message, origin)
+	return dataclasses.replace(_command(message), origin=origin, user=user)
+
+
+def _command(message: dict[str, Any]) -> Request:
+	"""La demande que dit le message, sans son origine."""
 	command = message.get("command")
 	item = message.get("item")
 	if (command == REREAD_GRID) and (set(message) == {"command"}):
@@ -207,18 +248,21 @@ def instant(value: datetime | None) -> str | None:
 
 
 class StateSocket:
-	"""Serveur de la socket d'état : un fil pour accepter les clients, un fil par client."""
+	"""Serveur de la socket d'état : un fil pour accepter les clients, un fil par client. Avec intranet, une seconde
+	socket au même protocole, pour le seul serveur intranet, dont chaque demande nomme le compte de l'API qui la fait
+	(https://github.com/dascritch/machincast/issues/549) ; les clients des deux reçoivent les mêmes états."""
 
-	def __init__(self, path: Path) -> None:
+	def __init__(self, path: Path, intranet: Path | None = None) -> None:
 		self.path = path
-		self._server: socket.socket | None = None
+		self.intranet = intranet
+		self._servers: list[tuple[socket.socket, Path]] = []
 		self._condition = threading.Condition()
 		self._message = ""
 		self._number = 0
 		self._closed = False
 		self._sent_list: dict[int, int] = {}
 		"""Dernier message envoyé à chaque client, par identifiant de fil."""
-		self._feed: threading.Thread | None = None
+		self._feeds: list[threading.Thread] = []
 		self._requests: queue.SimpleQueue[Request] = queue.SimpleQueue()
 
 	def requests(self) -> list[Request]:
@@ -231,46 +275,63 @@ class StateSocket:
 				return received_list
 
 	def open_(self) -> None:
-		"""Crée la socket ; lève BusyStateSocket si un autre Machin player l'a déjà ouverte."""
-		check_writing(self.path)
-		directory = self.path.parent
+		"""Crée la socket, et celle de l'intranet ; lève BusyStateSocket si un autre Machin player l'a déjà ouverte."""
+		paths = [(self.path, INTERFACE)]
+		if self.intranet is not None:
+			paths.append((self.intranet, INTRANET))
+		try:
+			for path, origin in paths:
+				server = self._bind(path)
+				self._servers.append((server, path))
+				feed = threading.Thread(
+					target=self._accept, args=(server, origin), name=f"{origin} socket", daemon=True
+				)
+				self._feeds.append(feed)
+				feed.start()
+		except BaseException:
+			self._close_servers()
+			raise
+
+	def _bind(self, path: Path) -> socket.socket:
+		"""Une socket qui écoute à ce chemin, à son mode : celui du groupe dans un répertoire partagé, privée ailleurs."""
+		check_writing(path)
+		directory = path.parent
 		# Dans le répertoire du service, la socket est à son groupe : le compte de MachinCast la lit et y écrit ; le
-		# répertoire est à tmpfiles.d (https://github.com/dascritch/machincast/issues/381). Ailleurs, privée.
-		shared = directory == service.runtime()
+		# répertoire est à tmpfiles.d (https://github.com/dascritch/machincast/issues/381). De même dans celui du
+		# serveur intranet, à son groupe (https://github.com/dascritch/machincast/issues/549). Ailleurs, privée.
+		shared = directory in (service.runtime(), service.intranet_runtime())
 		mode = 0o600
 		if shared:
 			mode = 0o660
 		else:
 			directory.mkdir(mode=0o700, parents=True, exist_ok=True)
 			os.chmod(directory, 0o700)
-		if (self.path.exists()) or (self.path.is_symlink()):
-			if self._busy():
-				raise BusyStateSocket(_("{path}: another Machin player is already broadcasting").format(path=self.path))
-			if not stat.S_ISSOCK(self.path.lstat().st_mode):
-				raise OSError(_("{path} exists and is not a socket").format(path=self.path))
-			self.path.unlink()  # fichier de MachinCast : socket d'état laissée par un arrêt brutal
+		if (path.exists()) or (path.is_symlink()):
+			if self._busy(path):
+				raise BusyStateSocket(_("{path}: another Machin player is already broadcasting").format(path=path))
+			if not stat.S_ISSOCK(path.lstat().st_mode):
+				raise OSError(_("{path} exists and is not a socket").format(path=path))
+			path.unlink()  # fichier de MachinCast : socket d'état laissée par un arrêt brutal
 		server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		try:
 			old = os.umask(0o777 & ~mode)
 			try:
-				server.bind(str(self.path))
+				server.bind(str(path))
 			finally:
 				os.umask(old)
-			os.chmod(self.path, mode)
+			os.chmod(path, mode)
 			server.listen()
 			server.settimeout(0.2)
 		except BaseException:
 			# Une socket qui n'écoute pas ne reste pas ouverte (https://github.com/dascritch/machincast/issues/187).
 			server.close()
 			raise
-		self._server = server
-		self._feed = threading.Thread(target=self._accept, name="state socket", daemon=True)
-		self._feed.start()
+		return server
 
-	def _busy(self) -> bool:
+	def _busy(self, path: Path) -> bool:
 		with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as trial:
 			try:
-				trial.connect(str(self.path))
+				trial.connect(str(path))
 			except OSError:
 				return False
 		return True
@@ -284,22 +345,26 @@ class StateSocket:
 			self._condition.notify_all()
 
 	def shut_down(self) -> None:
-		"""Laisse aux clients le temps de recevoir le dernier message, puis ferme et efface la socket."""
-		if self._server is None:
+		"""Laisse aux clients le temps de recevoir le dernier message, puis ferme et efface les sockets."""
+		if self._servers == []:
 			return
 		with self._condition:
 			self._condition.wait_for(self._all_sent, CLIENTS_WAITING)
 			self._closed = True
 			self._condition.notify_all()
-		if self._feed is not None:
-			self._feed.join(CLIENTS_WAITING)
-		self._server.close()
-		self._server = None
-		self.path.unlink(missing_ok=True)  # fichier de MachinCast : socket d'état
+		for feed in self._feeds:
+			feed.join(CLIENTS_WAITING)
+		self._close_servers()
 
-	def _accept(self) -> None:
-		server = self._server
-		while (server is not None) and (not self._closed):
+	def _close_servers(self) -> None:
+		for server, path in self._servers:
+			server.close()
+			path.unlink(missing_ok=True)  # fichier de MachinCast : socket d'état
+		self._servers = []
+		self._feeds = []
+
+	def _accept(self, server: socket.socket, origin: str) -> None:
+		while not self._closed:
 			try:
 				client, _ = server.accept()
 			except TimeoutError:
@@ -308,7 +373,7 @@ class StateSocket:
 			except OSError:
 				return
 			else:
-				threading.Thread(target=self._serve, args=(client,), name="state client", daemon=True).start()
+				threading.Thread(target=self._serve, args=(client, origin), name="state client", daemon=True).start()
 
 	def _all_sent(self) -> bool:
 		"""Chaque client a reçu le dernier message."""
@@ -320,12 +385,12 @@ class StateSocket:
 	def _to_send(self, sent: int) -> bool:
 		return (self._number > sent) or (self._closed)
 
-	def _serve(self, client: socket.socket) -> None:
+	def _serve(self, client: socket.socket, origin: str = INTERFACE) -> None:
 		key = threading.get_ident()
 		sent = 0
 		with client:
 			client.settimeout(CLIENTS_WAITING)
-			threading.Thread(target=self._listen, args=(client,), name="client requests", daemon=True).start()
+			threading.Thread(target=self._listen, args=(client, origin), name="client requests", daemon=True).start()
 			while True:
 				line = None
 				with self._condition:
@@ -346,7 +411,7 @@ class StateSocket:
 				self._sent_list.pop(key, None)
 				self._condition.notify_all()
 
-	def _listen(self, client: socket.socket) -> None:
+	def _listen(self, client: socket.socket, origin: str = INTERFACE) -> None:
 		"""Les demandes du client, jusqu'à sa déconnexion ou la fermeture de la socket."""
 		buffer = b""
 		while not self._closed:
@@ -360,9 +425,9 @@ class StateSocket:
 			if received == b"":
 				return
 			if received is not None:
-				buffer = self._receive_lines(buffer + received)
+				buffer = self._receive_lines(buffer + received, origin)
 
-	def _receive_lines(self, buffer: bytes) -> bytes:
+	def _receive_lines(self, buffer: bytes, origin: str = INTERFACE) -> bytes:
 		"""Les demandes complètes du tampon sont reçues ; le reste, une demande commencée, est rendu, ou oublié s'il
 		est trop long."""
 		*lines, rest = buffer.split(b"\n")
@@ -374,13 +439,13 @@ class StateSocket:
 			)
 			rest = b""
 		for line in lines:
-			self._receive(line)
+			self._receive(line, origin)
 		return rest
 
-	def _receive(self, line: bytes) -> None:
+	def _receive(self, line: bytes, origin: str = INTERFACE) -> None:
 		if line.strip() == b"":
 			return
 		try:
-			self._requests.put(read_request(line))
+			self._requests.put(read_request(line, origin))
 		except ValueError as error:
 			log.warning(_("{ignored_request}: {error}").format(ignored_request=IGNORED_REQUEST, error=error))

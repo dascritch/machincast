@@ -269,6 +269,54 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Alors l'airplay montre les passages « f1 », « s1 »
 		Et le log note l'interruption manuelle « du fil musical « Continue » par le secours « Secours » »
 
+	# ─── La socket de l'intranet (https://github.com/dascritch/machincast/issues/549) ───
+	# Machin player réserve au serveur intranet une seconde socket, au même protocole ; chaque demande y nomme le compte
+	# de l'API qui la fait, que Machin player ne croit que là. Le log dit d'où vient chaque action, et qui l'a faite.
+
+	Scénario: Une coupure demandée depuis l'intranet se consigne avec le compte de l'API qui l'a faite
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'événement de secours « Secours », avec les sonores « s1 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet demande, pour le compte « regie », de couper l'antenne par le secours « Secours »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « s1 »
+		Et le log note, depuis « intranet », par « regie », l'interruption manuelle « du fil musical « Continue » par le secours « Secours » »
+
+	Scénario: Une coupure demandée sur la socket d'état se consigne depuis l'interface, sans compte
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'événement de secours « Secours », avec les sonores « s1 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et un client de la socket d'état demande de couper l'antenne par le secours « Secours »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors le log note, depuis « interface », sans compte, l'interruption manuelle « du fil musical « Continue » par le secours « Secours » »
+
+	Plan du scénario: Le compte de l'API ne vient que de la socket de l'intranet, où il est obligatoire
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et un client de la socket <socket> demande « <demande> »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 »
+		Et le log ne note aucune interruption manuelle
+		Et le journal du binaire a signalé « <signalé> »
+
+		Exemples:
+			| socket         | demande                                                         | signalé                                                                     |
+			| de l'intranet  | {"command": "interrupt", "item": "sound"}                       | une demande de l'intranet nomme le compte qui la fait                        |
+			| de l'intranet  | {"command": "interrupt", "item": "sound", "user": "pas un nom"} | une demande de l'intranet nomme le compte qui la fait                        |
+			| d'état         | {"command": "interrupt", "item": "sound", "user": "regie"}      | le compte d'une demande ne se donne que sur la socket de l'intranet          |
+
 	# ─── Avancer l'événement suivant (https://github.com/dascritch/machincast/issues/257) ───
 	# L'événement suivant, la première occurrence à venir qui prendra l'antenne, commence aussitôt, au-dessus de tout,
 	# jusqu'à sa fin prévue : à son début prévu, rien ne change. La demande nomme l'événement attendu, celui que

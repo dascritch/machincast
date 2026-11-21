@@ -199,7 +199,7 @@ def run_broadcast(configuration: Configuration) -> int:
 					SystemClock(),
 					create_randomness(None),
 					outputs=Outputs.since(configuration),
-					state=StateSocket(configuration.player.state_socket),
+					state=StateSocket(configuration.player.state_socket, configuration.player.intranet_socket),
 					crossfades=configuration.crossfades,
 					analyser=Analyser(analysis_command(configuration.path)),
 					dead_air=configuration.dead_air,
