@@ -2,6 +2,7 @@
 
 import ast
 import logging
+import os
 import random
 import re
 import stat
@@ -16,6 +17,7 @@ import pytest
 from _pytest.capture import CaptureResult
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import log
 from machincast.audio import Plugin, UnavailableAudioOutput, create_output, play_test_sound
 from machincast.clock import FixedClock, SystemClock
 from machincast.configuration import AudioOutput, InvalidConfiguration, load
@@ -309,6 +311,41 @@ def without_print() -> None:
 def created_log_directory(log_directory: Path) -> None:
 	"""https://github.com/dascritch/machincast/issues/381 : celui du scénario (conftest.log_directory)."""
 	log_directory.mkdir()
+
+
+def _without_writing(monkeypatch: pytest.MonkeyPatch, forbidden: Path) -> None:
+	"""Le répertoire des logs, que l'exécutable ne peut pas écrire : comme le compte du serveur intranet. Les tests
+	tournent parfois en root, que os.access ne refuse jamais."""
+	access = os.access
+
+	def refused(path: Any, mode: int, **options: Any) -> bool:
+		if (Path(path) == forbidden) and (mode & os.W_OK):
+			return False
+		return access(path, mode, **options)
+
+	monkeypatch.setattr(log.os, "access", refused)
+
+
+@given("le répertoire des logs créé, que l'exécutable ne peut pas écrire")
+def read_only_log_directory(log_directory: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+	log_directory.mkdir()
+	_without_writing(monkeypatch, log_directory)
+
+
+@given(
+	parsers.parse(
+		"le répertoire des logs créé, que l'exécutable ne peut pas écrire, avec « {name} », qu'il peut écrire"
+	)
+)
+def prepared_log_file(log_directory: Path, monkeypatch: pytest.MonkeyPatch, name: str) -> None:
+	log_directory.mkdir()
+	(log_directory / name).touch()
+	_without_writing(monkeypatch, log_directory)
+
+
+@then("le répertoire des logs est vide")
+def empty_log_directory(log_directory: Path) -> None:
+	assert list(log_directory.iterdir()) == []
 
 
 @then(parsers.re(r"le fichier « (?P<name>[^»]+) » du répertoire des logs contient (?P<lines>«.+»)$"))

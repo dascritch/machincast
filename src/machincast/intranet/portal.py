@@ -13,12 +13,18 @@
 - POST /logout : la session devient invalide, son cookie s'efface.
 - GET / : l'accueil (machincast.intranet.home), pour une session valide ; sinon la mire, ou la page de validation.
 
+Chaque connexion, acceptée ou refusée, et chaque code, laisse une ligne au journal
+(https://github.com/dascritch/machincast/issues/578) : l'adresse du client entre crochets en tête du message, que
+reconnaît un analyseur de journal (fail2ban), puis le nom saisi (shown), jamais le mot de passe ni le code ; un refus en
+WARNING.
+
 Le cookie de session est Secure, HttpOnly, SameSite=Strict ; le même jeton sert l'API, en cookie ou en
 « Authorization: Bearer ». Les accès à la base passent par asyncio.to_thread : une connexion par requête, au rôle
 machincast_intranet.
 """
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -36,12 +42,32 @@ from machincast.intranet.sessions import COOKIE, Session
 Connection = psycopg.Connection[TupleRow]
 Connect = Callable[[], Connection]
 
+log = logging.getLogger(__name__)
+
 FAILURES = 5
 """Échecs d'une même adresse, ou codes faux d'un même compte, avant d'attendre."""
 PENALTY = 15 * 60
 """Secondes d'attente, après FAILURES échecs, et fenêtre où ils se comptent."""
 ACCOUNT = "compte:"
 """Le préfixe des codes faux d'un compte, dans Throttle, à côté de ceux d'une adresse."""
+SHOWN_NAME = 64
+"""Caractères d'un nom saisi, au plus, dans le journal."""
+UNPRINTABLE = "\ufffd"
+
+
+def shown(name: str) -> str:
+	"""Le nom saisi, pour le journal : sur une seule ligne, sans caractère de contrôle, coupé à SHOWN_NAME caractères. Il
+	ne peut pas contrefaire une ligne du journal (https://github.com/dascritch/machincast/issues/578)."""
+	characters = []
+	for character in name[:SHOWN_NAME]:
+		if character.isprintable():
+			characters.append(character)
+		else:
+			characters.append(UNPRINTABLE)
+	text = "".join(characters)
+	if len(name) > SHOWN_NAME:
+		text += "…"
+	return text
 
 
 def cookie(value: str, max_age: int) -> tuple[str, str]:
@@ -220,10 +246,22 @@ class Portal:
 		name = form.get("name", "").strip()
 		password = form.get("password", "")
 		if (self.throttle.blocked(address)) or (self._codes_blocked(address, name)):
+			log.warning(
+				_(
+					"[{address}] intranet connection refused, user “{name}”: too many failed attempts, waiting a quarter "
+					"of an hour"
+				).format(address=address, name=shown(name))
+			)
 			return login_page(_("Too many failed attempts: wait a quarter of an hour."), status=429)
 		user = await self._database(lambda connection: sessions.authenticate(connection, name, password))
 		if user is None:
 			self.throttle.failed(address)
+			log.warning(
+				_(
+					"[{address}] intranet connection refused, user “{name}”: unknown user, disabled account or wrong "
+					"password"
+				).format(address=address, name=shown(name))
+			)
 			return login_page(_("Unknown user, disabled account or wrong password."), name, 401)
 		self.throttle.succeeded(address)
 		previous = bearer(request)
@@ -237,6 +275,11 @@ class Portal:
 			lambda connection: sessions.open_pending(connection, user, value, minutes, agent, address)
 		)
 		if given is None:
+			log.info(
+				_(
+					"[{address}] intranet connection refused, user “{name}”: too many connections waiting for validation"
+				).format(address=address, name=shown(name))
+			)
 			return login_page(
 				_(
 					"This account already has {count} connections waiting for validation: have them validated or "
@@ -246,6 +289,11 @@ class Portal:
 				429,
 			)
 		max_age = (minutes * 60) + (self.settings.session * 3600)
+		log.info(
+			_("[{address}] intranet connection of “{name}”, to validate at the desk").format(
+				address=address, name=shown(name)
+			)
+		)
 		return redirect("/validation", [cookie(value, max_age)])
 
 	async def validation_form(self, request: Request) -> Response:
@@ -266,7 +314,14 @@ class Portal:
 		if found is None:
 			return redirect("/login")
 		address = request.client
+		name = shown(found.user)
 		if self._codes_blocked(address, found.user):
+			log.warning(
+				_(
+					"[{address}] validation code refused, user “{name}”: too many wrong codes, waiting a quarter of an "
+					"hour"
+				).format(address=address, name=name)
+			)
 			return validation_page(_("Too many wrong codes: wait a quarter of an hour."), 429)
 		given = request.form().get("code", "")
 		hours = self.settings.session
@@ -282,12 +337,23 @@ class Portal:
 		if outcome == "valid":
 			self.codes.succeeded(address)
 			self.codes.succeeded(f"{ACCOUNT}{found.user}")
+			log.info(
+				_("[{address}] intranet connection of “{name}” validated at the desk").format(
+					address=address, name=name
+				)
+			)
 			return redirect("/")
 		if outcome in ("wrong", "exhausted"):
 			self.codes.failed(address)
 			self.codes.failed(f"{ACCOUNT}{found.user}")
 		if outcome == "wrong":
+			log.warning(_("[{address}] wrong validation code, user “{name}”").format(address=address, name=name))
 			return validation_page(_("Wrong code: ask again at the desk."), 400)
+		log.warning(
+			_(
+				"[{address}] intranet connection of “{name}” invalid: not validated in time, or too many wrong codes"
+			).format(address=address, name=name)
+		)
 		return login_page(_("Connection not validated in time, or too many wrong codes: connect again."), status=401)
 
 	async def logout(self, request: Request) -> Response:

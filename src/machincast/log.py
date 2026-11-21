@@ -12,7 +12,9 @@ Les mêmes lignes vont aussi, quand il existe et s'écrit, dans le fichier « <e
 imprévue, journalisée par log.exception, y garde son traceback, sous sa ligne
 (https://github.com/dascritch/machincast/issues/574). install.sh le
 crée, au groupe machincast, que partagent le compte du service et celui du bureau : chacun lit ce que l'autre y écrit.
-Le fichier se crée lisible et modifiable par le groupe (FILE_MODE) ; logrotate le fait tourner.
+Le fichier se crée lisible et modifiable par le groupe (FILE_MODE) ; logrotate le fait tourner. Un fichier déjà là,
+qu'il peut écrire, sert même dans un répertoire qu'il ne peut pas écrire : celui qu'install.sh --service prépare pour
+le serveur intranet, sous son propre compte (https://github.com/dascritch/machincast/issues/578).
 """
 
 import contextlib
@@ -85,13 +87,22 @@ class _File(logging.FileHandler):
 		return stream
 
 
+def _writable(path: Path) -> bool:
+	"""Le fichier de log s'écrit : déjà là, s'il s'écrit lui-même, même dans un répertoire que l'exécutable ne peut
+	pas écrire, comme celui qu'install.sh --service prépare pour le serveur intranet
+	(https://github.com/dascritch/machincast/issues/578) ; sinon, si son répertoire s'écrit, pour l'y créer."""
+	if path.is_file():
+		return os.access(path, os.W_OK)
+	return (path.parent.is_dir()) and (os.access(path.parent, os.W_OK))
+
+
 def _file_handler(executable: str) -> logging.Handler | None:
-	"""Le fichier de log de l'exécutable, dans directory() ; None s'il n'existe pas ou ne s'écrit pas."""
-	folder = directory()
-	if (not folder.is_dir()) or (not os.access(folder, os.W_OK)):
+	"""Le fichier de log de l'exécutable, dans directory() ; None s'il ne s'écrit pas."""
+	path = directory() / f"{executable}.log"
+	if not _writable(path):
 		return None
 	try:
-		handler = _File(folder / f"{executable}.log", encoding="utf-8")
+		handler = _File(path, encoding="utf-8")
 	except OSError:
 		return None
 	handler.setFormatter(_Levelled())

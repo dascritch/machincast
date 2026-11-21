@@ -111,12 +111,50 @@ Machin intranet is the only MachinCast program that listens to the network. It i
 
 **The partitioning of the unit** (`machincast-intranet.service`)
 
-- The whole system is read-only, the repository and `machincast.toml` included; only its state directory, `/var/lib/machincast-intranet`, is writable.
+- The whole system is read-only, the repository and `machincast.toml` included; only its state directory, `/var/lib/machincast-intranet`, and its log, `/var/log/machincast/Machin_intranet.log`, are writable.
 - No personal directory is visible, no device, no kernel capability; in `/proc`, only its own processes, without the settings or the state of the kernel ([#556](https://github.com/dascritch/machincast/issues/556)).
 - Only Unix, IP and netlink sockets are allowed (netlink to read the addresses of the computer), and only the system calls of an ordinary service, without the privileged ones; `capset` stays allowed, which `ip` calls to drop its capabilities, even without any ([#556](https://github.com/dascritch/machincast/issues/556)): it can only remove some.
 - `systemd-analyze security machincast-intranet` measures this partitioning.
 
-Its messages go to the system journal: `journalctl -u machincast-intranet`.
+**The log** ([#578](https://github.com/dascritch/machincast/issues/578))
+
+Its messages go to the system journal, `journalctl -u machincast-intranet`, and to `/var/log/machincast/Machin_intranet.log`, which a log analyser can follow.
+`install.sh --service` prepares this file for the account of the intranet server and the `machincast` group, which reads it; logrotate rotates it with the other logs.
+The account of the intranet server can only go through `/var/log/machincast`: it can neither list it, nor read the logs of Machin player and of the other programs.
+
+Each connection, accepted or refused, and each validation code leaves a line, the address of the remote computer in brackets at the head of the message; a refusal is a `WARNING`.
+The password and the code are never in it; the name typed is cut at 64 characters, without line breaks, and comes after the address: it cannot make another address look guilty.
+
+```text
+2026-11-21T18:52:01+01:00 WARNING [10.0.0.31] intranet connection refused, user “regie”: unknown user, disabled account or wrong password
+2026-11-21T18:52:02+01:00 INFO [10.0.0.31] intranet connection of “regie”, to validate at the desk
+2026-11-21T18:52:40+01:00 WARNING [10.0.0.31] wrong validation code, user “regie”
+2026-11-21T18:53:05+01:00 INFO [10.0.0.31] intranet connection of “regie” validated at the desk
+```
+
+For instance, for **fail2ban** to block an address after five refusals within a quarter of an hour, like the intranet itself, but for an hour and on every port, a filter `/etc/fail2ban/filter.d/machincast-intranet.conf`:
+
+```ini
+[Definition]
+failregex = ^\s*WARNING \[<HOST>\]
+ignoreregex =
+```
+
+and a jail `/etc/fail2ban/jail.d/machincast-intranet.conf`, the port being that of `intranet.port`:
+
+```ini
+[machincast-intranet]
+enabled  = true
+port     = 8443
+logpath  = /var/log/machincast/Machin_intranet.log
+maxretry = 5
+findtime = 15m
+bantime  = 1h
+```
+
+`fail2ban-regex /var/log/machincast/Machin_intranet.log /etc/fail2ban/filter.d/machincast-intranet.conf` checks the filter against the log.
+The address heads the message in every language of MachinCast: the filter does not depend on the language of the computer.
+After `install.sh --remove-service`, the logs stay; the right of the intranet server account to go through `/var/log/machincast` goes with `sudo rm -r /var/log/machincast`.
 
 ## What needs an administrator
 
@@ -143,7 +181,7 @@ Without `./install.sh --service`, on a trial computer, all programs run under th
 | Machin intranet | As `machincast-intranet`, partitioned unit | As your account, in a terminal, without partitioning |
 | Roles in the database | One per account | Your account takes each of them, but it also owns the databases |
 | Sockets of Machin player | In `/run/machincast` and `/run/machincast-intranet`, to their groups | In `$XDG_RUNTIME_DIR/machincast`, private to your account |
-| Messages | System journal, and `/var/log/machincast` for Machin player | The terminal, and `/var/log/machincast` if your account can write there |
+| Messages | System journal, and `/var/log/machincast` for Machin player and Machin intranet | The terminal, and `/var/log/machincast` if your account can write there |
 
 The protocol of the sockets is the same: the API account stays mandatory on the socket of the intranet, and the log tells where each action comes from. Test mode is for trying MachinCast and the intranet, **not for opening the computer to the network of the radio**.
 

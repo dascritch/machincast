@@ -4,14 +4,17 @@ Les requêtes passent directement à l'application ASGI (tests.asgi_client), sur
 machincast_intranet.
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 
 import psycopg
+import pytest
 from psycopg.rows import TupleRow
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import i18n
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
 from machincast.interface.queries import api_users
@@ -377,3 +380,81 @@ def two_failures(throttle: tuple[Throttle, Moments], first: str, minutes: int, s
 @then(parsers.parse("le freinage ne se souvient que de « {address} »"))
 def remembers_only(throttle: tuple[Throttle, Moments], address: str) -> None:
 	assert list(throttle[0].failures) == [address]
+
+
+# ─── Le journal, pour un analyseur de journal (https://github.com/dascritch/machincast/issues/578) ───
+
+PORTAL_LOG = "machincast.intranet.portal"
+
+
+@pytest.fixture(autouse=True)
+def intranet_journal(caplog: pytest.LogCaptureFixture) -> None:
+	"""Le journal du portail, informations comprises, dès la première requête."""
+	caplog.set_level(logging.INFO, logger=PORTAL_LOG)
+
+
+def _journal(caplog: pytest.LogCaptureFixture) -> list[list[str]]:
+	lines = []
+	for record in caplog.records:
+		if record.name == PORTAL_LOG:
+			lines.append([record.levelname, record.getMessage()])
+	return lines
+
+
+def _expected(datatable: list[list[str]]) -> list[list[str]]:
+	expected = []
+	for level, message in datatable[1:]:
+		expected.append([level.strip(), message.strip()])
+	return expected
+
+
+@then("le journal de l'intranet est :")
+def journal_is(caplog: pytest.LogCaptureFixture, datatable: list[list[str]]) -> None:
+	assert _journal(caplog) == _expected(datatable)
+
+
+@then("le journal de l'intranet finit par :")
+def journal_ends(caplog: pytest.LogCaptureFixture, datatable: list[list[str]]) -> None:
+	expected = _expected(datatable)
+	assert _journal(caplog)[-len(expected) :] == expected
+
+
+@then(parsers.parse("le journal de l'intranet ne dit ni « {first} » ni « {second} »"))
+def journal_silent(caplog: pytest.LogCaptureFixture, first: str, second: str) -> None:
+	for _level, message in _journal(caplog):
+		assert (first not in message) and (second not in message), message
+
+
+@when(
+	parsers.parse(
+		"je me connecte sous le nom « {name} », suivi d'un saut de ligne et d'une fausse ligne de refus de « {address} »"
+	)
+)
+def forged_name(visit: Visit, name: str, address: str) -> None:
+	forged = f"{name}\n2026-11-21T10:00:00+01:00 WARNING [{address}] connexion à l'intranet refusée"
+	_login(visit, forged, "mauvais-mot")
+
+
+@then(
+	parsers.parse(
+		"le journal de l'intranet a une seule ligne, qui commence par « {start} », et ne passe pas à la ligne"
+	)
+)
+def single_line(caplog: pytest.LogCaptureFixture, start: str) -> None:
+	lines = _journal(caplog)
+	assert len(lines) == 1, lines
+	message = lines[0][1]
+	assert message.startswith(f"{start} "), message
+	assert ("\n" not in message) and ("\r" not in message), message
+
+
+@then(parsers.parse("chaque traduction d'un message qui commence par « {start} » commence aussi par « {again} »"))
+def translated_address_first(start: str, again: str) -> None:
+	checked = 0
+	for code in i18n.LANGUAGES[1:]:
+		translations = i18n.read_catalog(i18n.catalog_file(code).read_text(encoding="utf-8"))
+		for message, translation in translations.items():
+			if message.startswith(start):
+				checked += 1
+				assert str(translation).startswith(again), (code, message, translation)
+	assert checked > 0

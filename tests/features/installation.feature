@@ -276,16 +276,19 @@ Fonctionnalité: Vérifications de l'installation
 			| WantedBy | multi-user.target |
 		Et install.sh installe l'unité du serveur intranet, l'active, et la retire avec le service
 
-	Scénario: Le serveur intranet tourne sous son propre compte, et ne peut écrire que dans son répertoire d'état
+	Scénario: Le serveur intranet tourne sous son propre compte, et ne peut écrire que dans son répertoire d'état et son journal
 		https://github.com/dascritch/machincast/issues/549 : exposé au réseau, il n'est ni le compte de MachinCast,
 		propriétaire de la base et du dépôt, ni dans le groupe du service de diffusion, qui donne son PipeWire, ses logs
-		et les sonores de /home/machincast. Son rôle PostgreSQL n'endosse que machincast_intranet.
+		et les sonores de /home/machincast. Son rôle PostgreSQL n'endosse que machincast_intranet. Son journal,
+		Machin_intranet.log, préparé par tmpfiles (https://github.com/dascritch/machincast/issues/578) ; sans lui,
+		l'unité démarre quand même.
 
 		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité de la commande a, dans la section « Service », entre autres :
 			| clé                     | valeur                                   |
 			| User                    | machincast-intranet                      |
+			| ReadWritePaths          | -/var/log/machincast/Machin_intranet.log |
 			| Group                   | machincast-intranet                      |
 			| ProtectSystem           | strict                                   |
 			| ProtectHome             | yes                                      |
@@ -315,6 +318,9 @@ Fonctionnalité: Vérifications de l'installation
 		Alors « systemd-analyze verify » accepte « machincast-intranet.service »
 
 	Scénario: Les répertoires du service sont recréés à chaque démarrage du poste, au groupe du service
+		https://github.com/dascritch/machincast/issues/578 : le journal du serveur intranet y est préparé, à son compte
+		et au groupe du service, qui le lit et que logrotate fait tourner ; son compte, hors du groupe, ne fait que
+		traverser /var/log/machincast, sans pouvoir le lister ni lire les autres journaux.
 		Quand je lance « python -m machincast.installation tmpfiles » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et sa sortie a, hors commentaires, les lignes :
@@ -323,6 +329,8 @@ Fonctionnalité: Vérifications de l'installation
 			| d /var/log/machincast 2770 machincast machincast -         |
 			| d /var/log/machincast/crash-dump 2770 machincast machincast - |
 			| d /run/machincast-intranet 2750 machincast machincast-intranet - |
+			| f /var/log/machincast/Machin_intranet.log 0660 machincast-intranet machincast - |
+			| a+ /var/log/machincast - - - - u:machincast-intranet:--x   |
 
 	Scénario: Les logs tournent chaque semaine, sans couper les programmes qui y écrivent
 		Quand je lance « python -m machincast.installation logrotate » avec la configuration de test
