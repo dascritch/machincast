@@ -7,8 +7,9 @@
   grille (machincast.shared.grid.plan), sur la semaine d'avant et la semaine d'après ; un événement avancé ou terminé
   à la main, que seul Machin player connaît, ne l'est pas ici.
 
-Le serveur intranet tourne sous le compte de MachinCast, qui lit la socket d'état du service de diffusion. Sans
-Machin player, l'état est « stopped », sans sonore à venir.
+Avec le service, le serveur intranet tourne sous son propre compte, et lit la socket que Machin player lui réserve
+(player.intranet_socket, https://github.com/dascritch/machincast/issues/549). Sans Machin player, l'état est
+« stopped », sans sonore à venir.
 """
 
 import json

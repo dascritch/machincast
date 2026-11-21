@@ -92,6 +92,8 @@ class History(Protocol):
 		sound: int | None = None,
 		bank: int | None = None,
 		event: int | None = None,
+		origin: str | None = None,
+		api_user: str | None = None,
 	) -> None: ...
 
 	def expire(self, connection: Connection, instant: datetime, sound: int | None = None) -> list[Expiry]: ...
@@ -145,6 +147,8 @@ class HistoryInPlayback:
 		sound: int | None = None,
 		bank: int | None = None,
 		event: int | None = None,
+		origin: str | None = None,
+		api_user: str | None = None,
 	) -> None:
 		"""Rien n'est consigné : ce sera fait quand la décision sera prise pour de bon."""
 
@@ -173,6 +177,8 @@ class PlannedHistory(HistoryInPlayback):
 		sound: int | None = None,
 		bank: int | None = None,
 		event: int | None = None,
+		origin: str | None = None,
+		api_user: str | None = None,
 	) -> None:
 		"""Note la ligne du log sans l'écrire : une anticipation n'écrit rien en base."""
 		self.recorded_list.append(
@@ -303,8 +309,10 @@ class HistoryInDatabase:
 		sound: int | None = None,
 		bank: int | None = None,
 		event: int | None = None,
+		origin: str | None = None,
+		api_user: str | None = None,
 	) -> None:
-		saving.record(connection, level, kind, message, instant, sound, bank, event)
+		saving.record(connection, level, kind, message, instant, sound, bank, event, origin=origin, api_user=api_user)
 
 	def expire(self, connection: Connection, instant: datetime, sound: int | None = None) -> list[Expiry]:
 		return expire(connection, instant, sound)

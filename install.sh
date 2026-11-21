@@ -82,6 +82,10 @@ FICHIER_ANCIEN_MINUTEUR_PURGE="/etc/systemd/system/${ANCIEN_MINUTEUR_PURGE}"
 COMPTE_SERVICE="machincast"
 DOSSIER_DU_COMPTE_SERVICE="/var/lib/machincast"
 DOSSIER_D_EXECUTION_SERVICE="/run/machincast"
+# Le compte du serveur intranet, hors du groupe du service, et le répertoire de la socket que Machin player lui réserve
+# (https://github.com/dascritch/machincast/issues/549) : les mêmes noms dans machincast.installation.
+COMPTE_INTRANET="machincast-intranet"
+DOSSIER_D_EXECUTION_INTRANET="/run/machincast-intranet"
 DOSSIER_DES_LOGS="/var/log/machincast"
 UNITE_PIPEWIRE="machincast-pipewire.service"
 UNITE_WIREPLUMBER="machincast-wireplumber.service"
@@ -214,7 +218,8 @@ to move MachinCast out of a personal directory, to /opt/machincast: the service 
 personal directories, whose rights never change. Machin player starts with the computer, under its
 own account %s, with its own PipeWire, and restarts after a crash. %s joins the group %s, which
 reads its logs (%s) and pre-listens to the on-air output; the on-air card is reserved for the
-service. The sound files go in /home/machincast: those of the database in a personal directory
+service. The intranet server, switched off by default, runs under its own account, machincast-intranet,
+outside that group. The sound files go in /home/machincast: those of the database in a personal directory
 are moved there, removed from the database, or left, not played, as chosen. A polkit rule lets it start, stop and
 restart with the password of an administrator, and asks for that password to power off, reboot or suspend the
 computer; its power, reboot and suspend keys, its lid and Ctrl+Alt+Del on the console are ignored. Two
@@ -238,7 +243,7 @@ Options:
   --no-timers   with --service, installs neither timer of the tasks, and removes those installed before:
                 the tasks are run by another tool, such as Ansible
   --remove-service
-                removes the broadcast service, its PipeWire, its account, its polkit rule, the
+                removes the broadcast service, its PipeWire, its accounts, its polkit rule, the
                 protection of the computer and the timers of the tasks; the logs and /home/machincast stay
   --dedicated   with --service, dedicates the computer and moves MachinCast to /opt/machincast,
                 without asking
@@ -858,6 +863,38 @@ creer_le_compte_du_service() {
 	fi
 }
 
+# Le compte du serveur intranet et son groupe : distinct du compte du service, hors de son groupe, il ne lit ni les
+# sonores, ni le PipeWire du service, ni ses logs (https://github.com/dascritch/machincast/issues/549).
+creer_le_compte_de_l_intranet() {
+	if getent passwd "${COMPTE_INTRANET}" >/dev/null; then
+		info 'account %s present' "${COMPTE_INTRANET}"
+		return
+	fi
+	executer sudo useradd --system --user-group --home-dir /nonexistent --no-create-home \
+		--shell /usr/sbin/nologin --comment 'MachinCast intranet server' "${COMPTE_INTRANET}"
+}
+
+# Le rôle PostgreSQL du compte du serveur intranet : il se connecte par authentification peer, et n'endosse que le
+# rôle machincast_intranet, sans en hériter les droits (doc/fr/spec.md § 3.2).
+autoriser_l_intranet_en_base() {
+	if "${SIMULATION}"; then
+		info '[simulation] sudo -u postgres psql: CREATE ROLE "%s" LOGIN; GRANT machincast_intranet TO "%s" WITH INHERIT FALSE, SET TRUE' \
+			"${COMPTE_INTRANET}" "${COMPTE_INTRANET}"
+		return
+	fi
+	sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 <<-'SQL'
+		DO $$
+		BEGIN
+			IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast-intranet') THEN
+				CREATE ROLE "machincast-intranet" LOGIN;
+			END IF;
+		END;
+		$$;
+		GRANT machincast_intranet TO "machincast-intranet" WITH INHERIT FALSE, SET TRUE;
+	SQL
+	info '%s can assume the role machincast_intranet' "${COMPTE_INTRANET}"
+}
+
 # Le rôle PostgreSQL du compte du service : il se connecte par authentification peer, et n'endosse que le rôle de
 # Machin player, sans en hériter les droits (doc/fr/spec.md § 3.2).
 autoriser_le_service_en_base() {
@@ -1177,6 +1214,8 @@ installer_service() {
 	annonce 'for a computer dedicated to the on-air output: Machin player starts with the computer, as %s' "${COMPTE_SERVICE}"
 	creer_le_compte_du_service
 	autoriser_le_service_en_base
+	creer_le_compte_de_l_intranet
+	autoriser_l_intranet_en_base
 	creer_l_accueil
 	traiter_les_sonores_personnels
 	# Le service ne dépend plus de la session du compte (https://github.com/dascritch/machincast/issues/381).
@@ -1385,6 +1424,18 @@ retirer_service() {
 		retirer_repertoires --sudo "${DOSSIER_DU_COMPTE_SERVICE}" "${DOSSIER_D_EXECUTION_SERVICE}"
 	else
 		info 'account %s missing' "${COMPTE_SERVICE}"
+	fi
+	if getent passwd "${COMPTE_INTRANET}" >/dev/null; then
+		if "${SIMULATION}"; then
+			info '[simulation] sudo -u postgres psql: DROP ROLE IF EXISTS "%s"' "${COMPTE_INTRANET}"
+		else
+			sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 \
+				--command='DROP ROLE IF EXISTS "machincast-intranet"'
+		fi
+		executer sudo userdel "${COMPTE_INTRANET}"
+		retirer_repertoires --sudo "${DOSSIER_D_EXECUTION_INTRANET}"
+	else
+		info 'account %s missing' "${COMPTE_INTRANET}"
 	fi
 	# fichier de MachinCast : seulement une commande à lancer, si l'administrateur le veut
 	annonce 'the logs stay in %s: sudo rm -r %s removes them' "${DOSSIER_DES_LOGS}" "${DOSSIER_DES_LOGS}"

@@ -365,6 +365,12 @@ SERVICE_ACCOUNT = service.ACCOUNT
 SERVICE_RUNTIME = service.RUNTIME
 """Le répertoire d'exécution du service : la socket de son PipeWire, pipewire-0, et sa socket d'état. Partagé avec le
 groupe (2770), recréé à chaque démarrage du poste par tmpfiles.d."""
+INTRANET_ACCOUNT = service.INTRANET_ACCOUNT
+"""Le compte système du serveur intranet, et son groupe (https://github.com/dascritch/machincast/issues/549) : les
+mêmes noms dans install.sh."""
+INTRANET_RUNTIME = service.INTRANET_RUNTIME
+"""Le répertoire de la socket que Machin player réserve au serveur intranet : au compte du service, qui y crée la
+socket, et au groupe du serveur intranet, qui la joint (2750)."""
 SERVICE_STATE = Path("/var/lib/machincast")
 """Le répertoire personnel du compte du service : l'état de son WirePlumber."""
 SERVICE_WIREPLUMBER = Path("/etc/machincast/wireplumber")
@@ -480,6 +486,9 @@ def tmpfiles() -> str:
 	]
 	for directory in (SERVICE_RUNTIME, log_directory.DIRECTORY, crash.DIRECTORY):
 		lines.append(f"d {directory} {SERVICE_GROUP_MODE} {SERVICE_ACCOUNT} {SERVICE_ACCOUNT} -")
+	# La socket que Machin player réserve au serveur intranet, que seul son groupe joint
+	# (https://github.com/dascritch/machincast/issues/549).
+	lines.append(f"d {INTRANET_RUNTIME} 2750 {SERVICE_ACCOUNT} {INTRANET_ACCOUNT} -")
 	return "\n".join(lines) + "\n"
 
 
@@ -635,12 +644,46 @@ INTRANET_DISABLED = 4
 """Le code de Machin intranet éteint (machincast.intranet.__main__.DISABLED_CODE)."""
 
 
-def intranet_unit(account: Account, directory: Path = PROJECT_DIRECTORY) -> str:
-	"""L'unité du serveur intranet (https://github.com/dascritch/machincast/issues/538), sous le compte de MachinCast,
-	qui endosse le rôle machincast_intranet. Elle démarre avec le poste ; Machin intranet s'arrête aussitôt, code 4,
-	tant que intranet.enabled n'est pas vrai, sans que systemd le relance. La page « Intranet » des paramètres du
-	service la redémarre ou l'arrête, ce que permet la règle polkit. Son répertoire d'état garde le certificat
-	généré."""
+INTRANET_HARDENING = (
+	"NoNewPrivileges=yes",
+	"PrivateTmp=yes",
+	"PrivateDevices=yes",
+	"ProtectSystem=strict",
+	"ProtectHome=yes",
+	"ProtectKernelTunables=yes",
+	"ProtectKernelModules=yes",
+	"ProtectKernelLogs=yes",
+	"ProtectControlGroups=yes",
+	"ProtectClock=yes",
+	"ProtectHostname=yes",
+	"ProtectProc=invisible",
+	"CapabilityBoundingSet=",
+	"AmbientCapabilities=",
+	"RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK",
+	"RestrictNamespaces=yes",
+	"RestrictRealtime=yes",
+	"RestrictSUIDSGID=yes",
+	"LockPersonality=yes",
+	"MemoryDenyWriteExecute=yes",
+	"SystemCallArchitectures=native",
+	"SystemCallFilter=@system-service",
+	"SystemCallFilter=~@privileged @resources",
+	"UMask=0077",
+)
+"""Ce que le serveur intranet, exposé au réseau, ne peut pas faire (https://github.com/dascritch/machincast/issues/549) :
+tout le système en lecture seule, sauf son répertoire d'état ; aucun répertoire personnel ; aucune capacité ; pas
+d'autres familles de sockets que Unix, IP et netlink (ip address, pour les adresses du poste) ; mesuré par
+systemd-analyze security machincast-intranet."""
+
+
+def intranet_unit(directory: Path = PROJECT_DIRECTORY) -> str:
+	"""L'unité du serveur intranet (https://github.com/dascritch/machincast/issues/538), sous son propre compte,
+	machincast-intranet, hors du groupe du service de diffusion, dont le rôle PostgreSQL n'endosse que
+	machincast_intranet (https://github.com/dascritch/machincast/issues/549). Elle démarre avec le poste ; Machin intranet
+	s'arrête aussitôt, code 4, tant que intranet.enabled n'est pas vrai, sans que systemd le relance. La page
+	« Intranet » des paramètres du service la redémarre ou l'arrête, ce que permet la règle polkit. Son répertoire
+	d'état garde le certificat généré ; elle ne peut écrire nulle part ailleurs (INTRANET_HARDENING)."""
+	hardening = "\n".join(INTRANET_HARDENING)
 	return f"""# MachinCast intranet server (https://github.com/dascritch/machincast/issues/538).
 # Installed by install.sh --service; do not edit here, run install.sh --service again. It is switched on by
 # intranet.enabled in machincast.toml, or in the interface: this unit does not change.
@@ -652,8 +695,8 @@ Wants=network-online.target
 
 [Service]
 Type=exec
-User={account.name}
-Group={account.group}
+User={INTRANET_ACCOUNT}
+Group={INTRANET_ACCOUNT}
 WorkingDirectory={directory}
 StateDirectory={INTRANET_STATE}
 StateDirectoryMode=0700
@@ -662,9 +705,7 @@ SuccessExitStatus={INTRANET_DISABLED}
 RestartPreventExitStatus={INTRANET_DISABLED}
 Restart=on-failure
 RestartSec=10
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=full
+{hardening}
 SyslogIdentifier=machincast-intranet
 
 [Install]
@@ -855,7 +896,7 @@ def _indexing_unit(_configuration: Configuration) -> int:
 
 
 def _intranet_unit(_configuration: Configuration) -> int:
-	sys.stdout.write(intranet_unit(Account.current()))
+	sys.stdout.write(intranet_unit())
 	return 0
 
 

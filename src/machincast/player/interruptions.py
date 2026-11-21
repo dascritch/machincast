@@ -22,6 +22,7 @@ from machincast.player.broadcast_types import (
 	Playback,
 )
 from machincast.player.rundown import Choice, Insertion
+from machincast.player.state import Request
 from machincast.shared.fades import NO_CROSSFADE
 from machincast.shared.grid import Event, Occurrence, Priority, read_event, wall_hour
 
@@ -47,6 +48,21 @@ class Interruptions:
 
 	def __init__(self, broadcast: "Broadcast") -> None:
 		self.broadcast = broadcast
+		self.asked: Request | None = None
+		"""La demande en cours de traitement, que la diffusion donne : son origine et son compte vont au log
+		(https://github.com/dascritch/machincast/issues/549)."""
+
+	def _origin(self) -> str | None:
+		"""D'où vient la demande en cours, pour le log ; None hors d'une demande."""
+		if self.asked is None:
+			return None
+		return self.asked.origin
+
+	def _user(self) -> str | None:
+		"""Le compte de l'API qui a fait la demande en cours, depuis l'intranet, pour le log."""
+		if self.asked is None:
+			return None
+		return self.asked.user
 
 	def advance(self, event: int | None) -> bool:
 		"""L'événement suivant commence aussitôt (https://github.com/dascritch/machincast/issues/257), s'il est bien
@@ -77,7 +93,15 @@ class Interruptions:
 		else:
 			sound = current.choice.sound
 		self.broadcast.history.record(
-			self.broadcast.connection, "info", ADVANCED_EVENT, message, instant, sound=sound, event=following.event.id
+			self.broadcast.connection,
+			"info",
+			ADVANCED_EVENT,
+			message,
+			instant,
+			sound=sound,
+			event=following.event.id,
+			origin=self._origin(),
+			api_user=self._user(),
 		)
 		if self.broadcast.outputs is not None:
 			self.broadcast.outputs.announce(ADVANCED_EVENT, message)
@@ -155,6 +179,8 @@ class Interruptions:
 			instant,
 			sound=choice.sound,
 			event=event.id,
+			origin=self._origin(),
+			api_user=self._user(),
 		)
 		if self.broadcast.outputs is not None:
 			self.broadcast.outputs.announce(MANUAL_INTERRUPTION, message)
@@ -237,6 +263,8 @@ class Interruptions:
 			instant,
 			sound=current.choice.sound,
 			event=current.choice.occurrence.event.id,
+			origin=self._origin(),
+			api_user=self._user(),
 		)
 		if self.broadcast.outputs is not None:
 			self.broadcast.outputs.announce(MANUAL_INSERTION, message)
@@ -323,6 +351,8 @@ class Interruptions:
 			instant,
 			sound=current.choice.sound,
 			event=event.id,
+			origin=self._origin(),
+			api_user=self._user(),
 		)
 		if self.broadcast.outputs is not None:
 			self.broadcast.outputs.announce(MANUAL_INTERRUPTION, message)

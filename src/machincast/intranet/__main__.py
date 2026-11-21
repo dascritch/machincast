@@ -83,8 +83,8 @@ def application(configuration: Configuration) -> Application:
 		return open_connection(database.socket, database.production, Role.INTRANET)
 
 	portal = Portal(configuration.intranet, connect)
-	api = ApiV1(portal, connect, configuration.player.state_socket)
-	pages = Pages(portal, connect, configuration.player.state_socket, configuration.metadata.public_text)
+	api = ApiV1(portal, connect, configuration.player.intranet_socket)
+	pages = Pages(portal, connect, configuration.player.intranet_socket, configuration.metadata.public_text)
 	return Application({**portal.routes(), **api.routes(), **pages.routes()})
 
 

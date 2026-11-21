@@ -278,12 +278,20 @@ class SimulatedHistory:
 		for simulated in self.simulated_plays:
 			if simulated.play.id == play.id:
 				simulated.end, simulated.without_incident = instant, error is None
-		references = {"sound": play.sound, "bank": play.bank, "event": play.event}
 		if error is not None:
-			self.record(connection, "incident", kind, error, instant, **references)
+			self.record(connection, "incident", kind, error, instant, play.sound, play.bank, play.event)
 		else:
 			if cut:
-				self.record(connection, "info", N_("clean cut"), N_("start of an event"), instant, **references)
+				self.record(
+					connection,
+					"info",
+					N_("clean cut"),
+					N_("start of an event"),
+					instant,
+					play.sound,
+					play.bank,
+					play.event,
+				)
 
 	def record(
 		self,
@@ -295,6 +303,8 @@ class SimulatedHistory:
 		sound: int | None = None,
 		bank: int | None = None,
 		event: int | None = None,
+		origin: str | None = None,
+		api_user: str | None = None,
 	) -> None:
 		"""Garde la ligne du log pour la page de la simulation, sans rien écrire en base ; une simple information n'est pas gardée."""
 		if level != "info":

@@ -440,6 +440,23 @@ Fonctionnalité: Socket d'état du binaire lecture
 		Alors le répertoire de la socket d'état n'est accessible qu'à son propriétaire
 		Et la socket d'état n'est lisible et modifiable que par son propriétaire
 
+	Scénario: La socket de l'intranet donne les mêmes états, et reste privée hors du service
+		https://github.com/dascritch/machincast/issues/549 : Machin player la réserve au serveur intranet.
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre au plus vite
+		Alors la socket de l'intranet donne le même état que la socket d'état
+		Et la socket de l'intranet n'est lisible et modifiable que par son propriétaire
+		Quand la diffusion s'arrête
+		Alors la socket de l'intranet n'existe plus
+
+	Scénario: Dans le répertoire que le service réserve au serveur intranet, sa socket est à son groupe
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
+		Et la socket de l'intranet dans le répertoire que le service lui réserve, imité
+		Quand la diffusion démarre au plus vite
+		Alors la socket de l'intranet est lisible et modifiable par son groupe
+		Et le répertoire que le service réserve au serveur intranet garde ses droits
+
 	Scénario: Un second Machin player est refusé tant que la socket d'état est occupée
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Quand la diffusion démarre au plus vite

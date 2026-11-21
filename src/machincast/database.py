@@ -54,6 +54,7 @@ TYPES: tuple[str, ...] = (
 	"api_role",
 	"api_session_state",
 	"api_session_origin",
+	"request_origin",
 )
 """Types énumérés créés par la migration ; end_of_list depuis https://github.com/dascritch/machincast/issues/350."""
 

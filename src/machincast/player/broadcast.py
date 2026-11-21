@@ -146,6 +146,7 @@ from machincast.player.state import (
 	MINIMAL_PUBLICATION,
 	REREAD_GRID,
 	BusyStateSocket,
+	Request,
 	StateSocket,
 	is_healthy,
 )
@@ -311,22 +312,9 @@ class Broadcast:
 		self._handle_dead_air(instant)
 		if self.state is not None:
 			for asks in self.state.requests():
-				if asks.command == REREAD_GRID:
-					self.reread_grid()
-				else:
-					if asks.command == ADVANCE:
-						self.interruptions.advance(asks.event)
-					else:
-						if asks.command == CUT_BY_FALLBACK:
-							self.interruptions.cut_by_fallback(asks.event)
-						else:
-							if asks.command == CUT_BY_FEED:
-								self.interruptions.cut_by_feed(asks.feed)
-							else:
-								if asks.command == INSERT:
-									self.interruptions.insert(asks.sequence, asks.bank)
-								else:
-									self.interruptions.interrupt(asks.item)
+				self.interruptions.asked = asks
+				self._ask(asks)
+				self.interruptions.asked = None
 		current = self.current
 		if current is not None:
 			decision = self._decide(instant, current.ongoing)
@@ -1063,6 +1051,25 @@ class Broadcast:
 		self.history.finish_play(self.connection, play, instant, cut=cut, error=error, kind=kind)
 		if self.outputs is not None:
 			self.outputs.finished_play(self.connection, play, instant)
+
+	def _ask(self, asks: Request) -> None:
+		"""Une demande d'un client de la socket d'état, ou de celle de l'intranet."""
+		if asks.command == REREAD_GRID:
+			self.reread_grid()
+			return
+		if asks.command == ADVANCE:
+			self.interruptions.advance(asks.event)
+			return
+		if asks.command == CUT_BY_FALLBACK:
+			self.interruptions.cut_by_fallback(asks.event)
+			return
+		if asks.command == CUT_BY_FEED:
+			self.interruptions.cut_by_feed(asks.feed)
+			return
+		if asks.command == INSERT:
+			self.interruptions.insert(asks.sequence, asks.bank)
+			return
+		self.interruptions.interrupt(asks.item)
 
 	# ─── Socket d'état (https://github.com/dascritch/machincast/issues/20) ───
 
