@@ -26,6 +26,14 @@ Fonctionnalité: Validation au pupitre des connexions à distance, et sessions d
 		Et le bandeau des connexions à distance se relit
 		Alors le bandeau des connexions à distance montre 1 connexion, qui nomme « regie », « 10.0.0.31 », « Firefox/140 » et le code « 042 917 »
 
+	Scénario: Une connexion qui a reçu des codes faux le dit au pupitre
+		https://github.com/dascritch/machincast/issues/547 : peut-être quelqu'un qui essaie de deviner le code.
+		Étant donné une connexion à valider de « regie », depuis « 10.0.0.31 », navigateur « Firefox/140 », code « 042917 »
+		Et la connexion à valider de « regie » a déjà reçu 3 codes faux
+		Quand la fenêtre de l'interface s'ouvre
+		Et le bandeau des connexions à distance se relit
+		Alors le bandeau des connexions à distance montre 1 connexion, qui nomme « regie » et « 3 codes faux déjà saisis » et le code « 042 917 »
+
 	Scénario: Refuser une connexion la rend invalide, et le bandeau disparaît
 		Étant donné une connexion à valider de « regie », depuis « 10.0.0.31 », navigateur « Firefox/140 », code « 042917 »
 		Quand la fenêtre de l'interface s'ouvre

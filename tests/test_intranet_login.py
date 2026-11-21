@@ -72,11 +72,15 @@ def ask_bearer(visit: Visit) -> None:
 	_keep(visit, call(visit.application, "GET", "/", headers={"authorization": f"Bearer {visit.token}"}))
 
 
-def _login(visit: Visit, name: str, password: str, origin: str | None = None) -> None:
-	headers = {}
+def _login(visit: Visit, name: str, password: str, origin: str | None = None, address: str = "10.0.0.31") -> None:
+	"""Comme le navigateur : avec le cookie qu'il a déjà, s'il en a un."""
+	headers = _cookie(visit)
 	if origin is not None:
 		headers["origin"] = origin
-	_keep(visit, call(visit.application, "POST", "/login", form={"name": name, "password": password}, headers=headers))
+	answer = call(
+		visit.application, "POST", "/login", form={"name": name, "password": password}, headers=headers, client=address
+	)
+	_keep(visit, answer)
 
 
 @given(parsers.parse("je me suis connecté en « {name} », mot de passe « {password} »"))
@@ -88,6 +92,24 @@ def login(visit: Visit, name: str, password: str) -> None:
 @when(parsers.parse("je me connecte en « {name} », mot de passe « {password} », depuis l'origine « {origin} »"))
 def login_from(visit: Visit, name: str, password: str, origin: str) -> None:
 	_login(visit, name, password, origin)
+
+
+@when(parsers.parse("je me connecte en « {name} », mot de passe « {password} », depuis l'adresse « {address} »"))
+def login_from_address(visit: Visit, name: str, password: str, address: str) -> None:
+	_login(visit, name, password, address=address)
+
+
+@given(parsers.parse("je me suis connecté depuis un autre navigateur en « {name} », mot de passe « {password} »"))
+@when(parsers.parse("je me connecte depuis un autre navigateur en « {name} », mot de passe « {password} »"))
+def login_elsewhere(visit: Visit, name: str, password: str) -> None:
+	"""Un autre navigateur, sans le cookie de celui d'avant."""
+	visit.token = None
+	_login(visit, name, password)
+
+
+@when("je me déconnecte")
+def logout(visit: Visit) -> None:
+	_keep(visit, call(visit.application, "POST", "/logout", headers=_cookie(visit)))
 
 
 @when(parsers.parse("je me connecte {count:d} fois en « {name} », mot de passe « {password} »"))
@@ -131,11 +153,13 @@ def _wrong(visit: Visit, empty_database: Connection) -> None:
 	_keep(visit, call(visit.application, "POST", "/validation", form={"code": wrong}, headers=_cookie(visit)))
 
 
+@given("j'ai saisi un code faux")
 @when("je saisis un code faux")
 def enter_wrong(visit: Visit, empty_database: Connection) -> None:
 	_wrong(visit, empty_database)
 
 
+@given(parsers.parse("j'ai saisi un code faux {count:d} fois"))
 @when(parsers.parse("je saisis un code faux {count:d} fois"))
 def enter_wrong_again(visit: Visit, empty_database: Connection, count: int) -> None:
 	for _time in range(count):
@@ -251,3 +275,23 @@ def valid(empty_database: Connection, hours: int) -> None:
 @then("la session est invalide")
 def invalid(empty_database: Connection) -> None:
 	assert _row(empty_database)[0] == "invalid"
+
+
+@then("aucune nouvelle session n'est ouverte")
+def no_new_session(empty_database: Connection) -> None:
+	assert empty_database.execute("SELECT count(*) FROM api_sessions").fetchone() == (1,)
+
+
+@then("la session est à valider")
+def still_pending(empty_database: Connection) -> None:
+	assert _row(empty_database)[0] == "pending"
+
+
+@then(parsers.re(r"« (?P<name>[^»]+) » a (?P<count>\d+) sessions? à valider"))
+def pending_count(empty_database: Connection, name: str, count: str) -> None:
+	found = empty_database.execute(
+		"SELECT count(*) FROM api_sessions s JOIN api_users u ON u.id = s.user_id"
+		" WHERE u.name = %s AND s.state = 'pending'",
+		(name,),
+	).fetchone()
+	assert found == (int(count),)

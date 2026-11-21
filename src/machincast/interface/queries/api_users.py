@@ -92,6 +92,8 @@ class Pending(NamedTuple):
 	address: str
 	code: str
 	validate_before: datetime
+	attempts: int = 0
+	"""Les codes faux déjà saisis (https://github.com/dascritch/machincast/issues/547)."""
 
 
 class Opened(NamedTuple):
@@ -121,13 +123,13 @@ def pending(connection: Connection) -> list[Pending]:
 	found = []
 	for row in connection.execute(
 		"SELECT s.id, u.name, COALESCE(s.user_agent, ''), COALESCE(host(s.source_ip), ''), s.code,"
-		" s.validate_before FROM api_sessions s JOIN api_users u ON u.id = s.user_id"
+		" s.validate_before, s.attempts FROM api_sessions s JOIN api_users u ON u.id = s.user_id"
 		" WHERE s.state = 'pending' AND u.disabled_at IS NULL ORDER BY s.created_at, s.id"
 	).fetchall():
-		identifier, user, agent, address, code, before = row
+		identifier, user, agent, address, code, before, attempts = row
 		assert isinstance(identifier, int)
 		assert isinstance(before, datetime)
-		found.append(Pending(identifier, str(user), str(agent), str(address), str(code), before))
+		found.append(Pending(identifier, str(user), str(agent), str(address), str(code), before, int(attempts)))
 	return found
 
 

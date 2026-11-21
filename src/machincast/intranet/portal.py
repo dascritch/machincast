@@ -6,7 +6,9 @@
 - GET /validation : la page qui dit qu'une action doit être faite au pupitre, et demande le code à 6 chiffres que
   l'interface y montre.
 - POST /validation : le code exact valide la session, et mène à l'accueil ; un code faux le redemande ; au cinquième,
-  ou le délai passé, la session est invalide, et il faut se reconnecter.
+  ou le délai passé, la session est invalide, et il faut se reconnecter. Les codes faux sont freinés par adresse et par
+  compte, et un compte n'a que deux sessions à valider à la fois : un mot de passe volé ne suffit pas à forcer le
+  code (https://github.com/dascritch/machincast/issues/547).
 - POST /logout : la session devient invalide, son cookie s'efface.
 - GET / : l'accueil (machincast.intranet.home), pour une session valide ; sinon la mire, ou la page de validation.
 
@@ -34,9 +36,11 @@ Connection = psycopg.Connection[TupleRow]
 Connect = Callable[[], Connection]
 
 FAILURES = 5
-"""Échecs de connexion d'une même adresse avant qu'elle attende."""
+"""Échecs d'une même adresse, ou codes faux d'un même compte, avant d'attendre."""
 PENALTY = 15 * 60
 """Secondes d'attente, après FAILURES échecs, et fenêtre où ils se comptent."""
+ACCOUNT = "compte:"
+"""Le préfixe des codes faux d'un compte, dans Throttle, à côté de ceux d'une adresse."""
 
 
 def cookie(value: str, max_age: int) -> tuple[str, str]:
@@ -58,7 +62,8 @@ def bearer(request: Request) -> str | None:
 
 @dataclass
 class Throttle:
-	"""Les échecs de connexion par adresse, en mémoire : au-delà de FAILURES dans PENALTY secondes, elle attend."""
+	"""Des échecs par clé, une adresse ou un compte, en mémoire : au-delà de FAILURES dans PENALTY secondes, elle
+	attend."""
 
 	failures: dict[str, list[float]] = field(default_factory=dict)
 	clock: Callable[[], float] = time.monotonic
@@ -145,10 +150,16 @@ def validation_page(message: str = "", status: int = 200) -> Response:
 class Portal:
 	"""Les routes de la connexion, et la session de chaque requête."""
 
-	def __init__(self, settings: Settings, connect: Connect, throttle: Throttle | None = None) -> None:
+	def __init__(
+		self, settings: Settings, connect: Connect, throttle: Throttle | None = None, codes: Throttle | None = None
+	) -> None:
 		self.settings = settings
 		self.connect = connect
 		self.throttle = (throttle) or (Throttle())
+		"""Les mots de passe refusés, par adresse ; une connexion réussie les efface."""
+		self.codes = (codes) or (Throttle())
+		"""Les codes faux, par adresse et par compte (https://github.com/dascritch/machincast/issues/547) : une connexion
+		réussie ne les efface pas, seule une session validée au pupitre."""
 
 	def routes(self) -> dict[tuple[str, str], Route]:
 		return {
@@ -183,23 +194,43 @@ class Portal:
 	async def login_form(self, _request: Request) -> Response:
 		return login_page()
 
+	def _codes_blocked(self, address: str, name: str) -> bool:
+		return (self.codes.blocked(address)) or (self.codes.blocked(f"{ACCOUNT}{name}"))
+
 	async def login(self, request: Request) -> Response:
-		"""Des identifiants valides ouvrent une session à valider ; sinon la mire, 401."""
+		"""Des identifiants valides ouvrent une session à valider ; sinon la mire, 401. Trop de mots de passe refusés
+		d'une adresse, ou de codes faux d'une adresse ou d'un compte, font attendre, avant même de lire le mot de passe :
+		la réponse ne dit pas s'il était bon."""
 		address = request.client
-		if self.throttle.blocked(address):
-			return login_page(_("Too many failed attempts: wait a quarter of an hour."), status=429)
 		form = request.form()
 		name = form.get("name", "").strip()
 		password = form.get("password", "")
+		if (self.throttle.blocked(address)) or (self._codes_blocked(address, name)):
+			return login_page(_("Too many failed attempts: wait a quarter of an hour."), status=429)
 		user = await self._database(lambda connection: sessions.authenticate(connection, name, password))
 		if user is None:
 			self.throttle.failed(address)
 			return login_page(_("Unknown user, disabled account or wrong password."), name, 401)
 		self.throttle.succeeded(address)
+		previous = bearer(request)
+		if previous is not None:
+			# Se reconnecter du même navigateur abandonne sa session d'avant, à valider ou valide.
+			await self._database(lambda connection: sessions.end(connection, previous))
 		value = sessions.token()
 		agent = request.headers.get("user-agent", "")
 		minutes = self.settings.validation
-		await self._database(lambda connection: sessions.open_pending(connection, user, value, minutes, agent, address))
+		given = await self._database(
+			lambda connection: sessions.open_pending(connection, user, value, minutes, agent, address)
+		)
+		if given is None:
+			return login_page(
+				_(
+					"This account already has {count} connections waiting for validation: have them validated or "
+					"refused at the desk, or wait for their delay."
+				).format(count=sessions.MAXIMUM_PENDING),
+				name,
+				429,
+			)
 		max_age = (minutes * 60) + (self.settings.session * 3600)
 		return redirect("/validation", [cookie(value, max_age)])
 
@@ -212,15 +243,27 @@ class Portal:
 		return validation_page()
 
 	async def validation(self, request: Request) -> Response:
-		"""Le code saisi : valide, l'accueil ; faux, la page le redemande ; invalide, la mire."""
+		"""Le code saisi : valide, l'accueil ; faux, la page le redemande ; invalide, la mire. Chaque code faux compte
+		pour l'adresse et pour le compte ; au-delà de FAILURES, aucun code n'est essayé avant un quart d'heure."""
 		value = bearer(request)
 		if value is None:
 			return redirect("/login")
+		found = await self.session(request)
+		if found is None:
+			return redirect("/login")
+		address = request.client
+		if self._codes_blocked(address, found.user):
+			return validation_page(_("Too many wrong codes: wait a quarter of an hour."), 429)
 		given = request.form().get("code", "")
 		hours = self.settings.session
 		outcome = await self._database(lambda connection: sessions.validate(connection, value, given, hours))
 		if outcome == "valid":
+			self.codes.succeeded(address)
+			self.codes.succeeded(f"{ACCOUNT}{found.user}")
 			return redirect("/")
+		if outcome in ("wrong", "exhausted"):
+			self.codes.failed(address)
+			self.codes.failed(f"{ACCOUNT}{found.user}")
 		if outcome == "wrong":
 			return validation_page(_("Wrong code: ask again at the desk."), 400)
 		return login_page(_("Connection not validated in time, or too many wrong codes: connect again."), status=401)
