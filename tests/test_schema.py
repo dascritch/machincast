@@ -255,6 +255,13 @@ def cancel_lasts(count: int) -> None:
 		backend.rollback_migrations(backend.to_rollback(read_migrations(str(MIGRATION_DIRECTORY)))[:count])
 
 
+@then("la session de l'intranet sans code est invalide")
+def without_code_invalid(context: Context) -> None:
+	"""https://github.com/dascritch/machincast/issues/600"""
+	found = context.connection.execute("SELECT state::text, ended_at IS NOT NULL FROM api_sessions").fetchall()
+	assert found == [("invalid", True)]
+
+
 @then(parsers.re(r"les banques (?P<names>«.+») sont en modes (?P<modes>«.+»)"))
 def bank_modes(context: Context, names: str, modes: str) -> None:
 	found = []

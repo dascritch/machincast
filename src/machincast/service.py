@@ -30,6 +30,9 @@ TASKS_TIMER_FILE = Path("/etc/systemd/system") / TASKS_TIMER
 INDEXING_UNIT = "machincast-indexing.service"
 INTRANET_UNIT = "machincast-intranet.service"
 """Le serveur intranet (https://github.com/dascritch/machincast/issues/538) : le même nom dans install.sh."""
+INTRANET_UNIT_FILE = Path("/etc/systemd/system") / INTRANET_UNIT
+"""Le serveur intranet installé en service : la production
+(https://github.com/dascritch/machincast/issues/549, https://github.com/dascritch/machincast/issues/600)."""
 """L'unité de l'indexation rapide, toutes les heures (https://github.com/dascritch/machincast/issues/455)."""
 INDEXING_TIMER = "machincast-indexing.timer"
 DELAY = 5

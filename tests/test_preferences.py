@@ -22,7 +22,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast import shortcut
-from machincast.configuration import Crossfades, DeadAirSettings, Intranet, load
+from machincast.configuration import Crossfades, DeadAirSettings, FirstLogin, Intranet, load
 from machincast.interface import __main__ as module_interface
 from machincast.interface import application as module_application
 from machincast.interface import dialogs, intranet_switch, preferences
@@ -1420,6 +1420,66 @@ def written_intranet(intranet_file: Path, address: str, port: int, minutes: int)
 @then("le fichier n'a toujours pas de section [intranet]")
 def still_no_intranet(intranet_file: Path) -> None:
 	assert "intranet" not in tomllib.loads(intranet_file.read_text(encoding="utf-8"))
+
+
+# ─── La sécurité de la première connexion (https://github.com/dascritch/machincast/issues/600) ───
+
+
+def _first_login_items(opened: Opened) -> list[str]:
+	box = the_window(opened).ui.intranet_first_login
+	found = []
+	for index in range(box.count()):
+		found.append(box.itemText(index))
+	return found
+
+
+@then(parsers.re(r"la première connexion est « (?P<chosen>[^»]+) », parmi (?P<choices>.+)"))
+def first_login_choices(opened: Opened, chosen: str, choices: str) -> None:
+	box = the_window(opened).ui.intranet_first_login
+	assert box.currentText() == chosen
+	assert _first_login_items(opened) == re.findall(r"« ([^»]+) »", choices)
+
+
+@then(parsers.re(r"« Aucune validation » (?P<verdict>se choisit|est grisée, avec l'infobulle « (?P<tooltip>[^»]+) »)"))
+def no_validation_offered(opened: Opened, verdict: str, tooltip: str | None) -> None:
+	box = the_window(opened).ui.intranet_first_login
+	model = box.model()
+	assert isinstance(model, QStandardItemModel)
+	item = model.item(0)
+	assert item is not None
+	assert item.isEnabled() is (verdict == "se choisit")
+	if tooltip is not None:
+		assert item.toolTip() == tooltip
+
+
+@when(parsers.parse("je choisis la première connexion « {text} »"))
+def choose_first_login(opened: Opened, text: str) -> None:
+	box = the_window(opened).ui.intranet_first_login
+	box.setCurrentIndex(box.findText(text))
+
+
+@then(parsers.parse("la fenêtre donne la première connexion « {value} »"))
+def first_login_given(opened: Opened, value: str) -> None:
+	assert the_window(opened).settings().intranet.first_login == value
+
+
+@when(parsers.parse("j'enregistre la première connexion « {value} »"))
+def write_first_login(intranet_file: Path, value: FirstLogin) -> None:
+	kept = preferences.intranet(intranet_file)
+	_write_intranet(intranet_file, dataclasses.replace(kept, first_login=value))
+
+
+@then(parsers.parse("le fichier règle la première connexion à « {value} »"))
+def written_first_login(intranet_file: Path, value: str) -> None:
+	assert load(intranet_file).intranet.first_login == value
+	assert tomllib.loads(intranet_file.read_text(encoding="utf-8"))["intranet"]["first_login"] == value
+
+
+@then("changer la première connexion fait rallumer le serveur intranet")
+def first_login_restarts() -> None:
+	before = Settings(Crossfades(), None, TEST_PREVIEW)
+	after = dataclasses.replace(before, intranet=Intranet(first_login="none"))
+	assert preferences.intranet_changed(before, after)
 
 
 @given(parsers.re(r"l'unité du serveur intranet (?P<state>installée|non installée)"))

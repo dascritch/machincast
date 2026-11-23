@@ -285,6 +285,12 @@ SESSIONS = (1, 720)
 """Minutes laissées pour valider au pupitre une connexion à l'intranet, d'une minute à un jour."""
 
 
+FirstLogin = Literal["none", "desk", "desk_code"]
+"""La sécurité de la première connexion à l'intranet (https://github.com/dascritch/machincast/issues/600) : aucune
+validation, impossible en production ; validée au pupitre ; validée au pupitre, puis par le code qu'il donne."""
+FIRST_LOGINS: tuple[FirstLogin, ...] = ("none", "desk", "desk_code")
+
+
 @dataclass(frozen=True)
 class Intranet:
 	"""Le serveur intranet et son API, section [intranet] (https://github.com/dascritch/machincast/issues/538) : éteint
@@ -303,6 +309,9 @@ class Intranet:
 	(machincast.intranet.certificate)."""
 	key: Path | None = None
 	"""La clé privée du certificat donné, au format PEM."""
+	first_login: FirstLogin = "desk_code"
+	"""Comment une connexion par nom et mot de passe devient une session valide
+	(https://github.com/dascritch/machincast/issues/600)."""
 
 
 @dataclass(frozen=True)
@@ -356,7 +365,7 @@ KEYS: dict[str, frozenset[str]] = {
 	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows", "notes", "team_link"}),
 	"schedule": frozenset({"daily"}),
 	"backup": frozenset({"directory"}),
-	"intranet": frozenset({"enabled", "address", "port", "validation", "session", "certificate", "key"}),
+	"intranet": frozenset({"enabled", "address", "port", "validation", "session", "certificate", "key", "first_login"}),
 	"plugins": frozenset({"enabled", "directory"}),
 }
 """Dans [plugins], une section [plugins.<nom>] est aussi permise : les réglages d'un plugin."""
@@ -675,6 +684,19 @@ class _Player:
 			session=self.whole("intranet", "session", SESSION, SESSIONS),
 			certificate=certificate,
 			key=key,
+			first_login=self.first_login(),
+		)
+
+	def first_login(self) -> FirstLogin:
+		"""intranet.first_login, desk_code sans elle (https://github.com/dascritch/machincast/issues/600)."""
+		value = self.document.get("intranet", {}).get("first_login", "desk_code")
+		for known in FIRST_LOGINS:
+			if value == known:
+				return known
+		raise self.error(
+			_("key intranet.first_login: unknown “{fetched}”, possible values: {list}").format(
+				fetched=value, list=", ".join(FIRST_LOGINS)
+			)
 		)
 
 	def plugins(self) -> Plugins:

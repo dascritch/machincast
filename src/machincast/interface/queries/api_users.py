@@ -104,7 +104,8 @@ class Pending(NamedTuple):
 	user: str
 	user_agent: str
 	address: str
-	code: str
+	code: str | None
+	"""Le code à donner ; aucun quand l'acceptation au pupitre suffit (https://github.com/dascritch/machincast/issues/600)."""
 	validate_before: datetime
 	attempts: int = 0
 	"""Les codes faux déjà saisis (https://github.com/dascritch/machincast/issues/547)."""
@@ -133,6 +134,12 @@ def _expire(connection: Connection) -> None:
 	)
 
 
+def _code(found: object) -> str | None:
+	if found is None:
+		return None
+	return str(found)
+
+
 def pending(connection: Connection) -> list[Pending]:
 	"""Les connexions à valider de comptes actifs, la plus ancienne en tête."""
 	_expire(connection)
@@ -146,7 +153,7 @@ def pending(connection: Connection) -> list[Pending]:
 		assert isinstance(identifier, int)
 		assert isinstance(before, datetime)
 		found.append(
-			Pending(identifier, str(user), str(agent), str(address), str(code), before, int(attempts), bool(accepted))
+			Pending(identifier, str(user), str(agent), str(address), _code(code), before, int(attempts), bool(accepted))
 		)
 	return found
 

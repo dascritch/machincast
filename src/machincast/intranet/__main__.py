@@ -13,6 +13,7 @@ la fenêtre ouverte sur sa raison.
 
 import argparse
 import asyncio
+import dataclasses
 import ipaddress
 import logging
 import signal
@@ -37,6 +38,7 @@ from machincast.intranet.extensions import POINT, Extensions
 from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal
 from machincast.maintenance import stay_open
+from machincast.service import INTRANET_UNIT_FILE
 
 log = logging.getLogger(__name__)
 
@@ -79,6 +81,21 @@ def server_configuration(settings: Intranet, chosen: certificate.Pair) -> Config
 	return config
 
 
+def guarded(settings: Intranet, *, production: bool) -> Intranet:
+	"""Les réglages de l'intranet, sans « aucune validation » de la première connexion en production, le serveur
+	installé en service : elle se valide alors au pupitre, avec un code
+	(https://github.com/dascritch/machincast/issues/600)."""
+	if (production) and (settings.first_login == "none"):
+		log.error(
+			_(
+				"the first login without validation is impossible in production: it is validated at the desk, with a "
+				"code"
+			)
+		)
+		return dataclasses.replace(settings, first_login="desk_code")
+	return settings
+
+
 def application(configuration: Configuration) -> Application:
 	"""L'application de l'intranet, sur la base de production, au rôle machincast_intranet."""
 	database = configuration.database
@@ -86,7 +103,7 @@ def application(configuration: Configuration) -> Application:
 	def connect() -> psycopg.Connection[TupleRow]:
 		return open_connection(database.socket, database.production, Role.INTRANET)
 
-	portal = Portal(configuration.intranet, connect)
+	portal = Portal(guarded(configuration.intranet, production=INTRANET_UNIT_FILE.exists()), connect)
 	api = ApiV1(portal, connect, configuration.player.intranet_socket)
 	pages = Pages(
 		portal,

@@ -40,7 +40,7 @@ from typing import Literal
 
 import tomlkit
 from PySide6.QtCore import QLocale, QTime
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QStandardItemModel
 from PySide6.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QLabel, QVBoxLayout, QWidget
 
 from machincast import notes as notes_module
@@ -55,6 +55,7 @@ from machincast.configuration import (
 	AudioOutput,
 	Crossfades,
 	DeadAirSettings,
+	FirstLogin,
 	Granularity,
 	Intranet,
 	InvalidConfiguration,
@@ -290,18 +291,30 @@ def address_list(addresses: Sequence[str]) -> str:
 	return f"<p>{introduction}</p><ul>{''.join(items)}</ul>"
 
 
+FIRST_LOGINS: dict[FirstLogin, str] = {
+	"none": _("No validation"),
+	"desk": _("Validation at the desk"),
+	"desk_code": _("Validation at the desk, with a code"),
+}
+"""La sécurité de la première connexion à l'intranet, dans l'ordre de la page « Intranet »
+(https://github.com/dascritch/machincast/issues/600)."""
+IN_PRODUCTION = _("Impossible in production: the intranet server is installed as a service.")
+
+
 def _write_intranet(document: tomlkit.TOMLDocument, intranet: Intranet) -> None:
-	"""intranet.enabled, port et validation (https://github.com/dascritch/machincast/issues/538) : les valeurs par
+	"""intranet.enabled, port, validation (https://github.com/dascritch/machincast/issues/538) et first_login
+	(https://github.com/dascritch/machincast/issues/600) : les valeurs par
 	défaut ne s'écrivent pas dans un fichier qui n'a pas la section ; l'adresse d'écoute et le certificat restent
 	ceux du fichier."""
 	section = document.get("intranet")
 	default = Intranet()
 	if (section is None) and (
-		(intranet.enabled, intranet.port, intranet.validation)
+		(intranet.enabled, intranet.port, intranet.validation, intranet.first_login)
 		== (
 			default.enabled,
 			default.port,
 			default.validation,
+			default.first_login,
 		)
 	):
 		return
@@ -312,6 +325,8 @@ def _write_intranet(document: tomlkit.TOMLDocument, intranet: Intranet) -> None:
 	section["enabled"] = intranet.enabled
 	section["port"] = intranet.port
 	section["validation"] = intranet.validation
+	if (intranet.first_login != default.first_login) or ("first_login" in section):
+		section["first_login"] = intranet.first_login
 
 
 def intranet(path: Path) -> Intranet:
@@ -323,9 +338,15 @@ def intranet(path: Path) -> Intranet:
 
 
 def intranet_changed(before: Settings, after: Settings) -> bool:
-	"""Le serveur intranet est à rallumer ou à éteindre : allumé, éteint, port ou durée de validation changés."""
+	"""Le serveur intranet est à rallumer ou à éteindre : allumé, éteint, port, durée de validation ou sécurité de la
+	première connexion changés."""
 	first, second = before.intranet, after.intranet
-	return (first.enabled, first.port, first.validation) != (second.enabled, second.port, second.validation)
+	return (first.enabled, first.port, first.validation, first.first_login) != (
+		second.enabled,
+		second.port,
+		second.validation,
+		second.first_login,
+	)
 
 
 def _write_backup(document: tomlkit.TOMLDocument, directory: Path) -> None:
@@ -549,6 +570,7 @@ class PreferencesWindow(QDialog):
 		ui.intranet_enabled.setChecked(all_.intranet.enabled)
 		ui.intranet_port.setValue(all_.intranet.port)
 		ui.intranet_validation.setValue(all_.intranet.validation)
+		self._offer_first_logins(all_.intranet.first_login)
 		ui.intranet_enabled.toggled.connect(self._show_intranet)
 		ui.intranet_port.valueChanged.connect(self._show_intranet)
 		self._show_intranet()
@@ -563,12 +585,34 @@ class PreferencesWindow(QDialog):
 			self._offer_power_save()
 		self._keep_only(kind)
 
+	def _offer_first_logins(self, chosen: FirstLogin) -> None:
+		"""La sécurité de la première connexion ; « Aucune validation » grisée en production, le serveur intranet
+		installé en service (https://github.com/dascritch/machincast/issues/600)."""
+		box = self.ui.intranet_first_login
+		for value, text in FIRST_LOGINS.items():
+			box.addItem(text, value)
+		model = box.model()
+		assert isinstance(model, QStandardItemModel)
+		item = model.item(0)
+		assert item is not None
+		if intranet_switch.service_installed():
+			item.setEnabled(False)
+			item.setToolTip(IN_PRODUCTION)
+		box.setCurrentIndex(box.findData(chosen))
+
+	def _first_login(self) -> FirstLogin:
+		chosen = self.ui.intranet_first_login.currentData()
+		for value in FIRST_LOGINS:
+			if value == chosen:
+				return value
+		return self.intranet.first_login
+
 	def _show_intranet(self) -> None:
 		"""Port et durée de validation ne servent qu'au serveur allumé ; allumé, les adresses à donner aux postes
 		distants (https://github.com/dascritch/machincast/issues/538)."""
 		ui = self.ui
 		enabled = ui.intranet_enabled.isChecked()
-		for widget in (ui.intranet_port, ui.intranet_validation):
+		for widget in (ui.intranet_port, ui.intranet_validation, ui.intranet_first_login):
 			widget.setEnabled(enabled)
 		ui.intranet_addresses.setVisible(enabled)
 		# Sans le service, sous le compte qui le lance, sans cloisonnement (https://github.com/dascritch/machincast/issues/549).
@@ -818,6 +862,7 @@ class PreferencesWindow(QDialog):
 				enabled=ui.intranet_enabled.isChecked(),
 				port=ui.intranet_port.value(),
 				validation=ui.intranet_validation.value(),
+				first_login=self._first_login(),
 			),
 			self._plugins(),
 		)

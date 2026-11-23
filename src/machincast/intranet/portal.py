@@ -136,18 +136,27 @@ def login_page(message: str = "", name: str = "", status: int = 200) -> Response
 	return _page("login.html.jinja", status, title=_("Connection"), name=name, message=message)
 
 
-def validation_page(message: str = "", status: int = 200) -> Response:
-	"""La page qui demande le code donné au pupitre (validation.html.jinja), et ce qui a refusé le précédent."""
+def validation_page(message: str = "", status: int = 200, *, with_code: bool = True) -> Response:
+	"""La page qui demande le code donné au pupitre (validation.html.jinja), et ce qui a refusé le précédent ; sans
+	code, elle dit d'attendre l'acceptation au pupitre, et se relit toutes les 5 secondes
+	(https://github.com/dascritch/machincast/issues/600)."""
+	explanation = _(
+		"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
+		"address. Once your connection is accepted there, the studio gives you a 6-digit code: enter it "
+		"here."
+	)
+	if not with_code:
+		explanation = _(
+			"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
+			"address. Once your connection is accepted there, this page goes on by itself."
+		)
 	return _page(
 		"validation.html.jinja",
 		status,
 		title=_("Validation at the desk"),
-		explanation=_(
-			"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
-			"address. Once your connection is accepted there, the studio gives you a 6-digit code: enter it "
-			"here."
-		),
+		explanation=explanation,
 		message=message,
+		with_code=with_code,
 	)
 
 
@@ -234,9 +243,14 @@ class Portal:
 			await self._database(lambda connection: sessions.end(connection, previous))
 		value = sessions.token()
 		agent = request.headers.get("user-agent", "")
+		if self.settings.first_login == "none":
+			return await self._without_validation(user, value, (agent, address), name)
 		minutes = self.settings.validation
+		with_code = self.settings.first_login == "desk_code"
 		given = await self._database(
-			lambda connection: sessions.open_pending(connection, user, value, minutes, agent, address)
+			lambda connection: sessions.open_pending(
+				connection, user, value, minutes, (agent, address), with_code=with_code
+			)
 		)
 		if given is None:
 			log.info(
@@ -260,13 +274,50 @@ class Portal:
 		)
 		return redirect("/validation", [cookie(value, max_age)])
 
+	async def _without_validation(self, user: int, value: str, client: tuple[str, str], name: str) -> Response:
+		"""Sans validation au pupitre, une session valide aussitôt, et l'accueil
+		(https://github.com/dascritch/machincast/issues/600) ; le journal le dit, en WARNING."""
+		hours = self.settings.session
+		await self._database(lambda connection: sessions.open_valid(connection, user, value, hours, client))
+		log.warning(
+			_("[{address}] intranet connection of “{name}”, without validation at the desk").format(
+				address=client[1], name=shown(name)
+			)
+		)
+		return redirect("/", [cookie(value, hours * 3600)])
+
+	def _with_code(self) -> bool:
+		return self.settings.first_login != "desk"
+
 	async def validation_form(self, request: Request) -> Response:
+		"""Le code à saisir ; sans code, la connexion acceptée au pupitre entre d'elle-même, à la relecture de la
+		page (https://github.com/dascritch/machincast/issues/600)."""
 		found = await self.session(request)
 		if (found is None) or (found.state == "invalid"):
 			return redirect("/login")
 		if found.state == "valid":
 			return redirect("/")
-		return validation_page()
+		if self._with_code():
+			return validation_page()
+		value = bearer(request)
+		assert value is not None
+		hours = self.settings.session
+		outcome = await self._database(lambda connection: sessions.validate(connection, value, None, hours))
+		if outcome == "valid":
+			self._validated(request.client, found.user)
+			return redirect("/")
+		if outcome == "invalid":
+			return redirect("/login")
+		return validation_page(with_code=False)
+
+	def _validated(self, address: str, user: str) -> None:
+		self.codes.succeeded(address)
+		self.codes.succeeded(f"{ACCOUNT}{user}")
+		log.info(
+			_("[{address}] intranet connection of “{name}” validated at the desk").format(
+				address=address, name=shown(user)
+			)
+		)
 
 	async def validation(self, request: Request) -> Response:
 		"""Le code saisi : valide, l'accueil ; faux, la page le redemande ; invalide, la mire. Chaque code faux compte
@@ -286,7 +337,9 @@ class Portal:
 					"hour"
 				).format(address=address, name=name)
 			)
-			return validation_page(_("Too many wrong codes: wait a quarter of an hour."), 429)
+			return validation_page(
+				_("Too many wrong codes: wait a quarter of an hour."), 429, with_code=self._with_code()
+			)
 		given = request.form().get("code", "")
 		hours = self.settings.session
 		outcome = await self._database(lambda connection: sessions.validate(connection, value, given, hours))
@@ -297,15 +350,10 @@ class Portal:
 					"code."
 				),
 				409,
+				with_code=self._with_code(),
 			)
 		if outcome == "valid":
-			self.codes.succeeded(address)
-			self.codes.succeeded(f"{ACCOUNT}{found.user}")
-			log.info(
-				_("[{address}] intranet connection of “{name}” validated at the desk").format(
-					address=address, name=name
-				)
-			)
+			self._validated(address, found.user)
 			return redirect("/")
 		if outcome in ("wrong", "exhausted"):
 			self.codes.failed(address)

@@ -545,6 +545,16 @@ class Ui_PreferencesWindow(object):
 
         self.intranet_form.setWidget(1, QFormLayout.ItemRole.FieldRole, self.intranet_validation)
 
+        self.intranet_first_login_caption = QLabel(self.intranet_page)
+        self.intranet_first_login_caption.setObjectName(u"intranet_first_login_caption")
+
+        self.intranet_form.setWidget(2, QFormLayout.ItemRole.LabelRole, self.intranet_first_login_caption)
+
+        self.intranet_first_login = QComboBox(self.intranet_page)
+        self.intranet_first_login.setObjectName(u"intranet_first_login")
+
+        self.intranet_form.setWidget(2, QFormLayout.ItemRole.FieldRole, self.intranet_first_login)
+
 
         self.intranet_layout.addLayout(self.intranet_form)
 
@@ -604,6 +614,7 @@ class Ui_PreferencesWindow(object):
         self.backup_directory_caption.setBuddy(self.backup_directory)
         self.intranet_port_caption.setBuddy(self.intranet_port)
         self.intranet_validation_caption.setBuddy(self.intranet_validation)
+        self.intranet_first_login_caption.setBuddy(self.intranet_first_login)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(PreferencesWindow)
@@ -712,6 +723,10 @@ class Ui_PreferencesWindow(object):
         self.intranet_port_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Port", None))
         self.intranet_validation_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Validation of a connection within", None))
         self.intranet_validation.setSuffix(QCoreApplication.translate("PreferencesWindow", u" min", None))
+        self.intranet_first_login_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&First connection", None))
+#if QT_CONFIG(tooltip)
+        self.intranet_first_login.setToolTip(QCoreApplication.translate("PreferencesWindow", u"How a connection by name and password to the intranet becomes a valid session", None))
+#endif // QT_CONFIG(tooltip)
         self.intranet_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is accepted at the studio desk, which then gives a 6-digit code, within the time set here.", None))
         self.pages.setTabText(self.pages.indexOf(self.intranet_page), QCoreApplication.translate("PreferencesWindow", u"Intranet", None))
     # retranslateUi

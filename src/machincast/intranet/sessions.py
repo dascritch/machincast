@@ -5,6 +5,8 @@
    connecter ; elle n'en montre le code qu'une fois la connexion acceptée (accepted_at), et aucun code n'est essayé
    avant (https://github.com/dascritch/machincast/issues/547).
 2. Le code saisi sur le poste distant, avant validate_before : la session devient valide, jusqu'à expires_at.
+   Selon intranet.first_login (https://github.com/dascritch/machincast/issues/600), la session à valider n'a pas de
+   code, et l'acceptation au pupitre suffit ; ou, sans validation, elle est valide dès la connexion.
    Un code faux est compté ; au cinquième, comme passé le délai, la session est invalide. Un compte n'a que
    MAXIMUM_PENDING sessions à valider à la fois ; le portail freine aussi les codes faux, par adresse et par compte
    (https://github.com/dascritch/machincast/issues/547).
@@ -80,11 +82,15 @@ def authenticate(connection: Connection, name: str, password: str) -> int | None
 
 
 def open_pending(
-	connection: Connection, user: int, value: str, validation: int, user_agent: str, address: str
+	connection: Connection, user: int, value: str, validation: int, client: tuple[str, str], *, with_code: bool = True
 ) -> str | None:
-	"""Une session à valider dans les minutes de validation ; le code à donner au pupitre. None si le compte a déjà
+	"""Une session à valider dans les minutes de validation ; le code à donner au pupitre, « » sans code, quand
+	l'acceptation au pupitre suffit (https://github.com/dascritch/machincast/issues/600). None si le compte a déjà
 	MAXIMUM_PENDING sessions à valider : le pupitre les valide ou les refuse, ou leur délai passe."""
-	given = code()
+	user_agent, address = client
+	given = ""
+	if with_code:
+		given = code()
 	with connection.transaction():
 		_expire(connection)
 		# Le compte verrouillé le temps de compter, sans droit d'écriture sur api_users : deux connexions simultanées ne
@@ -93,9 +99,17 @@ def open_pending(
 		if queries.pending_count(connection, user) >= MAXIMUM_PENDING:
 			return None
 		queries.insert_pending(
-			connection, user, fingerprint(value), given, (user_agent[:500], (address) or (None)), validation
+			connection, user, fingerprint(value), (given) or (None), (user_agent[:500], (address) or (None)), validation
 		)
 	return given
+
+
+def open_valid(connection: Connection, user: int, value: str, hours: int, client: tuple[str, str]) -> None:
+	"""Une session valide aussitôt, pour hours heures, sans validation au pupitre
+	(https://github.com/dascritch/machincast/issues/600)."""
+	user_agent, address = client
+	with connection.transaction():
+		queries.insert_valid(connection, user, fingerprint(value), (user_agent[:500], (address) or (None)), hours)
 
 
 def _expire(connection: Connection) -> None:
@@ -117,9 +131,10 @@ def find(connection: Connection, value: str) -> Session | None:
 	return Session(identifier, str(user), str(role), str(state), expires_at)
 
 
-def validate(connection: Connection, value: str, given: str, hours: int) -> str:
+def validate(connection: Connection, value: str, given: str | None, hours: int) -> str:
 	"""Le code saisi : « waiting », la connexion pas encore acceptée au pupitre, sans essayer le code ; « valid », la
-	session validée pour hours heures ; « wrong », un code faux, encore permis ;
+	session validée pour hours heures, ou, sans code, acceptée au pupitre, quel que soit given
+	(https://github.com/dascritch/machincast/issues/600) ; given None, rien de saisi, n'essaie aucun code ; « wrong », un code faux, encore permis ;
 	« exhausted », un code faux, le dernier permis, qui rend la session invalide ; « invalid », la session ne se
 	valide plus."""
 	with connection.transaction():
@@ -132,6 +147,13 @@ def validate(connection: Connection, value: str, given: str, hours: int) -> str:
 			return "invalid"
 		if accepted_at is None:
 			# Pas encore acceptée au pupitre : le code n'y est pas encore donné, aucun n'est essayé.
+			return "waiting"
+		if expected is None:
+			# Sans code, l'acceptation au pupitre suffit (https://github.com/dascritch/machincast/issues/600).
+			queries.validate(connection, identifier, hours)
+			return "valid"
+		if given is None:
+			# Rien de saisi : la page relue, qui ne fait entrer qu'une session sans code.
 			return "waiting"
 		if secrets.compare_digest(str(expected), given.strip().replace(" ", "")):
 			queries.validate(connection, identifier, hours)

@@ -3,7 +3,8 @@
 Une connexion à l'intranet, par nom et mot de passe valides, attend d'être validée : au-dessus des onglets, un
 bandeau nomme le compte, l'adresse IP source, le navigateur et l'heure limite. « Accepter » montre le code à 6
 chiffres à donner à la personne qui se connecte, qui le saisit sur son poste ; aucun code n'est essayé avant
-(https://github.com/dascritch/machincast/issues/547). « Refuser » rend la session invalide, acceptée ou non. Le bandeau relit les
+(https://github.com/dascritch/machincast/issues/547). Sans code, intranet.first_login à « desk », « Accepter » suffit :
+la connexion entre d'elle-même (https://github.com/dascritch/machincast/issues/600). « Refuser » rend la session invalide, acceptée ou non. Le bandeau relit les
 connexions toutes les POLL millisecondes, et disparaît sans connexion à valider.
 """
 
@@ -37,6 +38,17 @@ def describe(connection: queries.Pending) -> str:
 		"browser": escape((connection.user_agent[:80]) or ("?")),
 		"limit": f"{connection.validate_before.astimezone():%H:%M}",
 	}
+	if connection.code is None:
+		# L'acceptation au pupitre suffit (https://github.com/dascritch/machincast/issues/600).
+		if not connection.accepted:
+			return _(
+				"Remote connection requested: <b>{user}</b>, from {address}, {browser}, until {limit}. "
+				"Accept it to let it in."
+			).format(**fields)
+		return _(
+			"Remote connection requested: <b>{user}</b>, from {address}, {browser}, until {limit}. "
+			"Accepted: it comes in by itself within a few seconds."
+		).format(**fields)
 	if not connection.accepted:
 		return _(
 			"Remote connection requested: <b>{user}</b>, from {address}, {browser}, until {limit}. "
@@ -120,10 +132,14 @@ class RemoteConnections(QFrame):
 		return line
 
 	def accept(self, pending: queries.Pending) -> None:
-		"""Le code de la connexion apparaît, à donner au poste distant."""
+		"""Le code de la connexion apparaît, à donner au poste distant ; sans code, elle entre d'elle-même
+		(https://github.com/dascritch/machincast/issues/600)."""
 		with self.connection.transaction():
 			queries.accept(self.connection, pending.identifier)
-		self.refused.emit(_("Remote connection of {user} accepted: give it its code.").format(user=pending.user))
+		said = _("Remote connection of {user} accepted: give it its code.")
+		if pending.code is None:
+			said = _("Remote connection of {user} accepted: it comes in by itself.")
+		self.refused.emit(said.format(user=pending.user))
 		self.refresh()
 
 	def refuse(self, pending: queries.Pending) -> None:
