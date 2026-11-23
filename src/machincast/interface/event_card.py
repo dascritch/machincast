@@ -32,7 +32,8 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
 - Les sections des plugins (https://github.com/dascritch/machincast/issues/611) : à son ouverture, la fiche demande
   aux plugins abonnés au point « interface.event_card » leur CardSection, montrée à côté de la liste de lecture. Elle
   lit l'événement avec la fiche, la rend modifiée à chaque changement (changed), s'écrit dans la même transaction que
-  lui, et peut le refuser (Refusal) ; replaces_items cache la liste, qu'elle remplace.
+  lui, et peut le refuser (Refusal) ; replaces_items cache la liste, qu'elle remplace ; grid_widget, sa case par
+  exemple, se place sous les jours de la récurrence.
 """
 
 import logging
@@ -68,6 +69,11 @@ class CardSection(QWidget):
 	"""Un changement de la section : la fiche est modifiée."""
 	replaces_items = Signal(bool)
 	"""Vrai : la section remplace la liste de l'événement, cachée ; faux, elle la rend."""
+
+	def grid_widget(self) -> QWidget | None:
+		"""Ce que la section place sous les jours de la récurrence, au-dessus de l'explication des dates, par exemple
+		la case qui la montre ; None, rien."""
+		return None
 
 	def read(self, identifier: int | None) -> None:
 		"""Lit l'événement, ou celui que la fiche copie, dans une transaction ; None pour un nouvel événement."""
@@ -213,10 +219,25 @@ class EventCard(Card):
 				log.warning(_("plugin “{plugin}”: a section of the event card is expected").format(plugin=plugin))
 			else:
 				self.ui.lists.insertWidget(0, answer)
+				self._under_days(answer.grid_widget())
 				answer.changed.connect(self._modify)
 				answer.replaces_items.connect(self._replace_items)
 				found.append(answer)
 		return found
+
+	def _under_days(self, widget: QWidget | None) -> None:
+		"""Le widget d'une section, sous les jours de la récurrence : l'explication des dates descend d'une ligne."""
+		if widget is None:
+			return
+		layout = self.ui.grid_layout
+		explanation = self.ui.grid_explanation
+		position = layout.getItemPosition(layout.indexOf(explanation))
+		assert isinstance(position, tuple)
+		row = int(position[0])
+		layout.removeWidget(explanation)
+		widget.setParent(self.ui.grid_group)
+		layout.addWidget(widget, row, 0, 1, 2)
+		layout.addWidget(explanation, row + 1, 0, 1, 2)
 
 	def _replace_items(self, replaced: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
 		self.ui.item_group.setVisible(not replaced)
