@@ -49,6 +49,8 @@ RESTART = _(
 )
 NONE_ENABLED = _("No plugin enabled")
 NO_SETTINGS = _("This plugin brings no settings here.")
+INTERFACE = "Machin_interface"
+NOT_LOADED = _("This plugin is not loaded in Machin interface, so its settings are missing:")
 TO_INSTALL = _("Its tables will be created when the settings are validated, after a backup of the database.")
 INSTALLING = _("Installation of the plugins: {names}…")
 INSTALLED = _("plugin “{name}” installed")
@@ -282,7 +284,9 @@ def _state(plugin: Offered) -> str:
 class PluginWindow(QDialog):
 	"""La fenêtre d'un plugin activé : son nom, sa version, sa description, et les réglages qu'il apporte."""
 
-	def __init__(self, plugin: Offered, parent: QWidget | None = None) -> None:
+	def __init__(
+		self, plugin: Offered, parent: QWidget | None = None, configuration: Configuration | None = None
+	) -> None:
 		super().__init__(parent)
 		self.setWindowTitle(plugin.label)
 		layout = QVBoxLayout(self)
@@ -292,17 +296,35 @@ class PluginWindow(QDialog):
 			label.setWordWrap(True)
 			layout.addWidget(label)
 		self.settings: list[QWidget] = []
+		# Un plugin activé après le démarrage de l'interface se charge à l'ouverture de sa fenêtre ; s'il ne le peut pas,
+		# la fenêtre dit pourquoi, à la place de ses réglages.
+		self.reasons: list[str] = []
+		if configuration is not None:
+			self.reasons = plugins.load_late(configuration, INTERFACE, plugin.name)
+		if self.reasons != []:
+			self._not_loaded(layout)
 		for answer in plugins.active().points.collect_from(plugin.name, WINDOW_POINT, {"parent": self}):
 			if isinstance(answer, QWidget):
 				self.settings.append(answer)
 				layout.addWidget(answer)
-		if self.settings == []:
+		if (self.settings == []) and (self.reasons == []):
 			none = QLabel(NO_SETTINGS, self)
 			none.setObjectName("no_settings")
 			layout.addWidget(none)
 		buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close, self)
 		buttons.rejected.connect(self.reject)
 		layout.addWidget(buttons)
+
+	def _not_loaded(self, layout: QVBoxLayout) -> None:
+		"""Pourquoi le plugin n'est pas chargé dans l'interface, une raison par ligne."""
+		lines = [NOT_LOADED]
+		for reason in self.reasons:
+			lines.append(f"• {reason}")
+		label = QLabel("\n".join(lines), self)
+		label.setObjectName("not_loaded")
+		label.setWordWrap(True)
+		label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+		layout.addWidget(label)
 
 
 def fill_menu(menu: QMenu, configuration: Configuration, open_window: Callable[[Offered], None]) -> None:
@@ -329,24 +351,22 @@ TIMESTAMP = re.compile(r"^\S+[+-]\d\d:\d\d\s+")
 
 
 def installation_command(plugin: Offered, configuration: Path | None, backups: Path) -> list[str]:
-	"""Son install.sh, ou, sans lui, l'installation commune de MachinCast, sur la base de la configuration, avec sa
-	sauvegarde dans backups (machincast.plugins.installation, https://github.com/dascritch/machincast/issues/586)."""
+	"""Son install.sh, seul à créer ses tables (https://github.com/dascritch/machincast/issues/587), sur la base de la
+	configuration, avec sa sauvegarde dans backups."""
 	assert plugin.directory is not None
 	options = ["--backups", str(backups)]
 	if configuration is not None:
 		options += ["--config", str(configuration)]
-	script = plugin.directory / "install.sh"
-	if script.is_file():
-		return [str(script), *options]
-	return [sys.executable, "-m", "machincast.plugins.installation", str(plugin.directory), *options]
+	return [str(plugin.directory / "install.sh"), *options]
 
 
 def newly_enabled(offered_list: Sequence[Offered], before: Sequence[str], after: Sequence[str]) -> list[Offered]:
-	"""Les plugins que la validation active, dans l'ordre de [plugins] enabled : chacun s'installe, ses tables créées
-	s'il en a ; un plugin désactivé ne perd rien."""
+	"""Les plugins que la validation active, dans l'ordre de [plugins] enabled, qui ont un install.sh : chacun
+	s'installe, ses tables créées s'il en a ; un plugin désactivé ne perd rien."""
 	found: dict[str, Offered] = {}
 	for plugin in offered_list:
-		if plugin.directory is not None:
+		# Un plugin sans install.sh n'a rien à installer : sans lui, il n'a pas de tables (schema.problems).
+		if (plugin.directory is not None) and ((plugin.directory / "install.sh").is_file()):
 			found[plugin.name] = plugin
 	chosen = []
 	for name in after:

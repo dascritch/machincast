@@ -1301,7 +1301,7 @@ class MainWindow(QMainWindow):
 
 	def open_plugin(self, plugin: plugins_page.Offered) -> None:
 		"""La fenêtre du plugin : son nom, sa version, sa description et ses réglages."""
-		plugins_page.PluginWindow(plugin, self).exec()
+		plugins_page.PluginWindow(plugin, self, self._plugins_configuration()).exec()
 
 	def apply_preferences(self, settings: preferences.Settings) -> str:
 		"""Les réglages valent dans l'interface ; ce qu'en dit la barre d'état."""

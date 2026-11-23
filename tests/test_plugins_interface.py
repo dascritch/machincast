@@ -5,6 +5,7 @@ Les plugins sont créés dans un répertoire temporaire par les étapes de tests
 """
 
 import dataclasses
+import json
 import re
 import shutil
 import tomllib
@@ -36,6 +37,7 @@ from machincast.interface.plugins_page import (
 from machincast.interface.preferences import INTERFACE, SERVICE, Kind, PreferencesWindow, Settings, service_changed
 from machincast.plugins import schema
 from tests.database_fixtures import configuration_test, sample_configuration_path, sample_database_parameters
+from tests.test_plugin_schema import INSTALL
 from tests.test_plugins import (
 	NAME,
 	_names,
@@ -377,7 +379,8 @@ def open_plugin(opened: Opened, parent: QWidget, configuration: Configuration, n
 		if action.text() == f"{name}…":
 			action.trigger()
 	assert len(chosen) == 1
-	opened.plugin_window = PluginWindow(chosen[0], parent)
+	# Comme la fenêtre principale : avec sa configuration, pour charger un plugin activé après son démarrage.
+	opened.plugin_window = PluginWindow(chosen[0], parent, configuration)
 
 
 def _texts(opened: Opened) -> list[str]:
@@ -550,3 +553,50 @@ def nothing_installed(installation: Installation) -> None:
 def can_be_enabled(opened: Opened, name: str) -> None:
 	entry = _entry(opened, name)
 	assert (_box(entry), _heading(entry)[2]) == ("décochée", "activable")
+
+
+@when(parsers.parse("j'active « {name} » pendant que l'interface tourne"), target_fixture="configuration")
+def enabled_later(configuration: Configuration, name: str) -> Configuration:
+	plugins_ = dataclasses.replace(configuration.plugins, enabled=(*configuration.plugins.enabled, name))
+	return dataclasses.replace(configuration, plugins=plugins_)
+
+
+@then(parsers.parse("l'interface a chargé « {name} »"))
+def loaded_later(name: str) -> None:
+	assert name in plugins.active().names()
+
+
+@then(parsers.parse("elle ne montre pas de réglages, et dit que le plugin n'est pas chargé, parce que « {reason} »"))
+def not_loaded(opened: Opened, reason: str) -> None:
+	window = opened.plugin_window
+	assert window is not None
+	label = window.findChild(QLabel, "not_loaded")
+	assert label is not None
+	assert label.text() == (
+		f"Ce plugin n'est pas chargé dans Machin interface, et ses réglages manquent donc :\n• {reason}"
+	)
+	assert (window.settings, window.findChild(QLabel, "no_settings")) == ([], None)
+
+
+@when("l'interface charge son menu « Plugins »")
+def menu_again(opened: Opened, parent: QWidget, configuration: Configuration) -> None:
+	opened.menu = QMenu(parent)
+	fill_menu(opened.menu, configuration, lambda chosen: None)
+
+
+@given(parsers.parse("le plugin « {name} » s'accroche aussi à « {binary} »"))
+def also_hooks(plugin_directory: Path, name: str, binary: str) -> None:
+	path = plugin_directory / name / "manifest.json"
+	manifest = json.loads(path.read_text(encoding="utf-8"))
+	manifest["binaries"].append(binary)
+	path.write_text(json.dumps(manifest), encoding="utf-8")
+
+
+@given(parsers.parse("le plugin « {name} » a l'install.sh du guide des plugins"))
+def guide_script(plugin_directory: Path, name: str) -> None:
+	_script(plugin_directory / name, INSTALL.removeprefix("#!/usr/bin/env bash\n"))
+
+
+@given(parsers.parse("le plugin « {name} » n'a pas d'install.sh"))
+def without_script(plugin_directory: Path, name: str) -> None:
+	assert not (plugin_directory / name / "install.sh").exists()
