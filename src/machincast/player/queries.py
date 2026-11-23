@@ -369,3 +369,13 @@ def insert_play_end(
 def read_only_transaction(connection: Connection) -> None:
 	"""La transaction en cours, en lecture répétable et en lecture seule : celle de la simulation."""
 	connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+
+
+def event_public_name(connection: Connection, event: int) -> TupleRow | None:
+	"""Le nom public d'un événement, pour les plugins (https://github.com/dascritch/machincast/issues/589)."""
+	return connection.execute("SELECT public_name FROM events WHERE id = %s", (event,)).fetchone()
+
+
+def sequence_names(connection: Connection, sequence: int) -> TupleRow | None:
+	"""Les noms interne et public d'une séquence, pour les plugins (https://github.com/dascritch/machincast/issues/589)."""
+	return connection.execute("SELECT internal_name, public_name FROM sequences WHERE id = %s", (sequence,)).fetchone()

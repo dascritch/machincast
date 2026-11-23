@@ -28,6 +28,7 @@ from machincast.player.outputs import Outputs
 from machincast.player.saving import LEVELS
 from machincast.player.simulation import SimulatedEngine
 from machincast.player.state import StateSocket, request_reread_grid
+from machincast.plugins.points import Points
 from machincast.randomness import create_randomness
 from tests.categories import inverted
 from tests.database_fixtures import configuration_test, sample_database_parameters
@@ -111,6 +112,8 @@ class Bench:
 	"""Analyse du prochain sonore (https://github.com/dascritch/machincast/issues/181) : aucune par défaut."""
 	simulated: RecordingSimulatedEngine | None = None
 	"""Moteur simulé, qui suit l'horloge du binaire, quand la diffusion démarre sur lui."""
+	points: Points | None = None
+	"""Les points d'extension des plugins (https://github.com/dascritch/machincast/issues/589) : aucun par défaut."""
 	dead_air: DeadAirSettings = field(default_factory=DeadAirSettings)
 	"""Blanc dans un sonore (https://github.com/dascritch/machincast/issues/122) : celui de la configuration par
 	défaut, sauf si le scénario en règle un."""
@@ -612,6 +615,7 @@ def start(bench: Bench, empty_database: Connection, rhythm: str) -> None:
 		crossfades=bench.crossfades,
 		analyser=bench.analyser,
 		dead_air=bench.dead_air,
+		points=bench.points,
 	)
 	bench.broadcast.start()
 
@@ -639,6 +643,7 @@ def start_on_simulated_engine(bench: Bench, empty_database: Connection) -> None:
 		crossfades=bench.crossfades,
 		dead_air=bench.dead_air,
 		outputs=bench.outputs,
+		points=bench.points,
 	)
 	bench.broadcast.start()
 

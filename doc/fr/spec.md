@@ -2255,3 +2255,18 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 	À côté de « Émissions qui se partagent le créneau », le bouton « Créer une émission sur ce créneau partagé » demande un nom et ajoute l'émission, « Nom (à créer) », cochée ; un nom vide, déjà pris par un événement non supprimé ou par une autre émission à créer, est refusé, sous la liste.
 	Elle n'est créée qu'à l'enregistrement de l'événement méta, dans sa transaction, pour ne jamais être seule sur la grille : une émission aux dates de début et de fin de l'événement méta, sans jour de récurrence, à la place de son identifiant provisoire dans l'alternance ; décochée, elle n'est pas créée.
 - Ses textes ont leur propre traduction (`machincast_alternation.texts`) ; ses scénarios, dans `plugins/alternation/tests/`, reprennent les fixtures du cœur.
+
+### 14.6 Les points d'extension de Machin player
+
+([#589](https://github.com/dascritch/machincast/issues/589), `machincast.player.plugin_points`)
+
+- La diffusion prévient les plugins de ce qu'elle joue, par des points **notifiés** : elle ne les attend jamais, et l'erreur d'un plugin est consignée sans arrêter l'antenne.
+- `player.service_start` et `player.service_stop` : le démarrage et l'arrêt de la diffusion, avec l'instant ; l'arrêt sur une erreur la donne (`error`).
+- `player.event_start` et `player.event_stop` : l'événement à l'antenne qui change, celui qui prête son nom compris (`playing` dit alors celui qu'il fait jouer), avec ses noms interne et public, sa priorité, et les heures de début et de fin de l'occurrence.
+- `player.sequence_start` et `player.sequence_stop` : la séquence qui commence ou finit, avec ses noms et son événement.
+- `player.sound_start` et `player.sound_stop` : le passage d'un sonore, avec son artiste, son titre, son chemin, sa durée, son événement, sa séquence et sa banque ; sa fin dit le temps joué, s'il est coupé, son erreur, et ses positions de départ et de fin réelles dans le fichier, en secondes (aucune pour un stream).
+- Les heures sont en ISO 8601, avec leur décalage ; les durées et positions en secondes.
+- Une fin redonne les données de son début, à l'instant de la fin.
+- Les données d'un point ne sont lues que si un plugin y est abonné.
+- En simulation, aucun point n'est appelé.
+
