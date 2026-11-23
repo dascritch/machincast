@@ -36,10 +36,11 @@ TABLES: tuple[str, ...] = (
 	"airplay",
 	"log",
 	"api_users",
+	"api_browsers",
 	"api_sessions",
 )
 """Tables créées par les migrations, dans l'ordre de doc/fr/spec.md § 3.1 ; api_users depuis
-https://github.com/dascritch/machincast/issues/537."""
+https://github.com/dascritch/machincast/issues/537, api_browsers depuis https://github.com/dascritch/machincast/issues/601."""
 
 TYPES: tuple[str, ...] = (
 	"sound_type",

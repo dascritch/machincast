@@ -64,7 +64,8 @@ def polkit(noted: Noted, tmp_path: Path, answer: str) -> None:
 		return
 	script = tmp_path / "pkcheck"
 	script.write_text(
-		f'#!/bin/sh\nprintf "%s\\n" "$@" > "{noted.arguments}"\nexit {POLKIT[answer]}\n', encoding="utf-8"
+		f'#!/bin/sh\nfor given in "$@"; do echo "$given"; done > "{noted.arguments}"\nexit {POLKIT[answer]}\n',
+		encoding="utf-8",
 	)
 	script.chmod(0o755)
 	noted.program = script
