@@ -6799,6 +6799,11 @@ msgstr "plugin « {name} » : « {path} » n'est pas un chemin de l'intranet"
 
 #: machincast/intranet/extensions.py
 #, python-brace-format
+msgid "plugin “{name}”: its section of the home page failed: {error}"
+msgstr "plugin « {name} » : sa section de l'accueil a échoué : {error}"
+
+#: machincast/intranet/extensions.py
+#, python-brace-format
 msgid "plugin “{name}”: an intranet extension is expected"
 msgstr "plugin « {name} » : une extension de l'intranet est attendue"
 

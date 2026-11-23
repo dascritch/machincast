@@ -9,7 +9,8 @@ Fonctionnalité: Les pages et les routes des plugins dans Machin intranet
 	au point « intranet.extensions » son Extension : des pages sous /plugins/<nom>/, des routes sous
 	/api/v1/plugins/<nom>/, des fichiers statiques sous /plugins/<nom>/static/. Ici, le plugin « horloge » a une page
 	« Horloge », dans le bandeau, une page « Réglages », sans entrée au bandeau, pour les comptes « actions API », et une
-	route POST « sonner », pour les comptes « actions API » aussi.
+	route POST « sonner », pour les comptes « actions API » aussi ; sous l'antenne en direct de l'accueil, la section
+	« cadran », pour tout compte, et la section « alarmes », pour les comptes « actions API ».
 
 	Contexte:
 		Étant donné les comptes de l'intranet :
@@ -26,6 +27,25 @@ Fonctionnalité: Les pages et les routes des plugins dans Machin intranet
 		Et le bandeau mène à « /plugins/horloge » « Horloge », la page en cours, et permet de se déconnecter
 		Et la page contient « <p id="horloge">pour invite</p> »
 		Et la page charge la feuille de style « /plugins/horloge/static/horloge.css » et le script « /plugins/horloge/static/horloge.js »
+
+	Scénario: Les sections d'un plugin s'ajoutent sous l'antenne en direct de l'accueil, avec leurs fichiers
+		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
+		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
+		Et l'accueil a, sous l'antenne en direct, les sections « cadran », « alarmes »
+		Et la page contient « <p>pour regie</p> »
+		Et la page contient « <link rel="stylesheet" href="/plugins/horloge/static/cadran.css"> »
+
+	Scénario: Une section de l'accueil réservée aux comptes « actions API » n'est pas montrée aux autres
+		Quand je demande à l'API « GET / », avec le jeton « jeton-d-invite »
+		Alors l'accueil a, sous l'antenne en direct, les sections « cadran »
+
+	Scénario: Une section de l'accueil en échec est consignée, et l'accueil s'affiche sans elle
+		Étant donné le plugin « bancal » qui ajoute à l'accueil une section en échec
+		Et l'intranet, de nouveau, avec ses plugins
+		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
+		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
+		Et l'accueil a, sous l'antenne en direct, les sections « cadran », « alarmes »
+		Et le journal dit « plugin « bancal » : sa section de l'accueil a échoué : cadran cassé »
 
 	Scénario: Les pages de l'intranet ont l'entrée du plugin au bandeau
 		Quand je demande à l'API « GET /calendar », avec le jeton « jeton-d-invite »
