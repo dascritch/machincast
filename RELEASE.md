@@ -4,7 +4,7 @@
 
 Published versions, most recent first. Procedure: [doc/fr/developpement/release.md](doc/fr/developpement/release.md) (French).
 
-## 0.9.1 — 2026-11-17
+## 0.9.1 — 2026-11-23
 
 A consolidation release: MachinCast speaks French and English, the playout service runs under its own account, the interface gains in comfort, and the database is backed up and taken back on a new machine.
 
