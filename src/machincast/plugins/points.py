@@ -25,7 +25,12 @@ log = logging.getLogger(__name__)
 
 Subscriber = Callable[[Mapping[str, Any]], object]
 
-CORE: dict[str, str] = {}
+CORE: dict[str, str] = {
+	"intranet.extensions": (
+		"asked by Machin intranet when it starts, without data: the plugin answers its pages, API routes and static "
+		"files, a machincast.intranet.extensions.Extension (https://github.com/dascritch/machincast/issues/588)"
+	),
+}
 """Les points du cœur, et ce qu'ils disent : chaque ticket qui en ajoute un le décrit ici, avec ses données
 (https://github.com/dascritch/machincast/issues/348)."""
 CLOSING = 5.0

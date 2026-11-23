@@ -2144,3 +2144,19 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 	Un manifest invalide, des migrations mal nommées, sans annulation ou qui donnent au mauvais rôle : code 2, rien n'est fait ; une sauvegarde ou une base en échec : code 1.
 - `Machin maintenance-db` applique aussi, après celles du cœur, les migrations qui manquent aux plugins activés, dans l'ordre de `[plugins] enabled` (`maintenance.update_plugins`).
 - Les scénarios du cœur ne comptent que ses migrations à lui, qui commencent par un chiffre (`database_fixtures.purge_database`).
+
+### 14.3 Les pages et les routes d'un plugin dans l'intranet
+
+([#588](https://github.com/dascritch/machincast/issues/588), `machincast.intranet.extensions`)
+
+- Au démarrage, Machin intranet demande le point `intranet.extensions` : chaque plugin abonné répond une `Extension`, ses pages, ses routes d'API et le répertoire de ses fichiers statiques ; une autre réponse est consignée au journal et ignorée.
+- **Pages** (`Page`) : en GET, sous `/plugins/<nom>/<chemin>` (`/plugins/<nom>` pour un chemin vide), dans le gabarit « Machin intranet » (§ 13.4) ; leur fonction rend le corps HTML.
+	Une page qui a un libellé (`navigation`) entre au bandeau, après les pages de l'intranet, sur toutes les pages.
+	Ses feuilles de style et ses scripts (`assets`) sont pris parmi ses fichiers statiques : la politique de contenu (`default-src 'self'`) refuse les styles et les scripts écrits dans la page.
+	Sans session, ou avec une session à valider, elle mène à `/login` ou à `/validation` ; un compte sans le rôle qu'elle demande reçoit une page 403.
+- **Routes d'API** (`Endpoint`) : en GET ou en POST, sous `/api/v1/plugins/<nom>/<chemin>`, en JSON, pour une session valide, en cookie ou en `Authorization: Bearer`, sinon 401 ; un compte sans le rôle demandé reçoit 403.
+	Un POST d'un autre site est refusé, comme pour tout l'intranet.
+- **Rôles** : `consult` (par défaut) ou `actions` ; un compte « actions API » peut aussi tout ce que peut un compte « consulter ».
+- **Fichiers statiques** : ceux d'un seul répertoire, sans sous-répertoire ni fichier caché, sous `/plugins/<nom>/static/<fichier>`, aux types `.css`, `.js`, `.svg`, `.png`, `.woff2` et `.json` ; tout autre fichier répond 404.
+- Une page ou une route au chemin invalide (autre chose que des minuscules, chiffres, `_`, `-` et `/`) n'est pas ajoutée, et c'est consigné.
+- La fonction d'une page ou d'une route reçoit un `Tools` : la session, la base au rôle `machincast_intranet` (`database`), le dernier état de l'antenne (`state`), et les demandes à Machin player au nom du compte de la session, avec leur réponse (`ask`, § 5.4).

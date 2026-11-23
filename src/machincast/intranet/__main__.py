@@ -25,6 +25,7 @@ from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from psycopg.rows import TupleRow
 
+from machincast import plugins
 from machincast.cli import launch
 from machincast.configuration import Configuration, Intranet
 from machincast.database import Role, open_connection
@@ -32,6 +33,7 @@ from machincast.i18n import _
 from machincast.intranet import certificate, network, process
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet as Application
+from machincast.intranet.extensions import POINT, Extensions
 from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal
 from machincast.maintenance import stay_open
@@ -87,7 +89,16 @@ def application(configuration: Configuration) -> Application:
 	portal = Portal(configuration.intranet, connect)
 	api = ApiV1(portal, connect, configuration.player.intranet_socket)
 	pages = Pages(portal, connect, configuration.player.intranet_socket, configuration.metadata.public_text)
-	return Application({**portal.routes(), **api.routes(), **pages.routes()})
+	# Les pages et les routes des plugins (https://github.com/dascritch/machincast/issues/588).
+	extensions = Extensions(
+		portal,
+		connect,
+		configuration.player.intranet_socket,
+		configuration.metadata.public_text,
+		plugins.active().points.collect(POINT),
+	)
+	pages.navigation = extensions.navigation
+	return Application({**portal.routes(), **api.routes(), **pages.routes(), **extensions.routes()})
 
 
 def own_options(analyser: argparse.ArgumentParser) -> None:
