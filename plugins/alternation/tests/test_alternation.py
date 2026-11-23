@@ -702,3 +702,15 @@ def card_opened(interface: InterfaceContext, name: str) -> None:
 	card = opened_card(interface)
 	assert isinstance(card, EventCard)
 	assert card.ui.internal_name.text() == name
+
+
+@then(parsers.parse("seule la ligne « {name} », l'émission de la fiche, est en gras"))
+def bold_row(context: Context, name: str) -> None:
+	table = _section(context).shared_table
+	bold = []
+	for row in range(table.rowCount()):
+		cell = table.item(row, 2)
+		assert cell is not None
+		if cell.font().bold():
+			bold.append(cell.text())
+	assert bold == [name]

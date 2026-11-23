@@ -33,7 +33,7 @@ Décocher **Émissions en alternance**, puis enregistrer, retire l'alternance : 
 ## La fiche d'une émission de l'alternance
 
 Dans la fiche d'une émission qu'une alternance fait jouer, l'encadré « Grille : première occurrence, et jours où elle revient » laisse la place à l'encadré **Créneau partagé**, puisque ses propres dates ne comptent plus.
-Il dit le créneau, sa règle et son prochain passage : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Pour elle : 2e et 4e mercredi du mois ; prochain passage : mercredi 09/12/2026 à 20:00. »
-Dessous, un tableau donne les autres émissions du créneau, par prochain passage : la **Rotation** qui les fait jouer (« 1er et 5e mercredi du mois », « Choisie à la main », « Hors de la rotation »), leur **Prochain passage**, et leur nom.
-Un double clic sur une ligne ouvre la fiche de son émission.
+Il dit le créneau : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. »
+Dessous, un tableau donne les émissions du créneau, par prochain passage, celle de la fiche en gras : la **Rotation** qui les fait jouer (« 1er et 5e mercredi du mois », « Choisie à la main », « Hors de la rotation »), leur **Prochain passage**, et leur nom.
+Un double clic sur la ligne d'une autre émission ouvre sa fiche.
 Retirée de l'alternance, elle retrouve l'encadré de sa grille.

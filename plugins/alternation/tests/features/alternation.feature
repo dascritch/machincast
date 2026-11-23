@@ -296,40 +296,47 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 
 	# ─── La fiche d'une émission de l'alternance ───────────
 
-	Scénario: La fiche d'une émission de l'alternance montre, à la place de l'encadré de sa grille, le créneau qu'elle partage, et les autres émissions en tableau
+	Scénario: La fiche d'une émission de l'alternance montre, à la place de l'encadré de sa grille, le créneau qu'elle partage, et ses émissions en tableau
 		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
 		Et le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-11-23 10:00:00 »
 		Et la section des émissions en alternance, dans la fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Les ahuris »
-		Alors la fiche montre, à la place de l'encadré de la grille, l'encadré « Créneau partagé » : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Pour elle : 2e et 4e mercredi du mois ; prochain passage : mercredi 09/12/2026 à 20:00. »
+		Alors la fiche montre, à la place de l'encadré de la grille, l'encadré « Créneau partagé » : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. »
 		Et son tableau est :
-			| Rotation                    | Prochain passage            | Émission |
-			| 1er et 5e mercredi du mois  | mercredi 02/12/2026 à 20:00 | Sonia    |
-			| 3e mercredi du mois         | mercredi 16/12/2026 à 20:00 | Zôtre    |
+			| Rotation                    | Prochain passage            | Émission   |
+			| 1er et 5e mercredi du mois  | mercredi 02/12/2026 à 20:00 | Sonia      |
+			| 2e et 4e mercredi du mois   | mercredi 09/12/2026 à 20:00 | Les ahuris |
+			| 3e mercredi du mois         | mercredi 16/12/2026 à 20:00 | Zôtre      |
+		Et seule la ligne « Les ahuris », l'émission de la fiche, est en gras
+		Quand je double-clique sur la ligne « Les ahuris » du tableau
+		Alors l'onglet ouvert est la fiche de l'événement « Les ahuris »
 		Quand je double-clique sur la ligne « Zôtre » du tableau
 		Alors l'onglet ouvert est la fiche de l'événement « Zôtre »
-		Et la fiche montre, à la place de l'encadré de la grille, l'encadré « Créneau partagé » : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Pour elle : 3e mercredi du mois ; prochain passage : mercredi 16/12/2026 à 20:00. »
+		Et la fiche montre, à la place de l'encadré de la grille, l'encadré « Créneau partagé » : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. »
 		Quand j'ouvre la fiche de l'événement « Matinale »
 		Alors la fiche montre l'encadré de la grille
 
 	Scénario: Par quinzaine, avec une seule autre émission
 		Étant donné l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
 		Quand j'ouvre la section des émissions en alternance de « Sonia », le « 2026-11-23 10:00 »
-		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Pour elle : 1re semaine de la quinzaine ; prochain passage : mercredi 02/12/2026 à 20:00. »
+		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. »
 		Et son tableau est :
-			| Rotation                   | Prochain passage            | Émission |
-			| 2e semaine de la quinzaine | mercredi 09/12/2026 à 20:00 | Zôtre    |
+			| Rotation                    | Prochain passage            | Émission |
+			| 1re semaine de la quinzaine | mercredi 02/12/2026 à 20:00 | Sonia    |
+			| 2e semaine de la quinzaine  | mercredi 09/12/2026 à 20:00 | Zôtre    |
+		Et seule la ligne « Sonia », l'émission de la fiche, est en gras
 
 	Scénario: Un événement méta qui revient deux jours par semaine, à la demi-heure, les dit
 		Étant donné « Mercredi soir » revient le lundi et le mercredi, de 20:30 à 21:00
 		Et l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
 		Quand j'ouvre la section des émissions en alternance de « Zôtre », le « 2026-11-23 10:00 »
-		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le lundi et le mercredi de 20h30 à 21h. Pour elle : 2e semaine de la quinzaine ; prochain passage : lundi 07/12/2026 à 20:30. »
+		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le lundi et le mercredi de 20h30 à 21h. »
 		Et son tableau est :
 			| Rotation                    | Prochain passage          | Émission |
 			| 1re semaine de la quinzaine | lundi 30/11/2026 à 20:30  | Sonia    |
+			| 2e semaine de la quinzaine  | lundi 07/12/2026 à 20:30  | Zôtre    |
 
 	Scénario: Une émission choisie seulement à la main, ou hors de la rotation, le dit
 		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Sonia », « Zôtre », « Sonia », « Sonia »
@@ -340,6 +347,7 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 			| Rotation                     | Prochain passage            | Émission   |
 			| 1er, 2e, 4e et 5e mercredi du mois | mercredi 02/12/2026 à 20:00 | Sonia      |
 			| Choisie à la main            | mercredi 09/12/2026 à 20:00 | Les ahuris |
+			| 3e mercredi du mois          | mercredi 16/12/2026 à 20:00 | Zôtre      |
 			| Hors de la rotation          | —                           | Matinale   |
 
 	Scénario: La fiche de l'événement méta, ou d'un événement hors de toute alternance, garde l'encadré de sa grille
