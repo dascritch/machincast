@@ -39,6 +39,26 @@ Fonctionnalité: Les boutons du cartouchier, réglés par compte dans Machin int
 			| intitulé | couleur | action      | cible         | blanc |
 			| Jazz     | #335500 | insert_bank | Musiques jazz | after |
 
+	Scénario: L'intitulé se pré-remplit du nom de l'action et de sa cible, tant qu'il n'est pas écrit
+		Quand j'ouvre les réglages du cartouchier
+		Et je choisis le compte « gaufres »
+		Et je choisis l'action « Insérer un sonore d'une banque après ce sonore »
+		Alors l'intitulé est « Insérer un sonore d'une banque après ce sonore « Identifiant station court » »
+		Quand je choisis l'action « Couper l'antenne par un secours »
+		Alors l'intitulé est « Couper l'antenne par un secours « Attente » »
+		Quand je choisis l'action « Sauter au sonore suivant »
+		Alors l'intitulé est « Sauter au sonore suivant »
+		Quand j'écris l'intitulé « Hop »
+		Et je choisis l'action « Insérer une séquence après ce sonore »
+		Alors l'intitulé est « Hop »
+
+	Scénario: Un bouton enregistré garde son intitulé quand son action change
+		Quand j'ouvre les réglages du cartouchier
+		Et je choisis le compte « infos »
+		Et je choisis le bouton « Suivant »
+		Et je choisis l'action « Sauter après la séquence »
+		Alors l'intitulé est « Suivant »
+
 	Scénario: La cible ne se propose qu'à une action qui en a une, le blanc qu'à une insertion
 		Quand j'ouvre les réglages du cartouchier
 		Et je choisis l'action « Couper l'antenne par un secours »
