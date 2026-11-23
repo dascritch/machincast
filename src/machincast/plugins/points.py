@@ -40,6 +40,40 @@ CORE: dict[str, str] = {
 		"plugin answers a machincast.interface.event_card.CardSection, its section of the card, saved with the event "
 		"(https://github.com/dascritch/machincast/issues/611)"
 	),
+	"player.service_start": (
+		"notified by Machin player when its broadcast starts, with “instant” "
+		"(https://github.com/dascritch/machincast/issues/589)"
+	),
+	"player.service_stop": (
+		"notified by Machin player when its broadcast stops, with “instant” and “error”, None for a stop asked for "
+		"(https://github.com/dascritch/machincast/issues/589)"
+	),
+	"player.event_start": (
+		"notified by Machin player when an event goes on air, with “instant”, “event”, “name”, “public_name”, "
+		"“priority”, “start” and “end” of the occurrence, and “playing”, the event it plays when it lends its name "
+		"(https://github.com/dascritch/machincast/issues/589)"
+	),
+	"player.event_stop": (
+		"notified by Machin player when the event on air ends, with the data of its start and the “instant” of its "
+		"end (https://github.com/dascritch/machincast/issues/589)"
+	),
+	"player.sequence_start": (
+		"notified by Machin player when a sequence starts, with “instant”, “sequence”, “name”, “public_name”, "
+		"“event” and “event_name” (https://github.com/dascritch/machincast/issues/589)"
+	),
+	"player.sequence_stop": (
+		"notified by Machin player when the sequence on air ends, with the data of its start and the “instant” of "
+		"its end (https://github.com/dascritch/machincast/issues/589)"
+	),
+	"player.sound_start": (
+		"notified by Machin player when a sound starts, with “instant”, “play”, “sound”, “artist”, “title”, "
+		"“location”, “stream”, “duration” and “start_position” in seconds, “event”, “lender”, “sequence” and “bank” "
+		"(https://github.com/dascritch/machincast/issues/589)"
+	),
+	"player.sound_stop": (
+		"notified by Machin player when a sound ends, with the data of its start, “instant”, “start”, “played” and "
+		"“end_position” in seconds, “cut” and “error” (https://github.com/dascritch/machincast/issues/589)"
+	),
 	"interface.plugin_window": (
 		"asked by Machin interface, of one plugin, when its window opens from the menu “Plugins”, with “parent”, the "
 		"window: the plugin answers a QWidget, its settings, shown under its name, version and description "

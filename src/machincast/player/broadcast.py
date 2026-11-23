@@ -74,6 +74,7 @@ import json
 import logging
 import signal
 import threading
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -87,7 +88,7 @@ from machincast import crash
 from machincast.clock import Clock
 from machincast.configuration import Crossfades, DeadAirSettings, Metadata
 from machincast.i18n import N_, _
-from machincast.player import queries
+from machincast.player import plugin_points, queries
 from machincast.player.analysis import Analyser, to_analyse
 from machincast.player.broadcast_plan import (
 	_buffer,
@@ -153,6 +154,7 @@ from machincast.player.state import (
 	is_healthy,
 )
 from machincast.player.state import instant as iso
+from machincast.plugins.points import Points
 from machincast.randomness import Randomness
 from machincast.shared.fades import NO_CROSSFADE
 from machincast.shared.grid import Occurrence, wall_hour
@@ -223,6 +225,9 @@ class Broadcast:
 	dead_air: DeadAirSettings = field(default_factory=DeadAirSettings)
 	"""Ce que fait un blanc dans un sonore (https://github.com/dascritch/machincast/issues/122) : le moteur le mesure,
 	la diffusion le note, et passe au secours si BlancAntenne.secours."""
+	points: Points | None = None
+	"""Les points d'extension des plugins, prévenus de ce qui se joue (machincast.player.plugin_points,
+	https://github.com/dascritch/machincast/issues/589) ; aucun en simulation."""
 	scheduler: Scheduler = field(init=False)
 	interruptions: Interruptions = field(init=False)
 	"""Les demandes d'interruption de l'antenne (machincast.player.interruptions)."""
@@ -269,6 +274,12 @@ class Broadcast:
 	_following: tuple[datetime, Occurrence | None] | None = field(default=None, init=False)
 	"""L'événement suivant publié, et l'heure où il a été cherché ; None pour le chercher de nouveau
 	(https://github.com/dascritch/machincast/issues/257)."""
+	_told_sounds: dict[uuid.UUID, dict[str, Any]] = field(default_factory=dict, init=False)
+	"""Ce que les plugins savent du début de chaque passage en cours, pour leur en dire la fin."""
+	_told_event: dict[str, Any] | None = field(default=None, init=False)
+	"""Ce que les plugins savent de l'événement à l'antenne."""
+	_told_sequence: dict[str, Any] | None = field(default=None, init=False)
+	"""Ce que les plugins savent de la séquence à l'antenne."""
 
 	def __post_init__(self) -> None:
 		self.scheduler = Scheduler(self.connection, self.randomness, self.history)
@@ -293,6 +304,7 @@ class Broadcast:
 				)
 				self.state = None
 		self._check_expiries(instant)
+		self._tell(plugin_points.SERVICE_START, {"instant": iso(instant)})
 		self._publish(instant)
 
 	def step(self) -> None:
@@ -487,6 +499,7 @@ class Broadcast:
 		self.upcoming = []
 		self._note_on_air(None, instant)
 		self.history.record(self.connection, "info", N_("stop"), N_("stop requested"), instant)
+		self._tell(plugin_points.SERVICE_STOP, {"instant": iso(instant), "error": None})
 		self._publish(instant, stop=True)
 		if self.state is not None:
 			self.state.shut_down()
@@ -992,7 +1005,7 @@ class Broadcast:
 		self.scheduler.resume()
 		self.lender = self.scheduler.lender(instant)
 		choice = self._lent(probe.choice)
-		play = self._begin(choice, instant)
+		play = self._begin(choice, instant, probe.parameters)
 		self.current = Playback(choice, probe.parameters, track, play)
 		self.history.expire(self.connection, instant, choice.sound)
 		self._reserve(instant)
@@ -1073,14 +1086,14 @@ class Broadcast:
 					buffer=parameters.buffer,
 				),
 			)
-		play = self._begin(following, instant)
+		play = self._begin(following, instant, parameters)
 		if self.current is not None:
 			self.outgoing_list.append(self.current)
 		self.current = Playback(following, parameters, track, play)
 		self.history.expire(self.connection, instant, following.sound)
 		self._reserve(instant)
 
-	def _begin(self, choice: Choice, instant: datetime) -> Play:
+	def _begin(self, choice: Choice, instant: datetime, parameters: Parameters) -> Play:
 		self._note_on_air(choice, instant)
 		line = choice.line
 		if line is None:
@@ -1108,6 +1121,10 @@ class Broadcast:
 		if self.outputs is not None:
 			self.outputs.lend(self.connection, _lender_id(choice))
 			self.outputs.started_play(self.connection, play)
+		if self._listened(plugin_points.SOUND_START, plugin_points.SOUND_STOP):
+			told = plugin_points.sound_data(play, parameters, instant)
+			self._told_sounds[play.id] = told
+			self._tell(plugin_points.SOUND_START, told)
 		return play
 
 	def _finish(
@@ -1122,6 +1139,11 @@ class Broadcast:
 		self.history.finish_play(self.connection, play, instant, cut=cut, error=error, kind=kind)
 		if self.outputs is not None:
 			self.outputs.finished_play(self.connection, play, instant)
+		told = self._told_sounds.pop(play.id, None)
+		if told is not None:
+			self._tell(
+				plugin_points.SOUND_STOP, plugin_points.stopped_sound(told, play.start, instant, cut=cut, error=error)
+			)
 
 	def _ask(self, asks: Request) -> None:
 		"""Une demande d'un client de la socket d'état, ou de celle de l'intranet."""
@@ -1261,6 +1283,7 @@ class Broadcast:
 		remainder = (same_occurrence) and (_continues_sequence(previous, choice))
 		if (previous is not None) and (previous.line is not None) and (not remainder):
 			self._note(SEQUENCE_END, self._on_air_sequence, previous.occurrence.event.id, instant)
+			self._tell_end(plugin_points.SEQUENCE_STOP, "_told_sequence", instant)
 		self._note_events(choice, instant)
 		if choice is None:
 			return
@@ -1273,6 +1296,11 @@ class Broadcast:
 				name = str(line[0])
 			self._on_air_sequence = N_("“{name}”, in “{name2}”").format(name=name, name2=choice.occurrence.event.name)
 			self._note(SEQUENCE_START, self._on_air_sequence, choice.occurrence.event.id, instant)
+			if self._listened(plugin_points.SEQUENCE_START, plugin_points.SEQUENCE_STOP):
+				self._told_sequence = plugin_points.sequence_data(
+					self.connection, choice.line.sequence, choice.occurrence, instant
+				)
+				self._tell(plugin_points.SEQUENCE_START, self._told_sequence)
 
 	def _note_events(self, choice: Choice | None, instant: datetime) -> None:
 		"""La fin de l'événement à l'antenne, puis le début du nouveau, s'il change : au début d'un passage, ou quand
@@ -1285,6 +1313,7 @@ class Broadcast:
 		same = (previous is not None) and (on_air is not None) and (previous.key == on_air.key)
 		if (previous is not None) and (not same):
 			self._note(EVENT_END, N_("“{name}”").format(name=previous.event.name), previous.event.id, instant)
+			self._tell_end(plugin_points.EVENT_STOP, "_told_event", instant)
 		if (choice is None) or (on_air is None) or (same):
 			return
 		message = _on_air_event(on_air)
@@ -1293,6 +1322,41 @@ class Broadcast:
 				on_air=message, name=choice.occurrence.event.name
 			)
 		self._note(EVENT_START, message, on_air.event.id, instant)
+		if self._listened(plugin_points.EVENT_START, plugin_points.EVENT_STOP):
+			told = plugin_points.event_data(self.connection, on_air, instant)
+			told["playing"] = None
+			if choice.lender is not None:
+				told["playing"] = choice.occurrence.event.id
+			self._told_event = told
+			self._tell(plugin_points.EVENT_START, told)
+
+	# ─── Points d'extension des plugins (https://github.com/dascritch/machincast/issues/589) ───
+
+	def _listened(self, *points: str) -> bool:
+		"""Un plugin est abonné à l'un de ces points : ce qu'ils disent vaut d'être lu."""
+		if self.points is None:
+			return False
+		for point in points:
+			if self.points.subscribers(point) != []:
+				return True
+		return False
+
+	def _tell(self, point: str, data: dict[str, Any]) -> None:
+		"""Prévient les plugins abonnés, sans les attendre ; rien en simulation."""
+		if self.points is not None:
+			self.points.notify(point, data)
+
+	def _tell_end(self, point: str, attribute: str, instant: datetime) -> None:
+		"""La fin de l'événement ou de la séquence dont les plugins ont su le début : ce qu'ils en savent, à l'instant
+		de sa fin."""
+		told = getattr(self, attribute)
+		setattr(self, attribute, None)
+		if told is not None:
+			self._tell(point, {**told, "instant": iso(instant)})
+
+	def tell_failure(self, error: BaseException) -> None:
+		"""La diffusion s'arrête sur une erreur : les plugins le savent, avec elle."""
+		self._tell(plugin_points.SERVICE_STOP, {"instant": iso(self.clock.now()), "error": str(error)})
 
 	def _note(self, kind: str, message: str, event: int, instant: datetime) -> None:
 		self.history.record(self.connection, "info", kind, message, instant, event=event)
@@ -1364,8 +1428,9 @@ def air(broadcast: Broadcast, stop: threading.Event, pause: float = PAUSE) -> No
 		while not stop.is_set():
 			broadcast.step()
 			stop.wait(pause)
-	except BaseException:
+	except BaseException as error:
 		broadcast.engine.cut()
+		broadcast.tell_failure(error)
 		if broadcast.state is not None:
 			broadcast.state.shut_down()
 		raise

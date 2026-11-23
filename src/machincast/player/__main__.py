@@ -15,7 +15,7 @@ from pathlib import Path
 
 import psycopg
 
-from machincast import audio, crash
+from machincast import audio, crash, plugins
 from machincast.audio import UnavailableAudioOutput
 from machincast.cli import INVALID_CONFIGURATION_CODE, launch
 from machincast.clock import SystemClock
@@ -203,6 +203,7 @@ def run_broadcast(configuration: Configuration) -> int:
 					crossfades=configuration.crossfades,
 					analyser=Analyser(analysis_command(configuration.path)),
 					dead_air=configuration.dead_air,
+					points=plugins.active().points,
 				)
 				air(broadcast, stop)
 			finally:

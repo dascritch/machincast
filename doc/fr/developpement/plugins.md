@@ -97,7 +97,7 @@ Au chargement, MachinCast appelle la fonction `register` du paquet du plugin, av
 
 ```python
 def register(plugin):
-	plugin.on("service_start", lambda data: annoncer(plugin.context, data))
+	plugin.on("player.sound_start", lambda data: annoncer(plugin.context, data))
 	plugin.declare("horloge.sonnerie", "rings: hour")
 ```
 
@@ -112,6 +112,31 @@ Un point est appelé de deux façons (`machincast.plugins.points`) :
 
 L'exception d'un abonné est consignée au journal, avec le plugin et le point ; elle n'arrête ni le binaire ni les autres plugins.
 Un abonnement à un point que personne ne déclare est refusé : c'est une faute de frappe, ou un plugin demandé qui manque.
+
+## Être prévenu de ce que joue Machin player
+
+([#589](https://github.com/dascritch/machincast/issues/589), `machincast.player.plugin_points`)
+
+Machin player notifie ses points, sans attendre les plugins : un plugin lent, ou qui échoue, ne retarde ni n'arrête l'antenne.
+
+```python
+def register(plugin):
+	plugin.on("player.sound_start", lambda data: publier(data["artist"], data["title"]))
+```
+
+| Point | Quand | Données |
+| --- | --- | --- |
+| `player.service_start` | la diffusion démarre | `instant` |
+| `player.service_stop` | la diffusion s'arrête | `instant`, `error` (`None` pour un arrêt demandé) |
+| `player.event_start` | un événement prend l'antenne | `instant`, `event`, `name`, `public_name`, `priority`, `start` et `end` de l'occurrence, `playing` (l'événement qu'il fait jouer quand il prête son nom) |
+| `player.event_stop` | il la quitte | celles de son début, à l'`instant` de sa fin |
+| `player.sequence_start` | une séquence commence | `instant`, `sequence`, `name`, `public_name`, `event`, `event_name` |
+| `player.sequence_stop` | elle finit | celles de son début, à l'`instant` de sa fin |
+| `player.sound_start` | un sonore commence | `instant`, `play`, `sound`, `artist`, `title`, `location`, `stream`, `duration`, `start_position`, `event`, `lender`, `sequence`, `bank` |
+| `player.sound_stop` | il finit | celles de son début, `instant`, `start`, `played`, `end_position`, `cut`, `error` |
+
+Les heures sont en ISO 8601, avec leur décalage ; les durées et les positions dans le fichier en secondes, `None` pour un stream.
+En simulation, aucun point n'est appelé.
 
 ## Faire jouer une occurrence par un autre événement
 

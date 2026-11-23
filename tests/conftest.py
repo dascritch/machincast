@@ -32,6 +32,7 @@ pytest_plugins = [
 	"tests.preview_steps",
 	"tests.end_of_list_steps",
 	"tests.intranet_steps",
+	"tests.plugin_steps",
 ]
 
 # Les écrans de l'interface s'affichent hors de l'écran du poste : aucune fenêtre ne s'ouvre pendant les tests
