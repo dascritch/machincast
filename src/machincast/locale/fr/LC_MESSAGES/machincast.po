@@ -1548,10 +1548,12 @@ msgid "set"
 msgstr "réglée"
 
 #: machincast/interface/api_tab.py
+#: machincast/intranet/extensions.py
 msgid "consult"
 msgstr "consulter"
 
 #: machincast/interface/api_tab.py
+#: machincast/intranet/extensions.py
 msgid "API actions"
 msgstr "actions API"
 
@@ -6853,6 +6855,7 @@ msgid "Unknown path of the API."
 msgstr "Chemin inconnu de l'API."
 
 #: machincast/intranet/api.py
+#: machincast/intranet/openapi.py
 msgid "No such element."
 msgstr "Élément inconnu."
 
@@ -6912,8 +6915,22 @@ msgid "intranet certificate generated: {path}"
 msgstr "certificat de l'intranet généré : {path}"
 
 #: machincast/intranet/extensions.py
+msgid "The answer of the plugin."
+msgstr "La réponse du plugin."
+
+#: machincast/intranet/extensions.py
+#: machincast/intranet/openapi.py
+msgid "No valid session."
+msgstr "Aucune session valide."
+
+#: machincast/intranet/extensions.py
 msgid "This account cannot act on the antenna."
 msgstr "Ce compte ne peut pas agir sur l'antenne."
+
+#: machincast/intranet/extensions.py
+#, python-brace-format
+msgid "Route of the plugin “{name}”, for the accounts “{role}”."
+msgstr "Route du plugin « {name} », pour les comptes « {role} »."
 
 #: machincast/intranet/extensions.py
 #, python-brace-format
@@ -6943,6 +6960,84 @@ msgstr "Machin player n'a pas répondu"
 #, python-brace-format
 msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
 msgstr "adresses du poste illisibles par iproute2, devinées : {error}"
+
+#: machincast/intranet/openapi.py
+msgid "Unreadable period."
+msgstr "Période illisible."
+
+#: machincast/intranet/openapi.py
+msgid "The card."
+msgstr "La fiche."
+
+#: machincast/intranet/openapi.py
+msgid ""
+"The page, and next, the identifier to give as after for the next page, or "
+"null."
+msgstr ""
+"La page, et next, l'identifiant à donner en after pour la page suivante, ou "
+"null."
+
+#: machincast/intranet/openapi.py
+msgid "The live broadcast"
+msgstr "L'antenne en direct"
+
+#: machincast/intranet/openapi.py
+msgid "The broadcast, now."
+msgstr "L'antenne, maintenant."
+
+#: machincast/intranet/openapi.py
+msgid "The occurrences of the events of the days [from, to["
+msgstr "Les occurrences des événements des jours [from, to["
+
+#: machincast/intranet/openapi.py
+msgid "The occurrences, in JSON, or in HTML hCalendar with format=html."
+msgstr "Les occurrences, en JSON, ou en HTML hCalendar avec format=html."
+
+#: machincast/intranet/openapi.py
+msgid "The incidents, the most recent first"
+msgstr "Les incidents, les plus récents en tête"
+
+#: machincast/intranet/openapi.py
+msgid "The incidents."
+msgstr "Les incidents."
+
+#: machincast/intranet/openapi.py
+msgid "This OpenAPI schema"
+msgstr "Ce schéma OpenAPI"
+
+#: machincast/intranet/openapi.py
+msgid "The schema."
+msgstr "Le schéma."
+
+#: machincast/intranet/openapi.py
+#, python-brace-format
+msgid "The card of one of the {kind}"
+msgstr "La fiche d'un des {kind}"
+
+#: machincast/intranet/openapi.py
+#, python-brace-format
+msgid "A page of the list of {kind}"
+msgstr "Une page de la liste des {kind}"
+
+#: machincast/intranet/openapi.py
+msgid "The identifier after which the page starts."
+msgstr "L'identifiant après lequel la page commence."
+
+#: machincast/intranet/openapi.py
+msgid "The number of elements of the page."
+msgstr "Le nombre d'éléments de la page."
+
+#: machincast/intranet/openapi.py
+msgid "The first day, by default the start of the current week."
+msgstr "Le premier jour, par défaut le début de la semaine en cours."
+
+#: machincast/intranet/openapi.py
+msgid "The day after the last one."
+msgstr "Le lendemain du dernier."
+
+#: machincast/intranet/openapi.py
+msgid "html, for HTML hCalendar."
+msgstr "html, pour du HTML hCalendar."
 
 #: machincast/intranet/pages.py
 #: machincast/intranet/template.py
@@ -10162,6 +10257,10 @@ msgstr "Guide de l'antenne"
 #: machincast/intranet/templates/documentation.html.jinja
 msgid "Intranet and API specification"
 msgstr "Spécification de l'intranet et de l'API"
+
+#: machincast/intranet/templates/documentation.html.jinja
+msgid "OpenAPI schema of the API, plugins included"
+msgstr "Schéma OpenAPI de l'API, plugins compris"
 
 #: machincast/intranet/templates/forbidden.html.jinja
 msgid "This page is for the accounts that can act on the antenna."

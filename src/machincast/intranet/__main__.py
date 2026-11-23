@@ -121,6 +121,7 @@ def application(configuration: Configuration) -> Application:
 		plugins.active().points.collect(POINT),
 	)
 	pages.navigation = extensions.navigation
+	api.plugin_operations = extensions.operations
 	pages.home_sections = extensions.home
 	# Les gabarits des plugins chargés surchargent ceux de l'intranet (https://github.com/dascritch/machincast/issues/597).
 	directories = []
