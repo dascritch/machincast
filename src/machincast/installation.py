@@ -813,7 +813,9 @@ def polkit_rule(account: Account) -> str:
 	et de même le serveur intranet
 	(https://github.com/dascritch/machincast/issues/538) ; rien d'autre, ni sur une autre unité. Elle protège aussi le poste :
 	l'éteindre, le redémarrer ou le mettre en veille demande l'authentification d'un administrateur, à tout compte
-	(https://github.com/dascritch/machincast/issues/448). Elle est en ES5, comme Duktape, le moteur de polkitd."""
+	(https://github.com/dascritch/machincast/issues/448). Elle donne au compte les paramètres du service, dans Machin
+	interface, de la même façon (https://github.com/dascritch/machincast/issues/603). Elle est en ES5, comme Duktape, le
+	moteur de polkitd."""
 	quoted = []
 	for action in POWER_ACTIONS:
 		quoted.append(f'"{action}"')
@@ -849,6 +851,45 @@ polkit.addRule(function (action, subject) {{
 	}}
 	return polkit.Result.NOT_HANDLED;
 }});
+
+// The settings of the broadcast service, in Machin interface: an administrator's password, their own for an
+// administrator (https://github.com/dascritch/machincast/issues/603).
+polkit.addRule(function (action, subject) {{
+	if ((action.id == "{service.SERVICE_SETTINGS_ACTION}") && (subject.user == "{account.name}")) {{
+		return byAdministrator(subject);
+	}}
+	return polkit.Result.NOT_HANDLED;
+}});
+"""
+
+
+POLICY_FILE = Path("/usr/share/polkit-1/actions") / f"{service.SERVICE_SETTINGS_ACTION}.policy"
+"""La politique polkit de l'action des paramètres du service (https://github.com/dascritch/machincast/issues/603) : polkit
+ne lit les actions que dans ce répertoire ; install.sh --service y installe ce seul fichier, sans toucher aux droits de
+l'arborescence."""
+
+
+def polkit_policy() -> str:
+	"""La politique polkit de l'action des paramètres du service : le mot de passe d'un administrateur, gardé quelques
+	minutes, pour toute session ; la règle du service le rend propre à un administrateur
+	(https://github.com/dascritch/machincast/issues/603)."""
+	return f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- Installed by install.sh, with its service option (https://github.com/dascritch/machincast/issues/603); do not edit here. -->
+<policyconfig>
+  <vendor>MachinCast</vendor>
+  <vendor_url>https://github.com/dascritch/machincast</vendor_url>
+  <action id="{service.SERVICE_SETTINGS_ACTION}">
+    <description>Set the MachinCast broadcast service</description>
+    <message>Authentication is required to set the MachinCast broadcast service</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig>
 """
 
 
@@ -972,6 +1013,11 @@ def _indexing_timer(_configuration: Configuration) -> int:
 
 def _rule(_configuration: Configuration) -> int:
 	sys.stdout.write(polkit_rule(Account.current()))
+	return 0
+
+
+def _policy(_configuration: Configuration) -> int:
+	sys.stdout.write(polkit_policy())
 	return 0
 
 
@@ -1112,6 +1158,7 @@ ACTIONS = {
 	"pipewire-unit": _pipewire_unit,
 	"power-save": _power_save,
 	"profile": _profile,
+	"policy": _policy,
 	"rule": _rule,
 	"shortcut": _shortcut,
 	"system-conf": _system_conf,

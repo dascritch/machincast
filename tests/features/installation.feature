@@ -436,6 +436,16 @@ Fonctionnalité: Vérifications de l'installation
 			| org.freedesktop.login1.hibernate-ignore-inhibit   | un autre compte | « auth_admin » |
 			| org.freedesktop.login1.inhibit-block-sleep        | le compte       | rien           |
 			| org.freedesktop.login1.set-reboot-to-firmware-setup | le compte     | rien           |
+			| org.machincast.service-settings                   | le compte       | « auth_admin » |
+			| org.machincast.service-settings                   | le compte, administrateur | « auth_self_keep » |
+			| org.machincast.service-settings                   | un autre compte | rien           |
+
+	Scénario: L'action polkit des paramètres du service demande un administrateur, et le garde quelques minutes
+		https://github.com/dascritch/machincast/issues/603 : Machin interface la vérifie par pkcheck avant d'ouvrir
+		« Paramètres du service… » ; la règle du service la donne au compte de MachinCast par byAdministrator, les autres
+		comptes s'en tiennent à ses valeurs par défaut.
+		Quand je lance « python -m machincast.installation policy » avec la configuration de test
+		Alors la politique polkit déclare l'action « org.machincast.service-settings », « auth_admin_keep » pour toute session
 
 	Scénario: Le service neutralise les touches d'alimentation, de redémarrage et de veille, et le capot
 		https://github.com/dascritch/machincast/issues/448 : logind éteint, redémarre ou met en veille sans passer par
@@ -484,6 +494,7 @@ Fonctionnalité: Vérifications de l'installation
 			| indexing-unit       | FICHIER_UNITE_INDEXATION    |
 			| indexing-timer      | FICHIER_MINUTEUR_INDEXATION |
 			| rule                | FICHIER_REGLE               |
+			| policy              | FICHIER_POLITIQUE           |
 			| logind              | FICHIER_LOGIND              |
 			| system-conf         | FICHIER_SYSTEME             |
 			| power-save          | FICHIER_MODPROBE            |

@@ -96,6 +96,7 @@ from machincast.interface import (
 	version,
 )
 from machincast.interface.adding import add_files
+from machincast.interface.administrator import Administrator
 from machincast.interface.airplay_tab import WITHOUT_METADATA, AirplayScreen
 from machincast.interface.api_tab import ISSUER, ApiScreen
 from machincast.interface.application import identify
@@ -269,6 +270,12 @@ class MainWindow(QMainWindow):
 		# Ctrl ou Alt tenue une seconde : les raccourcis en surimpression (https://github.com/dascritch/machincast/issues/529).
 		self.key_hints = key_hints.KeyHints(self)
 		self.intranet_switch = IntranetSwitch(self, configuration=self.configuration)
+		# Les paramètres du service, sous le mot de passe d'un administrateur
+		# (https://github.com/dascritch/machincast/issues/603).
+		self.administrator = Administrator(self)
+		self.administrator.decided.connect(
+			lambda allowed: self._preferences(preferences.SERVICE, read_only=not allowed)
+		)
 		self.intranet_switch.announced.connect(self.ui.state_bar.showMessage)
 		self.intranet_switch.alerted.connect(lambda text: dialogs.warn_intranet(self, text))
 		# Les connexions à distance à valider au pupitre (https://github.com/dascritch/machincast/issues/539).
@@ -419,7 +426,7 @@ class MainWindow(QMainWindow):
 		# (https://github.com/dascritch/machincast/issues/389).
 		for kind in (preferences.INTERFACE, preferences.SERVICE):
 			settings = file.addAction(preferences.ENTRIES[kind])
-			settings.triggered.connect(lambda _ticked=False, chosen=kind: self._preferences(chosen))
+			settings.triggered.connect(lambda _ticked=False, chosen=kind: self._ask_preferences(chosen))
 			if self.configuration is None:
 				settings.setEnabled(False)
 				settings.setToolTip(_("Without a configuration file, the preferences are not saved"))
@@ -1197,7 +1204,17 @@ class MainWindow(QMainWindow):
 				_("Card closed, its element is no longer in the database: “{title}”.").format(title=title)
 			)
 
-	def _preferences(self, kind: preferences.Kind = preferences.SERVICE) -> None:
+	def _ask_preferences(self, kind: preferences.Kind) -> None:
+		"""Les paramètres du service, le service installé, demandent d'abord le mot de passe d'un administrateur, par
+		polkit : sans lui, la fenêtre s'ouvre en consultation (https://github.com/dascritch/machincast/issues/603). Les
+		préférences de l'interface, ou un poste sans le service, s'ouvrent aussitôt."""
+		self.broadcast.reread_service()
+		if (kind != preferences.SERVICE) or (not self.broadcast.service.installed):
+			self._preferences(kind)
+			return
+		self.administrator.ask()
+
+	def _preferences(self, kind: preferences.Kind = preferences.SERVICE, *, read_only: bool = False) -> None:
 		"""Les préférences réglées s'enregistrent dans le fichier de configuration, puis valent pour les fiches
 		ouvertes ensuite ; un fichier qui ne s'écrit pas les laisse inchangées, et la barre d'état le dit. Un seuil de
 		silence changé relance l'audit complet (https://github.com/dascritch/machincast/issues/401). kind : la fenêtre
@@ -1240,6 +1257,7 @@ class MainWindow(QMainWindow):
 			kind,
 			configuration=self.configuration,
 			offered=offered,
+			read_only=read_only,
 		)
 		if settings is None:
 			return

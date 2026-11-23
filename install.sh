@@ -45,6 +45,9 @@ LIEN_COMPLETION="/usr/share/bash-completion/completions/Machin"
 UNITE="machincast.service"
 FICHIER_UNITE="/etc/systemd/system/${UNITE}"
 FICHIER_REGLE="/etc/polkit-1/rules.d/50-machincast.rules"
+# L'action polkit des paramètres du service, que vérifie Machin interface : polkit ne lit les actions que sous
+# /usr/share/polkit-1/actions, où ce seul fichier s'installe (https://github.com/dascritch/machincast/issues/603).
+FICHIER_POLITIQUE="/usr/share/polkit-1/actions/org.machincast.service-settings.policy"
 # Le poste d'antenne ne s'éteint, ne redémarre ni ne se met en veille par mégarde
 # (https://github.com/dascritch/machincast/issues/448) : la règle polkit le demande à un administrateur, ces fragments
 # neutralisent les touches, le capot et Ctrl+Alt+Suppr en console.
@@ -820,7 +823,8 @@ fichiers_du_service_perimes() {
 		"wireplumber-unit:${FICHIER_UNITE_WIREPLUMBER}" "wireplumber-service:${FICHIER_WIREPLUMBER_SERVICE}" \
 		"wireplumber-desktop:${FICHIER_WIREPLUMBER_BUREAU}" "tmpfiles:${FICHIER_TMPFILES}" \
 		"logrotate:${FICHIER_LOGROTATE}" "profile:${FICHIER_PROFIL}" \
-		"rule:${FICHIER_REGLE}" "logind:${FICHIER_LOGIND}" "system-conf:${FICHIER_SYSTEME}" \
+		"rule:${FICHIER_REGLE}" "policy:${FICHIER_POLITIQUE}" "logind:${FICHIER_LOGIND}" \
+		"system-conf:${FICHIER_SYSTEME}" \
 		"power-save:${FICHIER_MODPROBE}" "usb-power:${FICHIER_USB}"; do
 		fichier_a_jour "${paire%%:*}" "${paire#*:}" || printf '%s\n' "${paire#*:}"
 	done
@@ -1272,6 +1276,7 @@ installer_service() {
 		executer sudo systemctl daemon-reload
 	fi
 	installer_fichier rule "${FICHIER_REGLE}" || true
+	installer_fichier policy "${FICHIER_POLITIQUE}" || true
 	proteger_le_poste
 	garder_les_cartes_eveillees
 	executer sudo systemctl enable --now "${UNITE_PIPEWIRE}" "${UNITE_WIREPLUMBER}" "${UNITE}"
@@ -1407,7 +1412,7 @@ retirer_service() {
 	done
 	local fichier
 	for fichier in "${FICHIER_UNITE}" "${FICHIER_UNITE_INTRANET}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_UNITE_PIPEWIRE}" \
-		"${FICHIER_REGLE}" "${FICHIER_TMPFILES}" \
+		"${FICHIER_REGLE}" "${FICHIER_POLITIQUE}" "${FICHIER_TMPFILES}" \
 		"${FICHIER_LOGROTATE}" "${FICHIER_PROFIL}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}" \
 		"${FICHIER_MODPROBE}" "${FICHIER_USB}"; do
 		retirer_fichier "${fichier}" || true
