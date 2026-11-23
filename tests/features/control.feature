@@ -238,6 +238,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et l'état du binaire lecture est bientôt « En diffusion » sur l'onglet Antenne
 		Alors l'état de la diffusion est sur fond <fond>, en texte <texte>, avec un liseré <fond> de 2 px
 		Et le titre de la fenêtre est « MachinCast <témoin> Radio de test »
+		Et le cartouche montre le bouton du moniteur, aux couleurs des autres boutons, pas à celles de son fond
 
 		Exemples:
 			| service              | fond    | texte   | témoin |
@@ -250,6 +251,7 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Quand la fenêtre de l'interface s'ouvre
 		Alors l'état de la diffusion devient bientôt « Blanc à l'antenne », sans fond coloré, avec un liseré <fond> de 2 px
 		Et le titre de la fenêtre est « MachinCast <témoin> Radio de test »
+		Et le cartouche montre le bouton du moniteur, aux couleurs des autres boutons, pas à celles de son fond
 
 		Exemples:
 			| service              | fond    | témoin |
@@ -264,12 +266,14 @@ Fonctionnalité: Pilotage de la diffusion depuis l'interface
 		Et je choisis « Arrêter la diffusion d'essai » dans le menu « Diffusion »
 		Alors l'état de la diffusion devient bientôt « À l'arrêt », sans fond coloré, avec un liseré #2e7d32 de 2 px
 		Et le titre de la fenêtre est « MachinCast ⛶ Radio de test »
+		Et le cartouche ne montre pas le bouton du moniteur, inutile à l'arrêt
 
 	Scénario: Le service installé, arrêté : liseré rouge, et ⛶ dans le titre de la fenêtre
 		Étant donné le service de diffusion installé, arrêté
 		Quand la fenêtre de l'interface s'ouvre
 		Alors l'état de la diffusion devient bientôt « À l'arrêt », sans fond coloré, avec un liseré #c62828 de 2 px
 		Et le titre de la fenêtre est « MachinCast ⛶ Radio de test »
+		Et le cartouche ne montre pas le bouton du moniteur, inutile à l'arrêt
 
 	Plan du scénario: Le texte prend, du blanc ou du noir, celui qui contraste le plus avec le fond
 		Alors sur le fond <fond>, le texte de l'état de la diffusion est <texte>
