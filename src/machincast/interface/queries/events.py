@@ -5,13 +5,18 @@ from psycopg.rows import TupleRow
 
 Connection = psycopg.Connection[TupleRow]
 
+FALLBACKS = (
+	"jsonb_strip_nulls(jsonb_build_object('end_fallback_event', %s::bigint, 'stream_fallback_event', %s::bigint))"
+)
+"""Les secours d'un événement, dans sa colonne properties (https://github.com/dascritch/machincast/issues/607)."""
+
 
 def read_event(connection: Connection, event: int) -> TupleRow | None:
 	"""Les champs de l'événement, dans l'ordre de la fiche ; None s'il est absent."""
 	return connection.execute(
 		"SELECT internal_name, public_name, priority::text, starts_at, ends_at, recurrence_days::text[],"
-		" hide_metadata, end_of_list::text, end_fallback_event_id, stream_fallback_event_id"
-		" FROM events WHERE id = %s",
+		" hide_metadata, end_of_list::text, (properties ->> 'end_fallback_event')::bigint,"
+		" (properties ->> 'stream_fallback_event')::bigint FROM events WHERE id = %s",
 		(event,),
 	).fetchone()
 
@@ -47,8 +52,8 @@ def insert(connection: Connection, values: tuple[object, ...]) -> int:
 	created = connection.execute(
 		"INSERT INTO events"
 		" (internal_name, public_name, priority, starts_at, ends_at, recurrence_days, hide_metadata,"
-		" end_of_list, end_fallback_event_id, stream_fallback_event_id)"
-		" VALUES (%s, %s, %s, %s, %s, %s::weekday[], %s, %s, %s, %s) RETURNING id",
+		" end_of_list, properties)"
+		f" VALUES (%s, %s, %s, %s, %s, %s::weekday[], %s, %s, {FALLBACKS}) RETURNING id",
 		values,
 	).fetchone()
 	assert created is not None
@@ -58,8 +63,8 @@ def insert(connection: Connection, values: tuple[object, ...]) -> int:
 def update(connection: Connection, identifier: int, values: tuple[object, ...]) -> None:
 	connection.execute(
 		"UPDATE events SET internal_name = %s, public_name = %s, priority = %s, starts_at = %s, ends_at = %s,"
-		" recurrence_days = %s::weekday[], hide_metadata = %s, end_of_list = %s, end_fallback_event_id = %s,"
-		" stream_fallback_event_id = %s WHERE id = %s",
+		" recurrence_days = %s::weekday[], hide_metadata = %s, end_of_list = %s,"
+		f" properties = (properties - 'end_fallback_event' - 'stream_fallback_event') || {FALLBACKS} WHERE id = %s",
 		(*values, identifier),
 	)
 
@@ -79,7 +84,7 @@ def streams_with_fallback(connection: Connection, event: int) -> list[TupleRow]:
 def events_with_fallback(connection: Connection, event: int) -> list[TupleRow]:
 	"""Les événements, non supprimés, qui désignent cet événement pour secours, par nom."""
 	return connection.execute(
-		"SELECT internal_name FROM events WHERE (end_fallback_event_id = %s OR stream_fallback_event_id = %s)"
+		"SELECT internal_name FROM events WHERE ((properties ->> 'end_fallback_event')::bigint = %s OR (properties ->> 'stream_fallback_event')::bigint = %s)"
 		" AND deleted_at IS NULL ORDER BY 1",
 		(event, event),
 	).fetchall()

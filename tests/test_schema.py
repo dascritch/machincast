@@ -162,11 +162,12 @@ def fallback_in_show(context: Context) -> None:
 		context.error = error
 
 
-FALLBACK_COLUMNS = {
-	"secours de fin de liste": "end_fallback_event_id",
-	"secours d'un stream tombé": "stream_fallback_event_id",
+FALLBACK_KEYS = {
+	"secours de fin de liste": "end_fallback_event",
+	"secours d'un stream tombé": "stream_fallback_event",
 }
-"""Les secours d'un événement (https://github.com/dascritch/machincast/issues/350)."""
+"""Les secours d'un événement (https://github.com/dascritch/machincast/issues/350), dans sa colonne properties
+(https://github.com/dascritch/machincast/issues/607)."""
 
 
 @given(parsers.parse("une émission dont le {fallback} est cet événement"))
@@ -176,7 +177,7 @@ def rescued_show(context: Context, fallback: str) -> None:
 		"priority": "'show'",
 		"starts_at": "'2026-10-19 18:00'",
 		"ends_at": "'2026-10-19 19:00'",
-		FALLBACK_COLUMNS[fallback]: str(context.references["secours"]),
+		"properties": f"""'{{"{FALLBACK_KEYS[fallback]}": {context.references["secours"]}}}'""",
 	}
 	if fallback == "secours de fin de liste":
 		values["end_of_list"] = "'fallback'"
@@ -186,7 +187,7 @@ def rescued_show(context: Context, fallback: str) -> None:
 @then(parsers.parse("l'émission n'a plus de {fallback}"))
 def show_without_fallback(context: Context, fallback: str) -> None:
 	line = context.connection.execute(
-		f"SELECT {FALLBACK_COLUMNS[fallback]} FROM events WHERE id = %s",
+		f"SELECT properties -> '{FALLBACK_KEYS[fallback]}' FROM events WHERE id = %s",
 		(context.references["emission"],),
 	).fetchone()
 	assert line == (None,)
@@ -253,6 +254,26 @@ def cancel_lasts(count: int) -> None:
 	"""La base de test reçoit de nouveau ses migrations au scénario suivant (purge_database)."""
 	with get_backend(url_yoyo(*sample_database_parameters())) as backend, backend.lock():
 		backend.rollback_migrations(backend.to_rollback(read_migrations(str(MIGRATION_DIRECTORY)))[:count])
+
+
+@then(parsers.re(r"les tables (?P<names>«.+») ont une colonne properties, vide par défaut"))
+def properties_columns(context: Context, names: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/607"""
+	for table in re.findall(r"« ([^»]+) »", names):
+		found = context.connection.execute(
+			"SELECT data_type, is_nullable, column_default FROM information_schema.columns"
+			" WHERE table_name = %s AND column_name = 'properties'",
+			(table,),
+		).fetchone()
+		assert found == ("jsonb", "NO", "'{}'::jsonb"), (table, found)
+
+
+@then("l'émission a, en colonne end_fallback_event_id, l'événement de secours")
+def fallback_column_back(context: Context) -> None:
+	found = context.connection.execute(
+		"SELECT end_fallback_event_id FROM events WHERE id = %s", (context.references["emission"],)
+	).fetchone()
+	assert found == (context.references["secours"],)
 
 
 @then("la session de l'intranet sans code est invalide")

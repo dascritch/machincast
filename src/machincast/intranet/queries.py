@@ -33,7 +33,8 @@ CARDS = {
 	"sequences": "SELECT * FROM sequences WHERE id = %s",
 	"events": (
 		"SELECT *, priority::text AS priority, recurrence_days::text[] AS recurrence_days, end_of_list::text AS"
-		" end_of_list FROM events WHERE id = %s"
+		" end_of_list, (properties ->> 'end_fallback_event')::bigint AS end_fallback_event_id, (properties ->> 'stream_fallback_event')::bigint AS stream_fallback_event_id"
+		" FROM events WHERE id = %s"
 	),
 }
 HIDDEN = frozenset({"edited_fields"})

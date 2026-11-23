@@ -8,6 +8,9 @@ Modèle complet : [spec.md § 3](../spec.md#3-base-de-données).
 - PostgreSQL, accès par socket Unix locale avec psycopg 3.
 - Authentification **peer** : chaque rôle correspond à un utilisateur système.
 - Deux bases au schéma strictement identique : production et test.
+- **Propriétés** ([#607](https://github.com/dascritch/machincast/issues/607)) : une propriété propre à un élément, sans requête qui la cherche ni la trie à grande échelle, va dans sa colonne `properties` (`jsonb`, toujours un objet) plutôt que dans une nouvelle colonne.
+  Une référence à un autre élément qui y est rangée garde, par déclencheur, la garantie d'une clé étrangère, et a son index (`events.properties` → `end_fallback_event`).
+  Un plugin y range ses propriétés sous la clé de son nom ; créer une table ou une colonne pour un plugin se demande d'abord au mainteneur.
 - **Volume** ([#390](https://github.com/dascritch/machincast/issues/390)) : un traitement qui parcourt des sonores, des passages ou des lignes du log ne doit coûter ni une requête par ligne, ni la mémoire de toutes les lignes à la fois, pour 100 000 sonores comme pour 10.
   - Une requête par ligne dans une boucle se remplace par une seule requête : `DELETE … USING … RETURNING`, `INSERT … SELECT`, un compte calculé par la base (`count(DISTINCT …)`) plutôt que des lignes ramenées pour être comptées.
   	Ce qu'une boucle doit savoir de la base se lit une fois avant elle (`directories._attached_files`).

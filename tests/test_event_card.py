@@ -358,8 +358,8 @@ def event_in_database(empty_database: Connection, name: str, datatable: list[lis
 			"priorite": "priority::text",
 			"recurrence_days": "recurrence_days::text[]",
 			"end_of_list": "end_of_list::text",
-			"end_fallback": "(SELECT f.internal_name FROM events f WHERE f.id = events.end_fallback_event_id)",
-			"stream_fallback": "(SELECT f.internal_name FROM events f WHERE f.id = events.stream_fallback_event_id)",
+			"end_fallback": "(SELECT f.internal_name FROM events f WHERE f.id = (events.properties ->> 'end_fallback_event')::bigint)",
+			"stream_fallback": "(SELECT f.internal_name FROM events f WHERE f.id = (events.properties ->> 'stream_fallback_event')::bigint)",
 		}.get(field, field)
 		line = empty_database.execute(
 			f"SELECT {column} FROM events WHERE internal_name = %s",
@@ -443,11 +443,12 @@ def shown_bounds(interface: Context, start: str, end: str) -> None:
 EVENT_CHANGES = {
 	"end_of_list": "UPDATE events SET end_of_list = 'background_programming' WHERE internal_name = %s",
 	"end_fallback_event_id": (
-		"UPDATE events SET end_of_list = 'fallback', end_fallback_event_id ="
-		" (SELECT id FROM events WHERE internal_name = 'Panne') WHERE internal_name = %s"
+		"UPDATE events SET end_of_list = 'fallback', properties = jsonb_build_object('end_fallback_event',"
+		" (SELECT id FROM events WHERE internal_name = 'Panne')) WHERE internal_name = %s"
 	),
 	"stream_fallback_event_id": (
-		"UPDATE events SET stream_fallback_event_id = (SELECT id FROM events WHERE internal_name = 'Panne')"
+		"UPDATE events SET properties = jsonb_build_object('stream_fallback_event',"
+		" (SELECT id FROM events WHERE internal_name = 'Panne'))"
 		" WHERE internal_name = %s"
 	),
 }

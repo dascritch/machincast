@@ -190,6 +190,14 @@ def register(plugin):
 
 Détails : [spécification, § 14.3](../spec.md#143-les-pages-et-les-routes-dun-plugin-dans-lintranet).
 
+## Ses propriétés, dans la colonne properties
+
+([#607](https://github.com/dascritch/machincast/issues/607))
+
+Les éléments, `events`, `banks`, `sounds`, `sequences` et `feeds`, comme `api_users` et `api_sessions`, ont une colonne `properties`, un objet JSON.
+Un plugin y range ce qui lui est propre sous la clé de son nom, `{"horloge": {…}}`, sans toucher aux autres clés : `properties = properties || jsonb_build_object('horloge', %s::jsonb)`.
+C'est le premier choix, avant une table du plugin, dont la création se demande d'abord au mainteneur.
+
 ## Ses tables et son install.sh
 
 ([#586](https://github.com/dascritch/machincast/issues/586), `machincast.plugins.schema`)
