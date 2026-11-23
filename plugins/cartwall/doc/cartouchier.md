@@ -1,13 +1,14 @@
 # Le cartouchier
 
-Le cartouchier est une page de Machin intranet, « Cartouchier » dans le bandeau, faite pour un écran tactile au studio ([#512](https://github.com/dascritch/machincast/issues/512)).
+Le cartouchier ajoute à l'accueil de Machin intranet, sous l'antenne en direct, les boutons du compte connecté, faits pour un écran tactile au studio ([#512](https://github.com/dascritch/machincast/issues/512)) : pas de page à part, ni d'entrée dans le bandeau.
 
-## Ce que montre la page
+## Ce que montre l'accueil
 
-En haut, l'antenne en direct, comme l'accueil de l'intranet : l'heure, le texte public, l'événement en cours (début, fin, temps restant) et le suivant (début, fin), le sonore en cours (durée, temps restant) et le prochain (durée, temps avant son début).
+En haut, l'antenne en direct : l'heure, le texte public, l'événement en cours (début, fin, temps restant) et le suivant (début, fin), le sonore en cours (durée, temps restant) et le prochain (durée, temps avant son début).
 Les décomptes s'affichent à la seconde, calculés au centième ; la page se relit toute seule.
 
-En dessous, les boutons du compte connecté, larges, chacun de sa couleur.
+En dessous, la section « Cartouchier » : les boutons du compte connecté, larges, chacun de sa couleur.
+Un compte sans bouton garde l'accueil tel quel.
 Un bouton grisé ne peut pas servir maintenant ; son infobulle dit pourquoi :
 
 - il insère un sonore d'une banque marquée « ne pas répéter », et le sonore à l'antenne vient d'elle ;
@@ -36,6 +37,6 @@ Les actions possibles sont celles du menu « Diffusion » de l'interface, sauf d
 
 Dans Machin interface, menu « Plugins », « Cartouchier… » : choisir le compte, puis, pour chaque bouton, son intitulé, sa couleur (`#rrggbb`), son action, ce qu'elle vise (une séquence, une banque, un secours ou un feed) et, pour une insertion, son blanc.
 « Ajouter » le met au bout, « Remplacer » change le bouton choisi, « Monter » et « Descendre » le déplacent, « Retirer » l'enlève.
-Chaque changement s'enregistre aussitôt ; la page du cartouchier le montre à son prochain chargement.
+Chaque changement s'enregistre aussitôt ; l'accueil le montre à son prochain chargement.
 
 Par exemple, l'émission « Infos » aura « Couper l'antenne » par le secours, et des insertions de la banque « Identifiant station court », de la séquence « Partenariats » et de la séquence « Chronique info » ; l'émission « Les gaufres électriques » aura des insertions des banques « Identifiant station court », « Identifiant station long » et « Musiques jazz ».

@@ -22,10 +22,6 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"a blank of 5 seconds before": "un blanc de 5 secondes avant",
 		"a blank of 5 seconds after": "un blanc de 5 secondes après",
 		"a blank of 5 seconds before and after": "un blanc de 5 secondes avant et après",
-		"Buttons": "Boutons",
-		"No button for this account: they are set in Machin interface, menu “Plugins”, “Cartouchier”.": (
-			"Aucun bouton pour ce compte : ils se règlent dans Machin interface, menu « Plugins », « Cartouchier »."
-		),
 		"This account only consults: its buttons are for the accounts that can act on the antenna.": (
 			"Ce compte ne fait que consulter : les boutons sont pour les comptes qui peuvent agir sur l'antenne."
 		),

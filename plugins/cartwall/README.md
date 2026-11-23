@@ -30,7 +30,7 @@ enabled = ["cartwall"]
 | --- | --- |
 | `manifest.json` | S'accroche à `Machin_intranet` et `Machin_interface`. |
 | `migrations/` | La table `cartwall__buttons` : les boutons de chaque compte, lus par l'intranet, réglés par l'interface. |
-| `src/machincast_cartwall/intranet.py` | La page `/plugins/cartwall` et les routes `GET /api/v1/plugins/cartwall/buttons`, `POST /api/v1/plugins/cartwall/press`. |
+| `src/machincast_cartwall/intranet.py` | Sa section sous l'accueil, les boutons du compte, et les routes `GET /api/v1/plugins/cartwall/buttons`, `POST /api/v1/plugins/cartwall/press`. |
 | `src/machincast_cartwall/settings.py` | Les boutons de chaque compte, dans la fenêtre du plugin, menu « Plugins » de l'interface. |
 | `src/machincast_cartwall/buttons.py` | Les actions, et la demande que chacune envoie à Machin player. |
 | `static/` | La feuille de style et le script de la page. |
