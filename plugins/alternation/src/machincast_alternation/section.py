@@ -190,7 +190,7 @@ class AlternationSection(CardSection):
 		members = []
 		for slot in found:
 			texts.append(slot.text)
-			members.extend(slot.others)
+			members.extend(slot.members)
 		self.shared_text.setText("\n".join(texts))
 		self.shared_table.setRowCount(len(members))
 		for row, member in enumerate(members):
@@ -199,15 +199,20 @@ class AlternationSection(CardSection):
 				cell.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
 				cell.setData(IDENTIFIER, member.identifier)
 				cell.setToolTip(t("Double-click to open the card of “{name}”").format(name=member.name))
+				if member.current:
+					font = cell.font()
+					font.setBold(True)
+					cell.setFont(font)
+					cell.setToolTip(t("The show of this card"))
 				self.shared_table.setItem(row, column, cell)
 		self.shared_table.setVisible(bool(members))
 		self.shared_table.resizeColumnsToContents()
 		self.replaces_grid.emit(bool(found))
 
 	def _open_member(self, row: int, _column: int) -> None:
-		"""Le double clic sur une ligne ouvre la fiche de son émission."""
+		"""Le double clic sur une ligne ouvre la fiche de son émission ; rien sur celle de la fiche affichée."""
 		cell = self.shared_table.item(row, NAME_COLUMN)
-		if cell is not None:
+		if (cell is not None) and (int(cell.data(IDENTIFIER)) != self.identifier):
 			self.opens.emit("event", int(cell.data(IDENTIFIER)), cell.text())
 
 	# ─── Seulement avec un jour de la semaine ──────────────

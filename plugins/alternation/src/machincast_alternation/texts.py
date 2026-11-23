@@ -25,7 +25,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"from {start} to {end}": "de {start} à {end}",
 		"from {start} on": "à partir de {start}",
 		"This show shares the slot “{name}”, {when}.": "Cette émission partage le créneau « {name} », {when}.",
-		"For it: {rule}; next broadcast: {following}.": "Pour elle : {rule} ; prochain passage : {following}.",
+		"The show of this card": "L'émission de cette fiche",
 		"Shared slot": "Créneau partagé",
 		"Next broadcast": "Prochain passage",
 		"Show": "Émission",

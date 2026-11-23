@@ -1,10 +1,9 @@
 """Ce que la fiche d'une émission dit du créneau qu'elle partage (https://github.com/dascritch/machincast/issues/609) :
 à la place de l'encadré de sa grille, dont les dates ne comptent plus, l'événement méta qui la fait jouer, son jour,
-ses heures, la règle et le prochain passage de l'émission, puis, en tableau, les autres émissions de son alternance,
-chacune avec sa règle et son prochain passage.
+ses heures, puis, en tableau, les émissions de son alternance, elle comprise, chacune avec sa règle et son prochain
+passage.
 
-« Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Elle passe le 2e et 4e mercredi du
-mois, prochainement le mercredi 09/12/2026 à 20:00. »
+« Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. »
 """
 
 from dataclasses import dataclass, field
@@ -31,6 +30,8 @@ class Member:
 	rule: str
 	start: datetime | None
 	name: str
+	current: bool = False
+	"""L'émission de la fiche affichée."""
 
 	def following(self) -> str:
 		"""« mercredi 09/12/2026 à 20:00 » ; « — » sans passage dans les six mois."""
@@ -43,7 +44,8 @@ class Slot:
 
 	meta: str
 	text: str
-	others: list[Member] = field(default_factory=list)
+	members: list[Member] = field(default_factory=list)
+	"""Les émissions de l'alternance, celle de la fiche affichée comprise, par prochain passage."""
 
 
 def hour(instant: datetime) -> str:
@@ -117,23 +119,21 @@ def _slot(
 ) -> Slot:
 	day = _day(event)
 	text = t("This show shares the slot “{name}”, {when}.").format(name=name, when=when(event))
-	own = t("For it: {rule}; next broadcast: {following}.").format(
-		rule=rule(alternation, show, day), following=shown(following(event, alternation, show, now))
-	)
 	known = queries.names(connection, shared)
-	others = []
+	members = []
 	for candidate in shared:
-		if (candidate != show) and (candidate in known):
-			others.append(
+		if candidate in known:
+			members.append(
 				Member(
 					candidate,
 					rule(alternation, candidate, day),
 					following(event, alternation, candidate, now),
 					known[candidate],
+					candidate == show,
 				)
 			)
-	others.sort(key=_order)
-	return Slot(name, f"{text} {own}", others)
+	members.sort(key=_order)
+	return Slot(name, text, members)
 
 
 def _order(member: Member) -> tuple[bool, datetime, str]:
