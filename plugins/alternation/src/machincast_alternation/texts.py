@@ -11,7 +11,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 			"Cet événement joue, chaque semaine, l'une des émissions ci-dessous, à la place d'une liste de lecture"
 		),
 		"Shows that share the slot": "Émissions qui se partagent le créneau",
-		"Rotation in the month": "Rotation dans le mois",
+		"Rhythm": "Rythme",
+		"Rotation": "Rotation",
+		"Monthly, by the week of the month": "Par mois, selon la semaine du mois",
+		"Fortnightly, every other week": "Par quinzaine, une semaine sur deux",
+		"{rank} week of the fortnight": "{rank} semaine de la quinzaine",
+		"{week}, including {day}": "{week}, dont le {day}",
 		"Coming broadcasts": "Passages à venir",
 		"{rank} {day} of the month": "{rank} {day} du mois",
 		"week {rank} of the month": "{rank} semaine du mois",

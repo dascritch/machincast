@@ -6,9 +6,9 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 
 	https://github.com/dascritch/machincast/issues/609, ticket enfant de
 	https://github.com/dascritch/machincast/issues/606. « Mercredi soir », le mercredi de 20 h à 21 h, est l'événement
-	méta : il fait jouer « Sonia », « Les ahuris » ou « Zôtre », selon la semaine du mois. Son alternance est rangée
-	dans sa colonne properties, sous la clé « alternation ». Décembre 2026 a cinq mercredis : le 2, le 9, le 16, le 23
-	et le 30.
+	méta : il fait jouer « Sonia », « Les ahuris » ou « Zôtre », selon la semaine du mois, ou une semaine sur deux, par
+	quinzaine, comptée depuis sa première occurrence, le 2 décembre. Son alternance est rangée dans sa colonne
+	properties, sous la clé « alternation ». Décembre 2026 a cinq mercredis : le 2, le 9, le 16, le 23 et le 30.
 
 	Contexte:
 		Étant donné les événements :
@@ -33,6 +33,29 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Et le passage du « 2026-12-16 » de « Mercredi soir » choisi : « Sonia »
 		Quand la grille est lue
 		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Les ahuris » le 9, « Sonia » le 16, « Les ahuris » le 23, « Sonia » le 30
+
+	Scénario: Par quinzaine, deux émissions alternent une semaine sur deux, depuis la première occurrence, même d'un mois à l'autre
+		Étant donné l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
+		Quand la grille est lue
+		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Zôtre » le 9, « Sonia » le 16, « Zôtre » le 23, « Sonia » le 30
+		Et le calendrier de janvier 2027 montre « Zôtre » le 6, « Sonia » le 13, « Zôtre » le 20, « Sonia » le 27
+
+	Scénario: Par quinzaine aussi, un passage choisi à la main l'emporte
+		Étant donné l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
+		Et le passage du « 2026-12-16 » de « Mercredi soir » choisi : « Zôtre »
+		Quand la grille est lue
+		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Zôtre » le 9, « Zôtre » le 16, « Zôtre » le 23, « Sonia » le 30
+
+	Plan du scénario: Le rang d'un jour dans sa quinzaine, depuis la première occurrence
+		Alors depuis le « 2026-12-02 », le « <jour> » est la <rang> semaine de sa quinzaine
+
+		Exemples:
+			| jour       | rang |
+			| 2026-12-02 | 1    |
+			| 2026-12-08 | 1    |
+			| 2026-12-09 | 2    |
+			| 2026-12-16 | 1    |
+			| 2027-01-06 | 2    |
 
 	Scénario: Une semaine sans émission dans la rotation joue l'événement méta lui-même
 		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », —
@@ -69,6 +92,7 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Et le passage du « 2026-12-16 » de « Mercredi soir » choisi : « Sonia »
 		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
 		Alors la section est cochée, et remplace la liste de lecture
+		Et son rythme est « Par mois, selon la semaine du mois », parmi « Par mois, selon la semaine du mois », « Par quinzaine, une semaine sur deux »
 		Et elle propose les émissions « Les ahuris », « Matinale », « Sonia », « Zôtre », dont « Les ahuris », « Sonia », « Zôtre » sont cochées
 		Et sa rotation est :
 			| rang                  | émission                |
@@ -95,7 +119,33 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Quand la section s'enregistre
 		Alors « Mercredi soir » a pour propriétés :
 			"""
-			{"note": "à relire", "alternation": {"candidates": [2, 3, 4], "rotation": {"1": 2, "2": 3, "3": 4, "4": 3, "5": 2}, "choices": {"2026-12-09": 4}}}
+			{"note": "à relire", "alternation": {"mode": "monthly", "candidates": [2, 3, 4], "rotation": {"1": 2, "2": 3, "3": 4, "4": 3, "5": 2}, "choices": {"2026-12-09": 4}}}
+			"""
+
+	Scénario: Par quinzaine, la fiche ne montre que deux semaines, chacune avec son prochain passage
+		Étant donné l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-12-05 10:00 »
+		Alors son rythme est « Par quinzaine, une semaine sur deux »
+		Et sa rotation est :
+			| rang                                         | émission |
+			| 1re semaine de la quinzaine, dont le 16/12/2026 | Sonia    |
+			| 2e semaine de la quinzaine, dont le 09/12/2026  | Zôtre    |
+		Et ses 8 prochains passages commencent par :
+			| passage                       | émission                    |
+			| mercredi 09/12/2026 à 20:00   | Selon la rotation : Zôtre   |
+			| mercredi 16/12/2026 à 20:00   | Selon la rotation : Sonia   |
+
+	Scénario: Passer du mois à la quinzaine change la rotation, et s'enregistre
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et je choisis le rythme « Par quinzaine, une semaine sur deux »
+		Alors la section signale un changement
+		Et la rotation montre 2 semaines
+		Et le passage du « 2026-12-09 » est « Selon la rotation : Les ahuris »
+		Quand la section s'enregistre
+		Alors « Mercredi soir » a pour propriétés :
+			"""
+			{"alternation": {"mode": "fortnightly", "candidates": [2, 3, 4], "rotation": {"1": 2, "2": 3}, "choices": {}}}
 			"""
 
 	Scénario: Retirer une émission la retire de la rotation, qui revient à l'événement lui-même
