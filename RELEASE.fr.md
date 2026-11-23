@@ -4,7 +4,7 @@
 
 Les versions publiées, la plus récente d'abord. Procédure : [doc/fr/developpement/release.md](doc/fr/developpement/release.md).
 
-## 0.9.1 — 2026-11-17
+## 0.9.1 — 2026-11-23
 
 Une version de consolidation : MachinCast parle français et anglais, le service de diffusion tourne sous son propre compte, l'interface gagne en confort, et la base se sauvegarde et se reprend sur un poste neuf.
 

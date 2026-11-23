@@ -7,7 +7,7 @@ d'abord, titrée « ## <version> — <AAAA-MM-JJ> », la même que dans RELEASE.
 section n'est pas montré. Procédure : doc/fr/developpement/release.md.
 -->
 
-## 0.9.1 — 2026-11-17
+## 0.9.1 — 2026-11-23
 
 - **MachinCast parle votre langue** : français ou anglais, selon la session.
 - **L'onglet Antenne** montre si la diffusion tourne, et le menu Diffusion permet de revenir au début du sonore, de recommencer l'événement, ou de couper l'antenne par le secours ou un feed.
