@@ -5170,6 +5170,13 @@ msgstr ""
 
 #: machincast/interface/preferences.py
 msgid ""
+"Consultation only: an administrator did not allow to set the service."
+msgstr ""
+"Consultation seulement : un administrateur n'a pas autorisé à régler le "
+"service."
+
+#: machincast/interface/preferences.py
+msgid ""
 "Impossible in production: the intranet server is installed as a service."
 msgstr ""
 "Impossible en production : le serveur intranet est installé en service."
@@ -5246,6 +5253,11 @@ msgstr "Plugins"
 #: machincast/interface/preferences.py
 msgid "A web address, starting with http:// or https://"
 msgstr "Une adresse web, qui commence par http:// ou https://"
+
+#: machincast/interface/preferences.py
+#, python-brace-format
+msgid "{title} (consultation)"
+msgstr "{title} (consultation)"
 
 #: machincast/interface/preferences.py
 #, python-brace-format

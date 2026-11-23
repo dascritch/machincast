@@ -21,6 +21,9 @@ ACCOUNT_ENVIRONMENT = "MACHINCAST_SERVICE_ACCOUNT"
 """La variable d'environnement qui le remplace : les scénarios éprouvent la lecture avec un autre compte."""
 UNIT = "machincast.service"
 """L'unité systemd du service de lecture, celle que suit « Machin logs » : le même nom dans bin/Machin."""
+SERVICE_SETTINGS_ACTION = "org.machincast.service-settings"
+"""L'action polkit qui ouvre les paramètres du service au réglage, avec le mot de passe d'un administrateur
+(https://github.com/dascritch/machincast/issues/603)."""
 TASKS_UNIT = "machincast-tasks.service"
 """L'unité des tâches régulières, Machin tasks (https://github.com/dascritch/machincast/issues/455) : les mêmes noms
 dans install.sh."""

@@ -12,6 +12,7 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 from types import SimpleNamespace
+from xml.etree import ElementTree
 
 import dukpy
 import gi
@@ -458,6 +459,24 @@ def polkit_response(
 	assert answer == ((response) or ("rien")), answer
 
 
+@then(parsers.parse("la politique polkit déclare l'action « {action} », « {default} » pour toute session"))
+def polkit_policy(command: subprocess.CompletedProcess[str], action: str, default: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/603"""
+	assert command.returncode == 0, command.stderr
+	assert command.stdout.startswith('<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE policyconfig PUBLIC')
+	root = ElementTree.fromstring(command.stdout)
+	assert root.tag == "policyconfig"
+	(declared,) = root.findall("action")
+	assert declared.get("id") == action
+	assert declared.findtext("message") != ""
+	defaults = declared.find("defaults")
+	assert defaults is not None
+	found = []
+	for key in ("allow_any", "allow_inactive", "allow_active"):
+		found.append(defaults.findtext(key))
+	assert found == [default, default, default]
+
+
 @then("l'unité de machincast.installation est celle de « Machin logs »")
 def wrapper_unit() -> None:
 	wrapper = (PROJECT_DIRECTORY / "bin" / "Machin").read_text(encoding="utf-8")
@@ -629,6 +648,7 @@ def sh_service_names() -> None:
 		f'/{installation.WIREPLUMBER_FRAGMENT}"',
 		f'FICHIER_MODPROBE="{power_save.MODPROBE}"',
 		f'FICHIER_USB="{power_save.USB_RULE}"',
+		f'FICHIER_POLITIQUE="{installation.POLICY_FILE}"',
 	):
 		assert expected in install, expected
 
@@ -701,7 +721,8 @@ def sh_welcome(directory: str, group: str, mode: str) -> None:
 
 @then(parsers.parse("la règle ne concerne que le compte « {name} »"))
 def count_rule(written_list: tuple[str, str], name: str) -> None:
-	assert re.findall(r'subject\.user == "([^"]+)"', written_list[1]) == [name]
+	# Ses services, et les paramètres du service (https://github.com/dascritch/machincast/issues/603).
+	assert set(re.findall(r'subject\.user == "([^"]+)"', written_list[1])) == {name}
 
 
 # ─── Raccourci et icône de l'interface (https://github.com/dascritch/machincast/issues/62) ─────

@@ -306,6 +306,8 @@ SECOND_FACTORS: dict[SecondFactor, str] = {
 }
 """Le second facteur de chaque connexion à l'intranet, dans l'ordre de la page « Intranet »
 (https://github.com/dascritch/machincast/issues/601)."""
+READ_ONLY = _("Consultation only: an administrator did not allow to set the service.")
+"""Le bandeau de la fenêtre en consultation (https://github.com/dascritch/machincast/issues/603)."""
 IN_PRODUCTION = _("Impossible in production: the intranet server is installed as a service.")
 
 
@@ -512,6 +514,7 @@ class PreferencesWindow(QDialog):
 		timers: bool | None = None,
 		configuration: Path | None = None,
 		offered: Sequence[Offered] = (),
+		read_only: bool = False,
 	) -> None:
 		super().__init__(parent)
 		self.ui = Ui_PreferencesWindow()
@@ -599,6 +602,24 @@ class PreferencesWindow(QDialog):
 		if kind == SERVICE:
 			self._offer_power_save()
 		self._keep_only(kind)
+		self.read_only_banner: QLabel | None = None
+		if read_only:
+			self._read_only()
+
+	def _read_only(self) -> None:
+		"""En consultation, sans administrateur (https://github.com/dascritch/machincast/issues/603) : chaque page se
+		lit sans se régler, ses onglets toujours au choix, et seul « Fermer » reste."""
+		ui = self.ui
+		self.setWindowTitle(_("{title} (consultation)").format(title=self.windowTitle()))
+		banner = QLabel(READ_ONLY, self)
+		banner.setWordWrap(True)
+		ui.arrangement.insertWidget(0, banner)
+		self.read_only_banner = banner
+		for index in range(ui.pages.count()):
+			page = ui.pages.widget(index)
+			if page is not None:
+				page.setEnabled(False)
+		ui.buttons.setStandardButtons(QDialogButtonBox.StandardButton.Close)
 
 	def _offer_first_logins(self, chosen: FirstLogin) -> None:
 		"""La sécurité de la première connexion ; « Aucune validation » grisée en production, le serveur intranet

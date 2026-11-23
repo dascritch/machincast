@@ -358,15 +358,19 @@ def set_preferences(
 	*,
 	configuration: Path | None = None,
 	offered: Sequence[Offered] = (),
+	read_only: bool = False,
 ) -> Settings | None:
 	"""Les préférences réglées dans leur fenêtre ; None si elle est abandonnée
 	(https://github.com/dascritch/machincast/issues/145). Le service de diffusion en marche verrouille la carte de
 	l'antenne (https://github.com/dascritch/machincast/issues/339). kind : les préférences de l'interface, ou les
 	paramètres du service (https://github.com/dascritch/machincast/issues/389). configuration : le fichier que la
 	page « Sauvegarde » copie (https://github.com/dascritch/machincast/issues/347). offered : les plugins de l'onglet
-	« Plugins » (https://github.com/dascritch/machincast/issues/587)."""
-	window = PreferencesWindow(settings, output, parent, service, kind, configuration=configuration, offered=offered)
-	if window.exec() != QDialog.DialogCode.Accepted:
+	« Plugins » (https://github.com/dascritch/machincast/issues/587). read_only : en consultation, sans administrateur,
+	elle se ferme sans rien régler (https://github.com/dascritch/machincast/issues/603)."""
+	window = PreferencesWindow(
+		settings, output, parent, service, kind, configuration=configuration, offered=offered, read_only=read_only
+	)
+	if (window.exec() != QDialog.DialogCode.Accepted) or (read_only):
 		return None
 	return window.settings()
 
