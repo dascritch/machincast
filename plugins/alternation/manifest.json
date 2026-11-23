@@ -1,0 +1,13 @@
+{
+	"name": "alternation",
+	"version": "0.1.0",
+	"description": "Shows that share the same slot, one per week of the month: an event that plays, each week, the chosen one",
+	"machincast": ">=0.9",
+	"binaries": ["Machin_player", "Machin_interface", "Machin_intranet"],
+	"l10n": {
+		"fr": {
+			"name": "Émissions en alternance",
+			"description": "Des émissions qui se partagent le même créneau, une par semaine du mois : un événement joue, chaque semaine, celle qui est choisie"
+		}
+	}
+}

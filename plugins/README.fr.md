@@ -6,4 +6,5 @@ Pour en écrire un : [doc/fr/developpement/plugins.md](../doc/fr/developpement/p
 
 ## Plugins
 
+- [alternation](alternation/README.md) : les émissions en alternance, qui se partagent le même créneau, une par semaine du mois ([#609](https://github.com/dascritch/machincast/issues/609)).
 - [cartwall](cartwall/README.md) : le cartouchier, des boutons tactiles dans Machin intranet qui agissent sur l'antenne ([#512](https://github.com/dascritch/machincast/issues/512)).
