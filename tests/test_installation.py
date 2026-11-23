@@ -1,6 +1,7 @@
 """Étapes des scénarios de vérification de l'installation (https://github.com/dascritch/machincast/issues/40)."""
 
 import grp
+import json
 import os
 import pty
 import pwd
@@ -1467,3 +1468,55 @@ def sh_resumes_service() -> None:
 	resumed = body.index("\treprendre_le_service_installe\n")
 	assert resumed < body.index("confirmer_le_poste_dedie") < body.index("verifier_systeme")
 	assert '"${SERVICE_DEJA_INSTALLE}" || confirmer_le_poste_dedie' in body
+
+
+# ─── Les install.sh des plugins (https://github.com/dascritch/machincast/issues/587) ───
+
+
+@given(
+	parsers.parse(
+		"les plugins « {named} » avec un install.sh, « {silent} » sans install.sh, activés avec « {absent} »"
+	),
+	target_fixture="plugin_configuration",
+)
+def plugins_with_scripts(tmp_path: Path, named: str, silent: str, absent: str) -> Path:
+	directory = tmp_path / "plugins"
+	for name in (named, silent):
+		(directory / name).mkdir(parents=True)
+		manifest = {"name": name, "version": "1.0", "description": "A clock", "binaries": ["Machin_player"]}
+		(directory / name / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+	(directory / named / "install.sh").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+	configuration = tmp_path / "plugins.toml"
+	text = sample_configuration_path().read_text(encoding="utf-8")
+	configuration.write_text(
+		f'{text}\n[plugins]\nenabled = ["{absent}", "{silent}", "{named}"]\ndirectory = "{directory}"\n',
+		encoding="utf-8",
+	)
+	return configuration
+
+
+@when(
+	parsers.parse("je lance « python -m machincast.installation {action} » avec la configuration de ces plugins"),
+	target_fixture="command",
+)
+def launch_with_plugins(plugin_configuration: Path, action: str) -> subprocess.CompletedProcess[str]:
+	return launch(action, plugin_configuration)
+
+
+@then(parsers.parse("elle affiche seulement l'install.sh de « {name} »"))
+def only_script(command: subprocess.CompletedProcess[str], plugin_configuration: Path, name: str) -> None:
+	assert command.stdout.splitlines() == [str(plugin_configuration.parent / "plugins" / name / "install.sh")]
+
+
+@then(
+	"install.sh lance l'install.sh de chaque plugin activé, après la base et ses rôles, avec la configuration et le "
+	"Python du venv, ou --simulation"
+)
+def sh_plugins() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	steps = _function(install, "principal")
+	assert steps.index("\tpreparer_postgresql\n") < steps.index("\tinstaller_plugins\n")
+	plugins_step = _function(install, "installer_plugins")
+	assert "installation plugins" in plugins_step
+	assert 'MACHINCAST_PYTHON="${VENV}/bin/python" "${script}" --config "${CONFIGURATION}"' in plugins_step
+	assert 'MACHINCAST_PYTHON="${VENV}/bin/python" "${script}" --simulation --config "${CONFIGURATION}"' in plugins_step

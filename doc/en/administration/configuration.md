@@ -79,11 +79,12 @@ Each program only loads the plugins that concern it, and only if they can be ena
 A plugin set aside is so in the journal of the program (`Machin logs` for the broadcast), with its reasons, for instance `plugin “cartwall” not loaded: the program “ffmpeg” is missing`; the program starts anyway.
 A misspelled plugin name, or one given twice, refuses the configuration (code 2).
 
-The tables of a plugin are created by MachinCast, after a backup of the database ([#586](https://github.com/dascritch/machincast/issues/586)): when the “Broadcast service settings…” are validated, each plugin they enable is installed, by its `install.sh`, or, without one, by the common installation ([#587](https://github.com/dascritch/machincast/issues/587)); the status bar tells the end, or the failure and its reason.
+The tables of a plugin are only created by its `install.sh`, after a backup of the database ([#586](https://github.com/dascritch/machincast/issues/586)), all prefixed with its name and `__` (`cartwall__buttons`): when the “Broadcast service settings…” are validated, each plugin they enable runs its `install.sh` ([#587](https://github.com/dascritch/machincast/issues/587)); the status bar tells the end, or the failure and its reason.
+`./install.sh`, the one of MachinCast, also runs again the `install.sh` of each enabled plugin, after the database and its roles, for its updates; `./install.sh --simulation` passes it `--simulation`.
 By hand, `plugins/cartwall/install.sh` creates its tables, after a backup of the database, `--simulation` says what it would do, `--remove` takes them away, always after a backup; disabling a plugin does not take its tables away.
 As long as its tables are not created, each program sets it aside, and its journal says how to install it.
 Neither touches the tables of MachinCast nor the sound files.
-`Machin maintenance-db` also updates the tables of the enabled plugins.
+`Machin maintenance-db` does not touch the tables of the plugins.
 
 ## Expiry duration
 

@@ -655,6 +655,33 @@ installer_liens() {
 	relier "${LIEN_INSTALLATION}/bash-completion/Machin" "${LIEN_COMPLETION}"
 }
 
+# L'install.sh de chaque plugin activé, après la base et ses rôles : il crée ses tables, après une sauvegarde de la base,
+# et refait ce qu'il faut à sa mise à jour (https://github.com/dascritch/machincast/issues/587). Le Python du venv lui
+# est donné ; en simulation, il dit seulement ce qu'il ferait.
+installer_plugins() {
+	etape 'Plugins'
+	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
+		info '[simulation] plugins installed once the virtual environment is created'
+		return
+	fi
+	local scripts script
+	scripts="$(installation plugins)" || echec 'the enabled plugins cannot be read from the configuration'
+	if [[ -z "${scripts}" ]]; then
+		info 'no enabled plugin to install'
+		return
+	fi
+	while IFS= read -r script; do
+		annonce 'plugin %s' "$(basename "$(dirname "${script}")")"
+		if "${SIMULATION}"; then
+			MACHINCAST_PYTHON="${VENV}/bin/python" "${script}" --simulation --config "${CONFIGURATION}" ||
+				avertissement 'plugin %s: its install.sh failed' "${script}"
+		else
+			MACHINCAST_PYTHON="${VENV}/bin/python" "${script}" --config "${CONFIGURATION}" ||
+				echec 'plugin %s: its install.sh failed; fix it, or disable the plugin, then run install.sh again' "${script}"
+		fi
+	done <<<"${scripts}"
+}
+
 verifier_greffons() {
 	etape 'GStreamer version and plugins, audio output'
 	if "${SIMULATION}" && [[ ! -x "${VENV}/bin/python" ]]; then
@@ -1508,6 +1535,7 @@ principal() {
 	installer_venv
 	preparer_configuration
 	preparer_postgresql
+	installer_plugins
 	autoriser_journal
 	installer_liens
 	verifier_greffons

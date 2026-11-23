@@ -15,6 +15,7 @@
 	python -m machincast.installation shortcut    --config machincast.toml   raccourci de l'interface (.desktop)
 	python -m machincast.installation devices     --config machincast.toml   périphériques de sortie du poste
 	python -m machincast.installation on-air      --config machincast.toml   antenne utilisable par le service
+	python -m machincast.installation plugins     --config machincast.toml   install.sh des plugins activés
 
 devices n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.device
 et audio.preview (https://github.com/dascritch/machincast/issues/116). on-air l'est par install.sh --service, avant
@@ -50,6 +51,7 @@ from gi.repository import Gst  # noqa: E402
 from machincast import access, crash, personal, power_save, service  # noqa: E402
 from machincast import audio as audio_outputs  # noqa: E402
 from machincast import log as log_directory  # noqa: E402
+from machincast import plugins as plugin_registry  # noqa: E402
 from machincast import shortcut as write_shortcut  # noqa: E402
 from machincast.audio import PLUGINS, TRIAL, Plugin, UnavailableAudioOutput, create_output  # noqa: E402
 from machincast.cli import launch  # noqa: E402
@@ -248,6 +250,27 @@ def _databases(configuration: Configuration) -> int:
 	# Données lues par install.sh, une valeur par ligne : ce n'est pas un message, d'où l'écriture directe.
 	database = configuration.database
 	sys.stdout.write(f"{database.socket}\n{database.production}\n{database.test}\n")
+	return 0
+
+
+def plugin_installers(configuration: Configuration) -> list[Path]:
+	"""L'install.sh de chaque plugin activé qui en a un, dans l'ordre de [plugins] enabled : install.sh les lance,
+	après la base et ses rôles (https://github.com/dascritch/machincast/issues/587), pour créer leurs tables."""
+	found_list = {}
+	for found in plugin_registry.discover(plugin_registry.directory(configuration)):
+		found_list[found.name] = found
+	scripts = []
+	for name in configuration.plugins.enabled:
+		enabled = found_list.get(name)
+		if (enabled is not None) and (plugin_registry.install_script(enabled).is_file()):
+			scripts.append(plugin_registry.install_script(enabled))
+	return scripts
+
+
+def _plugins(configuration: Configuration) -> int:
+	# Données lues par install.sh, un install.sh par ligne : ce n'est pas un message, d'où l'écriture directe.
+	for script in plugin_installers(configuration):
+		sys.stdout.write(f"{script}\n")
 	return 0
 
 
@@ -1081,6 +1104,7 @@ ACTIONS = {
 	"logind": _logind,
 	"logrotate": _logrotate,
 	"migrate": _migrate,
+	"plugins": _plugins,
 	"move-personal-sounds": _move_personal_sounds,
 	"forget-personal-sounds": _forget_personal_sounds,
 	"personal-sounds": _personal_sounds,
