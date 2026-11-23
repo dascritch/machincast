@@ -20,6 +20,8 @@ dependencies = [
 	# Serveur HTTPS de l'intranet (https://github.com/dascritch/machincast/issues/538), et HTTP/2 du scénario « release »
 	# des flux (https://github.com/dascritch/machincast/issues/278).
 	"hypercorn>=0.17",
+	# Les versions des plugins et celles qu'ils demandent (https://github.com/dascritch/machincast/issues/585).
+	"packaging>=24",
 ]
 
 [project.optional-dependencies]

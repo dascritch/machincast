@@ -166,3 +166,16 @@ fallback = false
 # this file. Both, or none.
 # certificate = "tls/intranet.pem"
 # key = "tls/intranet-key.pem"
+
+
+[plugins]
+# Plugins of plugins/, at the root of MachinCast (https://github.com/dascritch/machincast/issues/348). Optional
+# section, like its keys. Each binary loads, when it starts, the enabled plugins it is listed in by their manifest,
+# if they can be enabled; a plugin set aside is so in the journal of the binary, with its reasons
+# (doc/fr/developpement/plugins.md).
+# enabled = ["cartwall"]
+# Another directory of plugins; a relative path starts from this file.
+# directory = "plugins"
+#
+# The settings of a plugin, read by the plugin itself, in its own section:
+# [plugins.cartwall]

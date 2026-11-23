@@ -83,6 +83,7 @@ Lire le bloc correspondant **avant** de modifier le code concerné :
 | `Machin_indexer` | [doc/fr/regles/indexation.md](doc/fr/regles/indexation.md) |
 | `Machin_interface` | [doc/fr/regles/interface.md](doc/fr/regles/interface.md) |
 | Wrapper `Machin`, configuration, `install.sh` | [doc/fr/regles/wrapper.md](doc/fr/regles/wrapper.md) |
+| Plugins | [doc/fr/developpement/plugins.md](doc/fr/developpement/plugins.md) |
 
 ## Impératifs
 

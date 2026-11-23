@@ -305,6 +305,10 @@ msgstr ""
 "clé intranet.certificate : un certificat se donne avec sa clé, intranet.key"
 
 #: machincast/configuration.py
+msgid "key plugins.enabled: a list of plugin names is expected"
+msgstr "clé plugins.enabled : une liste de noms de plugins est attendue"
+
+#: machincast/configuration.py
 #, python-brace-format
 msgid "{path}: {message}"
 msgstr "{path} : {message}"
@@ -508,8 +512,23 @@ msgstr ""
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid "key plugins.enabled: “{name}” is not a plugin name"
+msgstr "clé plugins.enabled : « {name} » n'est pas un nom de plugin"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid "key plugins.enabled: “{name}” is given twice"
+msgstr "clé plugins.enabled : « {name} » est donné deux fois"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid "unknown key {section}.{key}"
 msgstr "clé {section}.{key} inconnue"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid "section [plugins.{key}]: “{key}” is not a plugin name"
+msgstr "section [plugins.{key}] : « {key} » n'est pas un nom de plugin"
 
 #: machincast/crash.py
 msgid "wpctl not found"
@@ -7789,6 +7808,219 @@ msgstr ""
 "carte virtuelle « {name} » non créée ({reason}) : la sortie factice ne joue "
 "aucun son"
 
+#: machincast/plugins/__init__.py
+msgid "its check.py returns a list of reasons"
+msgstr "son check.py rend une liste de raisons"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "plugin “{name}” not loaded: {reasons}"
+msgstr "plugin « {name} » pas chargé : {reasons}"
+
+#: machincast/plugins/__init__.py
+msgid "it requires itself, through the plugins it requires"
+msgstr "il se demande lui-même, par les plugins qu'il demande"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "plugin “{name}” {version} loaded"
+msgstr "plugin « {name} » {version} chargé"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "MachinCast {version} is not one of its versions, {versions}"
+msgstr "MachinCast {version} n'est pas de ses versions, {versions}"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "the table “{table}” is missing"
+msgstr "la table « {table} » manque"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "{module} has no register(plugin) function"
+msgstr "{module} n'a pas de fonction register(plugin)"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "it requires the plugin “{name}”, which is not enabled"
+msgstr "il demande le plugin « {name} », qui n'est pas activé"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "it requires the plugin “{name}” {versions}, {version} found"
+msgstr "il demande le plugin « {name} » {versions}, {version} trouvé"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "the Python module “{module}” is missing"
+msgstr "le module Python « {module} » manque"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "the program “{program}” is missing"
+msgstr "le programme « {program} » manque"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "its tables cannot be checked: {error}"
+msgstr "ses tables ne peuvent pas être vérifiées : {error}"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "its check.py failed: {error}"
+msgstr "son check.py a échoué : {error}"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "it requires the plugin “{name}”, which is not loaded"
+msgstr "il demande le plugin « {name} », qui n'est pas chargé"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "plugin “{name}” failed to load: {error}"
+msgstr "le plugin « {name} » n'a pas pu se charger : {error}"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid "no such plugin in {directory}"
+msgstr "aucun plugin de ce nom dans {directory}"
+
+#: machincast/plugins/manifest.py
+msgid "requires: an object is expected"
+msgstr "requires : un objet est attendu"
+
+#: machincast/plugins/manifest.py
+msgid "requires.plugins: an object of plugin names and versions is expected"
+msgstr ""
+"requires.plugins : un objet de noms de plugins et de versions est attendu"
+
+#: machincast/plugins/manifest.py
+msgid "l10n: an object of languages is expected"
+msgstr "l10n : un objet de langues est attendu"
+
+#: machincast/plugins/manifest.py
+msgid "a manifest is a JSON object"
+msgstr "un manifest est un objet JSON"
+
+#: machincast/plugins/manifest.py
+msgid "binaries: at least one binary is expected"
+msgstr "binaries : au moins un binaire est attendu"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "{key}: a text is expected"
+msgstr "{key} : un texte est attendu"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "{key}: a list of texts is expected"
+msgstr "{key} : une liste de textes est attendue"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "{key}: versions such as “>=1.0,<2” are expected"
+msgstr "{key} : des versions comme « >=1.0,<2 » sont attendues"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "name: “{name}”, but the directory is “{directory}”"
+msgstr "name : « {name} », mais le répertoire est « {directory} »"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "description: {maximum} characters at most"
+msgstr "description : {maximum} caractères au plus"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "binaries: unknown {names}"
+msgstr "binaries : inconnu {names}"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "“{name}” is not a plugin name: letters, digits, “_” and “-” only"
+msgstr ""
+"« {name} » n'est pas un nom de plugin : lettres, chiffres, « _ » et « - » "
+"seulement"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "{key}: “{value}” is not a version specifier, such as “>=1.0,<2”"
+msgstr ""
+"{key} : « {value} » n'est pas un spécificateur de versions, comme « "
+">=1.0,<2 »"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "unknown key requires.{key}"
+msgstr "clé inconnue requires.{key}"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "requires.plugins: “{name}” is not a plugin name"
+msgstr "requires.plugins : « {name} » n'est pas un nom de plugin"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "l10n: unknown language “{language}”"
+msgstr "l10n : langue inconnue « {language} »"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "l10n.{language}: a name and a description are expected"
+msgstr "l10n.{language} : un nom et une description sont attendus"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "l10n.{language}.description: {maximum} characters at most"
+msgstr "l10n.{language}.description : {maximum} caractères au plus"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "unknown key {key}"
+msgstr "clé inconnue {key}"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "version: “{version}” is not a version, such as 1.0.2"
+msgstr "version : « {version} » n'est pas une version, comme 1.0.2"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "no {file}"
+msgstr "pas de {file}"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "unreadable {file}: {error}"
+msgstr "{file} illisible : {error}"
+
+#: machincast/plugins/manifest.py
+#, python-brace-format
+msgid "l10n.{language}.{key}: a text is expected"
+msgstr "l10n.{language}.{key} : un texte est attendu"
+
+#: machincast/plugins/points.py
+#, python-brace-format
+msgid "plugin “{plugin}” failed at the extension point “{point}”: {error}"
+msgstr ""
+"le plugin « {plugin} » a échoué au point d'extension « {point} » : {error}"
+
+#: machincast/plugins/points.py
+#, python-brace-format
+msgid ""
+"the extension point “{point}” of the plugin “{plugin}” starts with "
+"“{plugin}.”"
+msgstr ""
+"le point d'extension « {point} » du plugin « {plugin} » commence par « "
+"{plugin}. »"
+
+#: machincast/plugins/points.py
+#, python-brace-format
+msgid "unknown extension point “{point}”"
+msgstr "point d'extension inconnu « {point} »"
+
 #: machincast/power_save.py
 msgid "sound cards always awake"
 msgstr "cartes son toujours éveillées"
@@ -9538,6 +9770,11 @@ msgid ""
 "               and the documentation; bats runs only for the name wrapper. "
 "The full run\n"
 "               is for the tests and code review ticket.\n"
+"               Each plugin of plugins/ with a tests directory gets its own "
+"mypy --strict\n"
+"               and pytest, after those of MachinCast; with --scenarios, "
+"only for the name\n"
+"               plugins, which also runs the scenarios of the plugin base.\n"
 "               With --coverage (before --scenarios), pytest runs under "
 "coverage, the code\n"
 "               started in subprocesses included, and the summary adds the "
@@ -9685,6 +9922,12 @@ msgstr ""
 "               la documentation ; bats n'est lancé que pour le nom wrapper. "
 "Le tour\n"
 "               complet revient au ticket de tests et de revue de code.\n"
+"               Chaque plugin de plugins/ qui a un répertoire tests a son "
+"propre mypy --strict\n"
+"               et son pytest, après ceux de MachinCast ; avec --scenarios, "
+"seulement pour le\n"
+"               nom plugins, qui lance aussi les scénarios du socle des "
+"plugins.\n"
 "               Avec --coverage (avant --scenarios), pytest tourne sous "
 "coverage, sous-processus\n"
 "               compris, et le bilan ajoute le rapport de couverture : le "

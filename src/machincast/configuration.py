@@ -305,6 +305,21 @@ class Intranet:
 	"""La clé privée du certificat donné, au format PEM."""
 
 
+@dataclass(frozen=True)
+class Plugins:
+	"""Les plugins, section [plugins] (https://github.com/dascritch/machincast/issues/585) : ceux qui sont activés, le
+	répertoire où les chercher (machincast.plugins.DIRECTORY sans lui), et les réglages de chacun, ses sections
+	[plugins.<nom>], que lit le plugin."""
+
+	enabled: tuple[str, ...] = ()
+	directory: Path | None = None
+	settings: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+
+PLUGIN_NAME = re.compile(r"^[_\-a-zA-Z0-9]+$")
+"""Le nom d'un plugin, celui de son répertoire (machincast.plugins.manifest.NAME)."""
+
+
 ICON_EXTENSIONS = frozenset({".svg", ".png", ".jpg", ".jpeg"})
 """Les images acceptées pour icône, quelle que soit la casse de l'extension."""
 
@@ -324,6 +339,7 @@ class Configuration:
 	schedule: Schedule = field(default_factory=Schedule)
 	backup: Backup = field(default_factory=Backup)
 	intranet: Intranet = field(default_factory=Intranet)
+	plugins: Plugins = field(default_factory=Plugins)
 
 
 # Clés connues, par section, en anglais (https://github.com/dascritch/machincast/issues/357). Toute autre clé est
@@ -341,7 +357,9 @@ KEYS: dict[str, frozenset[str]] = {
 	"schedule": frozenset({"daily"}),
 	"backup": frozenset({"directory"}),
 	"intranet": frozenset({"enabled", "address", "port", "validation", "session", "certificate", "key"}),
+	"plugins": frozenset({"enabled", "directory"}),
 }
+"""Dans [plugins], une section [plugins.<nom>] est aussi permise : les réglages d'un plugin."""
 
 
 OLD_SECTIONS = {
@@ -381,7 +399,8 @@ class _Player:
 			if not isinstance(content, dict):
 				raise self.error(_("[{section}] must be a section").format(section=section))
 			for key in content:
-				if key not in KEYS[section]:
+				plugin = (section == "plugins") and (isinstance(content[key], dict))
+				if (key not in KEYS[section]) and (not plugin):
 					raise self.error(_("unknown key {section}.{key}").format(section=section, key=key))
 
 	def _value(self, section: str, key: str, *, mandatory: bool) -> object:
@@ -658,6 +677,31 @@ class _Player:
 			key=key,
 		)
 
+	def plugins(self) -> Plugins:
+		"""La section [plugins], facultative : la liste des plugins activés, des noms de plugins, une fois chacun, et
+		les réglages de chacun, une section par plugin (https://github.com/dascritch/machincast/issues/585)."""
+		content = self.document.get("plugins", {})
+		enabled = content.get("enabled", [])
+		if not isinstance(enabled, list):
+			raise self.error(_("key plugins.enabled: a list of plugin names is expected"))
+		names: list[str] = []
+		for name in enabled:
+			if (not isinstance(name, str)) or (not PLUGIN_NAME.match(name)):
+				raise self.error(_("key plugins.enabled: “{name}” is not a plugin name").format(name=name))
+			if name in names:
+				raise self.error(_("key plugins.enabled: “{name}” is given twice").format(name=name))
+			names.append(name)
+		settings: dict[str, dict[str, Any]] = {}
+		for key, value in content.items():
+			if isinstance(value, dict):
+				if not PLUGIN_NAME.match(key):
+					raise self.error(_("section [plugins.{key}]: “{key}” is not a plugin name").format(key=key))
+				settings[key] = dict(value)
+		directory = None
+		if "directory" in content:
+			directory = self.file_path("plugins", "directory")
+		return Plugins(enabled=tuple(names), directory=directory, settings=settings)
+
 	def file_path(self, section: str, key: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
 		path = Path(self.text(section, key)).expanduser()
@@ -772,4 +816,5 @@ def load(path: Path | None = None) -> Configuration:
 		schedule=Schedule(daily=reader.hour("schedule", "daily", DAILY)),
 		backup=Backup(directory=(reader.optional_path("backup", "directory")) or (Path.home())),
 		intranet=reader.intranet(),
+		plugins=reader.plugins(),
 	)

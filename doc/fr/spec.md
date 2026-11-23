@@ -21,6 +21,7 @@ Il fonctionne sous Linux (Ubuntu LTS).
 11. [Développements ultérieurs](#11-développements-ultérieurs)
 12. [Points à confirmer](#12-points-à-confirmer)
 13. [Intranet et API](#13-intranet-et-api)
+14. [Plugins](#14-plugins)
 
 ---
 
@@ -1827,6 +1828,7 @@ L'onglet porte la clé, `icons/api.svg`, se ferme, et se rouvre au lancement sui
 - De nouvelles clés s'ajouteront au fil du projet ; chacune est documentée dans le modèle.
 - Sections, clés et valeurs sont en anglais ([#357](https://github.com/dascritch/machincast/issues/357)), comme les commentaires du modèle.
 - La section `[intranet]`, facultative ([#538](https://github.com/dascritch/machincast/issues/538)) : `enabled` (faux par défaut), `address` (adresse IP d'écoute, `0.0.0.0` par défaut), `port` (de 1024 à 65535, 8443 par défaut), `validation` (minutes pour valider une connexion au pupitre, de 1 à 1440, 30 par défaut), `certificate` et `key` (un certificat et sa clé, en PEM, l'un avec l'autre) ; voir [§ 13](#13-intranet-et-api).
+- La section `[plugins]`, facultative ([#585](https://github.com/dascritch/machincast/issues/585)) : `enabled` (les plugins activés, une liste de noms, chacun une fois), `directory` (le répertoire des plugins, `plugins/` du dépôt par défaut), et une section `[plugins.<nom>]` par plugin, ses réglages, que lit le plugin ; voir [§ 14](#14-plugins).
 	Une ancienne section française (`[base]`, `[sorties]`, `[metadonnees]`, `[lecture]`, `[blanc_antenne]`, `[blancs]`, `configuration.OLD_SECTIONS`) est refusée, et le message nomme son nom anglais : pas de compatibilité, les installations se refont de zéro.
 	Depuis le passage du code à l'anglais ([#359](https://github.com/dascritch/machincast/issues/359)), le code emploie ces mêmes valeurs : aucune correspondance n'est faite, à la lecture comme à l'écriture des préférences, des suggestions et de la pré-écoute (`preferences.write_audio`).
 
@@ -2103,3 +2105,28 @@ Il donne aussi les occurrences qu'un événement de priorité plus haute couvre,
 - La grille est en SVG, sans script ni attribut `style`, que la Content-Security-Policy refuse : chaque bloc se place par les attributs de son SVG, et son texte reste en hCalendar.
   Le script ne fait que l'ouvrir à 07:00 ; sans lui, elle s'ouvre à 0 h.
 - La page `/documentation` mène au guide de l'antenne et à cette spécification de l'intranet, à la version installée : celle du tag de la release, ou `main` (`interface.version.documentation`).
+
+## 14. Plugins
+
+Une fonction s'ajoute à MachinCast par un plugin, sans toucher au cœur ni rejouer toute sa suite de tests ([#348](https://github.com/dascritch/machincast/issues/348)), découpé en tickets enfants.
+Guide du développeur : [Écrire un plugin](developpement/plugins.md).
+
+### 14.1 Le socle
+
+([#585](https://github.com/dascritch/machincast/issues/585), `machincast.plugins`)
+
+- **Répertoire** : un plugin est un répertoire de `plugins/`, à la racine du dépôt (ou de `[plugins] directory`), au nom de lettres, de chiffres, `_` et `-` ; il contient `README.md`, `manifest.json`, `check.py` (facultatif), `install.sh`, `src/machincast_<nom>/`, `tests/`, `bin/` et `doc/`.
+- **Manifest** (`machincast.plugins.manifest`) : nom, version PEP 440, description courte en anglais (200 caractères au plus), versions de MachinCast acceptées, binaires où il s'accroche, plugins, modules Python, programmes et tables demandés, nom et description par langue.
+	Une clé inconnue, un nom qui n'est pas celui du répertoire, un binaire inconnu, une version ou un spécificateur illisibles le refusent, avec leur raison.
+- **Activation** : `machincast.toml`, section `[plugins]`, `enabled = [...]`, chaque nom une fois ; ses réglages dans `[plugins.<nom>]`.
+	Chaque binaire charge au démarrage (`cli.launch`, `plugins.load`) les plugins activés qui s'accrochent à lui.
+- **Vérification** (`availability`) : version de MachinCast, plugins demandés activés et dans leurs versions, modules Python importables, programmes du `PATH`, tables en base (au rôle du binaire, `to_regclass`), puis `check(context)` de son `check.py`, qui rend ses raisons.
+	Un plugin écarté l'est au journal, avec ses raisons ; un plugin dont `register` lève une exception aussi ; le binaire démarre quand même.
+- **Ordre** : un plugin est chargé après ceux qu'il demande ; des plugins qui se demandent en cercle sont écartés.
+- **Chargement** : le binaire importe `machincast_<nom>` depuis `src/` du plugin, et appelle `register(plugin)` ; `plugin.context` donne la version de MachinCast, le binaire, la configuration, les plugins chargés et leurs versions, les réglages du plugin, et le dernier état de l'antenne quand le binaire le connaît (`playing`).
+- **Points d'extension** (`machincast.plugins.points`) : un point a un nom ; ceux du cœur sont dans `points.CORE`, ceux d'un plugin sont préfixés de son nom (`plugin.declare`).
+	Un plugin s'abonne à un point déclaré (`plugin.on`), sinon l'abonnement est refusé.
+	Un point **notifié** n'est pas attendu : chaque abonné est appelé dans le fil des plugins, dans l'ordre des notifications, que le binaire attend 5 secondes au plus à sa fermeture.
+	Un point **demandé** rend la réponse de chaque abonné, dans l'ordre de chargement des plugins.
+	L'exception d'un abonné est consignée avec le plugin et le point, et n'arrête ni l'appelant ni les autres abonnés.
+- **Tests** : ceux d'un plugin sont dans son `tests/` ; `Machin dev-test` lance, après ceux du cœur, un `mypy --strict` et un `pytest` par plugin qui a des tests ; avec `--scenarios`, seulement pour le nom `plugins`, qui lance aussi `plugins.feature`.

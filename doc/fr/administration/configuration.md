@@ -59,6 +59,24 @@ Une sortie impossible à écrire (dossier sans droit d'écriture, disque plein) 
 
 L'interface garde, pour chaque compte, la disposition des colonnes de chacun de ses tableaux : leur ordre, les colonnes cachées et les largeurs choisies ([#207](https://github.com/dascritch/machincast/issues/207), [Colonnes des tableaux](../utilisateur/listes.md#colonnes-des-tableaux)). Ce n'est pas un réglage du poste : il n'est pas dans `machincast.toml`, mais dans `~/.config/machincast/vues.ini` (ou `$XDG_CONFIG_HOME/machincast/vues.ini`), une section par tableau, comme `[liste-sonores]` ou `[fiche-banque-sonores]`. Supprimer ce fichier rend à tous les tableaux du compte leur disposition d'origine ; « Rétablir les colonnes », dans l'interface, le fait pour un seul. Une disposition gardée pour d'autres colonnes, par une version précédente de MachinCast, est oubliée.
 
+## Plugins
+
+Un plugin ajoute une fonction à MachinCast ([#348](https://github.com/dascritch/machincast/issues/348)) : c'est un répertoire de `plugins/`, dans le répertoire de MachinCast.
+Il s'active dans la section `[plugins]`, et ses réglages, s'il en a, vont dans sa propre section ([#585](https://github.com/dascritch/machincast/issues/585)) :
+
+```toml
+[plugins]
+enabled = ["cartwall"]
+
+[plugins.cartwall]
+# Les réglages du plugin, que décrit son README.md.
+```
+
+L'activation vaut au démarrage de chaque programme : relancer la diffusion, l'indexation, l'interface et le serveur intranet.
+Chaque programme ne charge que les plugins qui le concernent, et seulement s'ils sont activables : une version de MachinCast qui leur convient, les plugins qu'ils demandent, leurs bibliothèques, leurs programmes et leurs tables.
+Un plugin écarté l'est dans le journal du programme (`Machin logs` pour la diffusion), avec ses raisons, par exemple `plugin « cartwall » pas chargé : le programme « ffmpeg » manque` ; le programme démarre quand même.
+Un nom de plugin mal écrit, ou donné deux fois, refuse la configuration (code 2).
+
 ## Durée de péremption
 
 `database.retention` ([#268](https://github.com/dascritch/machincast/issues/268)) est la durée, en jours entiers, 1 au moins, après laquelle [`Machin purge`](commandes.md#purge-de-la-base--machin-purge) efface de la base les passages de l'airplay, les lignes du log, et les éléments supprimés ou dont le fichier a disparu. 60 jours par défaut ; un nombre décimal, un texte ou 0 sont refusés (code 2). L'interface la règle aussi, **Fichier → Préférences de l'interface…**, page **Base**, qui l'écrit dans la section `[database]`, et la fiche d'un élément supprimé donne le jour où il sera effacé.

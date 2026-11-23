@@ -6,10 +6,11 @@ import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from machincast import __version__, crash, runs
+from machincast import __version__, crash, plugins, runs
 from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
 from machincast.i18n import _
 from machincast.log import configure as configure_log
+from machincast.plugins.manifest import BINARIES
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +50,9 @@ def launch(
 	et toutes les options. Avec recording, le démarrage et la fin de l'action sont notés dans le journal et dans le log
 	de la base (https://github.com/dascritch/machincast/issues/341) ; then vient après la fin, comme le terminal que la
 	maintenance garde ouvert. L'action est surveillée (machincast.crash) : un plantage laisse un rapport dans
-	crash-dump/ (https://github.com/dascritch/machincast/issues/342). Renvoie le code de sortie : celui de l'action, ou
+	crash-dump/ (https://github.com/dascritch/machincast/issues/342). Les plugins activés qui s'accrochent au binaire
+	sont chargés avant l'action (machincast.plugins.load, https://github.com/dascritch/machincast/issues/585), et
+	leurs notifications en cours attendues après. Renvoie le code de sortie : celui de l'action, ou
 	INVALID_CONFIGURATION_CODE.
 	"""
 	configure_log(executable)
@@ -66,12 +69,17 @@ def launch(
 	if arguments is not None:
 		given = list(arguments)
 	with crash.watch(executable, given, configuration=options.config):
-		if (recording is None) or (not recording.when(options)):
-			code = action(configuration, options)
-		else:
-			code = runs.recorded(
-				configuration.database, executable, given, recording.role, lambda: action(configuration, options)
-			)
+		if executable in BINARIES:
+			plugins.load(configuration, executable)
+		try:
+			if (recording is None) or (not recording.when(options)):
+				code = action(configuration, options)
+			else:
+				code = runs.recorded(
+					configuration.database, executable, given, recording.role, lambda: action(configuration, options)
+				)
+		finally:
+			plugins.active().points.close()
 	if then is not None:
 		then(options)
 	return code

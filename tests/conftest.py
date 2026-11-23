@@ -11,7 +11,7 @@ import psycopg
 import pytest
 from PySide6.QtGui import QPalette
 
-from machincast import crash
+from machincast import crash, plugins
 from machincast.clock import FixedClock
 from machincast.indexer import audit
 from machincast.interface.application import translate_screens
@@ -165,6 +165,15 @@ SESSION_STATE = (
 )
 """Les variables qu'un module de l'interface garde pour la session, que la fenêtre règle à son ouverture : la
 pré-écoute désactivée, les préférences. Un scénario de base.feature vérifie qu'aucune ne manque."""
+
+
+@pytest.fixture(autouse=True)
+def no_plugin_left() -> Iterator[None]:
+	"""Les plugins qu'un scénario a chargés ne restent pas actifs pour le suivant
+	(https://github.com/dascritch/machincast/issues/585)."""
+	yield
+	plugins.active().points.close()
+	plugins._active = plugins.Loaded()
 
 
 @pytest.fixture(autouse=True)
