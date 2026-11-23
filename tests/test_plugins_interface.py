@@ -14,7 +14,8 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QMenu, QTreeWidget, QTreeWidgetItem, QWidget
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QAbstractItemView, QLabel, QMenu, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -25,6 +26,7 @@ from machincast.interface import preferences
 from machincast.interface.plugins_page import (
 	Installer,
 	Offered,
+	PluginEntry,
 	PluginsPage,
 	PluginWindow,
 	fill_menu,
@@ -150,32 +152,45 @@ def has_no_tab(opened: Opened) -> None:
 	assert _window(opened).plugins_page is None
 
 
-def _box(item: QTreeWidgetItem) -> str:
-	assert item.flags() & Qt.ItemFlag.ItemIsEnabled, "un plugin n'est jamais grisé : ses raisons doivent se lire"
-	if not (item.flags() & Qt.ItemFlag.ItemIsUserCheckable):
+def _box(entry: PluginEntry) -> str:
+	assert entry.isEnabled(), "un plugin n'est jamais grisé : ses raisons doivent se lire"
+	if entry.box is None:
 		return "sans case"
-	if item.checkState(0) == Qt.CheckState.Checked:
+	if entry.box.isChecked():
 		return "cochée"
 	return "décochée"
 
 
-def _items(opened: Opened) -> list[QTreeWidgetItem]:
-	tree = _page(opened).findChild(QTreeWidget, "plugins")
-	assert tree is not None
-	items = []
-	for index in range(tree.topLevelItemCount()):
-		item = tree.topLevelItem(index)
-		assert item is not None
-		items.append(item)
-	return items
+def _plugin_entries(opened: Opened) -> list[PluginEntry]:
+	page = _page(opened)
+	# Des éléments dépliables, pas un tableau.
+	assert page.findChildren(QAbstractItemView) == []
+	return page.entries
+
+
+def _heading(entry: PluginEntry) -> list[str]:
+	"""« nom version · état » : le nom, la version, l'état."""
+	title, state = entry.heading.text().split(" · ")
+	name, _space, version = title.partition(" ")
+	return [name, version, state]
+
+
+def _entry(opened: Opened, name: str) -> PluginEntry:
+	found = []
+	for entry in _plugin_entries(opened):
+		if _heading(entry)[0] == name:
+			found.append(entry)
+	assert len(found) == 1, name
+	return found[0]
 
 
 @then("l'onglet « Plugins » montre, un élément dépliable par plugin :")
 def shows(opened: Opened, datatable: list[list[str]]) -> None:
 	rows = []
-	for item in _items(opened):
-		expanded = {True: "oui", False: "non"}[item.isExpanded()]
-		rows.append([_box(item), item.text(0), item.text(1), item.text(2), expanded])
+	for entry in _plugin_entries(opened):
+		unfolded = {True: "oui", False: "non"}[entry.unfolded()]
+		assert entry.details.isHidden() != entry.unfolded()
+		rows.append([_box(entry), *_heading(entry), unfolded])
 	expected = []
 	for line in datatable[1:]:
 		cells = []
@@ -187,16 +202,13 @@ def shows(opened: Opened, datatable: list[list[str]]) -> None:
 
 @then(parsers.parse("le plugin « {name} », déplié, dit :"))
 def unfolded(opened: Opened, name: str, datatable: list[list[str]]) -> None:
-	found = []
-	for item in _items(opened):
-		if item.text(0) == name:
-			found.append(item)
-	assert len(found) == 1, name
+	entry = _entry(opened, name)
+	if not entry.unfolded():
+		entry.fold.click()
+	assert not entry.details.isHidden()
 	lines = []
-	for index in range(found[0].childCount()):
-		child = found[0].child(index)
-		assert child is not None
-		lines.append(child.text(0))
+	for label in entry.lines:
+		lines.append(label.text())
 	expected = []
 	for line in datatable:
 		expected.append(line[0].strip())
@@ -206,11 +218,29 @@ def unfolded(opened: Opened, name: str, datatable: list[list[str]]) -> None:
 		assert line.startswith(start), lines
 
 
+@then(parsers.parse("le plugin « {name} » se replie et se déplie"))
+def folds(opened: Opened, name: str) -> None:
+	entry = _entry(opened, name)
+	entry.fold.click()
+	assert (entry.unfolded(), entry.details.isHidden(), entry.fold.arrowType()) == (
+		False,
+		True,
+		Qt.ArrowType.RightArrow,
+	)
+	# Sa ligne le déplie aussi, comme sa flèche.
+	QTest.mouseClick(entry.heading, Qt.MouseButton.LeftButton)
+	assert (entry.unfolded(), entry.details.isHidden(), entry.fold.arrowType()) == (
+		True,
+		False,
+		Qt.ArrowType.DownArrow,
+	)
+
+
 def _check(opened: Opened, name: str, state: Qt.CheckState) -> None:
-	page = _page(opened)
-	for each, item in zip(page.offered_list, page.items, strict=True):
-		if each.name == name:
-			item.setCheckState(0, state)
+	for entry in _page(opened).entries:
+		if entry.plugin.name == name:
+			assert entry.box is not None
+			entry.box.setChecked(state == Qt.CheckState.Checked)
 			return
 	raise AssertionError(name)
 
@@ -518,8 +548,5 @@ def nothing_installed(installation: Installation) -> None:
 
 @then(parsers.parse("l'onglet « Plugins » a « {name} » activable"))
 def can_be_enabled(opened: Opened, name: str) -> None:
-	found = []
-	for item in _items(opened):
-		if item.text(0) == name:
-			found.append((_box(item), item.text(2)))
-	assert found == [("décochée", "activable")]
+	entry = _entry(opened, name)
+	assert (_box(entry), _heading(entry)[2]) == ("décochée", "activable")

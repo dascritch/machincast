@@ -34,6 +34,7 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 			| • manifest.json illisible    |
 		Et le plugin « horloge », déplié, dit :
 			| Dit l'heure |
+		Et le plugin « cartes » se replie et se déplie
 		Et l'onglet « Plugins » ne demande pas de relancer
 
 	Scénario: Les préférences de l'interface n'ont pas d'onglet « Plugins »

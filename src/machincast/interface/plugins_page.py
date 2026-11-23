@@ -19,14 +19,17 @@ from pathlib import Path
 
 import psycopg
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Qt, QTimer, Signal
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
+	QCheckBox,
 	QDialog,
 	QDialogButtonBox,
-	QHeaderView,
+	QFrame,
+	QHBoxLayout,
 	QLabel,
 	QMenu,
-	QTreeWidget,
-	QTreeWidgetItem,
+	QScrollArea,
+	QToolButton,
 	QVBoxLayout,
 	QWidget,
 )
@@ -37,7 +40,6 @@ from machincast.i18n import _
 from machincast.plugins.manifest import Manifest
 
 WINDOW_POINT = "interface.plugin_window"
-COLUMNS = (_("Plugin"), _("Version"), _("State"))
 AVAILABLE = _("can be enabled")
 UNAVAILABLE = _("cannot be enabled")
 NOT_AVAILABLE = _("It cannot be enabled:")
@@ -122,74 +124,119 @@ def _to_install(configuration: Configuration, found: plugins.Found) -> bool:
 		return False
 
 
+class Heading(QLabel):
+	"""La ligne d'un plugin, qui le déplie ou le replie d'un clic, comme sa flèche."""
+
+	clicked = Signal()
+
+	def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+		if event.button() == Qt.MouseButton.LeftButton:
+			self.clicked.emit()
+		super().mouseReleaseEvent(event)
+
+
+class PluginEntry(QFrame):
+	"""Un plugin, élément dépliable de l'onglet : sa case, s'il en a une, et sa ligne, « nom version · état », qui le
+	déplie ou le replie ; déplié, sa description, puis ce qui l'empêche d'être activé, une raison par ligne."""
+
+	changed = Signal()
+	"""Sa case, cochée ou décochée."""
+
+	def __init__(self, plugin: Offered, *, enabled: bool, parent: QWidget | None = None) -> None:
+		super().__init__(parent)
+		self.plugin = plugin
+		self.setObjectName(f"plugin-{plugin.name}")
+		self.setFrameShape(QFrame.Shape.StyledPanel)
+		layout = QVBoxLayout(self)
+		heading = QHBoxLayout()
+		self.fold = QToolButton(self)
+		self.fold.setObjectName("fold")
+		self.fold.setAutoRaise(True)
+		self.fold.setAccessibleName(plugin.label)
+		self.fold.clicked.connect(lambda: self._fold(unfolded=not self.unfolded()))
+		heading.addWidget(self.fold)
+		# Un plugin activé se décoche toujours ; un autre n'a de case que s'il peut être activé. Il n'est jamais grisé :
+		# ses raisons doivent se lire.
+		self.box: QCheckBox | None = None
+		if (enabled) or (plugin.reasons == ()):
+			self.box = QCheckBox(self)
+			self.box.setChecked(enabled)
+			self.box.setAccessibleName(plugin.label)
+			self.box.toggled.connect(lambda _checked: self.changed.emit())
+			heading.addWidget(self.box)
+		self.heading = Heading(" · ".join(_heading(plugin)), self)
+		self.heading.clicked.connect(lambda: self._fold(unfolded=not self.unfolded()))
+		heading.addWidget(self.heading, 1)
+		layout.addLayout(heading)
+		self.details = QWidget(self)
+		details = QVBoxLayout(self.details)
+		details.setContentsMargins(24, 0, 0, 0)
+		self.lines: list[QLabel] = []
+		for line in _lines(plugin):
+			label = QLabel(line, self.details)
+			label.setWordWrap(True)
+			label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+			if line == NOT_AVAILABLE:
+				font = label.font()
+				font.setBold(True)
+				label.setFont(font)
+			details.addWidget(label)
+			self.lines.append(label)
+		layout.addWidget(self.details)
+		self._unfolded = False
+		self._fold(unfolded=plugin.reasons != ())
+
+	def _fold(self, *, unfolded: bool) -> None:
+		"""Déplie ou replie : la flèche, vers le bas ou vers la droite, et les lignes du plugin."""
+		self._unfolded = unfolded
+		self.fold.setArrowType(Qt.ArrowType.RightArrow)
+		if unfolded:
+			self.fold.setArrowType(Qt.ArrowType.DownArrow)
+		self.details.setVisible(unfolded)
+
+	def unfolded(self) -> bool:
+		return self._unfolded
+
+	def checked(self) -> bool:
+		return (self.box is not None) and (self.box.isChecked())
+
+
 class PluginsPage(QWidget):
-	"""L'onglet « Plugins » : un élément dépliable par plugin, sa case cochée s'il est activé ; déplié, sa
-	description, puis ce qui l'empêche d'être activé, une raison par ligne. Un plugin qui ne peut pas l'être est
-	déplié d'emblée."""
+	"""L'onglet « Plugins » : un élément dépliable par plugin (PluginEntry), les uns sous les autres, sans tableau. Un
+	plugin qui ne peut pas être activé est déplié d'emblée."""
 
 	def __init__(self, offered_list: Sequence[Offered], enabled: Sequence[str], parent: QWidget | None = None) -> None:
 		super().__init__(parent)
 		self.offered_list = list(offered_list)
 		self.initial = tuple(enabled)
 		layout = QVBoxLayout(self)
-		self.tree = QTreeWidget(self)
-		self.tree.setObjectName("plugins")
-		self.tree.setColumnCount(len(COLUMNS))
-		self.tree.setHeaderLabels(list(COLUMNS))
-		self.tree.setWordWrap(True)
-		self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-		for column in (1, 2):
-			self.tree.header().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-		self.tree.header().setStretchLastSection(False)
-		self.items: list[QTreeWidgetItem] = []
+		scroll = QScrollArea(self)
+		scroll.setObjectName("plugins")
+		scroll.setWidgetResizable(True)
+		scroll.setFrameShape(QFrame.Shape.NoFrame)
+		inside = QWidget(scroll)
+		entries = QVBoxLayout(inside)
+		self.entries: list[PluginEntry] = []
 		for plugin in self.offered_list:
-			self.items.append(self._show(plugin))
-		layout.addWidget(self.tree)
+			entry = PluginEntry(plugin, enabled=plugin.name in self.initial, parent=inside)
+			entry.changed.connect(self._changed)
+			entries.addWidget(entry)
+			self.entries.append(entry)
+		entries.addStretch(1)
+		scroll.setWidget(inside)
+		layout.addWidget(scroll)
 		self.restart = QLabel(RESTART, self)
 		self.restart.setObjectName("restart")
 		self.restart.setWordWrap(True)
 		layout.addWidget(self.restart)
-		self.tree.itemChanged.connect(self._changed)
 		self._changed()
-
-	def _show(self, plugin: Offered) -> QTreeWidgetItem:
-		item = QTreeWidgetItem(self.tree, [plugin.label, plugin.version, _state(plugin)])
-		enabled = plugin.name in self.initial
-		# Un plugin activé se décoche toujours ; un autre n'a de case que s'il peut être activé. Il n'est jamais grisé :
-		# ses raisons doivent se lire.
-		item.setFlags(Qt.ItemFlag.ItemIsEnabled)
-		if (enabled) or (plugin.reasons == ()):
-			item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-			item.setCheckState(0, Qt.CheckState.Unchecked)
-		if enabled:
-			item.setCheckState(0, Qt.CheckState.Checked)
-		lines = []
-		if plugin.description != "":
-			lines.append(plugin.description)
-		if (plugin.to_install) and (plugin.reasons == ()):
-			lines.append(TO_INSTALL)
-		if plugin.reasons != ():
-			lines.append(NOT_AVAILABLE)
-		for reason in plugin.reasons:
-			lines.append(f"• {reason}")
-		for line in lines:
-			child = QTreeWidgetItem(item, [line])
-			child.setFirstColumnSpanned(True)
-			child.setToolTip(0, line)
-			child.setFlags(Qt.ItemFlag.ItemIsEnabled)
-			if line == NOT_AVAILABLE:
-				font = child.font(0)
-				font.setBold(True)
-				child.setFont(0, font)
-		item.setExpanded(plugin.reasons != ())
-		return item
 
 	def enabled(self) -> tuple[str, ...]:
 		"""Les plugins cochés : ceux qui l'étaient, dans leur ordre, puis les nouveaux, dans celui de l'onglet."""
 		checked = []
-		for plugin, item in zip(self.offered_list, self.items, strict=True):
-			if (_checkable(item)) and (item.checkState(0) == Qt.CheckState.Checked):
-				checked.append(plugin.name)
+		for entry in self.entries:
+			if entry.checked():
+				checked.append(entry.plugin.name)
 		kept = []
 		for name in self.initial:
 			if name in checked:
@@ -204,8 +251,26 @@ class PluginsPage(QWidget):
 		self.restart.setVisible(self.enabled() != self.initial)
 
 
-def _checkable(item: QTreeWidgetItem) -> bool:
-	return bool(item.flags() & Qt.ItemFlag.ItemIsUserCheckable)
+def _heading(plugin: Offered) -> list[str]:
+	parts = [plugin.label]
+	if plugin.version != "":
+		parts = [f"{plugin.label} {plugin.version}"]
+	parts.append(_state(plugin))
+	return parts
+
+
+def _lines(plugin: Offered) -> list[str]:
+	"""Ce que le plugin déplié dit : sa description, ses tables à créer, ou ses raisons."""
+	lines = []
+	if plugin.description != "":
+		lines.append(plugin.description)
+	if (plugin.to_install) and (plugin.reasons == ()):
+		lines.append(TO_INSTALL)
+	if plugin.reasons != ():
+		lines.append(NOT_AVAILABLE)
+	for reason in plugin.reasons:
+		lines.append(f"• {reason}")
+	return lines
 
 
 def _state(plugin: Offered) -> str:
