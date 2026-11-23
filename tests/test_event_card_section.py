@@ -29,11 +29,20 @@ class Note(CardSection):
 		self.setObjectName("note")
 		self.text = QLineEdit(self)
 		self.without_list = QCheckBox("Sans liste", self)
+		self.shared = QCheckBox("Créneau partagé", self)
 		arrangement = QVBoxLayout(self)
 		arrangement.addWidget(self.text)
 		arrangement.addWidget(self.without_list)
+		arrangement.addWidget(self.shared)
 		self.text.textChanged.connect(self.changed)
 		self.without_list.toggled.connect(self.replaces_items)
+		self.shared.toggled.connect(self._share)
+
+	def _share(self, shared: bool) -> None:
+		text = ""
+		if shared:
+			text = "Partagé avec « Journal du soir »."
+		self.replaces_grid.emit(text)
 
 	def grid_widget(self) -> QWidget | None:
 		return self.without_list
@@ -131,11 +140,30 @@ def enter(interface: Context, text: str) -> None:
 	_section(interface).text.setText(text)
 
 
-@when(parsers.parse("je coche « {label} » dans la section du plugin « note »"))
-def tick(interface: Context, label: str) -> None:
+@when(parsers.re(r"je (?P<gesture>coche|décoche) « (?P<label>[^»]+) » dans la section du plugin « note »"))
+def tick(interface: Context, gesture: str, label: str) -> None:
 	box = _section(interface).without_list
+	if label == "Créneau partagé":
+		box = _section(interface).shared
 	assert box.text() == label
-	box.setChecked(True)
+	box.setChecked(gesture == "coche")
+
+
+@then(parsers.re(r"la fiche de l'événement montre, à la place de l'encadré de la grille, « (?P<text>.+) »$"))
+def grid_replaced(interface: Context, text: str) -> None:
+	card = _card(interface)
+	assert card.ui.grid_group.isHidden()
+	assert not card.grid_replacement.isHidden()
+	assert card.grid_replacement.text() == text
+	top = card.ui.top
+	assert top.indexOf(card.grid_replacement) == top.indexOf(card.ui.grid_group) + 1
+
+
+@then("la fiche de l'événement montre l'encadré de la grille")
+def grid_shown(interface: Context) -> None:
+	card = _card(interface)
+	assert not card.ui.grid_group.isHidden()
+	assert card.grid_replacement.isHidden()
 
 
 @then(parsers.parse("la fiche signale « {text} »"))

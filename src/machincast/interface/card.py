@@ -228,6 +228,9 @@ class CardSection(QWidget):
 	replaces_items = Signal(bool)
 	"""Vrai : la section remplace la liste de l'événement, cachée ; faux, elle la rend. Seule la fiche d'un événement
 	l'écoute."""
+	replaces_grid = Signal(str)
+	"""Un texte : il remplace l'encadré de la grille de l'événement, caché ; vide, l'encadré revient
+	(https://github.com/dascritch/machincast/issues/609). Seule la fiche d'un événement l'écoute."""
 
 	def grid_widget(self) -> QWidget | None:
 		"""Ce que la section place sous les jours de la récurrence de la fiche d'un événement, au-dessus de
