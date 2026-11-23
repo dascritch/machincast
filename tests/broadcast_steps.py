@@ -1150,14 +1150,26 @@ def bank_outside_grid(bench: Bench, empty_database: Connection, tmp_path: Path, 
 		)
 
 
-@when(parsers.re(r"j'insère après ce sonore la (?P<kind>séquence|banque) « (?P<name>[^»]+) »"))
-def insert(bench: Bench, empty_database: Connection, kind: str, name: str) -> None:
+BLANKS = {"avant": "before", "après": "after", "avant et après": "both"}
+"""Le blanc qu'une insertion demande (https://github.com/dascritch/machincast/issues/594)."""
+
+
+@when(
+	parsers.re(
+		r"j'insère après ce sonore la (?P<kind>séquence|banque) « (?P<name>[^»]+) »"
+		r"(?:, avec un blanc (?P<blank>avant et après|avant|après))?$"
+	)
+)
+def insert(bench: Bench, empty_database: Connection, kind: str, name: str, blank: str | None) -> None:
 	table = "sequences"
 	if kind == "banque":
 		table = "banks"
 	line = empty_database.execute(f"SELECT id FROM {table} WHERE internal_name = %s", (name,)).fetchone()
 	assert line is not None
+	asked = None
+	if blank is not None:
+		asked = BLANKS[blank]
 	if kind == "banque":
-		broadcast(bench).interruptions.insert(None, int(str(line[0])))
+		broadcast(bench).interruptions.insert(None, int(str(line[0])), asked)
 		return
-	broadcast(bench).interruptions.insert(int(str(line[0])), None)
+	broadcast(bench).interruptions.insert(int(str(line[0])), None, asked)

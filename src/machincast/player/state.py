@@ -20,7 +20,9 @@ Dans l'autre sens, un client peut envoyer des demandes, une ligne JSON par deman
 « restart_sound » ou « restart_event » (INTERRUPTIONS, https://github.com/dascritch/machincast/issues/366), ou
 « restart_sequence », pour recommencer la séquence à l'antenne (https://github.com/dascritch/machincast/issues/530) ; {"command": "insert",
 "sequence": N} ou {"command": "insert", "bank": N}, pour jouer après le sonore en cours la séquence N, ou un sonore
-de la banque N (https://github.com/dascritch/machincast/issues/530) ; {"command": "reread_grid"}, après un changement de la
+de la banque N (https://github.com/dascritch/machincast/issues/530), avec, s'il le faut, "blank": "before", "after" ou
+"both", un blanc de 5 secondes avant, après, ou avant et après ce qui est inséré
+(https://github.com/dascritch/machincast/issues/594) ; {"command": "reread_grid"}, après un changement de la
 grille qui doit valoir aussitôt, comme une session sautée (https://github.com/dascritch/machincast/issues/273) ;
 {"command": "advance", "event": N}, pour que l'événement suivant annoncé, d'identifiant N, commence aussitôt
 (https://github.com/dascritch/machincast/issues/257) ; {"command": "cut_by_fallback", "event": N}, pour
@@ -74,6 +76,9 @@ CUT_BY_FALLBACK = "cut_by_fallback"
 CUT_BY_FEED = "cut_by_feed"
 INSERT = "insert"
 """Jouer après le sonore en cours une séquence, ou un sonore d'une banque (https://github.com/dascritch/machincast/issues/530)."""
+BLANKS = ("before", "after", "both")
+"""Où une insertion demande un blanc (https://github.com/dascritch/machincast/issues/594) : avant ce qui est inséré,
+après, ou les deux."""
 """Couper l'antenne par un événement de secours, ou par un feed (https://github.com/dascritch/machincast/issues/323)."""
 INTERRUPTIONS = ("sound", "sequence", "event", "restart_sound", "restart_event", "restart_sequence")
 """Ce qu'une demande peut interrompre (https://github.com/dascritch/machincast/issues/104) ; revenir au début du sonore
@@ -113,6 +118,8 @@ class Request:
 	sequence: int | None = None
 	bank: int | None = None
 	"""Pour une insertion : la séquence, ou la banque, à jouer après le sonore en cours."""
+	blank: str | None = None
+	"""Pour une insertion : où elle demande un blanc, parmi BLANKS ; None, sans blanc."""
 	origin: str = INTERFACE
 	"""La socket qui l'a reçue : INTERFACE ou INTRANET (https://github.com/dascritch/machincast/issues/549)."""
 	user: str | None = None
@@ -160,12 +167,16 @@ def cutoff_request_by_feed(feed: int) -> str:
 	return json.dumps({"command": CUT_BY_FEED, "feed": feed}) + "\n"
 
 
-def insertion_request(*, sequence: int | None = None, bank: int | None = None) -> str:
+def insertion_request(*, sequence: int | None = None, bank: int | None = None, blank: str | None = None) -> str:
 	"""La ligne qu'un client envoie pour jouer, après le sonore en cours, cette séquence ou un sonore de cette banque
-	(https://github.com/dascritch/machincast/issues/530)."""
+	(https://github.com/dascritch/machincast/issues/530), avec un blanc, s'il le demande
+	(https://github.com/dascritch/machincast/issues/594)."""
+	message: dict[str, Any] = {"command": INSERT, "bank": bank}
 	if sequence is not None:
-		return json.dumps({"command": INSERT, "sequence": sequence}) + "\n"
-	return json.dumps({"command": INSERT, "bank": bank}) + "\n"
+		message = {"command": INSERT, "sequence": sequence}
+	if blank is not None:
+		message["blank"] = blank
+	return json.dumps(message) + "\n"
 
 
 def _identifier(message: dict[str, Any], key: str) -> int:
@@ -240,15 +251,23 @@ def _command(message: dict[str, Any]) -> Request:
 		return Request(command=CUT_BY_FALLBACK, event=_identifier(message, "event"))
 	if command == CUT_BY_FEED:
 		return Request(command=CUT_BY_FEED, feed=_identifier(message, "feed"))
-	if (command == INSERT) and ("sequence" in message):
-		return Request(command=INSERT, sequence=_identifier(message, "sequence"))
 	if command == INSERT:
-		return Request(command=INSERT, bank=_identifier(message, "bank"))
+		return _insertion(message)
 	if command != INTERRUPT:
 		raise ValueError(_("unknown command: {command}").format(command=command))
 	if item not in INTERRUPTIONS:
 		raise ValueError(_("nothing of that kind to interrupt: {item}").format(item=item))
 	return Request(str(item))
+
+
+def _insertion(message: dict[str, Any]) -> Request:
+	"""Une demande d'insertion : sa séquence ou sa banque, et le blanc qu'elle demande, s'il y en a un."""
+	blank = message.pop("blank", None)
+	if (blank is not None) and (blank not in BLANKS):
+		raise ValueError(_("the blank of an insertion is “before”, “after” or “both”"))
+	if "sequence" in message:
+		return Request(command=INSERT, sequence=_identifier(message, "sequence"), blank=blank)
+	return Request(command=INSERT, bank=_identifier(message, "bank"), blank=blank)
 
 
 class BusyStateSocket(Exception):

@@ -41,6 +41,30 @@ MANUAL_INSERTION = N_("manual insertion")
 """Nature de la ligne du log d'une insertion après le sonore en cours (https://github.com/dascritch/machincast/issues/530)."""
 IGNORED_INSERTION = N_("insertion ignored")
 NOTHING_ON_AIR = N_("nothing on air")
+INSERTION_MESSAGES = {
+	("sequence", None): N_("of the sequence “{name}” after the sound “{sound_name}”"),
+	("bank", None): N_("of a sound from the bank “{name}” after the sound “{sound_name}”"),
+	("sequence", "before"): N_(
+		"of the sequence “{name}” after the sound “{sound_name}”, with a blank of 5 seconds before"
+	),
+	("bank", "before"): N_(
+		"of a sound from the bank “{name}” after the sound “{sound_name}”, with a blank of 5 seconds before"
+	),
+	("sequence", "after"): N_(
+		"of the sequence “{name}” after the sound “{sound_name}”, with a blank of 5 seconds after"
+	),
+	("bank", "after"): N_(
+		"of a sound from the bank “{name}” after the sound “{sound_name}”, with a blank of 5 seconds after"
+	),
+	("sequence", "both"): N_(
+		"of the sequence “{name}” after the sound “{sound_name}”, with a blank of 5 seconds before and after"
+	),
+	("bank", "both"): N_(
+		"of a sound from the bank “{name}” after the sound “{sound_name}”, with a blank of 5 seconds before and after"
+	),
+}
+"""Le message du log d'une insertion, selon ce qui est inséré et le blanc qu'elle demande
+(https://github.com/dascritch/machincast/issues/594)."""
 FOLLOWING_EVENT_SEARCH = timedelta(minutes=1)
 """L'événement suivant publié se cherche de nouveau au plus tard après ce délai, même si rien n'a changé."""
 
@@ -250,9 +274,10 @@ class Interruptions:
 				)
 		return N_("of the sound “{sound_name}”").format(sound_name=self._sound_name(choice.sound))
 
-	def insert(self, sequence: int | None, bank: int | None) -> bool:
+	def insert(self, sequence: int | None, bank: int | None, blank: str | None = None) -> bool:
 		"""Après le sonore en cours, la séquence, jusqu'au bout, ou un sonore de la banque, passent avant la suite de la
-		liste (https://github.com/dascritch/machincast/issues/530). Le sonore en cours n'est pas interrompu ; le
+		liste (https://github.com/dascritch/machincast/issues/530), avec un blanc avant, après, ou les deux, si blank le
+		demande (https://github.com/dascritch/machincast/issues/594). Le sonore en cours n'est pas interrompu ; le
 		prochain sonore et ceux à venir sont choisis de nouveau. False si la demande est ignorée : rien à l'antenne, ou
 		une séquence ou une banque qui n'est pas en base."""
 		instant = self.broadcast.clock.now()
@@ -264,12 +289,19 @@ class Interruptions:
 			return self._refuse(
 				IGNORED_INSERTION, N_("sequence {sequence} or bank {bank} unknown").format(sequence=sequence, bank=bank)
 			)
-		self.broadcast.scheduler.insert(Insertion(current.play.id, sequence, bank))
+		self.broadcast.scheduler.insert(
+			Insertion(
+				current.play.id,
+				sequence,
+				bank,
+				blank_before=blank in ("before", "both"),
+				blank_after=blank in ("after", "both"),
+			)
+		)
+		kind = "bank"
 		if sequence is not None:
-			message = N_("of the sequence “{name}” after the sound “{sound_name}”")
-		else:
-			message = N_("of a sound from the bank “{name}” after the sound “{sound_name}”")
-		message = message.format(name=name, sound_name=self._sound_name(current.choice.sound))
+			kind = "sequence"
+		message = INSERTION_MESSAGES[(kind, blank)].format(name=name, sound_name=self._sound_name(current.choice.sound))
 		self.broadcast.history.record(
 			self.broadcast.connection,
 			"info",

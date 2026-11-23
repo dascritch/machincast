@@ -7502,16 +7502,6 @@ msgstr "rien à l'antenne"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
-msgid "{manual_interruption} ignored"
-msgstr "{manual_interruption} ignorée"
-
-#: machincast/player/interruptions.py
-#: install.sh
-msgid "none"
-msgstr "aucun"
-
-#: machincast/player/interruptions.py
-#, python-brace-format
 msgid "of the sequence “{name}” after the sound “{sound_name}”"
 msgstr "de la séquence « {name} » après le sonore « {sound_name} »"
 
@@ -7519,6 +7509,70 @@ msgstr "de la séquence « {name} » après le sonore « {sound_name} »"
 #, python-brace-format
 msgid "of a sound from the bank “{name}” after the sound “{sound_name}”"
 msgstr "d'un sonore de la banque « {name} » après le sonore « {sound_name} »"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid ""
+"of the sequence “{name}” after the sound “{sound_name}”, with a blank of 5 "
+"seconds before"
+msgstr ""
+"de la séquence « {name} » après le sonore « {sound_name} », avec un blanc "
+"de 5 secondes avant"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid ""
+"of a sound from the bank “{name}” after the sound “{sound_name}”, with a "
+"blank of 5 seconds before"
+msgstr ""
+"d'un sonore de la banque « {name} » après le sonore « {sound_name} », avec "
+"un blanc de 5 secondes avant"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid ""
+"of the sequence “{name}” after the sound “{sound_name}”, with a blank of 5 "
+"seconds after"
+msgstr ""
+"de la séquence « {name} » après le sonore « {sound_name} », avec un blanc "
+"de 5 secondes après"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid ""
+"of a sound from the bank “{name}” after the sound “{sound_name}”, with a "
+"blank of 5 seconds after"
+msgstr ""
+"d'un sonore de la banque « {name} » après le sonore « {sound_name} », avec "
+"un blanc de 5 secondes après"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid ""
+"of the sequence “{name}” after the sound “{sound_name}”, with a blank of 5 "
+"seconds before and after"
+msgstr ""
+"de la séquence « {name} » après le sonore « {sound_name} », avec un blanc "
+"de 5 secondes avant et après"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid ""
+"of a sound from the bank “{name}” after the sound “{sound_name}”, with a "
+"blank of 5 seconds before and after"
+msgstr ""
+"d'un sonore de la banque « {name} » après le sonore « {sound_name} », avec "
+"un blanc de 5 secondes avant et après"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
+msgid "{manual_interruption} ignored"
+msgstr "{manual_interruption} ignorée"
+
+#: machincast/player/interruptions.py
+#: install.sh
+msgid "none"
+msgstr "aucun"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
@@ -7784,6 +7838,10 @@ msgstr ""
 #: machincast/player/state.py
 msgid "a request is a JSON object"
 msgstr "une demande est un objet JSON"
+
+#: machincast/player/state.py
+msgid "the blank of an insertion is “before”, “after” or “both”"
+msgstr "le blanc d'une insertion est « before », « after » ou « both »"
 
 #: machincast/player/state.py
 msgid "the user of a request is given only on the socket of the intranet"
