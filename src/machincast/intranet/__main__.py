@@ -30,7 +30,7 @@ from machincast.cli import launch
 from machincast.configuration import Configuration, Intranet
 from machincast.database import Role, open_connection
 from machincast.i18n import _
-from machincast.intranet import certificate, network, process
+from machincast.intranet import certificate, network, process, rendering
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet as Application
 from machincast.intranet.extensions import POINT, Extensions
@@ -99,6 +99,11 @@ def application(configuration: Configuration) -> Application:
 	)
 	pages.navigation = extensions.navigation
 	pages.home_sections = extensions.home
+	# Les gabarits des plugins chargés surchargent ceux de l'intranet (https://github.com/dascritch/machincast/issues/597).
+	directories = []
+	for plugin in plugins.active().plugins:
+		directories.append(plugin.directory)
+	rendering.configure(rendering.plugin_directories(directories))
 	return Application({**portal.routes(), **api.routes(), **pages.routes(), **extensions.routes()})
 
 

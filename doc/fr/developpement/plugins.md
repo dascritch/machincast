@@ -128,6 +128,20 @@ def register(plugin):
 
 Seul le plugin de la fenêtre est demandé (`Points.collect_from`) ; ses réglages s'enregistrent où il le décide, dans sa section `[plugins.<nom>]` ou ses tables.
 
+## Ses gabarits dans l'intranet
+
+Les pages de Machin intranet viennent de gabarits Jinja2, dans `src/machincast/intranet/templates/` ([#597](https://github.com/dascritch/machincast/issues/597)).
+Un plugin qui s'accroche à `Machin_intranet` en surcharge un en fournissant, dans son `templates/`, un fichier du même nom ; le premier plugin, dans l'ordre de `[plugins] enabled`, l'emporte.
+Pour ajouter à l'original plutôt que le remplacer, le gabarit l'étend sous le nom `machincast/<nom>` :
+
+```jinja
+{# plugins/horloge/templates/documentation.html.jinja #}
+{% extends "machincast/documentation.html.jinja" %}
+{% block main %}{{ super() }}<p>{{ _("Next event") }}</p>{% endblock %}
+```
+
+L'échappement est automatique ; une variable absente est une erreur. Une page du plugin rend ses propres gabarits par `tools.render("horloge.html.jinja", nom=…)`.
+
 ## Ses pages dans l'intranet
 
 Un plugin qui s'accroche à `Machin_intranet` y ajoute ses pages, ses routes d'API et ses fichiers statiques ([#588](https://github.com/dascritch/machincast/issues/588)), en répondant au point demandé `intranet.extensions` une `machincast.intranet.extensions.Extension` :

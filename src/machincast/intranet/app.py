@@ -8,12 +8,12 @@ jamais revenir en clair. Un formulaire envoyé d'une autre origine est refusé, 
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from html import escape
 from http.cookies import CookieError, SimpleCookie
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from machincast.i18n import _
+from machincast.intranet import rendering
 
 log = logging.getLogger(__name__)
 
@@ -96,19 +96,11 @@ Route = Callable[[Request], Awaitable[Response]]
 
 
 def page(title: str, body: str, status: int = 200, head: str = "") -> Response:
-	"""Une page HTML complète, en français, son titre échappé ; body et head sont déjà du HTML."""
-	text_ = f"""<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{escape(title)} — {TITLE}</title>
-{head}</head>
-<body>
-{body}
-</body>
-</html>
-"""
+	"""Une page HTML complète, en français, son titre échappé ; body et head sont déjà du HTML (page.html.jinja,
+	https://github.com/dascritch/machincast/issues/597)."""
+	text_ = rendering.render(
+		"page.html.jinja", title=title, machin=TITLE, body=rendering.html(body), head=rendering.html(head)
+	)
 	return Response(status, text_.encode("utf-8"), HTML)
 
 

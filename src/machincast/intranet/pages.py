@@ -14,7 +14,6 @@ Sans session, une page mène à la mire ; une session à valider, à la page de 
 import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime, timedelta
-from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +23,7 @@ from machincast.i18n import _
 
 # Sans Qt : machincast.interface.version ne lit que git, pour situer l'installation.
 from machincast.interface import version
-from machincast.intranet import calendar, home, hour_grid, live, template
+from machincast.intranet import calendar, home, hour_grid, live, rendering, template
 from machincast.intranet.app import Request, Response, Route, redirect
 from machincast.intranet.portal import Connect, Portal
 from machincast.intranet.queries import Connection
@@ -44,41 +43,18 @@ def specification(address: str) -> str:
 	return address.replace(version.DOCUMENTATION, SPECIFICATION)
 
 
-def documentation_body(address: str) -> str:
-	"""La page de la documentation : le guide de l'antenne et la spécification de l'API, à la version installée."""
-	return "\n".join(
-		(
-			f"<h1>{escape(_('Documentation'))}</h1>",
-			f"<p>{escape(_('MachinCast version {version}.').format(version=__version__))}</p>",
-			'<ul class="documentation">',
-			f'<li><a id="guide" href="{escape(address)}">{escape(_("Broadcast guide"))}</a></li>',
-			f'<li><a id="specification" href="{escape(specification(address))}">'
-			f"{escape(_('Intranet and API specification'))}</a></li>",
-			"</ul>",
-		)
-	)
-
-
-def calendar_body(found: list[dict[str, Any]], first: date, now: datetime) -> str:
-	"""La page du calendrier : la semaine de first en grille horaire, telle qu'elle est à now, et les liens vers la
-	précédente, celle d'aujourd'hui et la suivante."""
-	before = (first - timedelta(days=calendar.WEEK)).isoformat()
-	after = (first + timedelta(days=calendar.WEEK)).isoformat()
+def week_context(found: list[dict[str, Any]], first: date, now: datetime) -> dict[str, Any]:
+	"""Ce que calendar.html.jinja montre : la semaine de first en grille horaire, telle qu'elle est à now, et les liens
+	vers la précédente, celle d'aujourd'hui et la suivante."""
 	last = first + timedelta(days=calendar.WEEK - 1)
-	title = _("Week from {first} to {last}").format(
-		first=f"{first.day:02d}/{first.month:02d}", last=f"{last.day:02d}/{last.month:02d}/{last.year}"
-	)
-	return "\n".join(
-		(
-			f"<h1>{escape(title)}</h1>",
-			'<nav class="semaines">',
-			f'<a id="precedente" rel="prev" href="/calendar?week={before}">{escape(_("Previous week"))}</a>',
-			f'<a id="aujourdhui" href="/calendar">{escape(_("This week"))}</a>',
-			f'<a id="suivante" rel="next" href="/calendar?week={after}">{escape(_("Next week"))}</a>',
-			"</nav>",
-			hour_grid.week(found, first, now),
-		)
-	)
+	return {
+		"week_title": _("Week from {first} to {last}").format(
+			first=f"{first.day:02d}/{first.month:02d}", last=f"{last.day:02d}/{last.month:02d}/{last.year}"
+		),
+		"before": (first - timedelta(days=calendar.WEEK)).isoformat(),
+		"after": (first + timedelta(days=calendar.WEEK)).isoformat(),
+		"grid": rendering.html(hour_grid.week(found, first, now)),
+	}
 
 
 HomeSections = Callable[[Session, Request], Awaitable[tuple[str, str]]]
@@ -129,17 +105,18 @@ class Pages:
 			return redirect("/login")
 		return found
 
-	async def _framed(self, session: Session, title: str, body: str, current: str) -> Response:
-		"""Une page dans le gabarit, l'état de la diffusion lu sur la socket de Machin player."""
+	async def _framed(self, session: Session, name: str, title: str, current: str, **context: Any) -> Response:
+		"""Le gabarit name, une page dans le gabarit, l'état de la diffusion lu sur la socket de Machin player."""
 		state = await asyncio.to_thread(live.read_state, self.state_socket)
-		return template.layout(
+		return template.framed(
+			name,
 			title,
-			body,
 			radio=self.radio,
 			state=str(state.get("state", "stopped")),
 			user=session.user,
 			current=current,
 			navigation=self.navigation,
+			**context,
 		)
 
 	async def home(self, request: Request) -> Response:
@@ -152,13 +129,12 @@ class Pages:
 		sections, head = "", ""
 		if self.home_sections is not None:
 			sections, head = await self.home_sections(found, request)
-		body = home.body(direct, now)
-		if sections != "":
-			body = f"{body}\n{sections}"
-		return template.layout(
+		return template.framed(
+			"home.html.jinja",
 			_("Home"),
-			body,
 			head=head,
+			live=home.live_context(direct, now),
+			sections=rendering.html(sections),
 			radio=self.radio,
 			state=str(direct.get("state", "stopped")),
 			user=found.user,
@@ -175,7 +151,9 @@ class Pages:
 		first = calendar.week(request.query, now.date())
 		last = first + timedelta(days=calendar.WEEK)
 		entries = await self._database(lambda connection: calendar.entries(connection, first, last))
-		return await self._framed(found, _("Calendar"), calendar_body(entries, first, now), "/calendar")
+		return await self._framed(
+			found, "calendar.html.jinja", _("Calendar"), "/calendar", **week_context(entries, first, now)
+		)
 
 	async def documentation(self, request: Request) -> Response:
 		"""Les liens vers la documentation de la version installée."""
@@ -183,4 +161,12 @@ class Pages:
 		if isinstance(found, Response):
 			return found
 		address = await asyncio.to_thread(guide)
-		return await self._framed(found, _("Documentation"), documentation_body(address), "/documentation")
+		return await self._framed(
+			found,
+			"documentation.html.jinja",
+			_("Documentation"),
+			"/documentation",
+			version_text=_("MachinCast version {version}.").format(version=__version__),
+			guide=address,
+			specification=specification(address),
+		)

@@ -1,0 +1,13 @@
+{#- Une page dans le gabarit « Machin intranet » : le bandeau, puis la page (https://github.com/dascritch/machincast/issues/541). -#}
+{% extends "page.html.jinja" %}
+{% block head %}
+<link rel="stylesheet" href="/static/intranet.css">
+<script src="/static/intranet.js" defer></script>
+{{ head }}
+{% endblock %}
+{% block body %}
+{% include "banner.html.jinja" %}
+<main>
+{% block main %}{{ body }}{% endblock %}
+</main>
+{% endblock %}

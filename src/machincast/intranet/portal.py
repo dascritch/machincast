@@ -28,15 +28,15 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from html import escape
+from typing import Any
 
 import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.configuration import Intranet as Settings
 from machincast.i18n import _
-from machincast.intranet import sessions
-from machincast.intranet.app import TITLE, Request, Response, Route, page, redirect, text
+from machincast.intranet import rendering, sessions
+from machincast.intranet.app import HTML, TITLE, Request, Response, Route, redirect, text
 from machincast.intranet.sessions import COOKIE, Session
 
 Connection = psycopg.Connection[TupleRow]
@@ -126,64 +126,28 @@ class Throttle:
 		self.failures.pop(address, None)
 
 
-LOGIN_FORM = """<h1>{title}</h1>
-<form method="post" action="/login">
-<p><label>{name_label}<br><input name="name" autocomplete="username" required autofocus value="{name}"></label></p>
-<p><label>{password_label}<br><input name="password" type="password" autocomplete="current-password" required></label></p>
-<p><button type="submit">{submit}</button></p>
-</form>
-{message}"""
-VALIDATION_FORM = """<h1>{title}</h1>
-<p>{explanation}</p>
-<form method="post" action="/validation">
-<p><label>{code_label}<br><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{6,7}}" maxlength="7" required autofocus></label></p>
-<p><button type="submit">{submit}</button></p>
-</form>
-{message}
-<form method="post" action="/logout"><p><button type="submit">{logout}</button></p></form>"""
+def _page(template: str, status: int, /, **context: Any) -> Response:
+	text_ = rendering.render(template, machin=TITLE, head=rendering.html(""), **context)
+	return Response(status, text_.encode("utf-8"), HTML)
 
 
 def login_page(message: str = "", name: str = "", status: int = 200) -> Response:
-	"""La mire : le nom gardé après un refus, et ce qui l'a refusé."""
-	shown = ""
-	if message != "":
-		shown = f'<p role="alert">{escape(message)}</p>'
-	return page(
-		_("Connection"),
-		LOGIN_FORM.format(
-			title=TITLE,
-			name_label=escape(_("User name")),
-			name=escape(name),
-			password_label=escape(_("Password")),
-			submit=escape(_("Connect")),
-			message=shown,
-		),
-		status,
-	)
+	"""La mire (login.html.jinja) : le nom gardé après un refus, et ce qui l'a refusé."""
+	return _page("login.html.jinja", status, title=_("Connection"), name=name, message=message)
 
 
 def validation_page(message: str = "", status: int = 200) -> Response:
-	"""La page qui demande le code donné au pupitre, et ce qui a refusé le précédent."""
-	shown = ""
-	if message != "":
-		shown = f'<p role="alert">{escape(message)}</p>'
-	return page(
-		_("Validation at the desk"),
-		VALIDATION_FORM.format(
-			title=escape(_("Validation at the desk")),
-			explanation=escape(
-				_(
-					"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
-					"address. Once your connection is accepted there, the studio gives you a 6-digit code: enter it "
-					"here."
-				)
-			),
-			code_label=escape(_("6-digit code")),
-			submit=escape(_("Validate")),
-			message=shown,
-			logout=escape(_("Disconnect")),
-		),
+	"""La page qui demande le code donné au pupitre (validation.html.jinja), et ce qui a refusé le précédent."""
+	return _page(
+		"validation.html.jinja",
 		status,
+		title=_("Validation at the desk"),
+		explanation=_(
+			"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
+			"address. Once your connection is accepted there, the studio gives you a 6-digit code: enter it "
+			"here."
+		),
+		message=message,
 	)
 
 

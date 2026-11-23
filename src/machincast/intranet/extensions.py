@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any
 
 from machincast.i18n import _
-from machincast.intranet import live, template
+from machincast.intranet import live, rendering, template
 from machincast.intranet.api import answer, error
 from machincast.intranet.app import Request, Response, Route, redirect
 from machincast.intranet.portal import Connect, Portal
@@ -77,6 +77,11 @@ class Tools:
 	async def state(self) -> dict[str, Any]:
 		"""Le dernier état publié par Machin player."""
 		return await asyncio.to_thread(live.read_state, self.state_socket)
+
+	def render(self, template_: str, /, **context: Any) -> str:
+		"""Un gabarit Jinja2, celui du plugin, dans son templates/, ou un de l'intranet
+		(machincast.intranet.rendering, https://github.com/dascritch/machincast/issues/597)."""
+		return rendering.render(template_, **context)
 
 	async def ask(self, request: dict[str, Any]) -> live.Answer:
 		"""Une demande à Machin player, au nom du compte de la session, et sa réponse."""
@@ -217,24 +222,18 @@ class Extensions:
 			if found.state != "valid":
 				return redirect("/login")
 			tools = Tools(found, self.connect, self.state_socket)
-			status = 200
-			if allowed(found, page.role):
-				body = await page.render(tools, request)
-			else:
-				status = 403
-				body = f"<p>{escape(_('This page is for the accounts that can act on the antenna.'), quote=False)}</p>"
 			state = await tools.state()
-			return template.layout(
-				page.title,
-				body,
-				radio=self.radio,
-				state=str(state.get("state", "stopped")),
-				user=found.user,
-				current=request.path,
-				navigation=self.navigation,
-				status=status,
-				head=_assets(name, page.assets),
-			)
+			frame: dict[str, Any] = {
+				"radio": self.radio,
+				"state": str(state.get("state", "stopped")),
+				"user": found.user,
+				"current": request.path,
+				"navigation": self.navigation,
+				"head": _assets(name, page.assets),
+			}
+			if not allowed(found, page.role):
+				return template.framed("forbidden.html.jinja", page.title, status=403, **frame)
+			return template.layout(page.title, await page.render(tools, request), **frame)
 
 		return route
 

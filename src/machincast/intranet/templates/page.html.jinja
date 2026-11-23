@@ -1,0 +1,13 @@
+{#- La page HTML de l'intranet (https://github.com/dascritch/machincast/issues/597) : son titre, son en-tête, son corps. -#}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ title }} — {{ machin }}{% endblock %}</title>
+{% block head %}{{ head }}{% endblock %}
+</head>
+<body>
+{% block body %}{{ body }}{% endblock %}
+</body>
+</html>

@@ -232,7 +232,7 @@ def status_only(visit: Visit, status: str) -> None:
 @then(parsers.parse("la réponse est {status:d}, et dit « {text} »"))
 def says(visit: Visit, status: int, text: str) -> None:
 	assert _answer(visit).status == status, _answer(visit).text()
-	assert text in _answer(visit).text().replace("&#x27;", "'"), _answer(visit).text()
+	assert text in _answer(visit).text().replace("&#39;", "'"), _answer(visit).text()
 
 
 @then(
