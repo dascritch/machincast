@@ -46,6 +46,18 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Quand la grille est lue
 		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Zôtre » le 9, « Zôtre » le 16, « Zôtre » le 23, « Sonia » le 30
 
+	Scénario: Une semaine sur trois, trois émissions alternent, depuis la première occurrence
+		Étant donné l'alternance d'une semaine sur 3 de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre »
+		Quand la grille est lue
+		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Les ahuris » le 9, « Zôtre » le 16, « Sonia » le 23, « Les ahuris » le 30
+		Et le calendrier de janvier 2027 montre « Zôtre » le 6, « Sonia » le 13, « Les ahuris » le 20, « Zôtre » le 27
+
+	Scénario: Une semaine sur quatre, la rotation revient toutes les quatre semaines
+		Étant donné l'alternance d'une semaine sur 4 de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Sonia »
+		Quand la grille est lue
+		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Les ahuris » le 9, « Zôtre » le 16, « Sonia » le 23, « Sonia » le 30
+		Et le calendrier de janvier 2027 montre « Les ahuris » le 6, « Zôtre » le 13, « Sonia » le 20, « Sonia » le 27
+
 	Plan du scénario: Le rang d'un jour dans sa quinzaine, depuis la première occurrence
 		Alors depuis le « 2026-12-02 », le « <jour> » est la <rang> semaine de sa quinzaine
 
@@ -92,7 +104,7 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Et le passage du « 2026-12-16 » de « Mercredi soir » choisi : « Sonia »
 		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
 		Alors la section est cochée, et remplace la liste de lecture
-		Et son rythme est « Par mois, selon la semaine du mois », parmi « Par mois, selon la semaine du mois », « Par quinzaine, une semaine sur deux »
+		Et son rythme est « Par mois, selon la semaine du mois », parmi « Par mois, selon la semaine du mois », « Par quinzaine, une semaine sur deux », « Une semaine sur trois », « Une semaine sur quatre »
 		Et elle propose les émissions « Les ahuris », « Matinale », « Sonia », « Zôtre », dont « Les ahuris », « Sonia », « Zôtre » sont cochées
 		Et sa rotation est :
 			| rang                  | émission                |
@@ -134,6 +146,28 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 			| passage                       | émission                    |
 			| mercredi 09/12/2026 à 20:00   | Selon la rotation : Zôtre   |
 			| mercredi 16/12/2026 à 20:00   | Selon la rotation : Sonia   |
+
+	Scénario: Une semaine sur trois, la fiche montre trois semaines, chacune avec son prochain passage
+		Étant donné l'alternance d'une semaine sur 3 de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-12-05 10:00 »
+		Alors son rythme est « Une semaine sur trois »
+		Et sa rotation est :
+			| rang                                   | émission   |
+			| 1re semaine sur 3, dont le 23/12/2026 | Sonia      |
+			| 2e semaine sur 3, dont le 09/12/2026  | Les ahuris |
+			| 3e semaine sur 3, dont le 16/12/2026  | Zôtre      |
+
+	Scénario: Passer du mois à une semaine sur quatre change la rotation, et s'enregistre
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et je choisis le rythme « Une semaine sur quatre »
+		Alors la section signale un changement
+		Et la rotation montre 4 semaines
+		Quand la section s'enregistre
+		Alors « Mercredi soir » a pour propriétés :
+			"""
+			{"alternation": {"mode": "four_weekly", "candidates": [2, 3, 4], "rotation": {"1": 2, "2": 3, "3": 4, "4": 3}, "choices": {}}}
+			"""
 
 	Scénario: Passer du mois à la quinzaine change la rotation, et s'enregistre
 		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
@@ -231,29 +265,82 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Et elle dit « Enregistrez l'événement pour voir ses passages à venir. »
 		Et sa rotation est par « 1re semaine du mois », « 2e semaine du mois », « 3e semaine du mois », « 4e semaine du mois », « 5e semaine du mois »
 
+	# ─── La case, seulement avec un jour de la semaine ─────
+
+	Scénario: La case « Émissions en alternance » ne se coche qu'une fois un jour de la semaine coché
+		Quand j'ouvre la section des émissions en alternance d'un nouvel événement, le « 2026-11-23 10:00 »
+		Alors la case « Émissions en alternance » ne se coche pas, et dit « Cochez d'abord un jour de la semaine : les émissions alternent les jours de la récurrence »
+		Quand la fiche coche le jour « mercredi » de la récurrence
+		Alors la case « Émissions en alternance » se coche
+		Quand la fiche décoche tous les jours de la récurrence
+		Alors la case « Émissions en alternance » ne se coche pas, et dit « Cochez d'abord un jour de la semaine : les émissions alternent les jours de la récurrence »
+
+	Scénario: Une alternance déjà cochée se décoche toujours, mais ne s'enregistre pas sans jour de la semaine
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et la fiche décoche tous les jours de la récurrence
+		Alors la case « Émissions en alternance » se coche
+		Et la section refuse l'enregistrement : « Cochez un jour de la semaine : les émissions alternent les jours de la récurrence. »
+		Quand je décoche « Émissions en alternance »
+		Alors la case « Émissions en alternance » ne se coche pas, et dit « Cochez d'abord un jour de la semaine : les émissions alternent les jours de la récurrence »
+
+	Scénario: Dans la fiche, cocher un jour de la récurrence rend la case cochable
+		Étant donné le poste à l'heure de Paris
+		Et l'horloge de l'interface au « 2026-11-23 10:00:00 »
+		Et la section des émissions en alternance, dans la fiche d'un événement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Alors la case « Émissions en alternance » de la fiche ne se coche pas
+		Quand je coche le jour « mercredi » de la récurrence de la fiche
+		Alors la case « Émissions en alternance » de la fiche se coche
+
 	# ─── La fiche d'une émission de l'alternance ───────────
 
-	Scénario: La fiche d'une émission de l'alternance dit le créneau qu'elle partage, à la place de l'encadré de sa grille
+	Scénario: La fiche d'une émission de l'alternance montre, à la place de l'encadré de sa grille, le créneau qu'elle partage, et les autres émissions en tableau
 		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
 		Et le poste à l'heure de Paris
 		Et l'horloge de l'interface au « 2026-11-23 10:00:00 »
 		Et la section des émissions en alternance, dans la fiche d'un événement
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Les ahuris »
-		Alors la fiche montre, à la place de l'encadré de la grille, « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h, avec les émissions « Sonia » et « Zôtre ». »
+		Alors la fiche montre, à la place de l'encadré de la grille, l'encadré « Créneau partagé » : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Pour elle : 2e et 4e mercredi du mois ; prochain passage : mercredi 09/12/2026 à 20:00. »
+		Et son tableau est :
+			| Rotation                    | Prochain passage            | Émission |
+			| 1er et 5e mercredi du mois  | mercredi 02/12/2026 à 20:00 | Sonia    |
+			| 3e mercredi du mois         | mercredi 16/12/2026 à 20:00 | Zôtre    |
+		Quand je double-clique sur la ligne « Zôtre » du tableau
+		Alors l'onglet ouvert est la fiche de l'événement « Zôtre »
+		Et la fiche montre, à la place de l'encadré de la grille, l'encadré « Créneau partagé » : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Pour elle : 3e mercredi du mois ; prochain passage : mercredi 16/12/2026 à 20:00. »
 		Quand j'ouvre la fiche de l'événement « Matinale »
 		Alors la fiche montre l'encadré de la grille
 
-	Scénario: Avec une seule autre émission, la fiche la nomme
+	Scénario: Par quinzaine, avec une seule autre émission
 		Étant donné l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
 		Quand j'ouvre la section des émissions en alternance de « Sonia », le « 2026-11-23 10:00 »
-		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h, avec l'émission « Zôtre ». »
+		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h. Pour elle : 1re semaine de la quinzaine ; prochain passage : mercredi 02/12/2026 à 20:00. »
+		Et son tableau est :
+			| Rotation                   | Prochain passage            | Émission |
+			| 2e semaine de la quinzaine | mercredi 09/12/2026 à 20:00 | Zôtre    |
 
 	Scénario: Un événement méta qui revient deux jours par semaine, à la demi-heure, les dit
 		Étant donné « Mercredi soir » revient le lundi et le mercredi, de 20:30 à 21:00
 		Et l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
 		Quand j'ouvre la section des émissions en alternance de « Zôtre », le « 2026-11-23 10:00 »
-		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le lundi et le mercredi de 20h30 à 21h, avec l'émission « Sonia ». »
+		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le lundi et le mercredi de 20h30 à 21h. Pour elle : 2e semaine de la quinzaine ; prochain passage : lundi 07/12/2026 à 20:30. »
+		Et son tableau est :
+			| Rotation                    | Prochain passage          | Émission |
+			| 1re semaine de la quinzaine | lundi 30/11/2026 à 20:30  | Sonia    |
+
+	Scénario: Une émission choisie seulement à la main, ou hors de la rotation, le dit
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Sonia », « Zôtre », « Sonia », « Sonia »
+		Et « Les ahuris » et « Matinale » sont aussi parmi les émissions de « Mercredi soir »
+		Et le passage du « 2026-12-09 » de « Mercredi soir » choisi : « Les ahuris »
+		Quand j'ouvre la section des émissions en alternance de « Zôtre », le « 2026-11-23 10:00 »
+		Alors son tableau est :
+			| Rotation                     | Prochain passage            | Émission   |
+			| 1er, 2e, 4e et 5e mercredi du mois | mercredi 02/12/2026 à 20:00 | Sonia      |
+			| Choisie à la main            | mercredi 09/12/2026 à 20:00 | Les ahuris |
+			| Hors de la rotation          | —                           | Matinale   |
 
 	Scénario: La fiche de l'événement méta, ou d'un événement hors de toute alternance, garde l'encadré de sa grille
 		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »

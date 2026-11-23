@@ -24,15 +24,23 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"on {day}": "le {day}",
 		"from {start} to {end}": "de {start} à {end}",
 		"from {start} on": "à partir de {start}",
-		"“{name}”": "« {name} »",
-		"“{name}”, {when}": "« {name} », {when}",
-		"This show shares the slot {slot}.": "Cette émission partage le créneau {slot}.",
-		"This show shares the slot {slot}, with the show {others}.": (
-			"Cette émission partage le créneau {slot}, avec l'émission {others}."
+		"This show shares the slot “{name}”, {when}.": "Cette émission partage le créneau « {name} », {when}.",
+		"For it: {rule}; next broadcast: {following}.": "Pour elle : {rule} ; prochain passage : {following}.",
+		"Shared slot": "Créneau partagé",
+		"Next broadcast": "Prochain passage",
+		"Show": "Émission",
+		"Double-click to open the card of “{name}”": "Double-cliquez pour ouvrir la fiche de « {name} »",
+		"Chosen by hand": "Choisie à la main",
+		"Outside the rotation": "Hors de la rotation",
+		"Tick a day of the week first: the shows alternate on the days of the recurrence": (
+			"Cochez d'abord un jour de la semaine : les émissions alternent les jours de la récurrence"
 		),
-		"This show shares the slot {slot}, with the shows {others}.": (
-			"Cette émission partage le créneau {slot}, avec les émissions {others}."
+		"Tick a day of the week: the shows alternate on the days of the recurrence.": (
+			"Cochez un jour de la semaine : les émissions alternent les jours de la récurrence."
 		),
+		"Every third week": "Une semaine sur trois",
+		"Every fourth week": "Une semaine sur quatre",
+		"{rank} week of {count}": "{rank} semaine sur {count}",
 		"Rhythm": "Rythme",
 		"Rotation": "Rotation",
 		"Monthly, by the week of the month": "Par mois, selon la semaine du mois",
