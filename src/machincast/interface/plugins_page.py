@@ -11,10 +11,14 @@ https://github.com/dascritch/machincast/issues/348).
   « interface.plugin_window ».
 """
 
+import re
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
-from PySide6.QtCore import Qt
+import psycopg
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
 	QDialog,
 	QDialogButtonBox,
@@ -43,6 +47,10 @@ RESTART = _(
 )
 NONE_ENABLED = _("No plugin enabled")
 NO_SETTINGS = _("This plugin brings no settings here.")
+TO_INSTALL = _("Its tables will be created when the settings are validated, after a backup of the database.")
+INSTALLING = _("Installation of the plugins: {names}…")
+INSTALLED = _("plugin “{name}” installed")
+INSTALL_FAILED = _("installation of the plugin “{name}” failed, code {code}: {output}")
 
 
 @dataclass(frozen=True)
@@ -56,6 +64,9 @@ class Offered:
 	reasons: tuple[str, ...]
 	"""Pourquoi il ne peut pas être activé ; vide s'il le peut."""
 	manifest: Manifest | None = None
+	directory: Path | None = None
+	to_install: bool = False
+	"""Ses tables sont à créer : l'onglet l'installe à sa validation (https://github.com/dascritch/machincast/issues/587)."""
 
 
 def _executable(manifest: Manifest) -> str:
@@ -87,8 +98,10 @@ def _offered(found: plugins.Found, manifests: dict[str, Manifest], configuration
 	if manifest is None:
 		return Offered(found.name, found.name, "", "", (str(found.problem),))
 	reasons: list[str] = []
+	to_install = False
 	if configuration is not None:
-		reasons = plugins.availability(found, manifests, configuration, _executable(manifest))
+		reasons = plugins.availability(found, manifests, configuration, _executable(manifest), installing=True)
+		to_install = _to_install(configuration, found)
 	return Offered(
 		found.name,
 		manifest.localised("name"),
@@ -96,7 +109,17 @@ def _offered(found: plugins.Found, manifests: dict[str, Manifest], configuration
 		manifest.localised("description"),
 		tuple(reasons),
 		manifest,
+		found.directory,
+		to_install,
 	)
+
+
+def _to_install(configuration: Configuration, found: plugins.Found) -> bool:
+	"""Ses tables sont-elles à créer ? Une base qui ne répond pas est déjà dans ses raisons."""
+	try:
+		return plugins.pending_migrations(configuration, found) != []
+	except psycopg.Error:
+		return False
 
 
 class PluginsPage(QWidget):
@@ -143,6 +166,8 @@ class PluginsPage(QWidget):
 		lines = []
 		if plugin.description != "":
 			lines.append(plugin.description)
+		if (plugin.to_install) and (plugin.reasons == ()):
+			lines.append(TO_INSTALL)
 		if plugin.reasons != ():
 			lines.append(NOT_AVAILABLE)
 		for reason in plugin.reasons:
@@ -232,3 +257,94 @@ def fill_menu(menu: QMenu, configuration: Configuration, open_window: Callable[[
 		entries += 1
 	if entries == 0:
 		menu.addAction(NONE_ENABLED).setEnabled(False)
+
+
+TIMESTAMP = re.compile(r"^\S+[+-]\d\d:\d\d\s+")
+"""L'horodatage d'une ligne du journal, retiré de la raison d'un échec."""
+
+
+def installation_command(plugin: Offered, configuration: Path | None, backups: Path) -> list[str]:
+	"""Son install.sh, ou, sans lui, l'installation commune de MachinCast, sur la base de la configuration, avec sa
+	sauvegarde dans backups (machincast.plugins.installation, https://github.com/dascritch/machincast/issues/586)."""
+	assert plugin.directory is not None
+	options = ["--backups", str(backups)]
+	if configuration is not None:
+		options += ["--config", str(configuration)]
+	script = plugin.directory / "install.sh"
+	if script.is_file():
+		return [str(script), *options]
+	return [sys.executable, "-m", "machincast.plugins.installation", str(plugin.directory), *options]
+
+
+def newly_enabled(offered_list: Sequence[Offered], before: Sequence[str], after: Sequence[str]) -> list[Offered]:
+	"""Les plugins que la validation active, dans l'ordre de [plugins] enabled : chacun s'installe, ses tables créées
+	s'il en a ; un plugin désactivé ne perd rien."""
+	found: dict[str, Offered] = {}
+	for plugin in offered_list:
+		if plugin.directory is not None:
+			found[plugin.name] = plugin
+	chosen = []
+	for name in after:
+		candidate = found.get(name)
+		if (candidate is not None) and (name not in before):
+			chosen.append(candidate)
+	return chosen
+
+
+class Installer(QObject):
+	"""L'installation des plugins activés à la validation des paramètres du service, l'un après l'autre, chacun dans son
+	propre processus, sans terminal (https://github.com/dascritch/machincast/issues/587). Sa fin émet finished, avec ce
+	qu'en dit la barre d'état."""
+
+	finished = Signal(str)
+
+	def __init__(self, parent: QObject | None = None) -> None:
+		super().__init__(parent)
+		self.process: QProcess | None = None
+		self.queue: list[tuple[str, list[str]]] = []
+		self.outcomes: list[str] = []
+
+	def running(self) -> bool:
+		return self.process is not None
+
+	def start(self, plugins_: Sequence[Offered], configuration: Path | None, backups: Path) -> str:
+		"""Lance l'installation de chaque plugin ; ce qu'en dit la barre d'état."""
+		names = []
+		for plugin in plugins_:
+			self.queue.append((plugin.name, installation_command(plugin, configuration, backups)))
+			names.append(plugin.label)
+		self.outcomes = []
+		self._next()
+		return INSTALLING.format(names=", ".join(names))
+
+	def _next(self) -> None:
+		if self.queue == []:
+			self.finished.emit(" ; ".join(self.outcomes))
+			return
+		name, command = self.queue.pop(0)
+		process = QProcess(self)
+		environment = QProcessEnvironment.systemEnvironment()
+		# Le Python de l'interface, celui du venv de MachinCast, pour l'install.sh du plugin.
+		environment.insert("MACHINCAST_PYTHON", sys.executable)
+		process.setProcessEnvironment(environment)
+		process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+		process.finished.connect(lambda code, status: self._finished(name, code, status))
+		self.process = process
+		process.start(command[0], command[1:])
+
+	def _finished(self, name: str, code: int, status: QProcess.ExitStatus) -> None:
+		process = self.process
+		assert process is not None
+		self.process = None
+		output = bytes(process.readAll().data()).decode(errors="replace")
+		process.deleteLater()
+		if (code == 0) and (status == QProcess.ExitStatus.NormalExit):
+			self.outcomes.append(INSTALLED.format(name=name))
+		else:
+			last = ""
+			for line in output.splitlines():
+				if line.strip():
+					last = TIMESTAMP.sub("", line.strip())
+			self.outcomes.append(INSTALL_FAILED.format(name=name, code=code, output=last))
+		# Le suivant, ou la fin, après le retour de ce signal : le processus fini n'est plus sur la pile.
+		QTimer.singleShot(0, self._next)

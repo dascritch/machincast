@@ -257,13 +257,52 @@ def _checked(found: Found, context: Context) -> list[str]:
 	return given
 
 
+def install_script(found: Found) -> Path:
+	return found.directory / "install.sh"
+
+
+def pending_migrations(configuration: Configuration, found: Found) -> list[str]:
+	"""Les migrations du plugin pas encore appliquées à la base de production : ses tables, que MachinCast crée à son
+	installation (https://github.com/dascritch/machincast/issues/586). Lève psycopg.Error."""
+	from machincast.plugins import schema
+
+	if schema.files(found.directory) == []:
+		return []
+	settings = configuration.database
+	return schema.pending(database.url_yoyo(settings.socket, settings.production), found.directory)
+
+
+def _uninstalled(configuration: Configuration, found: Found, *, installing: bool) -> list[str]:
+	"""Ses tables pas encore créées, sauf pour l'onglet « Plugins », qui l'installe à sa validation (installing)."""
+	try:
+		pending = pending_migrations(configuration, found)
+	except psycopg.Error as error:
+		return [_("its tables cannot be checked: {error}").format(error=error)]
+	if (pending == []) or (installing):
+		return []
+	return [
+		_(
+			"its tables are not created: enable it in the settings of the broadcast service of Machin interface, "
+			"which installs it, or run {script}"
+		).format(script=install_script(found))
+	]
+
+
 def availability(
-	found: Found, manifests: Mapping[str, Manifest], configuration: Configuration, executable: str
+	found: Found,
+	manifests: Mapping[str, Manifest],
+	configuration: Configuration,
+	executable: str,
+	*,
+	installing: bool = False,
 ) -> list[str]:
-	"""Les raisons qui empêchent le plugin d'être activé : aucune s'il est activable."""
+	"""Les raisons qui empêchent le plugin d'être activé : aucune s'il est activable. installing : l'onglet « Plugins »
+	des paramètres du service, qui crée ses tables à sa validation (https://github.com/dascritch/machincast/issues/587) ;
+	ses tables à créer ne l'empêchent pas."""
 	if found.manifest is None:
 		return [str(found.problem)]
 	reasons = _requirements(found.manifest, manifests, frozenset(configuration.plugins.enabled))
+	reasons += _uninstalled(configuration, found, installing=installing)
 	reasons += _missing_tables(configuration, executable, found, found.manifest.requires.tables)
 	if reasons != []:
 		return reasons

@@ -79,7 +79,9 @@ Chaque programme ne charge que les plugins qui le concernent, et seulement s'ils
 Un plugin écarté l'est dans le journal du programme (`Machin logs` pour la diffusion), avec ses raisons, par exemple `plugin « cartwall » pas chargé : le programme « ffmpeg » manque` ; le programme démarre quand même.
 Un nom de plugin mal écrit, ou donné deux fois, refuse la configuration (code 2).
 
-Un plugin qui a ses propres tables s'installe d'abord, par son `install.sh` ([#586](https://github.com/dascritch/machincast/issues/586)) : `plugins/cartwall/install.sh` crée ses tables, après une sauvegarde de la base, `--simulation` dit ce qu'il ferait, `--remove` les retire, toujours après une sauvegarde.
+Les tables d'un plugin sont créées par MachinCast, après une sauvegarde de la base ([#586](https://github.com/dascritch/machincast/issues/586)) : à la validation des « Paramètres du service… », chaque plugin qu'ils activent s'installe, par son `install.sh`, ou, sans lui, par l'installation commune ([#587](https://github.com/dascritch/machincast/issues/587)) ; la barre d'état dit la fin, ou l'échec et sa raison.
+À la main, `plugins/cartwall/install.sh` crée ses tables, après une sauvegarde de la base, `--simulation` dit ce qu'il ferait, `--remove` les retire, toujours après une sauvegarde ; désactiver un plugin ne retire pas ses tables.
+Tant que ses tables ne sont pas créées, chaque programme l'écarte, et son journal dit comment l'installer.
 Ni l'un ni l'autre ne touche aux tables de MachinCast ni aux fichiers sonores.
 `Machin maintenance-db` met aussi à jour les tables des plugins activés.
 

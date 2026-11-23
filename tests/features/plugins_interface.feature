@@ -62,6 +62,45 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 		Quand je décoche le plugin « disparu »
 		Alors les paramètres activent les plugins « horloge »
 
+	# ─── L'installation à la validation ──────────────────
+	# Les tables d'un plugin sont créées par MachinCast (machincast.plugins.installation), après une sauvegarde de la
+	# base : à la validation des paramètres, chaque plugin qu'ils activent s'installe, par son install.sh, ou, sans lui,
+	# par l'installation commune.
+
+	Scénario: Un plugin dont les tables sont à créer est activable, et l'onglet dit qu'elles le seront à la validation
+		Étant donné le plugin « horloge » a la migration « horloge.0001.sonneries » qui crée la table « horloge_sonneries »
+		Et la base de production des scénarios est la base de test
+		Quand j'ouvre les paramètres du service
+		Alors le plugin « horloge », déplié, dit :
+			| Dit l'heure                                                                                       |
+			| Ses tables seront créées à la validation des paramètres, après une sauvegarde de la base. |
+		Et l'onglet « Plugins » a « horloge » activable
+
+	Scénario: À la validation, un plugin activé lance son install.sh, avec la sauvegarde et la configuration
+		Étant donné le plugin « horloge » a un install.sh qui note ses arguments
+		Quand je valide les paramètres en activant « horloge »
+		Alors l'install.sh de « horloge » a reçu la sauvegarde et la configuration
+		Et l'installation dit « plugin « horloge » installé »
+
+	Scénario: Sans install.sh, MachinCast installe le plugin : ses tables, après une sauvegarde de la base
+		Étant donné le plugin « horloge » a la migration « horloge.0001.sonneries » qui crée la table « horloge_sonneries »
+		Et la base de production des scénarios est la base de test
+		Quand je valide les paramètres en activant « horloge »
+		Alors l'installation dit « plugin « horloge » installé »
+		Et la table « horloge_sonneries » existe, après une sauvegarde de la base
+
+	Scénario: Un install.sh en échec le dit, avec sa dernière ligne
+		Étant donné le plugin « horloge » a un install.sh qui échoue en disant « paquet manquant »
+		Quand je valide les paramètres en activant « horloge »
+		Alors l'installation dit « installation du plugin « horloge » en échec, code 3 : paquet manquant »
+
+	Scénario: Désactiver un plugin n'installe rien, et ne retire pas ses tables
+		Étant donné les plugins activés « horloge »
+		Quand j'ouvre les paramètres du service
+		Et je décoche le plugin « horloge »
+		Et je valide les paramètres
+		Alors la validation n'installe aucun plugin
+
 	Scénario: Les plugins activés s'écrivent dans [plugins] enabled, leurs réglages restent
 		Étant donné un fichier de configuration avec « [plugins.horloge] » et « couleur = "rouge" # la couleur »
 		Quand j'enregistre les plugins activés « horloge », « cartes »

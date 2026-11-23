@@ -523,6 +523,10 @@ class MainWindow(QMainWindow):
 		self.export.triggered.connect(self._export_database)
 		self.exporting = control.Export(self)
 		self.exporting.finished.connect(self._exported_database)
+		# L'installation des plugins activés à la validation des paramètres du service
+		# (https://github.com/dascritch/machincast/issues/587).
+		self.plugin_installer = plugins_page.Installer(self)
+		self.plugin_installer.finished.connect(self.statusBar().showMessage)
 		# La lecture des sonores par le service de diffusion (https://github.com/dascritch/machincast/issues/381).
 		self.grant_read = maintenance.addAction(control.GRANT_READ)
 		self.grant_read.triggered.connect(self.broadcast.grant_read_files)
@@ -1250,6 +1254,12 @@ class MainWindow(QMainWindow):
 			)
 			return
 		text = self.apply_preferences(settings)
+		installed = plugins_page.newly_enabled(offered, shown_list.plugins, settings.plugins)
+		if installed != []:
+			# Les plugins activés s'installent, leurs tables créées après une sauvegarde : la barre d'état dira la fin.
+			text = self.plugin_installer.start(
+				installed, self.configuration, control.maintenance_backups(self.configuration)
+			)
 		if preferences.intranet_changed(shown_list, settings):
 			# Le serveur intranet prend ses réglages (https://github.com/dascritch/machincast/issues/538).
 			chosen = settings.intranet
