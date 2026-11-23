@@ -26,7 +26,8 @@ def to_background(empty_database: Connection, name: str) -> None:
 @given(parsers.parse("l'événement « {name} » passe, à la fin de sa liste, au secours « {fallback} »"))
 def to_fallback(empty_database: Connection, name: str, fallback: str) -> None:
 	empty_database.execute(
-		"UPDATE events SET end_of_list = 'fallback', end_fallback_event_id = %s WHERE id = %s",
+		"UPDATE events SET end_of_list = 'fallback',"
+		" properties = properties || jsonb_build_object('end_fallback_event', %s::bigint) WHERE id = %s",
 		(_event(empty_database, fallback), _event(empty_database, name)),
 	)
 
@@ -34,7 +35,8 @@ def to_fallback(empty_database: Connection, name: str, fallback: str) -> None:
 @given(parsers.parse("l'événement « {name} » a pour secours d'un stream tombé « {fallback} »"))
 def stream_fallback(empty_database: Connection, name: str, fallback: str) -> None:
 	empty_database.execute(
-		"UPDATE events SET stream_fallback_event_id = %s WHERE id = %s",
+		"UPDATE events SET properties = properties || jsonb_build_object('stream_fallback_event', %s::bigint)"
+		" WHERE id = %s",
 		(_event(empty_database, fallback), _event(empty_database, name)),
 	)
 

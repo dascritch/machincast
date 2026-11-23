@@ -62,22 +62,22 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 11 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin, 0010.api-sessions-without-code, 0011.api-second-factor »
+		Alors 12 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin, 0010.api-sessions-without-code, 0011.api-second-factor, 0012.properties »
 
 	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
 		https://github.com/dascritch/machincast/issues/454
 		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
 		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
-		Et j'annule les 9 dernières migrations
+		Et j'annule les 10 dernières migrations
 		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	Scénario: Annuler l'ordre ascendant du tableau ramène ces banques à l'ordre descendant, le mode séquentiel
 		https://github.com/dascritch/machincast/issues/535
 		Quand j'enregistre dans "banks" : internal_name = 'Jingles', mode = 'sequential_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
-		Et j'annule les 8 dernières migrations
+		Et j'annule les 9 dernières migrations
 		Alors les banques « Jingles », « Chroniques » sont en modes « sequential », « filename_ascending »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
@@ -197,7 +197,7 @@ Fonctionnalité: Schéma de la base de données
 		Étant donné les éléments de référence en base
 		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
 		Et j'enregistre dans "api_sessions" : user_id = 1, token_hash = repeat('b', 64), validate_before = now()
-		Et j'annule les 2 dernières migrations
+		Et j'annule les 3 dernières migrations
 		Alors la session de l'intranet sans code est invalide
 
 	Plan du scénario: La clé de l'application d'authentification d'un compte est en base32, de 32 caractères
@@ -410,15 +410,15 @@ Fonctionnalité: Schéma de la base de données
 
 		Exemples:
 			| valeurs                                                                                                                                                   | verdict |
-			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'fallback', end_fallback_event_id = {secours} | accepte |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'fallback', properties = '{"end_fallback_event": {secours}}' | accepte |
 			| internal_name = 'X', priority = 'special', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'background_programming'            | accepte |
 			| internal_name = 'X', priority = 'breaking', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'background_programming'           | accepte |
-			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', stream_fallback_event_id = {secours}                                               | accepte |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', properties = '{"stream_fallback_event": {secours}}'                                               | accepte |
 			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', end_of_list = 'background_programming'                                             | refuse  |
-			| internal_name = 'X', priority = 'background_programming', end_of_list = 'fallback', end_fallback_event_id = {secours}                                       | refuse  |
+			| internal_name = 'X', priority = 'background_programming', end_of_list = 'fallback', properties = '{"end_fallback_event": {secours}}'                                       | refuse  |
 			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_of_list = 'repeat'                               | refuse  |
-			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', end_fallback_event_id = {evenement}                  | refuse  |
-			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', stream_fallback_event_id = {evenement}                                             | refuse  |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', ends_at = '2026-10-19 19:00', properties = '{"end_fallback_event": {evenement}}'                  | refuse  |
+			| internal_name = 'X', priority = 'show', starts_at = '2026-10-19 18:00', properties = '{"stream_fallback_event": {evenement}}'                                             | refuse  |
 
 	Plan du scénario: Un événement de secours désigné par un événement garde sa priorité, et sa suppression laisse l'événement sans secours
 		Étant donné les éléments de référence en base
@@ -433,6 +433,33 @@ Fonctionnalité: Schéma de la base de données
 			| secours                    |
 			| secours de fin de liste    |
 			| secours d'un stream tombé  |
+
+	# ─── La colonne properties (https://github.com/dascritch/machincast/issues/607) ───
+
+	Plan du scénario: Les propriétés d'un élément sont toujours un objet JSON, vide par défaut
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "<table>" : <valeurs>, properties = <propriétés>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| table     | valeurs                                                  | propriétés                   | verdict |
+			| banks     | internal_name = 'Rappels', mode = 'random'               | '{"alternation": {"a": 1}}'  | accepte |
+			| banks     | internal_name = 'Rappels', mode = 'random'               | '[1]'                        | refuse  |
+			| sequences | internal_name = 'Matin'                                  | '"texte"'                    | refuse  |
+			| feeds     | name = 'Studio B', url = 'https://flux.exemple/b'        | 'null'                       | refuse  |
+			| sounds    | type = 'file', location = '/b.flac'                      | '{}'                         | accepte |
+			| events    | internal_name = 'X', priority = 'fallback'               | '{"end_fallback_event": "1"}' | refuse |
+
+	Scénario: Chaque table des éléments, des comptes et des sessions a sa colonne properties, vide par défaut
+		Étant donné les éléments de référence en base
+		Alors les tables « events », « banks », « sounds », « sequences », « feeds », « api_users », « api_sessions » ont une colonne properties, vide par défaut
+
+	Scénario: Annuler la colonne properties rend leurs colonnes aux secours d'un événement
+		Étant donné les éléments de référence en base
+		Et un événement de secours en base
+		Et une émission dont le secours de fin de liste est cet événement
+		Quand j'annule la dernière migration
+		Alors l'émission a, en colonne end_fallback_event_id, l'événement de secours
 
 	Plan du scénario: La mémoire tampon d'un feed va de 2 à 10 secondes, 2 par défaut
 		https://github.com/dascritch/machincast/issues/351
