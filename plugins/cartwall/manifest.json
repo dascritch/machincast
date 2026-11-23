@@ -1,0 +1,14 @@
+{
+	"name": "cartwall",
+	"version": "0.1.0",
+	"description": "Touch buttons in Machin intranet that act on the antenna, configured per account of the API",
+	"machincast": ">=0.9",
+	"binaries": ["Machin_intranet", "Machin_interface"],
+	"requires": {"tables": ["cartwall_buttons"]},
+	"l10n": {
+		"fr": {
+			"name": "Cartouchier",
+			"description": "Des boutons tactiles dans Machin intranet qui agissent sur l'antenne, réglés par compte de l'API"
+		}
+	}
+}

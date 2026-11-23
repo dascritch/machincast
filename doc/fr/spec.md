@@ -2168,3 +2168,14 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 - **Fichiers statiques** : ceux d'un seul répertoire, sans sous-répertoire ni fichier caché, sous `/plugins/<nom>/static/<fichier>`, aux types `.css`, `.js`, `.svg`, `.png`, `.woff2` et `.json` ; tout autre fichier répond 404.
 - Une page ou une route au chemin invalide (autre chose que des minuscules, chiffres, `_`, `-` et `/`) n'est pas ajoutée, et c'est consigné.
 - La fonction d'une page ou d'une route reçoit un `Tools` : la session, la base au rôle `machincast_intranet` (`database`), le dernier état de l'antenne (`state`), et les demandes à Machin player au nom du compte de la session, avec leur réponse (`ask`, § 5.4).
+
+### 14.4 Le cartouchier
+
+([#512](https://github.com/dascritch/machincast/issues/512), `plugins/cartwall`, guide : [plugins/cartwall/doc/cartouchier.md](../../plugins/cartwall/doc/cartouchier.md))
+
+- Premier plugin : il s'accroche à `Machin_intranet` et à `Machin_interface`, et demande sa table `cartwall_buttons`, les boutons de chaque compte de l'API (`api_user_id`, en cascade), dans l'ordre (`position`), avec leur intitulé, leur couleur `#rrggbb`, leur action, ce qu'elle vise (séquence, banque, secours ou feed, en cascade) et, pour une insertion, son blanc ; l'intranet la lit, l'interface la règle.
+- La page `/plugins/cartwall`, « Cartouchier » au bandeau : l'antenne en direct, comme l'accueil (§ 13.4), puis les boutons du compte, grisés pour un compte « consulter », ou quand une banque « ne pas répéter » a donné le sonore à l'antenne, ou que leur cible est supprimée ; sa couleur, chaque bouton la reçoit du script, la politique de contenu refusant un style dans la page.
+- `GET /api/v1/plugins/cartwall/buttons` donne les boutons du compte, utilisables ou non ; `POST /api/v1/plugins/cartwall/press`, `{"button": N}`, au rôle « actions API », envoie la demande du bouton à Machin player, au nom du compte (`Tools.ask`, § 5.4), qui la consigne avec lui : 200 faite, 409 refusée avec sa raison, 404 pour le bouton d'un autre compte, 400 sans bouton lisible.
+- Les actions sont celles du menu « Diffusion » qui agissent sur l'antenne, sauf démarrer et arrêter : sauter au sonore suivant, après la séquence, couper l'événement par le fil musical, revenir au début du sonore, de l'événement ou de la séquence, avancer l'événement suivant publié (`next_event`), couper par un secours ou par un feed, insérer une séquence ou un sonore d'une banque, avec un blanc de 5 secondes (§ 4.9).
+- Dans l'interface, la fenêtre du plugin, menu « Plugins », règle les boutons de chaque compte : ajouter, remplacer, monter, descendre, retirer, enregistrés aussitôt.
+- Ses textes ont leur propre traduction (`machincast_cartwall.texts`) ; ses scénarios, dans `plugins/cartwall/tests/`, reprennent les fixtures du cœur, et annulent ses migrations sur la base de test à la fin de leur session.
