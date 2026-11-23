@@ -41,6 +41,11 @@ Fonctionnalité: Un plugin ajoute sa section à la fiche d'un événement
 		Et je coche « Sans liste » dans la section du plugin « note »
 		Alors la fiche de l'événement ne montre plus sa liste
 
+	Scénario: La section peut placer sa case sous les jours de la récurrence
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Alors la case « Sans liste » du plugin « note » est sous les jours de la récurrence, au-dessus de l'explication des dates
+
 	Scénario: La section peut refuser l'enregistrement, et la fiche le dit, sans rien écrire
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Journal »

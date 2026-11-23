@@ -121,6 +121,10 @@ class AlternationSection(CardSection):
 		self.candidates.itemChanged.connect(self._candidates_changed)
 		self.content.setVisible(False)
 
+	def grid_widget(self) -> QWidget | None:
+		"""La case « Émissions en alternance », sous les jours de la récurrence, dans la fiche."""
+		return self.enabled
+
 	# ─── Lecture ───────────────────────────────────────────
 
 	def read(self, identifier: int | None) -> None:

@@ -35,6 +35,9 @@ class Note(CardSection):
 		self.text.textChanged.connect(self.changed)
 		self.without_list.toggled.connect(self.replaces_items)
 
+	def grid_widget(self) -> QWidget | None:
+		return self.without_list
+
 	def read(self, identifier: int | None) -> None:
 		properties: dict[str, Any] = {}
 		if identifier is not None:
@@ -91,6 +94,26 @@ def items_shown(interface: Context) -> None:
 @then("la fiche de l'événement ne montre plus sa liste")
 def items_hidden(interface: Context) -> None:
 	assert _card(interface).ui.item_group.isHidden()
+
+
+@then(
+	parsers.parse(
+		"la case « {label} » du plugin « note » est sous les jours de la récurrence, au-dessus de l'explication des dates"
+	)
+)
+def under_days(interface: Context, label: str) -> None:
+	ui = _card(interface).ui
+	box = _section(interface).without_list
+	assert box.text() == label
+	assert box.parentWidget() is ui.grid_group
+	layout = ui.grid_layout
+	days_row = -1
+	for index in range(layout.count()):
+		if layout.itemAt(index).layout() is ui.day_layout:
+			days_row = layout.getItemPosition(index)[0]
+	box_row = layout.getItemPosition(layout.indexOf(box))[0]
+	explanation_row = layout.getItemPosition(layout.indexOf(ui.grid_explanation))[0]
+	assert (box_row, explanation_row) == (days_row + 1, days_row + 2)
 
 
 @then("la fiche n'est pas modifiée")
