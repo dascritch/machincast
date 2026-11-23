@@ -4724,7 +4724,6 @@ msgid "Type"
 msgstr "Type"
 
 #: machincast/interface/lists.py
-#: machincast/interface/plugins_page.py
 #: machincast/interface/ui/api_tab.ui
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/preview.ui
@@ -5033,15 +5032,6 @@ msgstr "plugin « {name} » installé"
 #, python-brace-format
 msgid "installation of the plugin “{name}” failed, code {code}: {output}"
 msgstr "installation du plugin « {name} » en échec, code {code} : {output}"
-
-#: machincast/interface/plugins_page.py
-msgid "Plugin"
-msgstr "Plugin"
-
-#: machincast/interface/plugins_page.py
-#: machincast/interface/window.py
-msgid "Version"
-msgstr "Version"
 
 #: machincast/interface/power_save_switch.py
 msgid "Sound cards always awake"
@@ -6592,6 +6582,10 @@ msgstr "Documentation"
 #: machincast/interface/window.py
 msgid "Report a problem…"
 msgstr "Signaler un problème…"
+
+#: machincast/interface/window.py
+msgid "Version"
+msgstr "Version"
 
 #: machincast/interface/window.py
 #, python-brace-format
