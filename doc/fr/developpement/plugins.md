@@ -134,6 +134,17 @@ def register(plugin):
 L'un et l'autre lisent l'événement, ses `properties` comprises : c'est là qu'un plugin range ses choix.
 Appelés à chaque lecture de la grille, ils ne lisent pas la base.
 
+## Sa section dans la fiche d'un événement
+
+([#611](https://github.com/dascritch/machincast/issues/611))
+
+Le point du cœur « interface.event_card » est demandé à l'ouverture de la fiche d'un événement, dans Machin interface, avec `card`, la fiche, `connection`, sa connexion, et `parent`.
+Le plugin y répond une `machincast.interface.event_card.CardSection`, un `QWidget`, montrée à côté de la liste de lecture :
+
+- `read(identifier)` lit l'événement, ou celui que la fiche copie, dans une transaction ; `None` pour un nouvel événement ;
+- `write(identifier)` s'écrit dans la transaction de l'enregistrement de l'événement, et lève `machincast.interface.card.Refusal(message, *champs)` pour le refuser : la fiche le signale, et rien n'est écrit ;
+- son signal `changed` rend la fiche modifiée ; `replaces_items(True)` cache la liste de lecture, qu'elle remplace, `replaces_items(False)` la rend.
+
 ## Ses réglages dans l'interface
 
 Le menu « Plugins » de Machin interface ouvre la fenêtre de chaque plugin activé, avec son nom, sa version et sa description ([#587](https://github.com/dascritch/machincast/issues/587)).

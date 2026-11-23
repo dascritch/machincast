@@ -29,13 +29,19 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
 - Sa copie (https://github.com/dascritch/machincast/issues/130) garde sa priorité, ses noms, son masquage et sa liste
   de lecture, sans dates ni jours : son créneau est à choisir, une émission ou un spécial ne s'enregistrant pas sans
   début.
+- Les sections des plugins (https://github.com/dascritch/machincast/issues/611) : à son ouverture, la fiche demande
+  aux plugins abonnés au point « interface.event_card » leur CardSection, montrée à côté de la liste de lecture. Elle
+  lit l'événement avec la fiche, la rend modifiée à chaque changement (changed), s'écrit dans la même transaction que
+  lui, et peut le refuser (Refusal) ; replaces_items cache la liste, qu'elle remplace.
 """
 
+import logging
 from datetime import date, datetime, timedelta
 
 from PySide6.QtCore import QDateTime, Signal
 from PySide6.QtWidgets import QBoxLayout, QDateTimeEdit, QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
 
+from machincast import plugins
 from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.i18n import _, date_and_hour
@@ -48,6 +54,27 @@ from machincast.interface.queries import events as queries
 from machincast.interface.sessions import Session, next_skipped, overlapped, reinstate, started
 from machincast.interface.ui.event_card import Ui_EventCard
 from machincast.shared.grid import DAYS, NEVER, Event, Priority, overlap, read_grid
+
+log = logging.getLogger(__name__)
+
+POINT = "interface.event_card"
+"""Le point d'extension des sections de la fiche (machincast.plugins.points.CORE)."""
+
+
+class CardSection(QWidget):
+	"""La section qu'un plugin ajoute à la fiche d'un événement (https://github.com/dascritch/machincast/issues/611)."""
+
+	changed = Signal()
+	"""Un changement de la section : la fiche est modifiée."""
+	replaces_items = Signal(bool)
+	"""Vrai : la section remplace la liste de l'événement, cachée ; faux, elle la rend."""
+
+	def read(self, identifier: int | None) -> None:
+		"""Lit l'événement, ou celui que la fiche copie, dans une transaction ; None pour un nouvel événement."""
+
+	def write(self, identifier: int) -> None:
+		"""Écrit la section, dans la transaction de l'enregistrement de l'événement ; Refusal pour le refuser."""
+
 
 PRIORITIES: tuple[tuple[str, str], ...] = (
 	("fallback", _("Fallback")),
@@ -174,7 +201,25 @@ class EventCard(Card):
 		for day in self.days:
 			day.toggled.connect(self._modify)
 			day.toggled.connect(self._hour_only)
+		self.sections = self._sections()
 		self.load()
+
+	def _sections(self) -> list[CardSection]:
+		"""Les sections des plugins, à côté de la liste ; une réponse d'un autre type est consignée, et laissée."""
+		found = []
+		data = {"card": self, "connection": self.connection, "parent": self}
+		for plugin, answer in plugins.active().points.collect(POINT, data):
+			if not isinstance(answer, CardSection):
+				log.warning(_("plugin “{plugin}”: a section of the event card is expected").format(plugin=plugin))
+			else:
+				self.ui.lists.insertWidget(0, answer)
+				answer.changed.connect(self._modify)
+				answer.replaces_items.connect(self._replace_items)
+				found.append(answer)
+		return found
+
+	def _replace_items(self, replaced: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
+		self.ui.item_group.setVisible(not replaced)
 
 	def title(self) -> str:
 		if self.is_copy():
@@ -248,6 +293,9 @@ class EventCard(Card):
 		self._warn()
 		self._end_of_list()
 		self._announce_session()
+		with self.connection.transaction():
+			for section in self.sections:
+				section.read(lu)
 
 	# ─── Session sautée (https://github.com/dascritch/machincast/issues/295) ───
 
@@ -528,6 +576,8 @@ class EventCard(Card):
 			identifier = self.identifier
 			queries.update(self.connection, identifier, values)
 		self.items.write(identifier)
+		for section in self.sections:
+			section.write(identifier)
 		return identifier
 
 	def _refuse_overlap(
