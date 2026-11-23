@@ -46,7 +46,7 @@ class Context:
 	connection: Connection | None = None
 	changes: list[None] = field(default_factory=list)
 	replaced: list[bool] = field(default_factory=list)
-	grid_texts: list[str] = field(default_factory=list)
+	grid_replaced: list[bool] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -185,7 +185,7 @@ def _open(context: Context, qtbot: QtBot, identifier: int | None, moment: str) -
 	qtbot.addWidget(section)
 	section.changed.connect(lambda: context.changes.append(None))
 	section.replaces_items.connect(context.replaced.append)
-	section.replaces_grid.connect(context.grid_texts.append)
+	section.replaces_grid.connect(context.grid_replaced.append)
 	with context.connection.transaction():
 		section.read(identifier)
 	section.show()
@@ -550,28 +550,155 @@ def card_section() -> None:
 	plugins.active().points.subscribe("alternation", "interface.event_card", section)
 
 
-@then(parsers.re(r"la fiche montre, à la place de l'encadré de la grille, « (?P<text>.+) »$"))
-def card_grid_replaced(interface: InterfaceContext, text: str) -> None:
+MODES = {3: "three_weekly", 4: "four_weekly"}
+
+
+@given(parsers.re(r"l'alternance d'une semaine sur (?P<period>\d) de « (?P<meta>[^»]+) » : (?P<names>«.+»)"))
+def every_few_weeks(empty_database: Connection, period: str, meta: str, names: str) -> None:
+	ranked: dict[str, int | None] = {}
+	candidates: list[int] = []
+	for rank, name in enumerate(_names(names), start=1):
+		chosen = _identifier(empty_database, name)
+		ranked[str(rank)] = chosen
+		if chosen not in candidates:
+			candidates.append(chosen)
+	_update(
+		empty_database,
+		meta,
+		["alternation"],
+		{"mode": MODES[int(period)], "candidates": sorted(candidates), "rotation": ranked, "choices": {}},
+	)
+
+
+@given(parsers.re(r"(?P<names>«.+») sont aussi parmi les émissions de « (?P<meta>[^»]+) »$"))
+def also_candidates(empty_database: Connection, names: str, meta: str) -> None:
+	found = empty_database.execute(
+		"SELECT properties -> 'alternation' -> 'candidates' FROM events WHERE internal_name = %s", (meta,)
+	).fetchone()
+	assert found is not None
+	candidates = list(found[0])  # type: ignore[call-overload]
+	for name in _names(names):
+		candidates.append(_identifier(empty_database, name))
+	_update(empty_database, meta, ["alternation", "candidates"], sorted(candidates))
+
+
+@then(parsers.parse("la case « Émissions en alternance » ne se coche pas, et dit « {tip} »"))
+def not_tickable(context: Context, tip: str) -> None:
+	box = _section(context).enabled
+	assert not box.isEnabled()
+	assert box.toolTip() == tip
+
+
+@then("la case « Émissions en alternance » se coche")
+def tickable(context: Context) -> None:
+	assert _section(context).enabled.isEnabled()
+
+
+@when("la fiche coche le jour « mercredi » de la récurrence")
+def wednesday_ticked(context: Context) -> None:
+	_section(context).days_changed(frozenset({2}))
+
+
+@when("la fiche décoche tous les jours de la récurrence")
+def no_day(context: Context) -> None:
+	_section(context).days_changed(frozenset())
+
+
+def _card_section(interface: InterfaceContext, context: Context) -> AlternationSection:
+	"""La section de la fiche ouverte, qui devient celle du scénario."""
+	found = opened_card(interface).findChild(AlternationSection, "alternation")
+	assert isinstance(found, AlternationSection)
+	context.section = found
+	return found
+
+
+@then(parsers.re(r"la case « Émissions en alternance » de la fiche (?P<state>ne se coche pas|se coche)"))
+def card_tickable(interface: InterfaceContext, context: Context, state: str) -> None:
+	assert _card_section(interface, context).enabled.isEnabled() == (state == "se coche")
+
+
+@when("je coche le jour « mercredi » de la récurrence de la fiche")
+def card_wednesday(interface: InterfaceContext) -> None:
 	card = opened_card(interface)
 	assert isinstance(card, EventCard)
+	card.days[2].setChecked(True)
+
+
+@then(
+	parsers.re(
+		r"la fiche montre, à la place de l'encadré de la grille, l'encadré « (?P<title>[^»]+) » : « (?P<text>.+) »$"
+	)
+)
+def card_grid_replaced(interface: InterfaceContext, context: Context, title: str, text: str) -> None:
+	card = opened_card(interface)
+	assert isinstance(card, EventCard)
+	section = _card_section(interface, context)
 	assert card.ui.grid_group.isHidden()
-	assert card.grid_replacement.text() == text
-	assert not card.grid_replacement.isHidden()
+	assert not section.shared_box.isHidden()
+	assert section.shared_box.title() == title
+	assert section.shared_text.text() == text
+	top = card.ui.top
+	assert top.indexOf(section.shared_box) == top.indexOf(card.ui.grid_group) + 1
 
 
 @then("la fiche montre l'encadré de la grille")
-def card_grid_shown(interface: InterfaceContext) -> None:
+def card_grid_shown(interface: InterfaceContext, context: Context) -> None:
 	card = opened_card(interface)
 	assert isinstance(card, EventCard)
 	assert not card.ui.grid_group.isHidden()
-	assert card.grid_replacement.isHidden()
+	assert _card_section(interface, context).shared_box.isHidden()
 
 
 @then(parsers.re(r"la section remplace l'encadré de la grille par « (?P<text>.+) »$"))
 def section_grid(context: Context, text: str) -> None:
-	assert context.grid_texts[-1] == text
+	assert context.grid_replaced[-1] is True
+	assert _section(context).shared_text.text() == text
 
 
 @then("la section laisse l'encadré de la grille")
 def section_keeps_grid(context: Context) -> None:
-	assert context.grid_texts[-1] == ""
+	assert context.grid_replaced[-1] is False
+
+
+@then("son tableau est :")
+def shared_table(context: Context, datatable: list[list[str]]) -> None:
+	table = _section(context).shared_table
+	headers = []
+	for column in range(table.columnCount()):
+		header = table.horizontalHeaderItem(column)
+		assert header is not None
+		headers.append(header.text())
+	rows = [headers]
+	for row in range(table.rowCount()):
+		cells = []
+		for column in range(table.columnCount()):
+			cell = table.item(row, column)
+			assert cell is not None
+			cells.append(cell.text())
+		rows.append(cells)
+	expected = []
+	for line in datatable:
+		cells = []
+		for cell in line:
+			cells.append(cell.strip())
+		expected.append(cells)
+	assert rows == expected
+
+
+@when(parsers.parse("je double-clique sur la ligne « {name} » du tableau"))
+def double_click(context: Context, name: str) -> None:
+	table = _section(context).shared_table
+	found = []
+	for row in range(table.rowCount()):
+		cell = table.item(row, 2)
+		if (cell is not None) and (cell.text() == name):
+			found.append(row)
+	(row,) = found
+	table.cellDoubleClicked.emit(row, 0)
+
+
+@then(parsers.parse("l'onglet ouvert est la fiche de l'événement « {name} »"))
+def card_opened(interface: InterfaceContext, name: str) -> None:
+	card = opened_card(interface)
+	assert isinstance(card, EventCard)
+	assert card.ui.internal_name.text() == name

@@ -11,62 +11,40 @@ from datetime import date, timedelta
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+	QAbstractItemView,
 	QCheckBox,
 	QComboBox,
 	QFormLayout,
+	QGroupBox,
 	QHBoxLayout,
 	QInputDialog,
 	QLabel,
 	QListWidget,
 	QListWidgetItem,
 	QPushButton,
+	QTableWidget,
+	QTableWidgetItem,
 	QVBoxLayout,
 	QWidget,
 )
 
 from machincast.clock import Clock
 from machincast.conformation import conform
-from machincast.i18n import date_and_hour, short_date
+from machincast.i18n import date_and_hour
 from machincast.interface.card import CardSection, Refusal
 from machincast.shared import grid
 from machincast_alternation import queries, rotation, sharing
+from machincast_alternation.labels import MODE_LABELS, cycle_label, rank_label
 from machincast_alternation.queries import Connection
 from machincast_alternation.texts import t
 
 IDENTIFIER = Qt.ItemDataRole.UserRole
+NAME_COLUMN = 2
+"""La colonne du nom de l'émission, dans le tableau du créneau partagé."""
 COMING = 8
 """Les prochains passages montrés."""
 HORIZON = timedelta(days=7 * 26)
 """Jusqu'où les chercher : une émission mensuelle en a huit en six mois."""
-RANKS = ("1st", "2nd", "3rd", "4th", "5th")
-
-
-def ordinal(rank: int, *, feminine: bool = False) -> str:
-	"""1er, 2e… ; 1re pour « semaine »."""
-	if (rank == 1) and (feminine):
-		return t("1st (feminine)")
-	return t(RANKS[rank - 1])
-
-
-MODE_LABELS = {
-	rotation.MONTHLY: "Monthly, by the week of the month",
-	rotation.FORTNIGHTLY: "Fortnightly, every other week",
-}
-
-
-def fortnight_label(rank: int, following: date | None) -> str:
-	"""« 1re semaine de la quinzaine, dont le 16/12/2026 » : son prochain passage, s'il est connu."""
-	text = t("{rank} week of the fortnight").format(rank=ordinal(rank, feminine=True))
-	if following is None:
-		return text
-	return t("{week}, including {day}").format(week=text, day=short_date(following))
-
-
-def rank_label(rank: int, day: int | None) -> str:
-	"""« 1er mercredi du mois », ou « 1re semaine du mois » pour un événement de plusieurs jours, ou sans jour."""
-	if day is None:
-		return t("week {rank} of the month").format(rank=ordinal(rank, feminine=True))
-	return t("{rank} {day} of the month").format(rank=ordinal(rank), day=grid.DAY_NAMES[day].lower())
 
 
 class AlternationSection(CardSection):
@@ -79,6 +57,8 @@ class AlternationSection(CardSection):
 		self.kept_choices: dict[date, int] = {}
 		self.days: list[date] = []
 		self.weekday: int | None = None
+		self.weekdays: frozenset[int] = frozenset()
+		"""Les jours de la récurrence cochés dans la fiche."""
 		self.first: date | None = None
 		"""Le jour de la première occurrence de l'événement, d'où part la quinzaine."""
 		self._loading = False
@@ -139,6 +119,21 @@ class AlternationSection(CardSection):
 		self.candidates.itemChanged.connect(self._candidates_changed)
 		self.creation.clicked.connect(self._create)
 		self.content.setVisible(False)
+		self.shared_box = QGroupBox(t("Shared slot"))
+		self.shared_box.setObjectName("shared_slot")
+		self.shared_text = QLabel(self.shared_box)
+		self.shared_text.setWordWrap(True)
+		self.shared_table = QTableWidget(0, 3, self.shared_box)
+		self.shared_table.setObjectName("shared_shows")
+		self.shared_table.setHorizontalHeaderLabels([t("Rotation"), t("Next broadcast"), t("Show")])
+		self.shared_table.verticalHeader().hide()
+		self.shared_table.horizontalHeader().setStretchLastSection(True)
+		self.shared_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+		self.shared_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+		self.shared_table.cellDoubleClicked.connect(self._open_member)
+		shared_arrangement = QVBoxLayout(self.shared_box)
+		shared_arrangement.addWidget(self.shared_text)
+		shared_arrangement.addWidget(self.shared_table)
 
 	def grid_widget(self) -> QWidget | None:
 		"""La case « Émissions en alternance », sous les jours de la récurrence, dans la fiche."""
@@ -161,6 +156,9 @@ class AlternationSection(CardSection):
 			found = rotation.Alternation()
 		self._fill_candidates(found.candidates)
 		self.weekday = _weekday(event)
+		self.weekdays = frozenset()
+		if event is not None:
+			self.weekdays = event.days
 		self.first = None
 		if event is not None:
 			self.first = rotation.first_day(event)
@@ -174,22 +172,58 @@ class AlternationSection(CardSection):
 		self.enabled.setChecked(rotation.KEY in properties)
 		self._loading = False
 		self._toggled()
-		self.replaces_grid.emit(self.shared_slot(identifier))
+		self._fill_shared(identifier)
 
-	def shared_slot(self, identifier: int | None) -> str:
-		"""Ce que dit la fiche d'une émission qu'une alternance fait jouer, à la place de l'encadré de sa grille ; rien
-		pour un autre événement (https://github.com/dascritch/machincast/issues/609)."""
-		if identifier is None:
-			return ""
-		lines = []
-		for meta, name, shared in queries.sharing(self.connection, identifier):
-			known = queries.names(self.connection, shared)
-			others = []
-			for candidate in shared:
-				if (candidate != identifier) and (candidate in known):
-					others.append(known[candidate])
-			lines.append(sharing.text(name, grid.read_event(self.connection, meta), sorted(others)))
-		return "\n".join(lines)
+	# ─── Le créneau partagé, dans la fiche d'une de ses émissions ───
+
+	def grid_replacement(self) -> QWidget | None:
+		"""L'encadré du créneau partagé, à la place de celui de la grille de la fiche d'une émission de l'alternance."""
+		return self.shared_box
+
+	def _fill_shared(self, identifier: int | None) -> None:
+		"""Le créneau que l'émission partage, et les autres émissions de son alternance, une par ligne
+		(https://github.com/dascritch/machincast/issues/609) ; rien pour un autre événement."""
+		found: list[sharing.Slot] = []
+		if identifier is not None:
+			found = sharing.slots(self.connection, identifier, self.clock)
+		texts = []
+		members = []
+		for slot in found:
+			texts.append(slot.text)
+			members.extend(slot.others)
+		self.shared_text.setText("\n".join(texts))
+		self.shared_table.setRowCount(len(members))
+		for row, member in enumerate(members):
+			for column, text in enumerate((member.rule, member.following(), member.name)):
+				cell = QTableWidgetItem(text)
+				cell.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+				cell.setData(IDENTIFIER, member.identifier)
+				cell.setToolTip(t("Double-click to open the card of “{name}”").format(name=member.name))
+				self.shared_table.setItem(row, column, cell)
+		self.shared_table.setVisible(bool(members))
+		self.shared_table.resizeColumnsToContents()
+		self.replaces_grid.emit(bool(found))
+
+	def _open_member(self, row: int, _column: int) -> None:
+		"""Le double clic sur une ligne ouvre la fiche de son émission."""
+		cell = self.shared_table.item(row, NAME_COLUMN)
+		if cell is not None:
+			self.opens.emit("event", int(cell.data(IDENTIFIER)), cell.text())
+
+	# ─── Seulement avec un jour de la semaine ──────────────
+
+	def days_changed(self, days: frozenset[int]) -> None:
+		"""Les jours de la récurrence cochés dans la fiche : sans eux, pas d'alternance."""
+		self.weekdays = days
+		self._allow()
+
+	def _allow(self) -> None:
+		"""La case ne se coche qu'avec un jour de la semaine ; cochée, elle peut toujours se décocher."""
+		self.enabled.setEnabled((bool(self.weekdays)) or (self.enabled.isChecked()))
+		tip = t("This event plays, each week, one of the shows below, instead of a play list")
+		if not self.weekdays:
+			tip = t("Tick a day of the week first: the shows alternate on the days of the recurrence")
+		self.enabled.setToolTip(tip)
 
 	def _fill_candidates(self, chosen: tuple[int, ...]) -> None:
 		self.candidates.clear()
@@ -242,21 +276,21 @@ class AlternationSection(CardSection):
 		return str(self.mode.currentData())
 
 	def rank_boxes(self) -> list[QComboBox]:
-		"""Les listes de la rotation du rythme choisi : cinq semaines du mois, ou deux de la quinzaine."""
+		"""Les listes de la rotation du rythme choisi : cinq semaines du mois, ou celles de son cycle."""
 		return self.rotation_boxes[: len(rotation.RANKS[self.chosen_mode()])]
 
 	def _alternation_rank(self, day: date) -> int:
 		return rotation.Alternation(mode=self.chosen_mode()).rank(day, self.first)
 
 	def _show_mode(self) -> None:
-		"""Les rangs du rythme, chacun nommé ; par quinzaine, avec son prochain passage."""
-		fortnightly = self.chosen_mode() == rotation.FORTNIGHTLY
+		"""Les rangs du rythme, chacun nommé ; une semaine sur deux, trois ou quatre, avec son prochain passage."""
+		period = rotation.PERIODS.get(self.chosen_mode())
 		for index, box in enumerate(self.rotation_boxes):
 			rank = index + 1
 			self.rotation_form.setRowVisible(index, rank in rotation.RANKS[self.chosen_mode()])
 			text = rank_label(rank, self.weekday)
-			if fortnightly:
-				text = fortnight_label(rank, self._following(rank))
+			if period is not None:
+				text = cycle_label(rank, period, self._following(rank))
 			caption = self.rotation_form.labelForField(box)
 			if isinstance(caption, QLabel):
 				caption.setText(text)
@@ -342,6 +376,7 @@ class AlternationSection(CardSection):
 			self.changed.emit()
 
 	def _toggled(self) -> None:
+		self._allow()
 		on = self.enabled.isChecked()
 		self.content.setVisible(on)
 		self.replaces_items.emit(on)
@@ -371,6 +406,8 @@ class AlternationSection(CardSection):
 		if not self.enabled.isChecked():
 			queries.write(self.connection, identifier, None)
 			return
+		if not self.weekdays:
+			raise Refusal(t("Tick a day of the week: the shows alternate on the days of the recurrence."), self.enabled)
 		found = self.alternation()
 		if not found.candidates:
 			raise Refusal(t("Choose at least one show that shares the slot."), self.candidates)

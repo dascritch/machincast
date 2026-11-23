@@ -9,8 +9,9 @@ la clé du plugin :
 	"rotation": {"1": 12, "2": 13, "3": 14, "4": 13, "5": null}, "choices": {"2026-12-16": 12}}}
 
 - mode : « monthly », par mois, la rotation va de 1 à 5, la n-ième occurrence du jour dans le mois (week) ;
-  « fortnightly », par quinzaine, de 1 à 2, une semaine sur deux, comptée depuis la semaine de la première
-  occurrence de l'événement (fortnight) ; monthly sans lui ;
+  « fortnightly », par quinzaine, de 1 à 2, une semaine sur deux, « three_weekly », de 1 à 3, une semaine sur
+  trois, « four_weekly », de 1 à 4, une semaine sur quatre, comptées depuis la semaine de la première occurrence de
+  l'événement (cycle) ; monthly sans lui ;
 - candidates : les événements qu'il fait jouer, hors grille (machincast.shared.grid.Substitution) ;
 - rotation : pour chaque rang, celui qui joue ; null, l'événement joue lui-même ;
 - choices : pour une date, celui qui joue, à la place de la rotation.
@@ -28,10 +29,15 @@ KEY = "alternation"
 """La clé du plugin dans properties."""
 MONTHLY = "monthly"
 FORTNIGHTLY = "fortnightly"
-MODES = (MONTHLY, FORTNIGHTLY)
+THREE_WEEKLY = "three_weekly"
+FOUR_WEEKLY = "four_weekly"
+MODES = (MONTHLY, FORTNIGHTLY, THREE_WEEKLY, FOUR_WEEKLY)
 WEEKS = (1, 2, 3, 4, 5)
 """Les rangs d'un jour dans le mois : un mois en a quatre ou cinq."""
-RANKS = {MONTHLY: WEEKS, FORTNIGHTLY: (1, 2)}
+PERIODS = {FORTNIGHTLY: 2, THREE_WEEKLY: 3, FOUR_WEEKLY: 4}
+"""Les rythmes d'une semaine sur deux, trois ou quatre : le nombre de semaines de leur cycle
+(https://github.com/dascritch/machincast/issues/609)."""
+RANKS = {MONTHLY: WEEKS, FORTNIGHTLY: (1, 2), THREE_WEEKLY: (1, 2, 3), FOUR_WEEKLY: (1, 2, 3, 4)}
 """Les rangs de la rotation, selon le rythme."""
 
 
@@ -43,10 +49,10 @@ class Alternation:
 	mode: str = MONTHLY
 
 	def rank(self, day: date, first: date | None) -> int:
-		"""Le rang de ce jour dans la rotation : sa semaine du mois, ou de la quinzaine qui part de first, la première
-		occurrence de l'événement ; sans elle, par mois."""
-		if (self.mode == FORTNIGHTLY) and (first is not None):
-			return fortnight(day, first)
+		"""Le rang de ce jour dans la rotation : sa semaine du mois, ou du cycle de deux, trois ou quatre semaines qui
+		part de first, la première occurrence de l'événement ; sans elle, par mois."""
+		if (self.mode in PERIODS) and (first is not None):
+			return cycle(day, first, PERIODS[self.mode])
 		return week(day)
 
 	def playing(self, day: date, first: date | None = None) -> int | None:
@@ -74,10 +80,15 @@ def week(day: date) -> int:
 	return ((day.day - 1) // 7) + 1
 
 
+def cycle(day: date, first: date, period: int) -> int:
+	"""Le rang de ce jour dans son cycle de period semaines : 1 la semaine de first, 2 la suivante… puis 1 de nouveau,
+	d'un mois à l'autre ; les semaines vont de first à six jours après."""
+	return (((day - first).days // 7) % period) + 1
+
+
 def fortnight(day: date, first: date) -> int:
-	"""Le rang de ce jour dans sa quinzaine : 1 la semaine de first, 2 la suivante, puis 1 de nouveau, d'un mois à
-	l'autre ; les semaines vont de first à six jours après."""
-	return (((day - first).days // 7) % 2) + 1
+	"""Le rang de ce jour dans sa quinzaine : 1 la semaine de first, 2 la suivante, puis 1 de nouveau."""
+	return cycle(day, first, 2)
 
 
 def first_day(event: Event) -> date | None:
@@ -119,8 +130,8 @@ def read(properties: Mapping[str, object]) -> Alternation | None:
 			if (identifier is not None) and (day is not None):
 				choices[day] = identifier
 	mode = MONTHLY
-	if found.get("mode") == FORTNIGHTLY:
-		mode = FORTNIGHTLY
+	if found.get("mode") in MODES:
+		mode = str(found.get("mode"))
 	return Alternation(tuple(candidates), rotation, choices, mode)
 
 
