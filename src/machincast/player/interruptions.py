@@ -23,7 +23,7 @@ from machincast.player.broadcast_types import (
 	Playback,
 )
 from machincast.player.rundown import Choice, Insertion
-from machincast.player.state import Request
+from machincast.player.state import INTRANET, Request
 from machincast.shared.fades import NO_CROSSFADE
 from machincast.shared.grid import Event, Occurrence, Priority, read_event, wall_hour
 
@@ -40,6 +40,7 @@ IGNORED_ADVANCE = N_("advance ignored")
 MANUAL_INSERTION = N_("manual insertion")
 """Nature de la ligne du log d'une insertion après le sonore en cours (https://github.com/dascritch/machincast/issues/530)."""
 IGNORED_INSERTION = N_("insertion ignored")
+NOTHING_ON_AIR = N_("nothing on air")
 FOLLOWING_EVENT_SEARCH = timedelta(minutes=1)
 """L'événement suivant publié se cherche de nouveau au plus tard après ce délai, même si rien n'a changé."""
 
@@ -52,6 +53,32 @@ class Interruptions:
 		self.asked: Request | None = None
 		"""La demande en cours de traitement, que la diffusion donne : son origine et son compte vont au log
 		(https://github.com/dascritch/machincast/issues/549)."""
+		self.refusal: str | None = None
+		"""La raison du refus de la dernière demande, en anglais, pour la réponse à son client ; None si elle a été
+		faite (https://github.com/dascritch/machincast/issues/593)."""
+
+	def _refuse(self, kind: str, reason: str) -> bool:
+		"""Une demande ignorée, et sa raison, un gabarit N_ rempli : au journal du binaire, et, venue de l'intranet, au
+		log, avec son origine et son compte, comme une demande faite (https://github.com/dascritch/machincast/issues/593).
+		Rend False."""
+		log.warning(_("{ignored}: {reason}").format(ignored=logged(kind), reason=logged(reason)))
+		self.refusal = reason
+		if (self.asked is not None) and (self.asked.origin == INTRANET):
+			current = self.broadcast.current
+			sound = None
+			if current is not None:
+				sound = current.choice.sound
+			self.broadcast.history.record(
+				self.broadcast.connection,
+				"warning",
+				kind,
+				reason,
+				self.broadcast.clock.now(),
+				sound=sound,
+				origin=self._origin(),
+				api_user=self._user(),
+			)
+		return False
 
 	def _origin(self) -> str | None:
 		"""D'où vient la demande en cours, pour le log ; None hors d'une demande."""
@@ -73,16 +100,13 @@ class Interruptions:
 		instant = self.broadcast.clock.now()
 		following = self.broadcast.scheduler.following_event(instant)
 		if following is None:
-			log.warning(_("{ignored_advance}: no next event").format(ignored_advance=logged(IGNORED_ADVANCE)))
-			return False
+			return self._refuse(IGNORED_ADVANCE, N_("no next event"))
 		if following.event.id != event:
 			expected = self._expected_name(event)
-			log.warning(
-				_("{ignored_advance}: the next event is “{name}”, not {expected}").format(
-					ignored_advance=logged(IGNORED_ADVANCE), name=following.event.name, expected=expected
-				)
+			return self._refuse(
+				IGNORED_ADVANCE,
+				N_("the next event is “{name}”, not {expected}").format(name=following.event.name, expected=expected),
 			)
-			return False
 		self.broadcast.scheduler.advance(instant)
 		assert following.start is not None
 		message = N_("of the event “{name}”, planned on {start:%Y-%m-%d %H:%M}").format(
@@ -154,20 +178,16 @@ class Interruptions:
 		instant = self.broadcast.clock.now()
 		current = self.broadcast.current
 		if current is None:
-			log.warning(_("{ignored}: nothing on air").format(ignored=logged(IGNORED)))
-			return False
+			return self._refuse(IGNORED, NOTHING_ON_AIR)
 		choice = current.choice
 		# L'événement à l'antenne : celui qui prête son nom, s'il y en a un (https://github.com/dascritch/machincast/issues/399).
 		event = ((choice.lender) or (choice.occurrence)).event
 		if (item in ("sequence", "restart_sequence")) and (choice.line is None):
-			log.warning(_("{ignored}: no sequence on air").format(ignored=logged(IGNORED)))
-			return False
+			return self._refuse(IGNORED, N_("no sequence on air"))
 		if (item == "event") and (event.priority is Priority.BACKGROUND_PROGRAMMING):
-			log.warning(_("{ignored}: the background programming is already on air").format(ignored=logged(IGNORED)))
-			return False
+			return self._refuse(IGNORED, N_("the background programming is already on air"))
 		if (item == "restart_sound") and (current.parameters.stream):
-			log.warning(_("{ignored}: a stream has no beginning").format(ignored=logged(IGNORED)))
-			return False
+			return self._refuse(IGNORED, N_("a stream has no beginning"))
 		self.broadcast._following = None
 		message = self._interrupted(item, choice, event)
 		self.broadcast.history.record(
@@ -238,16 +258,12 @@ class Interruptions:
 		instant = self.broadcast.clock.now()
 		current = self.broadcast.current
 		if current is None:
-			log.warning(_("{ignored}: nothing on air").format(ignored=logged(IGNORED_INSERTION)))
-			return False
+			return self._refuse(IGNORED_INSERTION, NOTHING_ON_AIR)
 		name = self._inserted_name(sequence, bank)
 		if name is None:
-			log.warning(
-				_("{ignored}: sequence {sequence} or bank {bank} unknown").format(
-					ignored=logged(IGNORED_INSERTION), sequence=sequence, bank=bank
-				)
+			return self._refuse(
+				IGNORED_INSERTION, N_("sequence {sequence} or bank {bank} unknown").format(sequence=sequence, bank=bank)
 			)
-			return False
 		self.broadcast.scheduler.insert(Insertion(current.play.id, sequence, bank))
 		if sequence is not None:
 			message = N_("of the sequence “{name}” after the sound “{sound_name}”")
@@ -293,10 +309,7 @@ class Interruptions:
 			with self.broadcast.connection.transaction():
 				fallback = read_event(self.broadcast.connection, event)
 		if (fallback is None) or (fallback.priority is not Priority.FALLBACK) or (fallback.deleted_at is not None):
-			log.warning(
-				_("{ignored}: event no. {event} is not a fallback").format(ignored=logged(IGNORED), event=event)
-			)
-			return False
+			return self._refuse(IGNORED, N_("event no. {event} is not a fallback").format(event=event))
 		return self._cut_by(fallback, None, fallback.name)
 
 	def cut_by_feed(self, feed: int | None) -> bool:
@@ -305,14 +318,10 @@ class Interruptions:
 		with self.broadcast.connection.transaction():
 			line = queries.feed_stream(self.broadcast.connection, feed)
 		if line is None:
-			log.warning(_("{ignored}: feed no. {feed} does not exist").format(ignored=logged(IGNORED), feed=feed))
-			return False
+			return self._refuse(IGNORED, N_("feed no. {feed} does not exist").format(feed=feed))
 		name, stream = line
 		if stream is None:
-			log.warning(
-				_("{ignored}: no active stream follows the feed “{name}”").format(ignored=logged(IGNORED), name=name)
-			)
-			return False
+			return self._refuse(IGNORED, N_("no active stream follows the feed “{name}”").format(name=name))
 		return self._cut_by(None, int(str(stream)), str(name))
 
 	def _cut_by(self, fallback: Event | None, stream: int | None, by: str) -> bool:
@@ -321,8 +330,7 @@ class Interruptions:
 		instant = self.broadcast.clock.now()
 		current = self.broadcast.current
 		if current is None:
-			log.warning(_("{ignored}: nothing on air").format(ignored=logged(IGNORED)))
-			return False
+			return self._refuse(IGNORED, NOTHING_ON_AIR)
 		event = current.choice.occurrence.event
 		# Une phrase entière par cas, que le log traduit d'un seul gabarit.
 		if event.priority is Priority.BACKGROUND_PROGRAMMING:

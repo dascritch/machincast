@@ -317,6 +317,91 @@ Fonctionnalité: Interruption manuelle de l'antenne
 			| de l'intranet  | {"command": "interrupt", "item": "sound", "user": "pas un nom"} | une demande de l'intranet nomme le compte qui la fait                        |
 			| d'état         | {"command": "interrupt", "item": "sound", "user": "regie"}      | le compte d'une demande ne se donne que sur la socket de l'intranet          |
 
+	# ─── La réponse à une demande de l'intranet (https://github.com/dascritch/machincast/issues/593) ───
+	# Une demande de l'intranet peut donner un identifiant ; Machin player lui répond, sur la même connexion, entre deux
+	# états : faite, ou refusée avec sa raison, en anglais, que le serveur intranet traduit. Un refus se consigne au log
+	# avec le compte, comme une demande faite.
+
+	Scénario: Une demande faite de l'intranet reçoit sa réponse
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'événement de secours « Secours », avec les sonores « s1 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet demande avec l'identifiant « a1 », pour le compte « regie », de couper l'antenne par le secours « Secours »
+		Et la diffusion avance de 5 secondes
+		Alors le serveur intranet reçoit la réponse « a1 », faite
+		Quand la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 », « s1 »
+
+	Scénario: Une demande refusée de l'intranet reçoit sa raison, et le refus se consigne avec le compte
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet envoie « {"command": "interrupt", "item": "sequence", "user": "regie", "id": "b2"} »
+		Et la diffusion avance de 5 secondes
+		Alors le serveur intranet reçoit la réponse « b2 », refusée parce que « no sequence on air »
+		Et le log note, depuis « intranet », par « regie », l'alerte « interruption manuelle ignorée » : « aucune séquence à l'antenne »
+		Quand la diffusion s'arrête
+		Alors l'airplay montre les passages « f1 »
+
+	Scénario: Une demande illisible de l'intranet, qui donne son identifiant, reçoit son refus
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet envoie « {"command": "voler", "user": "regie", "id": "c3"} »
+		Alors le serveur intranet reçoit la réponse « c3 », refusée parce que « commande inconnue : voler »
+		Quand la diffusion s'arrête
+
+	Scénario: Une demande sans identifiant ne reçoit que les états, comme celles de l'interface
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet envoie « {"command": "interrupt", "item": "sound", "user": "regie"} »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors le serveur intranet n'a reçu que des états
+
+	Scénario: Le serveur intranet attend la réponse de Machin player, et en traduit la raison
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet demande « {"command": "interrupt", "item": "sequence"} » pour le compte « regie », et attend
+		Et la diffusion avance de 5 secondes
+		Alors le serveur intranet apprend que sa demande est refusée : « aucune séquence à l'antenne »
+		Quand le serveur intranet demande « {"command": "interrupt", "item": "sound"} » pour le compte « regie », et attend
+		Et la diffusion avance de 5 secondes
+		Alors le serveur intranet apprend que sa demande est faite
+		Quand la diffusion s'arrête
+		Et le serveur intranet demande « {"command": "interrupt", "item": "sound"} » pour le compte « regie », et attend
+		Alors le serveur intranet apprend que sa demande est refusée : « Machin player ne diffuse pas »
+
+	Plan du scénario: L'identifiant d'une demande ne vient que de la socket de l'intranet, et se lit
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et un client de la socket <socket> demande « <demande> »
+		Et la diffusion avance de 5 secondes
+		Et la diffusion s'arrête
+		Alors le log ne note aucune interruption manuelle
+		Et le journal du binaire a signalé « <signalé> »
+
+		Exemples:
+			| socket        | demande                                                                   | signalé                                                                         |
+			| d'état        | {"command": "interrupt", "item": "sound", "id": "a1"}                     | l'identifiant d'une demande ne se donne que sur la socket de l'intranet          |
+			| de l'intranet | {"command": "interrupt", "item": "sound", "user": "regie", "id": "a 1"}   | l'identifiant d'une demande : de 1 à 64 lettres, chiffres, « _ » ou « - »         |
+
 	# ─── Avancer l'événement suivant (https://github.com/dascritch/machincast/issues/257) ───
 	# L'événement suivant, la première occurrence à venir qui prendra l'antenne, commence aussitôt, au-dessus de tout,
 	# jusqu'à sa fin prévue : à son début prévu, rien ne change. La demande nomme l'événement attendu, celui que

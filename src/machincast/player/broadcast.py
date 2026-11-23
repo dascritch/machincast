@@ -301,7 +301,10 @@ class Broadcast:
 		if self.state is not None:
 			for asks in self.state.requests():
 				self.interruptions.asked = asks
+				self.interruptions.refusal = None
 				self._ask(asks)
+				# La réponse au client de l'intranet qui l'attend (https://github.com/dascritch/machincast/issues/593).
+				asks.respond(self.interruptions.refusal)
 				self.interruptions.asked = None
 		current = self.current
 		if current is not None:
