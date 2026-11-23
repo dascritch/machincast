@@ -30,6 +30,11 @@ CORE: dict[str, str] = {
 		"asked by Machin intranet when it starts, without data: the plugin answers its pages, API routes and static "
 		"files, a machincast.intranet.extensions.Extension (https://github.com/dascritch/machincast/issues/588)"
 	),
+	"grid.substitutions": (
+		"asked each time a binary reads the grid, without data: the plugin answers a "
+		"machincast.shared.grid.Substitution, the events that an event plays, off the grid, and the one that plays "
+		"each of its occurrences (https://github.com/dascritch/machincast/issues/608)"
+	),
 	"interface.plugin_window": (
 		"asked by Machin interface, of one plugin, when its window opens from the menu “Plugins”, with “parent”, the "
 		"window: the plugin answers a QWidget, its settings, shown under its name, version and description "

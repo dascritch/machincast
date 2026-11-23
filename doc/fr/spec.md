@@ -420,6 +420,10 @@ Quand l'interface supprime un élément, les références dans `airplay` et `log
 	À priorité égale, une occurrence sans fin, ou un fil musical permanent, laisse la place à toute occurrence qui a commencé après elle, et reprend ensuite : un fil permanent sert de fond.
 	Si deux occurrences bornées se chevauchent quand même, le binaire joue le **dernier modifié en base**.
 3. Plusieurs fils musicaux peuvent coexister selon l'heure (nuit, jour), régis par leur récurrence.
+	- Un plugin peut faire jouer l'occurrence d'un événement par un autre ([#608](https://github.com/dascritch/machincast/issues/608), `machincast.shared.grid.Substitution`) : chaque lecture de la grille (`read_grid`) demande le point « grid.substitutions ».
+	La réponse dit les événements qu'un événement fait jouer, hors grille, dont les propres dates ne jouent plus, et, pour chaque jour, celui qui joue son occurrence : sur son créneau, avec sa priorité, ses sessions sautées et sa suppression, mais sous son propre nom, avec sa liste, sa fin de liste et ses secours, et sa propre clé.
+	Sans choix, l'événement joue lui-même.
+	La lecture, le calendrier, l'intranet, l'affichage public et l'état de la diffusion lisent la grille ainsi ; une réponse d'un autre type est consignée, et laissée.
 4. Le changement d'heure ne fait l'objet d'aucune règle particulière : la diffusion est toujours en fil musical à cette heure de la nuit.
 	Un événement garde son heure murale ([#566](https://github.com/dascritch/machincast/issues/566)).
 	Pendant l'heure répétée du passage à l'heure d'hiver, il couvre chacune des deux occurrences de ses heures : une émission de 02:30 à 03:30 joue de 02:30 à 03:00 à l'heure d'été, laisse le fil musical de 02:00 à 02:30 à l'heure d'hiver, puis reprend jusqu'à 03:30 ; le recul de l'heure, lui, n'est pas annoncé comme une coupure.

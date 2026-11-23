@@ -8841,6 +8841,11 @@ msgstr "samedi"
 msgid "Sunday"
 msgstr "dimanche"
 
+#: machincast/shared/grid.py
+#, python-brace-format
+msgid "plugin “{plugin}”: a substitution of the grid is expected"
+msgstr "plugin « {plugin} » : une substitution de la grille est attendue"
+
 #: machincast/shortcut.py
 msgid "Automated radio broadcasting"
 msgstr "Diffusion radio automatisée"

@@ -28,17 +28,21 @@ Le poste travaille en heure locale, celle de Paris : la grille calcule en heure 
 Au changement d'heure, un événement garde donc son heure (spec § 4.1 : aucune règle particulière).
 """
 
-from collections.abc import Iterable, Set
-from dataclasses import dataclass, field
+import logging
+from collections.abc import Callable, Iterable, Mapping, Sequence, Set
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
 
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast import plugins
 from machincast.conversion import integer_or_none
 from machincast.i18n import _
 from machincast.shared import queries
+
+log = logging.getLogger(__name__)
 
 
 class Priority(StrEnum):
@@ -98,6 +102,25 @@ class Event:
 	"""Le secours de fin de liste, pour « fallback »."""
 	stream_fallback: int | None = None
 	"""Le secours d'un stream de sa liste qui tombe ; il l'emporte sur celui du stream."""
+	properties: Mapping[str, object] = field(default_factory=dict, compare=False, hash=False)
+	"""Sa colonne properties (https://github.com/dascritch/machincast/issues/607), celles des plugins comprises."""
+	played_by: Callable[[date], "Event | None"] | None = field(default=None, compare=False, hash=False, repr=False)
+	"""L'événement qui joue son occurrence qui commence ce jour, choisi par un plugin ; None, ou sans lui, elle se joue
+	elle-même (https://github.com/dascritch/machincast/issues/608)."""
+
+
+@dataclass(frozen=True)
+class Substitution:
+	"""Ce qu'un plugin abonné au point « grid.substitutions » répond (https://github.com/dascritch/machincast/issues/608)."""
+
+	hidden: Callable[[Event], Set[int]]
+	"""Les événements que cet événement fait jouer : hors grille, ils ne jouent que par lui."""
+	playing: Callable[[Event, date], int | None]
+	"""L'événement qui joue l'occurrence de cet événement qui commence ce jour ; None, il la joue lui-même."""
+
+
+SUBSTITUTIONS = "grid.substitutions"
+"""Le point d'extension des substitutions (machincast.plugins.points.CORE)."""
 
 
 @dataclass(frozen=True)
@@ -133,6 +156,28 @@ def _wall_hour_or_none(moment: datetime | None) -> datetime | None:
 	return wall_hour(moment)
 
 
+def _played(event: Event, start: datetime) -> Event:
+	"""L'événement qui joue l'occurrence qui commence à start : celui que choisit un plugin, sur le créneau, avec la
+	priorité, les sessions sautées et la suppression de l'événement qui le fait jouer ; sa clé est la sienne
+	(https://github.com/dascritch/machincast/issues/608). Sans choix, l'événement lui-même."""
+	if event.played_by is None:
+		return event
+	chosen = event.played_by(start.date())
+	if chosen is None:
+		return event
+	return replace(
+		chosen,
+		priority=event.priority,
+		start=event.start,
+		end=event.end,
+		days=event.days,
+		modified_at=event.modified_at,
+		skipped_list=event.skipped_list,
+		deleted_at=event.deleted_at,
+		played_by=None,
+	)
+
+
 def _covers(start: datetime, end: datetime | None, moment: datetime) -> bool:
 	return (start <= moment) and ((end is None) or (moment < end))
 
@@ -147,7 +192,7 @@ def occurrence(event: Event, instant: datetime) -> Occurrence | None:
 	if not event.days:
 		if (not _covers(start, end, moment)) or (start.date() in event.skipped_list):
 			return None
-		return Occurrence(event, start, end)
+		return Occurrence(_played(event, start), start, end)
 
 	first_day = start.date()
 	duration_in_days: int | None = None
@@ -167,7 +212,7 @@ def occurrence(event: Event, instant: datetime) -> Occurrence | None:
 			if (end is not None) and (duration_in_days is not None):
 				arrival = datetime.combine(day + timedelta(days=duration_in_days), end.time())
 			if _covers(departure, arrival, moment):
-				return Occurrence(event, departure, arrival)
+				return Occurrence(_played(event, departure), departure, arrival)
 	return None
 
 
@@ -501,9 +546,9 @@ def _add_occurrence(
 	if (deleted is not None) and (start >= deleted):
 		return
 	if start.date() in event.skipped_list:
-		skipped_list.append(Occurrence(event, start, end))
+		skipped_list.append(Occurrence(_played(event, start), start, end))
 	else:
-		occurrences.append(Occurrence(event, start, end))
+		occurrences.append(Occurrence(_played(event, start), start, end))
 
 
 def _collect_occurrences(
@@ -663,7 +708,53 @@ def read_grid(connection: psycopg.Connection[TupleRow], *, deleted_list: bool = 
 	(machincast.database.open_connection). Un événement supprimé ne joue plus
 	(https://github.com/dascritch/machincast/issues/267) : seul le calendrier les demande (deleted_list), pour leurs
 	occurrences d'avant leur suppression."""
-	return _events(queries.grid_events(connection, deleted_list=deleted_list))
+	return substitute(_events(queries.grid_events(connection, deleted_list=deleted_list)), _substitutions())
+
+
+def _substitutions() -> list[Substitution]:
+	"""Les substitutions des plugins du binaire ; une réponse d'un autre type est consignée, et laissée."""
+	found = []
+	for plugin, answer in plugins.active().points.collect(SUBSTITUTIONS):
+		if isinstance(answer, Substitution):
+			found.append(answer)
+		else:
+			log.warning(_("plugin “{plugin}”: a substitution of the grid is expected").format(plugin=plugin))
+	return found
+
+
+def substitute(events: Sequence[Event], substitutions: Sequence[Substitution]) -> list[Event]:
+	"""Les événements de la grille, sans ceux qu'un autre fait jouer ; celui qui en fait jouer sait, pour chaque jour,
+	lequel joue son occurrence (Event.played_by, https://github.com/dascritch/machincast/issues/608)."""
+	by_id: dict[int, Event] = {}
+	for each in events:
+		by_id[each.id] = each
+	hidden: set[int] = set()
+	players: dict[int, list[Substitution]] = {}
+	for event in events:
+		for substitution in substitutions:
+			chosen = substitution.hidden(event)
+			if chosen:
+				hidden |= set(chosen)
+				players.setdefault(event.id, []).append(substitution)
+	kept = []
+	for event in events:
+		if event.id not in hidden:
+			kept.append(_with_players(event, players.get(event.id, []), by_id))
+	return kept
+
+
+def _with_players(event: Event, substitutions: list[Substitution], by_id: Mapping[int, Event]) -> Event:
+	if not substitutions:
+		return event
+
+	def played_by(day: date) -> Event | None:
+		for substitution in substitutions:
+			chosen = substitution.playing(event, day)
+			if (chosen is not None) and (chosen in by_id):
+				return by_id[chosen]
+		return None
+
+	return replace(event, played_by=played_by)
 
 
 def read_event(connection: psycopg.Connection[TupleRow], identifier: int) -> Event | None:
@@ -686,6 +777,7 @@ def _events(lines: list[TupleRow]) -> list[Event]:
 		end_of_list,
 		end_fallback,
 		stream_fallback,
+		properties,
 	) in lines:
 		day_list = []
 		if isinstance(days, list):
@@ -732,6 +824,13 @@ def _events(lines: list[TupleRow]) -> list[Event]:
 				end_of_list=str(end_of_list),
 				end_fallback=integer_or_none(end_fallback),
 				stream_fallback=integer_or_none(stream_fallback),
+				properties=_mapping(properties),
 			)
 		)
 	return events
+
+
+def _mapping(value: object) -> Mapping[str, object]:
+	if isinstance(value, dict):
+		return value
+	return {}
