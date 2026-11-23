@@ -37,6 +37,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QAbstractItemView, QLabel, QLineEdit, QMenu, QTableView, QWidget
 
+from machincast import plugins
 from machincast.i18n import _, counted
 from machincast.interface import display, groups, preferences
 from machincast.interface.columns import Columns
@@ -48,6 +49,9 @@ from machincast.interface.ui.list_view import Ui_List
 from machincast.shared.grid import DAY_NAMES, DAYS, ranks
 
 log = logging.getLogger(__name__)
+
+CONTEXT_MENU_POINT = "interface.context_menu"
+"""Le point des entrées des plugins au clic droit d'une ligne (machincast.plugins.points.CORE)."""
 
 Connection = psycopg.Connection[TupleRow]
 IDENTIFIER = Qt.ItemDataRole.UserRole
@@ -732,6 +736,7 @@ class List(QWidget):
 		"""actions : les boutons de création et d'ajout, et le dépôt de fichiers ; pas dans un choix d'éléments."""
 		super().__init__(parent)
 		self.source = source
+		self.with_actions = actions
 		self.connection = connection
 		self.ui = Ui_List()
 		self.ui.setupUi(self)
@@ -899,6 +904,7 @@ class List(QWidget):
 			and (self.grouped_actions == ())
 			and (not self.previewable)
 			and (self.item_menu is None)
+			and (not self._plugin_entries())
 		)
 		if (not index.isValid()) or (without_actions):
 			return None
@@ -918,7 +924,21 @@ class List(QWidget):
 		if self.item_menu is not None:
 			first = self.model.index(self.proxy.mapToSource(index).row(), 0)
 			self.item_menu(menu, clicked, str(first.data(IDENTIFIER + 1)))
+		if self._plugin_entries():
+			data = {
+				"menu": menu,
+				"category": self.source.category,
+				"identifiers": list(items),
+				"clicked": clicked,
+				"parent": self,
+			}
+			plugins.active().points.collect(CONTEXT_MENU_POINT, data)
 		return menu
+
+	def _plugin_entries(self) -> bool:
+		"""Des plugins ajoutent leurs entrées au clic droit d'une ligne, hors d'un choix d'éléments
+		(https://github.com/dascritch/machincast/issues/591)."""
+		return (self.with_actions) and (plugins.active().points.subscribers(CONTEXT_MENU_POINT) != [])
 
 	def _open(self, index: QModelIndex) -> None:
 		first = self.model.index(self.proxy.mapToSource(index).row(), 0)

@@ -54,9 +54,9 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QWidget
 
-from machincast import access, crash, shortcut
+from machincast import access, crash, plugins, shortcut
 from machincast.clock import Clock
 from machincast.configuration import (
 	DAILY,
@@ -131,6 +131,9 @@ from machincast.interface.ui.main_window import Ui_MainWindow
 from machincast.intranet import network
 
 log = logging.getLogger(__name__)
+
+MENU_POINT = "interface.menu"
+"""Le point des menus des plugins (machincast.plugins.points.CORE)."""
 
 TABS = (
 	(_("Events"), EVENTS),
@@ -563,6 +566,25 @@ class MainWindow(QMainWindow):
 		)
 		for menu in (file, display_menu, self.tabs_menu, self.broadcast_menu, maintenance, help_):
 			menu.setToolTipsVisible(True)
+		self._plugin_menus(help_)
+
+	def _plugin_menus(self, help_: QMenu) -> None:
+		"""Les menus et les entrées que les plugins ajoutent à la barre de menus, avant « Aide »
+		(https://github.com/dascritch/machincast/issues/591) ; une réponse d'un autre type est consignée, et laissée."""
+		data = {"window": self, "connection": self.connection, "parent": self}
+		for plugin, answer in plugins.active().points.collect(MENU_POINT, data):
+			answers = [answer]
+			if isinstance(answer, list):
+				answers = answer
+			for given in answers:
+				if isinstance(given, QMenu):
+					given.setParent(self.menuBar(), given.windowFlags())
+					self.menuBar().insertMenu(help_.menuAction(), given)
+				else:
+					if isinstance(given, QAction):
+						self.menuBar().insertAction(help_.menuAction(), given)
+					else:
+						log.warning(_("plugin “{plugin}”: a menu or an action is expected").format(plugin=plugin))
 
 	def _help_kind(self) -> str | None:
 		"""Le genre de l'onglet affiché, pour son aide."""

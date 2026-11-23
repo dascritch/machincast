@@ -2196,7 +2196,7 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 	L'exception d'un abonné est consignée avec le plugin et le point, et n'arrête ni l'appelant ni les autres abonnés.
 - **Tests** : ceux d'un plugin sont dans son `tests/` ; `Machin dev-test` lance, après ceux du cœur, un `mypy --strict` et un `pytest` par plugin qui a des tests ; avec `--scenarios`, seulement pour le nom `plugins`, qui lance aussi `plugins.feature`.
 
-- **Fiche d'un événement** ([#611](https://github.com/dascritch/machincast/issues/611), `machincast.interface.event_card.CardSection`) : à l'ouverture de la fiche, le point « interface.event_card » rend la section de chaque plugin, montrée à côté de la liste de lecture.
+- **Fiche d'un événement** ([#611](https://github.com/dascritch/machincast/issues/611), `machincast.interface.card.CardSection`) : à l'ouverture de la fiche, le point « interface.event_card » rend la section de chaque plugin, montrée à côté de la liste de lecture.
 	Elle lit l'événement avec la fiche, la rend modifiée à chaque changement, s'écrit dans la même transaction que l'événement, et peut refuser l'enregistrement ; elle peut cacher la liste, qu'elle remplace, et placer un widget, sa case par exemple, sous les jours de la récurrence (`grid_widget`).
 	Une réponse d'un autre type est consignée, et laissée.
 
@@ -2289,3 +2289,19 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 - Ses données : le binaire (`executable`), l'instant, le niveau (`incident`, `error` ou `critical`), la nature, le message, ce qu'il concerne (`references`) et `origin`.
 - Une alerte, une information ou un avertissement n'en est pas un.
 - Un plugin qui échoue à prévenir ne crée pas d'incident à son tour : ce que le journal consigne pendant qu'un abonné de `log_incident` est appelé, son échec compris, est laissé (`points.calling`).
+
+### 14.9 Les points d'extension des fiches et des menus de l'interface
+
+([#591](https://github.com/dascritch/machincast/issues/591), `machincast.interface.card`)
+
+- **Sections** : chaque fiche demande, à sa première lecture, le point « interface.<genre>_card » (`event`, `bank`, `sequence`, `sound`, `feed`) ; chaque section (`CardSection`) se place au-dessus des boutons de la fiche, ou à côté de la liste de lecture de celle d'un événement (§ 14.1).
+	Elle lit l'élément après la fiche, dans une transaction, la rend modifiée à chaque changement, et s'écrit dans la transaction de son enregistrement, qu'elle peut refuser.
+- **Lecture** : `interface.load_<genre>` est notifié quand la fiche a lu l'élément, avec son genre, son identifiant (aucun pour un nouvel élément) et s'il est une copie.
+- **Vérification** : `interface.presave_<genre>` est demandé quand la fiche est écrite, avant que l'enregistrement ne soit validé, avec sa ligne en JSON, telle qu'écrite, la fiche et sa connexion ; la première chaîne non vide d'un plugin le refuse : la fiche la signale, et rien n'est écrit.
+- **Enregistrement** : `interface.save_<genre>` est notifié une fois l'élément enregistré, avec sa ligne.
+	La ligne n'est lue que si un plugin est abonné à l'un de ces deux points.
+- **Menu général** : `interface.menu` est demandé à l'ouverture de la fenêtre ; chaque `QMenu` ou `QAction` qu'un plugin rend se place dans la barre de menus, avant « Aide ».
+- **Menu contextuel** : `interface.context_menu` est demandé au clic droit sur une ligne d'une liste de la fenêtre, avec le menu, le genre, la sélection et la ligne cliquée ; le plugin y ajoute ses entrées.
+	Une liste sans autre action propose ce menu dès qu'un plugin y est abonné.
+- Une réponse d'un autre type est consignée, et laissée.
+- À la création de chaque plugin, la liste des points d'entrée qu'il propose est revue ([Les points d'entrée d'un nouveau plugin](developpement/plugins.md#les-points-dentrée-dun-nouveau-plugin)).

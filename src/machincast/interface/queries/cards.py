@@ -39,3 +39,13 @@ def create_preview_sound(connection: Connection, file: str) -> int:
 	).fetchone()
 	assert line is not None
 	return int(str(line[0]))
+
+
+def row(connection: Connection, table: str, identifier: int) -> dict[str, object]:
+	"""La ligne de l'élément, en JSON, pour les plugins (https://github.com/dascritch/machincast/issues/591) ; la table
+	est une constante, jamais une saisie."""
+	line = connection.execute(f"SELECT to_jsonb(t) FROM {table} t WHERE id = %s", (identifier,)).fetchone()
+	assert line is not None
+	found = line[0]
+	assert isinstance(found, dict)
+	return found
