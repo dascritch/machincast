@@ -31,7 +31,7 @@ from typing import Any
 
 from machincast.clock import SystemClock
 from machincast.i18n import _
-from machincast.intranet import agenda, live, rendering, template
+from machincast.intranet import agenda, live, openapi, rendering, template
 from machincast.intranet.api import answer, error
 from machincast.intranet.app import Request, Response, Route, redirect
 from machincast.intranet.portal import Connect, Portal
@@ -120,6 +120,8 @@ class Endpoint:
 	handle: Handle
 	"""Le statut et la valeur JSON de la réponse."""
 	role: str = CONSULT
+	summary: str = ""
+	"""Son résumé, dans le schéma OpenAPI de l'API (https://github.com/dascritch/machincast/issues/602)."""
 
 
 @dataclass(frozen=True)
@@ -141,6 +143,29 @@ class Extension:
 	endpoints: tuple[Endpoint, ...] = ()
 	static: Path | None = None
 	home: tuple[HomeSection, ...] = ()
+
+
+ROLE_NAMES = {CONSULT: _("consult"), "actions": _("API actions")}
+"""Les rôles, comme les nomme l'onglet API de l'interface."""
+
+
+def _operation(name: str, method: str, path: str, endpoint: Endpoint) -> dict[str, Any]:
+	"""Une route d'un plugin, dans le schéma OpenAPI (https://github.com/dascritch/machincast/issues/602)."""
+	responses: dict[str, Any] = {
+		"200": {"description": _("The answer of the plugin."), "content": {"application/json": {"schema": {}}}},
+		"401": openapi.error(_("No valid session.")),
+	}
+	if endpoint.role != CONSULT:
+		responses["403"] = openapi.error(_("This account cannot act on the antenna."))
+	return {
+		"summary": (endpoint.summary) or (f"{method} {path}"),
+		"description": _("Route of the plugin “{name}”, for the accounts “{role}”.").format(
+			name=name, role=ROLE_NAMES.get(endpoint.role, endpoint.role)
+		),
+		"tags": [name],
+		"x-machincast-role": endpoint.role,
+		"responses": responses,
+	}
 
 
 def allowed(session: Session, role: str) -> bool:
@@ -206,6 +231,18 @@ class Extensions:
 			if extension.static is not None:
 				found[("GET", f"/plugins/{name}/static/*")] = self._static(name, extension.static)
 		return found
+
+	def operations(self) -> dict[str, Any]:
+		"""Les routes d'API des plugins, pour le schéma OpenAPI (https://github.com/dascritch/machincast/issues/602) :
+		chacune avec son plugin en étiquette, et le rôle qu'elle demande ; une route au chemin invalide n'y est pas."""
+		paths: dict[str, Any] = {}
+		for name, extension in self.extensions:
+			for endpoint in extension.endpoints:
+				method = endpoint.method.upper()
+				if (method in ("GET", "POST")) and (PATH.match(endpoint.path)):
+					path = f"/api/v1/plugins/{name}/{endpoint.path}".rstrip("/")
+					paths.setdefault(path, {})[method.lower()] = _operation(name, method, path, endpoint)
+		return paths
 
 	def _add(self, found: dict[tuple[str, str], Route], name: str, where: tuple[str, str, str], route: Route) -> None:
 		"""Ajoute la route, à son chemin sous le préfixe du plugin, s'il est valide ; sinon, le consigne."""

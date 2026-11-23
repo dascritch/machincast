@@ -8,6 +8,8 @@ Sous /api/v1, en GET seulement, pour une session valide, quel que soit le rôle 
 - /api/v1/calendar : les occurrences des événements des jours [from, to[, ?from=<date>&to=<date>, la semaine en
   cours par défaut, en JSON, ou en HTML hCalendar avec ?format=html (machincast.intranet.calendar) ;
 - /api/v1/incidents : les incidents seulement, les plus récents en tête ;
+- /api/v1/openapi.json : le schéma OpenAPI 3.1 de l'API, routes des plugins comprises (machincast.intranet.openapi,
+  https://github.com/dascritch/machincast/issues/602) ;
 - /api/v1/events, /sequences, /banks, /sounds : une page de la liste, ?after=<id>&limit=<n> ; la réponse donne
   `next`, l'identifiant à passer en after pour la page suivante, ou null ;
 - /api/v1/events/<id>, et de même pour les autres : la fiche d'un élément, ses éléments ou ses sonores compris.
@@ -29,7 +31,7 @@ from urllib.parse import parse_qs
 
 from machincast.clock import Clock, SystemClock
 from machincast.i18n import _
-from machincast.intranet import calendar, live, queries
+from machincast.intranet import calendar, live, openapi, queries
 from machincast.intranet.app import JSON, Request, Response, Route, page
 from machincast.intranet.portal import Connect, Portal
 from machincast.intranet.queries import Connection
@@ -88,6 +90,8 @@ class ApiV1:
 		self.connect = connect
 		self.state_socket = state_socket
 		self.clock = (clock) or (SystemClock())
+		self.plugin_operations: Callable[[], dict[str, Any]] = dict
+		"""Les routes d'API des plugins, pour le schéma OpenAPI (https://github.com/dascritch/machincast/issues/602)."""
 
 	def routes(self) -> dict[tuple[str, str], Route]:
 		return {("GET", f"{PREFIX}*"): self.respond}
@@ -111,6 +115,8 @@ class ApiV1:
 			)
 		if path == "calendar":
 			return await self._calendar(request)
+		if path == "openapi.json":
+			return answer(200, openapi.document(self.plugin_operations()))
 		if path == "incidents":
 			return answer(200, {"incidents": await self._database(queries.incidents)})
 		matched = CARD.fullmatch(path)

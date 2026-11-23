@@ -77,6 +77,17 @@ Fonctionnalité: Les pages et les routes des plugins dans Machin intranet
 		Quand le compte « regie » envoie « POST /api/v1/plugins/horloge/sonner » depuis « https://ailleurs.example »
 		Alors l'API répond 403
 
+	Scénario: Le schéma OpenAPI de l'API décrit aussi les routes des plugins, avec leur rôle
+		https://github.com/dascritch/machincast/issues/602
+		Quand je demande à l'API « GET /api/v1/openapi.json », avec le jeton « jeton-d-invite »
+		Alors l'API répond 200, un schéma OpenAPI 3.1 « MachinCast API », de la version installée
+		Et le schéma donne « POST /api/v1/plugins/horloge/sonner », « Fait sonner l'horloge », du plugin « horloge », pour les comptes « actions API »
+
+	Scénario: La page « Documentation » de l'intranet mène au schéma OpenAPI
+		https://github.com/dascritch/machincast/issues/602
+		Quand je demande à l'API « GET /documentation », avec le jeton « jeton-d-invite »
+		Alors la page contient « <a id="openapi" href="/api/v1/openapi.json"> »
+
 	Plan du Scénario: Les fichiers statiques d'un plugin, par type
 		Quand je demande à l'API « GET /plugins/horloge/static/<fichier> », sans jeton
 		Alors l'API répond 200, de type « <type> »

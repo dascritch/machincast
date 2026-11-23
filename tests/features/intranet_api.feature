@@ -26,6 +26,33 @@ Fonctionnalité: API REST v1 de l'intranet, en lecture
 		Quand je demande à l'API « GET /api/v1/sounds », avec le jeton « jeton-en-attente »
 		Alors l'API répond 401, avec l'erreur « Une session valide est nécessaire. »
 
+	# ─── Le schéma OpenAPI (https://github.com/dascritch/machincast/issues/602) ───
+
+	Scénario: L'API donne son schéma OpenAPI à une session valide
+		Quand je demande à l'API « GET /api/v1/openapi.json », avec le jeton « jeton-de-regie »
+		Alors l'API répond 200, un schéma OpenAPI 3.1 « MachinCast API », de la version installée
+		Et le schéma décrit les chemins :
+			| chemin                     | méthode |
+			| /api/v1/banks              | get     |
+			| /api/v1/banks/{id}         | get     |
+			| /api/v1/calendar           | get     |
+			| /api/v1/events             | get     |
+			| /api/v1/events/{id}        | get     |
+			| /api/v1/incidents          | get     |
+			| /api/v1/live               | get     |
+			| /api/v1/openapi.json       | get     |
+			| /api/v1/sequences          | get     |
+			| /api/v1/sequences/{id}     | get     |
+			| /api/v1/sounds             | get     |
+			| /api/v1/sounds/{id}        | get     |
+		Et le schéma accepte le jeton en « Authorization: Bearer » ou dans le cookie « machincast_session »
+		Et le schéma donne à « GET /api/v1/sounds » les paramètres « after », « limit »
+		Et le schéma donne à « GET /api/v1/calendar » les paramètres « from », « to », « format »
+
+	Scénario: Sans session valide, le schéma OpenAPI n'est pas donné
+		Quand je demande à l'API « GET /api/v1/openapi.json », sans jeton
+		Alors l'API répond 401, avec l'erreur « Une session valide est nécessaire. »
+
 	Plan du scénario: L'API ne répond qu'en GET, et à ses seuls chemins
 		Quand je demande à l'API « <requête> »
 		Alors l'API répond <statut>

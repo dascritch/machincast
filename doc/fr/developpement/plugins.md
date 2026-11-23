@@ -172,7 +172,7 @@ def register(plugin):
 		"intranet.extensions",
 		lambda data: Extension(
 			pages=(Page("", "Horloge", cadran, navigation="Horloge", assets=("horloge.css", "horloge.js")),),
-			endpoints=(Endpoint("POST", "sonner", sonner, role="actions"),),
+			endpoints=(Endpoint("POST", "sonner", sonner, role="actions", summary="Fait sonner l'horloge"),),
 			static=STATIC,
 			home=(HomeSection(cadran_accueil, assets=("horloge.css",)),),
 		),
@@ -182,6 +182,7 @@ def register(plugin):
 - Une page est servie en GET sous `/plugins/<nom>/<chemin>`, dans le gabarit de l'intranet ; avec un libellé (`navigation`), elle entre au bandeau.
 - Une section de l'accueil (`HomeSection`) s'ajoute sous l'antenne en direct, sans page ni entrée au bandeau, pour un compte du rôle demandé ; vide, elle n'ajoute rien.
 - Une route d'API est servie sous `/api/v1/plugins/<nom>/<chemin>`, en GET ou en POST, et rend un statut et une valeur JSON.
+	Le schéma OpenAPI de l'API, `/api/v1/openapi.json`, la décrit avec son plugin, son rôle et son résumé, `summary` ([#602](https://github.com/dascritch/machincast/issues/602)).
 - Le rôle demandé (`role`) est `consult`, par défaut, ou `actions` ; sans session, une page mène à la connexion et une route répond 401 ; un rôle insuffisant reçoit 403.
 - Les fichiers statiques sont ceux d'un seul répertoire (`static`), servis sous `/plugins/<nom>/static/`, aux types `.css`, `.js`, `.svg`, `.png`, `.woff2` et `.json`.
 	L'intranet refuse les styles et les scripts écrits dans la page : ils vont dans ces fichiers, que la page charge par `assets`.

@@ -36,6 +36,7 @@ from tests.test_intranet_api import (
 	connect,
 	failed,
 	navigation,
+	openapi_schema,
 	redirected,
 	status,
 	templated,
@@ -60,6 +61,7 @@ then(parsers.parse("le bandeau mène à « {address} » « {label} », la page e
 	navigation
 )
 then(parsers.parse("le journal dit « {message} »"))(journal_says)
+then(parsers.parse("l'API répond 200, un schéma OpenAPI 3.1 « {title} », de la version installée"))(openapi_schema)
 
 TOKENS = {"regie": "jeton-de-regie", "invite": "jeton-d-invite"}
 
@@ -82,7 +84,7 @@ def _horloge(static: Path) -> Extension:
 			Page("", "Horloge", _clock, navigation="Horloge", assets=("horloge.css", "horloge.js")),
 			Page("reglages", "Réglages", _settings, role="actions"),
 		),
-		endpoints=(Endpoint("post", "sonner", _ring, role="actions"),),
+		endpoints=(Endpoint("post", "sonner", _ring, role="actions", summary="Fait sonner l'horloge"),),
 		static=static,
 		home=(
 			HomeSection(_dial, assets=("cadran.css",)),
@@ -139,9 +141,11 @@ def _routes(socket_path: Path, points: Points) -> tuple[Extensions, dict[Any, An
 	extensions = Extensions(portal, connect, socket_path, "Radio Thune", points.collect(POINT))
 	pages.navigation = extensions.navigation
 	pages.home_sections = extensions.home
+	api = ApiV1(portal, connect, socket_path, clock)
+	api.plugin_operations = extensions.operations
 	routes = {
 		**portal.routes(),
-		**ApiV1(portal, connect, socket_path, clock).routes(),
+		**api.routes(),
 		**pages.routes(),
 		**extensions.routes(),
 	}
@@ -178,6 +182,20 @@ def from_elsewhere(api: Api, name: str, request: str, origin: str) -> None:
 	method, path = request.split(" ", 1)
 	headers = {"authorization": f"Bearer {TOKENS[name]}", "origin": origin}
 	api.answer = call(api.application, method, path, headers=headers)
+
+
+@then(
+	parsers.re(
+		r"le schéma donne « (?P<method>[A-Z]+) (?P<path>[^»]+) », « (?P<summary>[^»]+) », du plugin « (?P<name>[^»]+) »,"
+		r" pour les comptes « (?P<role>[^»]+) »"
+	)
+)
+def plugin_operation(api: Api, method: str, path: str, summary: str, name: str, role: str) -> None:
+	operation = _json(api)["paths"][path][method.lower()]
+	assert operation["summary"] == summary
+	assert operation["tags"] == [name]
+	assert role in operation["description"], operation["description"]
+	assert operation["x-machincast-role"] == "actions"
 
 
 @then(parsers.parse("la page contient « {text} »"))

@@ -20,6 +20,7 @@ import pytest
 from psycopg.rows import TupleRow
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import __version__
 from machincast.clock import FixedClock
 from machincast.configuration import PROJECT_DIRECTORY
 from machincast.configuration import Intranet as Settings
@@ -211,6 +212,48 @@ def status(api: Api, status: str) -> None:
 def failed(api: Api, status: int, message: str) -> None:
 	assert _answer(api).status == status
 	assert _json(api) == {"error": message}
+
+
+# ─── Le schéma OpenAPI (https://github.com/dascritch/machincast/issues/602) ───
+
+
+@then(parsers.parse("l'API répond 200, un schéma OpenAPI 3.1 « {title} », de la version installée"))
+def openapi_schema(api: Api, title: str) -> None:
+	assert _answer(api).status == 200, _answer(api).text()
+	schema = _json(api)
+	assert schema["openapi"].startswith("3.1."), schema["openapi"]
+	assert (schema["info"]["title"], schema["info"]["version"]) == (title, __version__)
+
+
+@then("le schéma décrit les chemins :")
+def openapi_paths(api: Api, datatable: list[list[str]]) -> None:
+	found = []
+	for path, operations in sorted(_json(api)["paths"].items()):
+		for method in sorted(operations):
+			found.append([path, method])
+	expected = []
+	for path, method in datatable[1:]:
+		expected.append([path.strip(), method.strip()])
+	assert found == expected
+
+
+@then(parsers.parse("le schéma accepte le jeton en « Authorization: Bearer » ou dans le cookie « {name} »"))
+def openapi_security(api: Api, name: str) -> None:
+	schema = _json(api)
+	schemes = schema["components"]["securitySchemes"]
+	assert schemes["bearer"] == {"type": "http", "scheme": "bearer"}
+	assert schemes["cookie"] == {"type": "apiKey", "in": "cookie", "name": name}
+	assert schema["security"] == [{"bearer": []}, {"cookie": []}]
+
+
+@then(parsers.re(r"le schéma donne à « (?P<method>[A-Z]+) (?P<path>[^»]+) » les paramètres (?P<names>.+)"))
+def openapi_parameters(api: Api, method: str, path: str, names: str) -> None:
+	operation = _json(api)["paths"][path][method.lower()]
+	found = []
+	for parameter in operation["parameters"]:
+		assert parameter["in"] == "query"
+		found.append(parameter["name"])
+	assert found == re.findall(r"« ([^»]+) »", names)
 
 
 @then(parsers.parse("la réponse demande un jeton « {scheme} »"))
