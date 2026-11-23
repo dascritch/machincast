@@ -7,7 +7,7 @@ version, most recent first, titled "## <version> — <YYYY-MM-DD>", the same as 
 precedes the first section is not shown. Procedure: doc/fr/developpement/release.md (French).
 -->
 
-## 0.9.1 — 2026-11-17
+## 0.9.1 — 2026-11-23
 
 - **MachinCast speaks your language**: French or English, according to the session.
 - **The On air tab** shows whether the broadcast is running, and the Broadcast menu lets you go back to the start of the sound, restart the event, or cut the air by the fallback or a feed.
