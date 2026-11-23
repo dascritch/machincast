@@ -14,6 +14,9 @@ The numbers refer to the picture; **Help → Contextual help**, or <kbd>F1</kbd>
 7. **Sessions** (`sessions`) : those of the chosen account, the most recent first: `to validate` at the desk, `valid` until its limit, or `invalid`; opened by the `intranet` login page, or generated at the `desk`; with the address and the browser of the remote computer ([#539](https://github.com/dascritch/machincast/issues/539)).
 8. **➕ New API session…** (`new_session`) : a session valid at once, for a tool that reads the API; its token is shown only once.
 9. **Invalidate the session** (`invalidate_session`) : the chosen session no longer serves.
+10. **Authentication app…** (`authenticator`) : a new key for the authentication app of the account, the second factor of the intranet ([#601](https://github.com/dascritch/machincast/issues/601)); the window shows it only once, in groups of four characters, with its `otpauth://` address; **Save** keeps it, and the **Authentication app** column says `set`.
+11. **Remove the authentication app** (`remove_authenticator`) : the account no longer has a key; if the second factor is the authentication app, it no longer connects until it has a new one.
+12. **Forget its browsers** (`forget_browsers`) : the **Known browsers** column counts the browsers that already went through the first connection of the account; forgetting them makes it go through the first connection again, from any browser. Changing its password or disabling it forgets them too.
 
 A remote connection to validate shows above the tabs, in an orange banner: the account, the address, the browser, the time limit and the 6-digit code to give; **Refuse** closes it.
 

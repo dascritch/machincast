@@ -1,7 +1,9 @@
 """Scénarios des comptes de l'intranet et de l'API, dans l'onglet « API »
 (https://github.com/dascritch/machincast/issues/537)."""
 
-from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QWidget
+import re
+
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QTreeWidgetItem, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -158,3 +160,101 @@ def all_invalid(empty_database: Connection, name: str) -> None:
 @then(parsers.parse("« {name} » a encore 1 session valide et 1 session à valider"))
 def untouched(empty_database: Connection, name: str) -> None:
 	assert _states(empty_database, name) == ["valid", "pending"]
+
+
+# ─── Le second facteur (https://github.com/dascritch/machincast/issues/601) ───
+
+
+@when(
+	parsers.re(
+		r"je règle l'application d'authentification du compte, en répondant « (?P<response>Enregistrer|Annuler) »"
+	)
+)
+def set_up_authenticator(interface: Context, response: str) -> None:
+	shown: list[tuple[str, str]] = []
+
+	def show(_parent: object, _name: str, secret: str, uri: str) -> bool:
+		shown.append((secret, uri))
+		return response == "Enregistrer"
+
+	interface.monkeypatch.setattr(api_tab, "show_authenticator", show)
+	interface.authenticator = shown  # type: ignore[attr-defined]
+	screen(interface).ui.authenticator.click()
+
+
+@then(parsers.parse("la fenêtre a montré une clé de 32 caractères, en groupes de quatre, et son adresse « {uri} »"))
+def authenticator_shown(interface: Context, uri: str) -> None:
+	((secret, given),) = interface.authenticator  # type: ignore[attr-defined]
+	assert re.fullmatch(r"[A-Z2-7]{32}", secret), secret
+	assert api_tab.grouped(secret).split(" ") == re.findall(r".{4}", secret)
+	assert given == uri.replace("…", secret)
+
+
+def _secret(empty_database: Connection, name: str) -> object:
+	found = empty_database.execute("SELECT totp_secret FROM api_users WHERE name = %s", (name,)).fetchone()
+	assert found is not None
+	return found[0]
+
+
+@then(parsers.parse("la base garde la clé de l'application d'authentification de « {name} »"))
+def secret_kept(interface: Context, empty_database: Connection, name: str) -> None:
+	((secret, _uri),) = interface.authenticator  # type: ignore[attr-defined]
+	assert _secret(empty_database, name) == secret
+
+
+@then(parsers.parse("la base ne garde pas de clé de l'application d'authentification de « {name} »"))
+def no_secret(empty_database: Connection, name: str) -> None:
+	assert _secret(empty_database, name) is None
+
+
+@given(parsers.parse("l'application d'authentification de « {name} » réglée"))
+def secret_set(empty_database: Connection, name: str) -> None:
+	empty_database.execute(
+		"UPDATE api_users SET totp_secret = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP' WHERE name = %s", (name,)
+	)
+
+
+def _line(interface: Context, name: str) -> QTreeWidgetItem:
+	users = screen(interface).ui.users
+	for index in range(users.topLevelItemCount()):
+		line = users.topLevelItem(index)
+		if (line is not None) and (line.text(0) == name):
+			return line
+	raise AssertionError(name)
+
+
+@then(parsers.parse("l'onglet API dit, pour « {name} », l'application d'authentification « {said} »"))
+def authenticator_column(interface: Context, name: str, said: str) -> None:
+	assert _line(interface, name).text(4) == said
+
+
+@then(parsers.parse("l'onglet API dit, pour « {name} », {count:d} navigateurs connus"))
+def browsers_column(interface: Context, name: str, count: int) -> None:
+	assert _line(interface, name).text(5) == str(count)
+
+
+@given(parsers.re(r"« (?P<name>[^»]+) » a (?P<count>\d+) navigateurs? connus?"))
+def browsers(empty_database: Connection, name: str, count: str) -> None:
+	for index in range(int(count)):
+		empty_database.execute(
+			"INSERT INTO api_browsers (user_id, token_hash) SELECT id, %s FROM api_users WHERE name = %s",
+			(sessions.fingerprint(f"navigateur-{name}-{index}"), name),
+		)
+
+
+def _browsers(empty_database: Connection, name: str) -> int:
+	found = empty_database.execute(
+		"SELECT count(*) FROM api_browsers b JOIN api_users u ON u.id = b.user_id WHERE u.name = %s", (name,)
+	).fetchone()
+	assert found is not None
+	return int(found[0])
+
+
+@then(parsers.parse("« {name} » n'a plus de navigateur connu"))
+def no_browser(empty_database: Connection, name: str) -> None:
+	assert _browsers(empty_database, name) == 0
+
+
+@then(parsers.parse("« {name} » a encore {count:d} navigateur connu"))
+def browsers_left(empty_database: Connection, name: str, count: int) -> None:
+	assert _browsers(empty_database, name) == count

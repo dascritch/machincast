@@ -289,6 +289,10 @@ FirstLogin = Literal["none", "desk", "desk_code"]
 """La sécurité de la première connexion à l'intranet (https://github.com/dascritch/machincast/issues/600) : aucune
 validation, impossible en production ; validée au pupitre ; validée au pupitre, puis par le code qu'il donne."""
 FIRST_LOGINS: tuple[FirstLogin, ...] = ("none", "desk", "desk_code")
+SecondFactor = Literal["none", "totp", "desk"]
+"""Le second facteur de chaque connexion à l'intranet (https://github.com/dascritch/machincast/issues/601) : aucun ;
+le code de l'application d'authentification du compte ; la validation au pupitre."""
+SECOND_FACTORS: tuple[SecondFactor, ...] = ("none", "totp", "desk")
 
 
 @dataclass(frozen=True)
@@ -310,8 +314,11 @@ class Intranet:
 	key: Path | None = None
 	"""La clé privée du certificat donné, au format PEM."""
 	first_login: FirstLogin = "desk_code"
-	"""Comment une connexion par nom et mot de passe devient une session valide
+	"""Comment la première connexion d'un navigateur, par nom et mot de passe, devient une session valide
 	(https://github.com/dascritch/machincast/issues/600)."""
+	second_factor: SecondFactor = "none"
+	"""Le second facteur de chaque connexion, même d'un navigateur connu
+	(https://github.com/dascritch/machincast/issues/601)."""
 
 
 @dataclass(frozen=True)
@@ -365,7 +372,9 @@ KEYS: dict[str, frozenset[str]] = {
 	"interface": frozenset({"clipping", "suggestions", "icon", "table_rows", "notes", "team_link"}),
 	"schedule": frozenset({"daily"}),
 	"backup": frozenset({"directory"}),
-	"intranet": frozenset({"enabled", "address", "port", "validation", "session", "certificate", "key", "first_login"}),
+	"intranet": frozenset(
+		{"enabled", "address", "port", "validation", "session", "certificate", "key", "first_login", "second_factor"}
+	),
 	"plugins": frozenset({"enabled", "directory"}),
 }
 """Dans [plugins], une section [plugins.<nom>] est aussi permise : les réglages d'un plugin."""
@@ -685,6 +694,7 @@ class _Player:
 			certificate=certificate,
 			key=key,
 			first_login=self.first_login(),
+			second_factor=self.second_factor(),
 		)
 
 	def first_login(self) -> FirstLogin:
@@ -696,6 +706,18 @@ class _Player:
 		raise self.error(
 			_("key intranet.first_login: unknown “{fetched}”, possible values: {list}").format(
 				fetched=value, list=", ".join(FIRST_LOGINS)
+			)
+		)
+
+	def second_factor(self) -> SecondFactor:
+		"""intranet.second_factor, none sans elle (https://github.com/dascritch/machincast/issues/601)."""
+		value = self.document.get("intranet", {}).get("second_factor", "none")
+		for known in SECOND_FACTORS:
+			if value == known:
+				return known
+		raise self.error(
+			_("key intranet.second_factor: unknown “{fetched}”, possible values: {list}").format(
+				fetched=value, list=", ".join(SECOND_FACTORS)
 			)
 		)
 

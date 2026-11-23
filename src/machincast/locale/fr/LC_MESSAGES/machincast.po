@@ -332,6 +332,14 @@ msgstr ""
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid ""
+"key intranet.second_factor: unknown “{fetched}”, possible values: {list}"
+msgstr ""
+"clé intranet.second_factor : « {fetched} » inconnue, valeurs possibles : "
+"{list}"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid "key audio.output: unknown “{fetched}”, possible values: {list}"
 msgstr ""
 "clé audio.output : « {fetched} » inconnue, valeurs possibles : {list}"
@@ -1536,6 +1544,10 @@ msgid "Enable"
 msgstr "Réactiver"
 
 #: machincast/interface/api_tab.py
+msgid "set"
+msgstr "réglée"
+
+#: machincast/interface/api_tab.py
 msgid "consult"
 msgstr "consulter"
 
@@ -1623,6 +1635,21 @@ msgstr "Session API de {name}"
 
 #: machincast/interface/api_tab.py
 #, python-brace-format
+msgid "Authentication app of {name}"
+msgstr "Application d'authentification de {name}"
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid ""
+"Add this key to the authentication app of {name}, by hand or by the address "
+"below, then save it. It is shown only this once."
+msgstr ""
+"Ajoutez cette clé à l'application d'authentification de {name}, à la main "
+"ou par l'adresse ci-dessous, puis enregistrez-la. Elle n'est montrée que "
+"cette fois."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
 msgid ""
 "Delete the intranet user {name}? It will no longer be able to connect, and "
 "its sessions will end."
@@ -1658,6 +1685,33 @@ msgstr "{name} a désormais le rôle {role}."
 #, python-brace-format
 msgid "User {name} deleted."
 msgstr "Compte {name} supprimé."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "Authentication app of {name} set: it now gives its codes."
+msgstr ""
+"Application d'authentification de {name} réglée : elle donne désormais ses "
+"codes."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid "Authentication app of {name} removed."
+msgstr "Application d'authentification de {name} retirée."
+
+#: machincast/interface/api_tab.py
+#, python-brace-format
+msgid ""
+"{count} browser of {name} forgotten: its next connection goes through the "
+"first connection again."
+msgid_plural ""
+"{count} browsers of {name} forgotten: its next connection goes through the "
+"first connection again."
+msgstr[0] ""
+"{count} navigateur de {name} oublié : sa prochaine connexion repasse la "
+"première connexion."
+msgstr[1] ""
+"{count} navigateurs de {name} oubliés : sa prochaine connexion repasse la "
+"première connexion."
 
 #: machincast/interface/api_tab.py
 #, python-brace-format
@@ -5148,6 +5202,16 @@ msgid "Validation at the desk, with a code"
 msgstr "Validation au pupitre, avec un code"
 
 #: machincast/interface/preferences.py
+msgctxt "second factor"
+msgid "None"
+msgstr "Aucun"
+
+#: machincast/interface/preferences.py
+#: machincast/interface/ui/api_tab.ui
+msgid "Authentication app"
+msgstr "Application d'authentification"
+
+#: machincast/interface/preferences.py
 msgid "To the tenth of a second"
 msgstr "Au dixième de seconde"
 
@@ -6912,6 +6976,10 @@ msgstr ""
 "studio vous donne un code à 6 chiffres : saisissez-le ici."
 
 #: machincast/intranet/portal.py
+msgid "6-digit code"
+msgstr "Code à 6 chiffres"
+
+#: machincast/intranet/portal.py
 msgid ""
 "An action must be done at the studio desk: MachinCast shows there your "
 "name, your browser and your address. Once your connection is accepted "
@@ -6922,8 +6990,51 @@ msgstr ""
 "là-bas, cette page continue d'elle-même."
 
 #: machincast/intranet/portal.py
+msgid "Second factor"
+msgstr "Second facteur"
+
+#: machincast/intranet/portal.py
+msgid "Enter the code that your authentication app shows for this account."
+msgstr ""
+"Saisissez le code que montre votre application d'authentification pour ce "
+"compte."
+
+#: machincast/intranet/portal.py
+msgid "The 6-digit code of your authentication app"
+msgstr "Le code à 6 chiffres de votre application d'authentification"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid "[{address}] intranet connection of “{name}”, to validate at the desk"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », à valider au pupitre"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid "[{address}] intranet connection of “{name}” validated at the desk"
+msgstr "[{address}] connexion à l'intranet de « {name} » validée au pupitre"
+
+#: machincast/intranet/portal.py
 msgid "Connection"
 msgstr "Connexion"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}”, waiting for the code of its "
+"authentication app"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », en attente du code de son "
+"application d'authentification"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}” validated by its authentication "
+"app"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} » validée par son "
+"application d'authentification"
 
 #: machincast/intranet/portal.py
 msgid ""
@@ -6956,10 +7067,17 @@ msgid "Wrong code: ask again at the desk."
 msgstr "Code faux : redemandez-le au pupitre."
 
 #: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] intranet connection of “{name}”, to validate at the desk"
+msgid "Wrong code: enter the one that your authentication app shows."
 msgstr ""
-"[{address}] connexion à l'intranet de « {name} », à valider au pupitre"
+"Code faux : saisissez celui que montre votre application d'authentification."
+
+#: machincast/intranet/portal.py
+msgid ""
+"This account has no authentication app: have it set up at the studio, in "
+"the API tab."
+msgstr ""
+"Ce compte n'a pas d'application d'authentification : faites-la régler au "
+"studio, dans l'onglet API."
 
 #: machincast/intranet/portal.py
 #, python-brace-format
@@ -6967,11 +7085,6 @@ msgid ""
 "[{address}] intranet connection of “{name}”, without validation at the desk"
 msgstr ""
 "[{address}] connexion à l'intranet de « {name} », sans validation au pupitre"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] intranet connection of “{name}” validated at the desk"
-msgstr "[{address}] connexion à l'intranet de « {name} » validée au pupitre"
 
 #: machincast/intranet/portal.py
 #, python-brace-format
@@ -7020,6 +7133,12 @@ msgstr ""
 
 #: machincast/intranet/portal.py
 #, python-brace-format
+msgid "[{address}] intranet connection of “{name}”, from a known browser"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », depuis un navigateur connu"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
 msgid ""
 "[{address}] validation code refused, user “{name}”: too many wrong codes, "
 "waiting a quarter of an hour"
@@ -7031,6 +7150,21 @@ msgstr ""
 #, python-brace-format
 msgid "[{address}] wrong validation code, user “{name}”"
 msgstr "[{address}] code de validation faux, compte « {name} »"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid "[{address}] wrong code of the authentication app, user “{name}”"
+msgstr ""
+"[{address}] code faux de l'application d'authentification, compte « {name} »"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: no authentication "
+"app"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : pas "
+"d'application d'authentification"
 
 #: machincast/maintenance.py
 msgid "Backs up, checks and optimises the MachinCast database."
@@ -8686,6 +8820,10 @@ msgid "Created"
 msgstr "Créé le"
 
 #: machincast/interface/ui/api_tab.ui
+msgid "Known browsers"
+msgstr "Navigateurs connus"
+
+#: machincast/interface/ui/api_tab.ui
 msgid "➕ New user…"
 msgstr "➕ Nouveau compte…"
 
@@ -8706,6 +8844,34 @@ msgstr "Changer le mot de passe…"
 #: machincast/interface/ui/sound_card.ui
 msgid "❌ Delete…"
 msgstr "❌ Supprimer…"
+
+#: machincast/interface/ui/api_tab.ui
+msgid ""
+"A new key for the authentication app of the account, the second factor of "
+"the intranet"
+msgstr ""
+"Une nouvelle clé pour l'application d'authentification du compte, le second "
+"facteur de l'intranet"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Authentication app…"
+msgstr "Application d'authentification…"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Remove the authentication app"
+msgstr "Retirer l'application d'authentification"
+
+#: machincast/interface/ui/api_tab.ui
+msgid ""
+"Its next connection, from any browser, goes through the first connection "
+"again"
+msgstr ""
+"Sa prochaine connexion, de n'importe quel navigateur, repasse la première "
+"connexion"
+
+#: machincast/interface/ui/api_tab.ui
+msgid "Forget its browsers"
+msgstr "Oublier ses navigateurs"
 
 #: machincast/interface/ui/api_tab.ui
 msgid ""
@@ -9596,11 +9762,23 @@ msgstr "Première &connexion"
 
 #: machincast/interface/ui/preferences.ui
 msgid ""
-"How a connection by name and password to the intranet becomes a valid "
-"session"
+"How the first connection of a browser, by name and password, becomes a "
+"valid session"
 msgstr ""
-"Comment une connexion à l'intranet, par nom et mot de passe, devient une "
-"session valide"
+"Comment la première connexion d'un navigateur, par nom et mot de passe, "
+"devient une session valide"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&Second factor"
+msgstr "&Second facteur"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"What each connection goes through after the password, even from a known "
+"browser"
+msgstr ""
+"Ce que passe chaque connexion après le mot de passe, même d'un navigateur "
+"connu"
 
 #: machincast/interface/ui/preferences.ui
 msgid ""
@@ -10020,10 +10198,6 @@ msgstr "Mot de passe"
 #: machincast/intranet/templates/login.html.jinja
 msgid "Connect"
 msgstr "Se connecter"
-
-#: machincast/intranet/templates/validation.html.jinja
-msgid "6-digit code"
-msgstr "Code à 6 chiffres"
 
 #: machincast/intranet/templates/validation.html.jinja
 msgid "Validate"

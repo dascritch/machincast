@@ -23,22 +23,39 @@ class User(NamedTuple):
 	role: str
 	disabled_at: datetime | None
 	created_at: datetime
+	authenticator: bool = False
+	"""Son application d'authentification est réglée (https://github.com/dascritch/machincast/issues/601)."""
+	browsers: int = 0
+	"""Ses navigateurs connus (https://github.com/dascritch/machincast/issues/601)."""
 
 
 def users(connection: Connection) -> list[User]:
 	"""Les comptes, par nom."""
 	found = []
 	for row in connection.execute(
-		"SELECT id, name, role::text, disabled_at, created_at FROM api_users ORDER BY name, id"
+		"SELECT u.id, u.name, u.role::text, u.disabled_at, u.created_at, u.totp_secret IS NOT NULL,"
+		" (SELECT count(*) FROM api_browsers b WHERE b.user_id = u.id) FROM api_users u ORDER BY u.name, u.id"
 	).fetchall():
-		identifier, name, role, disabled_at, created_at = row
+		identifier, name, role, disabled_at, created_at, authenticator, browsers = row
 		assert isinstance(identifier, int)
 		assert isinstance(name, str)
 		assert isinstance(role, str)
 		assert (disabled_at is None) or (isinstance(disabled_at, datetime))
 		assert isinstance(created_at, datetime)
-		found.append(User(identifier, name, role, disabled_at, created_at))
+		found.append(User(identifier, name, role, disabled_at, created_at, bool(authenticator), int(browsers)))
 	return found
+
+
+def set_authenticator(connection: Connection, identifier: int, secret: str | None) -> None:
+	"""La clé de l'application d'authentification du compte, ou None pour la retirer
+	(https://github.com/dascritch/machincast/issues/601)."""
+	connection.execute("UPDATE api_users SET totp_secret = %s WHERE id = %s", (secret, identifier))
+
+
+def forget_browsers(connection: Connection, identifier: int) -> int:
+	"""Les navigateurs connus du compte, oubliés : sa prochaine connexion repasse la première connexion
+	(https://github.com/dascritch/machincast/issues/601). Leur nombre."""
+	return connection.execute("DELETE FROM api_browsers WHERE user_id = %s", (identifier,)).rowcount
 
 
 def name_taken(connection: Connection, name: str) -> bool:
@@ -75,6 +92,8 @@ def set_password(connection: Connection, identifier: int, password_hash: str) ->
 	"""Le nouveau mot de passe, qui met fin aux sessions du compte : un mot de passe qui a fuité cesse aussitôt de
 	servir (https://github.com/dascritch/machincast/issues/548). Le nombre de sessions terminées."""
 	connection.execute("UPDATE api_users SET password_hash = %s WHERE id = %s", (password_hash, identifier))
+	# Ses navigateurs connus aussi : ils repassent la première connexion (https://github.com/dascritch/machincast/issues/601).
+	forget_browsers(connection, identifier)
 	return end_sessions(connection, identifier)
 
 
@@ -85,6 +104,7 @@ def set_disabled(connection: Connection, identifier: int, *, disabled: bool) -> 
 		connection.execute(
 			"UPDATE api_users SET disabled_at = clock_timestamp() WHERE id = %s AND disabled_at IS NULL", (identifier,)
 		)
+		forget_browsers(connection, identifier)
 		return end_sessions(connection, identifier)
 	connection.execute("UPDATE api_users SET disabled_at = NULL WHERE id = %s", (identifier,))
 	return 0

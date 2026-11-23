@@ -555,6 +555,16 @@ class Ui_PreferencesWindow(object):
 
         self.intranet_form.setWidget(2, QFormLayout.ItemRole.FieldRole, self.intranet_first_login)
 
+        self.intranet_second_factor_caption = QLabel(self.intranet_page)
+        self.intranet_second_factor_caption.setObjectName(u"intranet_second_factor_caption")
+
+        self.intranet_form.setWidget(3, QFormLayout.ItemRole.LabelRole, self.intranet_second_factor_caption)
+
+        self.intranet_second_factor = QComboBox(self.intranet_page)
+        self.intranet_second_factor.setObjectName(u"intranet_second_factor")
+
+        self.intranet_form.setWidget(3, QFormLayout.ItemRole.FieldRole, self.intranet_second_factor)
+
 
         self.intranet_layout.addLayout(self.intranet_form)
 
@@ -615,6 +625,7 @@ class Ui_PreferencesWindow(object):
         self.intranet_port_caption.setBuddy(self.intranet_port)
         self.intranet_validation_caption.setBuddy(self.intranet_validation)
         self.intranet_first_login_caption.setBuddy(self.intranet_first_login)
+        self.intranet_second_factor_caption.setBuddy(self.intranet_second_factor)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(PreferencesWindow)
@@ -725,7 +736,11 @@ class Ui_PreferencesWindow(object):
         self.intranet_validation.setSuffix(QCoreApplication.translate("PreferencesWindow", u" min", None))
         self.intranet_first_login_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&First connection", None))
 #if QT_CONFIG(tooltip)
-        self.intranet_first_login.setToolTip(QCoreApplication.translate("PreferencesWindow", u"How a connection by name and password to the intranet becomes a valid session", None))
+        self.intranet_first_login.setToolTip(QCoreApplication.translate("PreferencesWindow", u"How the first connection of a browser, by name and password, becomes a valid session", None))
+#endif // QT_CONFIG(tooltip)
+        self.intranet_second_factor_caption.setText(QCoreApplication.translate("PreferencesWindow", u"&Second factor", None))
+#if QT_CONFIG(tooltip)
+        self.intranet_second_factor.setToolTip(QCoreApplication.translate("PreferencesWindow", u"What each connection goes through after the password, even from a known browser", None))
 #endif // QT_CONFIG(tooltip)
         self.intranet_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is accepted at the studio desk, which then gives a 6-digit code, within the time set here.", None))
         self.pages.setTabText(self.pages.indexOf(self.intranet_page), QCoreApplication.translate("PreferencesWindow", u"Intranet", None))

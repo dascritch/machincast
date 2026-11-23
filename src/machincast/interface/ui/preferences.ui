@@ -837,7 +837,24 @@
          <item row="2" column="1">
           <widget class="QComboBox" name="intranet_first_login">
            <property name="toolTip">
-            <string>How a connection by name and password to the intranet becomes a valid session</string>
+            <string>How the first connection of a browser, by name and password, becomes a valid session</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="intranet_second_factor_caption">
+           <property name="text">
+            <string>&amp;Second factor</string>
+           </property>
+           <property name="buddy">
+            <cstring>intranet_second_factor</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="intranet_second_factor">
+           <property name="toolTip">
+            <string>What each connection goes through after the password, even from a known browser</string>
            </property>
           </widget>
          </item>

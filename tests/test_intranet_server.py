@@ -127,6 +127,16 @@ def first_login(context: Context, validation: str) -> None:
 	assert settings.first_login == FIRST_LOGINS[validation]
 
 
+SECOND_FACTORS = {"aucun": "none", "application d'authentification": "totp", "au pupitre": "desk"}
+"""Le second facteur, comme le disent les scénarios (https://github.com/dascritch/machincast/issues/601)."""
+
+
+@then(parsers.parse("le second facteur est « {factor} »"))
+def second_factor(context: Context, factor: str) -> None:
+	assert context.configuration is not None
+	assert context.configuration.intranet.second_factor == SECOND_FACTORS[factor]
+
+
 @then("son journal ne dit rien")
 def journal_silent(context: Context) -> None:
 	assert context.journal == "", context.journal

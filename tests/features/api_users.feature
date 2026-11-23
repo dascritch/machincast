@@ -112,6 +112,76 @@ Fonctionnalité: Comptes de l'intranet et de l'API, dans l'onglet « API »
 		Et les sessions de « regie » sont toutes invalides
 		Et « stagiaire » a encore 1 session valide et 1 session à valider
 
+	# ─── Le second facteur (https://github.com/dascritch/machincast/issues/601) ───
+
+	Scénario: Régler l'application d'authentification d'un compte montre sa clé et son adresse otpauth, une seule fois
+		Étant donné les comptes de l'intranet :
+			| nom   | mot de passe    | rôle      | état  |
+			| regie | tisane-au-micro | consulter | actif |
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
+		Et je choisis le compte « regie » dans l'onglet API
+		Et je règle l'application d'authentification du compte, en répondant « Enregistrer »
+		Alors la fenêtre a montré une clé de 32 caractères, en groupes de quatre, et son adresse « otpauth://totp/MachinCast%20Radio%20de%20test:regie?secret=…&issuer=MachinCast%20Radio%20de%20test »
+		Et la base garde la clé de l'application d'authentification de « regie »
+		Et l'onglet API dit, pour « regie », l'application d'authentification « réglée »
+		Et la barre d'état annonce « Application d'authentification de regie réglée : elle donne désormais ses codes. »
+
+	Scénario: Annuler le réglage de l'application d'authentification ne garde aucune clé
+		Étant donné les comptes de l'intranet :
+			| nom   | mot de passe    | rôle      | état  |
+			| regie | tisane-au-micro | consulter | actif |
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
+		Et je choisis le compte « regie » dans l'onglet API
+		Et je règle l'application d'authentification du compte, en répondant « Annuler »
+		Alors la base ne garde pas de clé de l'application d'authentification de « regie »
+		Et l'onglet API dit, pour « regie », l'application d'authentification « — »
+
+	Scénario: Retirer l'application d'authentification d'un compte
+		Étant donné les comptes de l'intranet :
+			| nom   | mot de passe    | rôle      | état  |
+			| regie | tisane-au-micro | consulter | actif |
+		Et l'application d'authentification de « regie » réglée
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
+		Et je choisis le compte « regie » dans l'onglet API
+		Et je clique sur « Retirer l'application d'authentification »
+		Alors la base ne garde pas de clé de l'application d'authentification de « regie »
+		Et la barre d'état annonce « Application d'authentification de regie retirée. »
+
+	Scénario: Oublier les navigateurs connus d'un compte lui fait repasser la première connexion
+		Étant donné les comptes de l'intranet :
+			| nom       | mot de passe    | rôle      | état  |
+			| regie     | tisane-au-micro | consulter | actif |
+			| stagiaire | cafe-du-matin-1 | consulter | actif |
+		Et « regie » a 2 navigateurs connus
+		Et « stagiaire » a 1 navigateur connu
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
+		Et je choisis le compte « regie » dans l'onglet API
+		Alors l'onglet API dit, pour « regie », 2 navigateurs connus
+		Quand je clique sur « Oublier ses navigateurs »
+		Alors la barre d'état annonce « 2 navigateurs de regie oubliés : sa prochaine connexion repasse la première connexion. »
+		Et « regie » n'a plus de navigateur connu
+		Et « stagiaire » a encore 1 navigateur connu
+
+	Plan du scénario: Changer le mot de passe, ou désactiver le compte, oublie aussi ses navigateurs
+		Étant donné les comptes de l'intranet :
+			| nom   | mot de passe    | rôle      | état  |
+			| regie | tisane-au-micro | consulter | actif |
+		Et « regie » a 2 navigateurs connus
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet API » dans le menu « Affichage »
+		Et je choisis le compte « regie » dans l'onglet API
+		Et <action>
+		Alors « regie » n'a plus de navigateur connu
+
+		Exemples:
+			| action                                                    |
+			| je change le mot de passe du compte pour « café-du-matin-42 » |
+			| je clique sur « Désactiver »                              |
+
 	Scénario: Désactiver un compte met fin à ses sessions, et le réactiver n'en fait revivre aucune
 		Étant donné les comptes de l'intranet :
 			| nom   | mot de passe    | rôle      | état  |

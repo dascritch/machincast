@@ -14,6 +14,9 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 7. **Sessions** (`sessions`) : celles du compte choisi, la plus récente en tête : `à valider` au pupitre, `valide` jusqu'à sa limite, ou `invalide` ; ouverte par la mire de l'`intranet`, ou générée au `pupitre` ; avec l'adresse et le navigateur du poste distant ([#539](https://github.com/dascritch/machincast/issues/539)).
 8. **➕ Nouvelle session API…** (`new_session`) : une session valide aussitôt, pour un outil qui lit l'API ; son jeton n'est montré qu'une fois.
 9. **Invalider la session** (`invalidate_session`) : la session choisie ne sert plus.
+10. **Application d'authentification…** (`authenticator`) : une nouvelle clé pour l'application d'authentification du compte, le second facteur de l'intranet ([#601](https://github.com/dascritch/machincast/issues/601)) ; la fenêtre la montre une seule fois, en groupes de quatre caractères, avec son adresse `otpauth://` ; **Enregistrer** la garde, et la colonne **Application d'authentification** dit `réglée`.
+11. **Retirer l'application d'authentification** (`remove_authenticator`) : le compte n'a plus de clé ; si le second facteur est l'application d'authentification, il ne se connecte plus avant d'en avoir une nouvelle.
+12. **Oublier ses navigateurs** (`forget_browsers`) : la colonne **Navigateurs connus** compte les navigateurs qui ont déjà passé la première connexion du compte ; les oublier lui fait repasser la première connexion, de n'importe quel navigateur. Changer son mot de passe ou le désactiver les oublie aussi.
 
 Une connexion à distance à valider s'annonce au-dessus des onglets, dans un bandeau orange : le compte, l'adresse, le navigateur et l'heure limite ; **Accepter** montre le code à 6 chiffres à donner, **Refuser** la ferme.
 

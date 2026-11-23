@@ -18,14 +18,14 @@ fonctions, sans asyncio, s'appellent hors de la boucle du serveur (asyncio.to_th
 
 import hashlib
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 import psycopg
 from psycopg.rows import TupleRow
 
 from machincast.intranet import queries
-from machincast.shared import passwords
+from machincast.shared import passwords, totp
 
 Connection = psycopg.Connection[TupleRow]
 
@@ -37,6 +37,10 @@ PENDING_LOCK = 547
 """Sessions à valider d'un compte, au plus, à la fois (https://github.com/dascritch/machincast/issues/547)."""
 TOKEN_BYTES = 32
 COOKIE = "machincast_session"
+BROWSER_COOKIE = "machincast_browser"
+"""Le cookie d'un navigateur connu (https://github.com/dascritch/machincast/issues/601)."""
+BROWSER_DAYS = 400
+"""Jours du cookie d'un navigateur connu : la limite des navigateurs courants."""
 DECOY = passwords.digest("machincast-decoy-password")
 """Une empreinte vérifiée pour un nom inconnu : la réponse prend le même temps, et ne dit pas si le compte existe."""
 
@@ -82,14 +86,22 @@ def authenticate(connection: Connection, name: str, password: str) -> int | None
 
 
 def open_pending(
-	connection: Connection, user: int, value: str, validation: int, client: tuple[str, str], *, with_code: bool = True
+	connection: Connection,
+	user: int,
+	value: str,
+	validation: int,
+	client: tuple[str, str],
+	*,
+	with_code: bool = True,
+	steps: tuple[bool, bool] = (True, False),
 ) -> str | None:
 	"""Une session à valider dans les minutes de validation ; le code à donner au pupitre, « » sans code, quand
-	l'acceptation au pupitre suffit (https://github.com/dascritch/machincast/issues/600). None si le compte a déjà
-	MAXIMUM_PENDING sessions à valider : le pupitre les valide ou les refuse, ou leur délai passe."""
+	l'acceptation au pupitre suffit (https://github.com/dascritch/machincast/issues/600). steps : ce qu'elle attend, le
+	pupitre et l'application d'authentification (https://github.com/dascritch/machincast/issues/601). None si le compte
+	a déjà MAXIMUM_PENDING sessions à valider : le pupitre les valide ou les refuse, ou leur délai passe."""
 	user_agent, address = client
 	given = ""
-	if with_code:
+	if (with_code) and (steps[0]):
 		given = code()
 	with connection.transaction():
 		_expire(connection)
@@ -99,7 +111,13 @@ def open_pending(
 		if queries.pending_count(connection, user) >= MAXIMUM_PENDING:
 			return None
 		queries.insert_pending(
-			connection, user, fingerprint(value), (given) or (None), (user_agent[:500], (address) or (None)), validation
+			connection,
+			user,
+			fingerprint(value),
+			(given) or (None),
+			(user_agent[:500], (address) or (None)),
+			validation,
+			steps,
 		)
 	return given
 
@@ -110,6 +128,93 @@ def open_valid(connection: Connection, user: int, value: str, hours: int, client
 	user_agent, address = client
 	with connection.transaction():
 		queries.insert_valid(connection, user, fingerprint(value), (user_agent[:500], (address) or (None)), hours)
+
+
+def known_browser(connection: Connection, user: int, value: str | None) -> bool:
+	"""Le cookie de ce navigateur est celui d'un navigateur connu du compte
+	(https://github.com/dascritch/machincast/issues/601)."""
+	if not value:
+		return False
+	with connection.transaction():
+		return queries.known_browser(connection, user, fingerprint(value))
+
+
+def remember_browser(connection: Connection, session: str) -> str:
+	"""Le navigateur de cette session, désormais valide, retenu pour son compte : le cookie à lui donner, dont la base
+	ne garde que l'empreinte (https://github.com/dascritch/machincast/issues/601)."""
+	value = token()
+	with connection.transaction():
+		queries.remember_browser(connection, fingerprint(value), fingerprint(session))
+	return value
+
+
+def totp_secret(connection: Connection, user: int) -> str | None:
+	"""La clé de l'application d'authentification du compte ; None sans elle."""
+	with connection.transaction():
+		return queries.totp_secret(connection, user)
+
+
+@dataclass(frozen=True)
+class Pending:
+	"""Une session à valider, telle que la validation la lit (https://github.com/dascritch/machincast/issues/601)."""
+
+	identifier: int
+	code: str | None
+	attempts: int
+	accepted: bool
+	late: bool
+	desk: bool
+	totp: bool
+	user: int
+	secret: str | None
+
+	def stage(self) -> str:
+		"""Ce qu'elle attend : « waiting », l'acceptation au pupitre, sans code ; « code », le code du pupitre ;
+		« totp », celui de l'application d'authentification ; « ready », plus rien."""
+		if (self.desk) and (self.code is not None):
+			return "code"
+		if (self.desk) and (not self.accepted):
+			return "waiting"
+		if self.totp:
+			return "totp"
+		return "ready"
+
+
+def _pending(connection: Connection, value: str, *, lock: bool) -> Pending | None:
+	row = queries.pending_session(connection, fingerprint(value), lock=lock)
+	if row is None:
+		return None
+	identifier, expected, attempts, accepted_at, late, desk, totp, user, secret = row
+	assert isinstance(identifier, int)
+	assert isinstance(attempts, int)
+	assert isinstance(user, int)
+	found_code = None
+	if expected is not None:
+		found_code = str(expected)
+	found_secret = None
+	if secret is not None:
+		found_secret = str(secret)
+	return Pending(
+		identifier,
+		found_code,
+		attempts,
+		accepted_at is not None,
+		bool(late),
+		bool(desk),
+		bool(totp),
+		user,
+		found_secret,
+	)
+
+
+def stage(connection: Connection, value: str) -> str:
+	"""Ce qu'attend la session à valider de ce jeton (Pending.stage), sans rien écrire ; « invalid », elle ne se valide
+	plus."""
+	with connection.transaction():
+		found = _pending(connection, value, lock=False)
+	if (found is None) or (found.late):
+		return "invalid"
+	return found.stage()
 
 
 def _expire(connection: Connection) -> None:
@@ -131,39 +236,78 @@ def find(connection: Connection, value: str) -> Session | None:
 	return Session(identifier, str(user), str(role), str(state), expires_at)
 
 
-def validate(connection: Connection, value: str, given: str | None, hours: int) -> str:
+@dataclass
+class Validation:
+	"""Ce qu'il faut pour valider une session : le jeton, ce qui est saisi, la durée de la session, et, pour
+	l'application d'authentification, l'heure et le dernier pas accepté de chaque compte, qu'un code ne serve qu'une
+	fois (https://github.com/dascritch/machincast/issues/601)."""
+
+	value: str
+	given: str | None
+	hours: int
+	at: datetime | None = None
+	used: dict[int, int] = field(default_factory=dict)
+
+
+def validate(connection: Connection, validation: Validation) -> str:
 	"""Le code saisi : « waiting », la connexion pas encore acceptée au pupitre, sans essayer le code ; « valid », la
-	session validée pour hours heures, ou, sans code, acceptée au pupitre, quel que soit given
-	(https://github.com/dascritch/machincast/issues/600) ; given None, rien de saisi, n'essaie aucun code ; « wrong », un code faux, encore permis ;
-	« exhausted », un code faux, le dernier permis, qui rend la session invalide ; « invalid », la session ne se
-	valide plus."""
+	session validée pour hours heures ; « totp », le code du pupitre exact, reste celui de l'application
+	d'authentification (https://github.com/dascritch/machincast/issues/601) ; « wrong » et « wrong_totp », un code
+	faux, encore permis ; « exhausted », un code faux, le dernier permis, qui rend la session invalide ; « invalid », la
+	session ne se valide plus. Sans code du pupitre, son acceptation suffit
+	(https://github.com/dascritch/machincast/issues/600) ; given None, rien de saisi, n'essaie aucun code."""
 	with connection.transaction():
-		row = queries.pending_session(connection, fingerprint(value))
-		if row is None:
+		found = _pending(connection, validation.value, lock=True)
+		if found is None:
 			return "invalid"
-		identifier, expected, attempts, accepted_at, late = row
-		if late:
-			queries.invalidate(connection, identifier)
+		if found.late:
+			queries.invalidate(connection, found.identifier)
 			return "invalid"
-		if accepted_at is None:
+		if (found.desk) and (not found.accepted):
 			# Pas encore acceptée au pupitre : le code n'y est pas encore donné, aucun n'est essayé.
 			return "waiting"
-		if expected is None:
-			# Sans code, l'acceptation au pupitre suffit (https://github.com/dascritch/machincast/issues/600).
-			queries.validate(connection, identifier, hours)
+		chosen = found.stage()
+		if chosen == "ready":
+			queries.validate(connection, found.identifier, validation.hours)
 			return "valid"
-		if given is None:
-			# Rien de saisi : la page relue, qui ne fait entrer qu'une session sans code.
+		if validation.given is None:
+			# Rien de saisi : la page relue, qui ne fait entrer qu'une session qui n'attend plus rien.
 			return "waiting"
-		if secrets.compare_digest(str(expected), given.strip().replace(" ", "")):
-			queries.validate(connection, identifier, hours)
-			return "valid"
-		assert isinstance(attempts, int)
-		if attempts + 1 >= ATTEMPTS:
-			queries.exhaust(connection, identifier)
-			return "exhausted"
-		queries.wrong_attempt(connection, identifier)
-		return "wrong"
+		if chosen == "code":
+			return _desk_code(connection, found, validation)
+		return _totp_code(connection, found, validation)
+
+
+def _desk_code(connection: Connection, found: Pending, validation: Validation) -> str:
+	assert validation.given is not None
+	if not secrets.compare_digest(str(found.code), validation.given.strip().replace(" ", "")):
+		return _wrong(connection, found, "wrong")
+	if found.totp:
+		queries.clear_code(connection, found.identifier)
+		return "totp"
+	queries.validate(connection, found.identifier, validation.hours)
+	return "valid"
+
+
+def _totp_code(connection: Connection, found: Pending, validation: Validation) -> str:
+	assert validation.given is not None
+	matched = None
+	if (found.secret is not None) and (validation.at is not None):
+		matched = totp.matching_step(found.secret, validation.given, validation.at)
+	# Un code déjà accepté pour ce compte ne sert pas deux fois.
+	if (matched is None) or (matched <= validation.used.get(found.user, -1)):
+		return _wrong(connection, found, "wrong_totp")
+	validation.used[found.user] = matched
+	queries.validate(connection, found.identifier, validation.hours)
+	return "valid"
+
+
+def _wrong(connection: Connection, found: Pending, outcome: str) -> str:
+	if found.attempts + 1 >= ATTEMPTS:
+		queries.exhaust(connection, found.identifier)
+		return "exhausted"
+	queries.wrong_attempt(connection, found.identifier)
+	return outcome
 
 
 def end(connection: Connection, value: str) -> None:

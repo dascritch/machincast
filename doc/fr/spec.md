@@ -310,6 +310,20 @@ Les comptes de l'intranet et de l'API ([#537](https://github.com/dascritch/machi
 | `password_hash` | Empreinte scrypt salée du mot de passe, `scrypt$n$r$p$sel$empreinte` (`machincast.shared.passwords`) ; jamais le mot de passe lui-même. |
 | `role` | `consult` (l'intranet et l'API en lecture) ou `actions` (de même, et les actions de l'API à venir), type `api_role`. |
 | `disabled_at` | Renseigné, le compte est désactivé : il ne se connecte plus. |
+| `totp_secret` | La clé de son application d'authentification, en base32, 32 caractères (`CHECK`), réglée par l'onglet « API », lue par l'intranet ; vide sans application ([#601](https://github.com/dascritch/machincast/issues/601), migration `0011.api-second-factor`). |
+
+#### `api_browsers`
+
+Les navigateurs connus de chaque compte ([#601](https://github.com/dascritch/machincast/issues/601), migration `0011.api-second-factor`) : un navigateur dont une session est devenue valide ne repasse plus la première connexion du compte.
+
+| Champ | Description |
+| --- | --- |
+| `id`, `user_id` | Le compte ; ses navigateurs disparaissent avec lui. |
+| `token_hash` | Empreinte SHA-256 du cookie `machincast_browser`, unique ; jamais le cookie lui-même. |
+| `user_agent` | Le navigateur de la session qui l'a fait connaître. |
+| `created_at`, `used_at` | Sa première connexion validée, sa dernière connexion. |
+
+L'intranet en ajoute et note leur dernière connexion ; seule l'interface en oublie, depuis l'onglet « API », et quand le mot de passe d'un compte change ou qu'il est désactivé.
 
 #### `api_sessions`
 
@@ -323,6 +337,7 @@ Les sessions de l'intranet et de l'API ([#539](https://github.com/dascritch/mach
 | `state` | `pending` (à valider), `valid` ou `invalid`, type `api_session_state`. |
 | `code`, `attempts` | Le code à 6 chiffres à donner au poste distant, tant que la session est à valider, aucun quand l'acceptation au pupitre suffit ([#600](https://github.com/dascritch/machincast/issues/600), migration `0010.api-sessions-without-code`) ; les codes faux saisis. |
 | `accepted_at` | L'acceptation de la connexion au pupitre, avant laquelle son code n'est ni montré ni essayé ([#547](https://github.com/dascritch/machincast/issues/547), migration `0008.api-sessions-acceptance`). |
+| `desk`, `totp` | Ce que la session à valider attend : l'acceptation au pupitre, avec ou sans code, puis le code de l'application d'authentification ([#601](https://github.com/dascritch/machincast/issues/601), migration `0011.api-second-factor`). |
 | `user_agent`, `source_ip` | Le navigateur et l'adresse du poste distant. |
 | `created_at`, `validate_before`, `validated_at`, `expires_at`, `ended_at` | L'ouverture, la limite de validation, la validation, la limite de la session valide, sa fin. |
 
@@ -383,6 +398,7 @@ Ils sont créés par la migration `0001.initial-schema` ([#4](https://github.com
 | `log` | insérer (sans `RETURNING`) ; retrouver son démarrage précédent par `machincast_previous_start`, sans lire ([#342](https://github.com/dascritch/machincast/issues/342)) | insérer (sans `RETURNING`, [#341](https://github.com/dascritch/machincast/issues/341)) | lire | lire |
 | `api_users` | — | — | lire, insérer, modifier, supprimer | lire |
 | `api_sessions` | — | — | lire, insérer, modifier | lire, insérer, modifier |
+| `api_browsers` | — | — | lire, supprimer | lire, insérer, modifier `used_at` |
 
 L'indexation ne supprime aucun sonore : un fichier disparu fait passer son sonore à l'état `missing`.
 Elle ne supprime que des lignes de `bank_sounds`, pour retirer d'une banque les sonores hors de ses durées ([#195](https://github.com/dascritch/machincast/issues/195), [§ 6.2](#62-indexation-des-répertoires-de-banques)).
@@ -2034,6 +2050,13 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 	Cinq échecs d'une même adresse en un quart d'heure la font attendre un quart d'heure, 429 (`portal.Throttle`, en mémoire).
 	Cinq codes faux d'une même adresse, ou d'un même compte, font aussi attendre un quart d'heure, avant même que le mot de passe soit lu : la réponse ne dit pas s'il était bon ([#547](https://github.com/dascritch/machincast/issues/547), `Portal.codes`).
 	Une connexion réussie efface les mots de passe refusés de l'adresse, mais pas ses codes faux : seule une session validée au pupitre les efface.
+- **Navigateur connu** ([#601](https://github.com/dascritch/machincast/issues/601)) : une session devenue valide fait retenir son navigateur pour son compte, par le cookie `machincast_browser` (`Secure`, `HttpOnly`, `SameSite=Strict`, 400 jours), dont `api_browsers` ne garde que l'empreinte ; le cookie d'un autre compte ne compte pas.
+	La première connexion, ci-dessous, ne vaut que pour un navigateur inconnu du compte ; un navigateur connu ne passe que le second facteur.
+- **Second facteur** (`intranet.second_factor`, [#601](https://github.com/dascritch/machincast/issues/601)), réglé dans la page « Intranet », « Second facteur », pour chaque connexion, même d'un navigateur connu :
+	`none`, par défaut, « Aucun » : un navigateur connu entre avec le mot de passe seul, et le journal le dit en `INFO` ;
+	`desk`, « Validation au pupitre » : la session attend l'acceptation au pupitre, sans code, comme la première connexion `desk` ;
+	`totp`, « Application d'authentification » : la session attend le code à 6 chiffres de l'application d'authentification du compte (`machincast.shared.totp`, RFC 6238 : HMAC-SHA1, pas de 30 secondes, un pas d'avance ou de retard accepté), après le pupitre pour une première connexion ; un code accepté ne sert pas deux fois au même compte (`Portal.used`) ; un code faux compte comme celui du pupitre ; un compte sans application d'authentification ne se connecte pas, 403.
+	La clé se règle dans l'onglet « API » ([§ 8.15](#815-onglet-api)), montrée une seule fois avec son adresse `otpauth://totp/MachinCast <radio>:<compte>?secret=…&issuer=…`.
 - **Sécurité de la première connexion** (`intranet.first_login`, [#600](https://github.com/dascritch/machincast/issues/600)), réglée dans la page « Intranet » des paramètres du service, « Première connexion » :
 	`desk_code`, par défaut, « Validation au pupitre, avec un code », les étapes ci-dessous ;
 	`desk`, « Validation au pupitre », la session à valider n'a pas de code : « Accepter », au pupitre, suffit, et la page `/validation`, qui se relit toutes les 5 secondes (`<meta http-equiv="refresh">`, la Content-Security-Policy n'acceptant aucun script dans la page), la rend valide et mène à l'accueil ; un code envoyé n'est pas lu ;

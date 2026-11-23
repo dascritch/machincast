@@ -1,8 +1,10 @@
-{#- La page qui demande le code donné au pupitre, et ce qui a refusé le précédent (https://github.com/dascritch/machincast/issues/539) ;
-    sans code, elle se relit jusqu'à ce que le pupitre accepte la connexion (https://github.com/dascritch/machincast/issues/600). -#}
+{#- La page de la validation (https://github.com/dascritch/machincast/issues/539) : le code donné au pupitre, ou celui de
+    l'application d'authentification (https://github.com/dascritch/machincast/issues/601), et ce qui a refusé le
+    précédent ; sans code à saisir, elle se relit jusqu'à ce que le pupitre accepte la connexion
+    (https://github.com/dascritch/machincast/issues/600). -#}
 {% extends "page.html.jinja" %}
 {% block head %}
-{% if not with_code %}
+{% if not field %}
 <meta http-equiv="refresh" content="5">
 {% endif %}
 {{ head }}
@@ -10,9 +12,9 @@
 {% block body %}
 <h1>{{ title }}</h1>
 <p>{{ explanation }}</p>
-{% if with_code %}
+{% if field %}
 <form method="post" action="/validation">
-<p><label>{{ _("6-digit code") }}<br><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus></label></p>
+<p><label>{{ field }}<br><input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required autofocus></label></p>
 <p><button type="submit">{{ _("Validate") }}</button></p>
 </form>
 {% endif %}
