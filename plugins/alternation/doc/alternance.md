@@ -16,6 +16,7 @@ Leurs dates ne comptent plus dès qu'elles sont choisies pour une alternance : e
 3. Cocher, dans **Émissions qui se partagent le créneau**, celles qui alternent.
 	Une émission qui n'existe pas encore se crée de là, par **Créer une émission sur ce créneau partagé**, à côté : son nom demandé, elle s'ajoute à la liste, « Clara (à créer) », cochée.
 	Elle n'est créée qu'à l'enregistrement de l'événement méta, sur son créneau, sans jour de récurrence : il reste à remplir sa liste de lecture dans sa propre fiche.
+	Son nom est aussi son nom public ; elle reprend de la fiche de l'événement méta, telle qu'elle est enregistrée, **Artiste et titre**, la **Fin de liste** et son secours, et le **Secours de stream tombé**.
 	Un nom déjà pris par un autre événement est refusé.
 4. Choisir le **Rythme** :
 	- **Par mois, selon la semaine du mois** : la **Rotation** a cinq lignes, « 1er mercredi du mois », « 2e mercredi du mois », jusqu'au « 5e mercredi du mois », qui ne revient que certains mois ;
@@ -26,3 +27,8 @@ Leurs dates ne comptent plus dès qu'elles sont choisies pour une alternance : e
 
 Un événement qui revient plusieurs jours par semaine parle de « 1re semaine du mois » plutôt que de « 1er mercredi ».
 Décocher **Émissions en alternance**, puis enregistrer, retire l'alternance : l'événement retrouve sa liste, et les émissions leurs propres dates.
+
+## La fiche d'une émission de l'alternance
+
+Dans la fiche d'une émission qu'une alternance fait jouer, l'encadré « Grille : première occurrence, et jours où elle revient » laisse la place à un encadré qui dit le créneau qu'elle partage, puisque ses propres dates ne comptent plus : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h, avec les émissions « Sonia » et « Zôtre ». »
+Retirée de l'alternance, elle retrouve l'encadré de sa grille.

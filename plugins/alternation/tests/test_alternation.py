@@ -22,13 +22,15 @@ from PySide6.QtWidgets import QComboBox, QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 from tests.database_fixtures import sample_database_parameters
-from tests.interface_steps import date_or_none
+from tests.interface_steps import Context as InterfaceContext
+from tests.interface_steps import date_or_none, opened_card
 
 from conftest import PLUGIN
 from machincast import plugins
 from machincast.clock import FixedClock
 from machincast.database import Role, open_connection
 from machincast.interface.card import Refusal
+from machincast.interface.event_card import EventCard
 from machincast.shared import grid
 
 scenarios(str(PLUGIN / "tests" / "features" / "alternation.feature"))
@@ -44,6 +46,7 @@ class Context:
 	connection: Connection | None = None
 	changes: list[None] = field(default_factory=list)
 	replaced: list[bool] = field(default_factory=list)
+	grid_texts: list[str] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -182,6 +185,7 @@ def _open(context: Context, qtbot: QtBot, identifier: int | None, moment: str) -
 	qtbot.addWidget(section)
 	section.changed.connect(lambda: context.changes.append(None))
 	section.replaces_items.connect(context.replaced.append)
+	section.replaces_grid.connect(context.grid_texts.append)
 	with context.connection.transaction():
 		section.read(identifier)
 	section.show()
@@ -481,3 +485,93 @@ def in_alternation(empty_database: Connection, meta: str, name: str, rank: int) 
 	identifier = _identifier(empty_database, name)
 	assert identifier in stored["candidates"]
 	assert stored["rotation"][str(rank)] == identifier
+
+
+# ─── L'héritage de l'émission créée, et le créneau partagé ─
+
+INHERITED = (
+	r"« (?P<name>[^»]+) » masque ses sonores, passe en fin de liste au secours « (?P<end>[^»]+) », et a pour secours"
+	r" de stream tombé « (?P<stream>[^»]+) »"
+)
+
+
+@given(parsers.re(INHERITED))
+def inheritable(empty_database: Connection, name: str, end: str, stream: str) -> None:
+	empty_database.execute(
+		"UPDATE events SET hide_metadata = true, end_of_list = 'fallback', properties = properties"
+		" || jsonb_build_object('end_fallback_event', %s::bigint, 'stream_fallback_event', %s::bigint)"
+		" WHERE internal_name = %s",
+		(_identifier(empty_database, end), _identifier(empty_database, stream), name),
+	)
+
+
+@then(parsers.re(INHERITED))
+def inherited(empty_database: Connection, name: str, end: str, stream: str) -> None:
+	found = empty_database.execute(
+		"SELECT hide_metadata, end_of_list::text, properties FROM events WHERE internal_name = %s", (name,)
+	).fetchone()
+	assert found == (
+		True,
+		"fallback",
+		{
+			"end_fallback_event": _identifier(empty_database, end),
+			"stream_fallback_event": _identifier(empty_database, stream),
+		},
+	)
+
+
+@then(parsers.parse("« {name} » laisse décider le masquage, rejoue sa liste, sans secours"))
+def nothing_inherited(empty_database: Connection, name: str) -> None:
+	found = empty_database.execute(
+		"SELECT hide_metadata, end_of_list::text FROM events WHERE internal_name = %s", (name,)
+	).fetchone()
+	assert found == (None, "replay")
+
+
+@then(parsers.parse("l'événement « {name} » a pour nom public « {public_name} »"))
+def public_name(empty_database: Connection, name: str, public_name: str) -> None:
+	found = empty_database.execute("SELECT public_name FROM events WHERE internal_name = %s", (name,)).fetchone()
+	assert found == (public_name,)
+
+
+@given(parsers.parse("« {name} » revient le lundi et le mercredi, de {start} à {end}"))
+def twice_a_week(empty_database: Connection, name: str, start: str, end: str) -> None:
+	empty_database.execute(
+		"UPDATE events SET recurrence_days = '{monday,wednesday}', starts_at = %s, ends_at = %s WHERE internal_name = %s",
+		(date_or_none(f"2026-11-30 {start}"), date_or_none(f"2026-11-30 {end}"), name),
+	)
+
+
+@given("la section des émissions en alternance, dans la fiche d'un événement")
+def card_section() -> None:
+	def section(data: Any) -> AlternationSection:
+		return AlternationSection(data["connection"], data["card"].clock, data["parent"])
+
+	plugins.active().points.subscribe("alternation", "interface.event_card", section)
+
+
+@then(parsers.re(r"la fiche montre, à la place de l'encadré de la grille, « (?P<text>.+) »$"))
+def card_grid_replaced(interface: InterfaceContext, text: str) -> None:
+	card = opened_card(interface)
+	assert isinstance(card, EventCard)
+	assert card.ui.grid_group.isHidden()
+	assert card.grid_replacement.text() == text
+	assert not card.grid_replacement.isHidden()
+
+
+@then("la fiche montre l'encadré de la grille")
+def card_grid_shown(interface: InterfaceContext) -> None:
+	card = opened_card(interface)
+	assert isinstance(card, EventCard)
+	assert not card.ui.grid_group.isHidden()
+	assert card.grid_replacement.isHidden()
+
+
+@then(parsers.re(r"la section remplace l'encadré de la grille par « (?P<text>.+) »$"))
+def section_grid(context: Context, text: str) -> None:
+	assert context.grid_texts[-1] == text
+
+
+@then("la section laisse l'encadré de la grille")
+def section_keeps_grid(context: Context) -> None:
+	assert context.grid_texts[-1] == ""

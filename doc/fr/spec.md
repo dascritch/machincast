@@ -2254,6 +2254,8 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 	Sans émission cochée, l'enregistrement est refusé ; décochée, l'alternance est retirée.
 	À côté de « Émissions qui se partagent le créneau », le bouton « Créer une émission sur ce créneau partagé » demande un nom et ajoute l'émission, « Nom (à créer) », cochée ; un nom vide, déjà pris par un événement non supprimé ou par une autre émission à créer, est refusé, sous la liste.
 	Elle n'est créée qu'à l'enregistrement de l'événement méta, dans sa transaction, pour ne jamais être seule sur la grille : une émission aux dates de début et de fin de l'événement méta, sans jour de récurrence, à la place de son identifiant provisoire dans l'alternance ; décochée, elle n'est pas créée.
+	Son nom est aussi son nom public ; elle hérite de l'événement méta, tel que sa fiche vient de l'écrire, de son masquage (« Artiste et titre »), de sa fin de liste et de ses secours de fin de liste et de stream tombé ([#609](https://github.com/dascritch/machincast/issues/609)).
+- Dans la fiche d'une émission qu'une alternance fait jouer, la section met à la place de l'encadré de la grille (`replaces_grid`) le créneau qu'elle partage (`machincast_alternation.sharing`) : « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h, avec les émissions « Sonia » et « Zôtre ». » ; ses jours de récurrence, ou la date de sa seule occurrence, et les autres émissions de son alternance, par nom.
 - Ses textes ont leur propre traduction (`machincast_alternation.texts`) ; ses scénarios, dans `plugins/alternation/tests/`, reprennent les fixtures du cœur.
 
 ### 14.6 Les points d'extension de Machin player
