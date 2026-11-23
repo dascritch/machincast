@@ -2078,6 +2078,8 @@ Les réponses sont en JSON, en UTF-8 (`api.dumps`) : dates en ISO 8601, durées 
 Chaque page de l'intranet, une fois connecté, a le même gabarit minimaliste : un bandeau avec le nom de la radio (`metadata.public_text`), « Machin intranet », l'état de la diffusion, les liens vers les pages de l'intranet, la page en cours marquée, le compte connecté et **Se déconnecter**.
 Sa feuille de style et son script sont servis par l'intranet lui-même, sous `/static/` : la Content-Security-Policy n'accepte aucune ressource d'ailleurs, ni script dans la page.
 Sous `/static/`, seuls `intranet.css` et `intranet.js` sont servis ; tout autre chemin répond 404.
+L'icône de l'intranet, `GET /favicon`, sans session, est celle de l'application, choisie dans l'interface (`interface.icon`), ou celle de MachinCast sans elle, ou si elle ne se lit pas ([#598](https://github.com/dascritch/machincast/issues/598)) ; chaque page la déclare.
+Les décomptes des sonores, le temps restant du sonore en cours et l'attente du prochain, s'écrivent aussi grand que l'heure.
 
 **Gabarits** ([#597](https://github.com/dascritch/machincast/issues/597), `machincast.intranet.rendering`) : chaque page vient d'un gabarit Jinja2 de `machincast/intranet/templates/` : `page.html.jinja`, la page HTML ; `layout.html.jinja`, qui l'étend du bandeau (`banner.html.jinja`) ; puis `home.html.jinja` et l'antenne en direct (`live.html.jinja`), `calendar.html.jinja`, `documentation.html.jinja`, `login.html.jinja`, `validation.html.jinja`, `forbidden.html.jinja`.
 - Un plugin chargé par Machin intranet surcharge un gabarit en fournissant, dans son `templates/`, un fichier du même nom ; le premier plugin, dans l'ordre de `[plugins] enabled`, l'emporte ; l'original reste joignable sous `machincast/<nom>`, pour l'étendre.
@@ -2085,10 +2087,10 @@ Sous `/static/`, seuls `intranet.css` et `intranet.js` sont servis ; tout autre 
 - Les textes passent par `_()`, celui de MachinCast : `machincast.catalog` relève les `_("…")` des gabarits, comme ceux du code.
 - La page et ses routes d'un plugin rendent ses gabarits, ou ceux de l'intranet, par `Tools.render`.
 
-L'accueil, `GET /`, montre l'antenne en direct, dans cet ordre :
+L'accueil, `GET /`, titré « MachinCast - » et le nom de la radio, et non « Accueil » ([#598](https://github.com/dascritch/machincast/issues/598)), montre l'antenne en direct, dans cet ordre :
 
 1. l'heure ;
-2. le texte public en cours ;
+2. le texte public en cours, à droite de l'heure, sur la même ligne, à la ligne sur un écran étroit ;
 3. l'événement en cours : son nom, son début, sa fin et le temps restant ;
 4. l'événement suivant : son nom, son début et sa fin ;
 5. le sonore en cours : son nom, sa durée et le temps restant ;

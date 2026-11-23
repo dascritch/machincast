@@ -21,6 +21,7 @@ from psycopg.rows import TupleRow
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.clock import FixedClock
+from machincast.configuration import PROJECT_DIRECTORY
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
 from machincast.intranet import home, sessions
@@ -29,6 +30,7 @@ from machincast.intranet.app import Intranet
 from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal
 from machincast.player.state import StateSocket
+from machincast.shortcut import ICON
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import NAME, Connection, identifier
@@ -62,12 +64,13 @@ def socket_path(tmp_path: Path) -> Path:
 def application(socket_path: Path, moment: str) -> Iterator[Api]:
 	clock = FixedClock(datetime.fromisoformat(moment).astimezone())
 	portal = Portal(Settings(enabled=True), connect)
+	pages = Pages(portal, connect, socket_path, "Radio Thune", clock)
 	routes = {
 		**portal.routes(),
 		**ApiV1(portal, connect, socket_path, clock).routes(),
-		**Pages(portal, connect, socket_path, "Radio Thune", clock).routes(),
+		**pages.routes(),
 	}
-	built = Api(Intranet(routes), socket_path, clock.now())
+	built = Api(Intranet(routes), socket_path, clock.now(), extra={"pages": pages})
 	yield built
 	if built.player is not None:
 		built.player.shut_down()
@@ -335,7 +338,11 @@ def typed(api: Api, status: int, kind: str) -> None:
 def templated(api: Api, title: str, radio: str, state: str, user: str) -> None:
 	assert _answer(api).status == 200, _answer(api).text()
 	text = _page(api)
-	assert f"<title>{title} — Machin intranet</title>" in text
+	# L'accueil a son propre titre, « MachinCast - » et la radio (https://github.com/dascritch/machincast/issues/598).
+	full = f"{title} — Machin intranet"
+	if title.startswith("MachinCast - "):
+		full = title
+	assert f"<title>{full}</title>" in text, text
 	assert f'<span class="radio">{radio}</span>' in text
 	assert '<span class="machin">Machin intranet</span>' in text
 	assert _element(api, "etat") == state
@@ -668,3 +675,54 @@ def documentation(api: Api) -> None:
 	assert specification["address"] == guide["address"].replace(
 		"doc/fr/utilisateur/README.md", "doc/fr/spec.md#13-intranet-et-api"
 	)
+
+
+# ─── Lisible de loin (https://github.com/dascritch/machincast/issues/598) ───
+
+LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1"/></svg>\n'
+
+
+@given(parsers.re(r"l'icône de l'application « (?P<name>[^»]+) »(?P<missing>, qui n'existe pas)?$"))
+def application_icon(api: Api, tmp_path: Path, name: str, missing: str | None) -> None:
+	path = tmp_path / name
+	if missing is None:
+		path.write_text(LOGO, encoding="utf-8")
+	api.extra["pages"].icon = path
+
+
+@then("l'horloge et le titre public sont sur la même ligne, le titre à droite")
+def clock_line(api: Api) -> None:
+	text = _page(api)
+	line = re.search(
+		r'<div class="ligne-heure">\s*<p class="heure">.*?</p>\s*<p class="texte-public">', text, re.DOTALL
+	)
+	assert line is not None, text
+
+
+@then("la feuille de style écrit le temps restant des sonores aussi grand que l'horloge")
+def large_countdowns() -> None:
+	sheet = (PROJECT_DIRECTORY / "src" / "machincast" / "intranet" / "static" / "intranet.css").read_text(
+		encoding="utf-8"
+	)
+	clock = re.search(r"^\.heure \{[^}]*font-size: ([0-9.]+rem)", sheet, re.MULTILINE)
+	countdowns = re.search(
+		r"^\.sonore \.decompte, \.prochain \.decompte \{[^}]*font-size: ([0-9.]+rem)", sheet, re.MULTILINE
+	)
+	assert (clock is not None) and (countdowns is not None)
+	assert clock.group(1) == countdowns.group(1)
+	assert re.search(r"\.ligne-heure \{[^}]*display: flex", sheet)
+
+
+@then(parsers.parse("la page déclare l'icône « {address} »"))
+def declares_icon(api: Api, address: str) -> None:
+	assert f'<link rel="icon" href="{address}">' in _page(api)
+
+
+@then(parsers.parse("l'icône servie est « {name} »"))
+def served_icon(api: Api, name: str) -> None:
+	assert _answer(api).body == LOGO.encode()
+
+
+@then("l'icône servie est celle de MachinCast")
+def default_icon(api: Api) -> None:
+	assert _answer(api).body == ICON.read_bytes()

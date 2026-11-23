@@ -53,7 +53,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Alors la réponse est 303, vers « / »
 		Et la session est valide, pour 12 heures
 		Quand je demande « GET / »
-		Alors la réponse est 200, et dit « Accueil — Machin intranet »
+		Alors la réponse est 200, et dit « <title>MachinCast - Radio Thune</title> »
 
 	Scénario: Le code se saisit aussi avec une espace entre ses deux moitiés, comme le pupitre le montre
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
@@ -105,7 +105,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi le code donné au pupitre
 		Quand je demande « GET / » avec le jeton en « Authorization: Bearer », sans cookie
-		Alors la réponse est 200, et dit « Accueil — Machin intranet »
+		Alors la réponse est 200, et dit « <title>MachinCast - Radio Thune</title> »
 
 	Scénario: Un compte désactivé perd ses sessions valides
 		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
@@ -189,7 +189,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Et que le pupitre a accepté la connexion
 		Et que j'ai saisi le code donné au pupitre
 		Quand je demande « GET / », la session dans le <rang> de deux en-têtes Cookie
-		Alors la réponse est 200, et dit « Accueil — Machin intranet »
+		Alors la réponse est 200, et dit « <title>MachinCast - Radio Thune</title> »
 
 		Exemples:
 			| rang     |

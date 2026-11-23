@@ -30,7 +30,7 @@ Fonctionnalité: Les pages et les routes des plugins dans Machin intranet
 
 	Scénario: Les sections d'un plugin s'ajoutent sous l'antenne en direct de l'accueil, avec leurs fichiers
 		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
-		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
+		Alors l'API répond 200, une page « MachinCast - Radio Thune » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
 		Et l'accueil a, sous l'antenne en direct, les sections « cadran », « alarmes »
 		Et la page contient « <p>pour regie</p> »
 		Et la page contient « <link rel="stylesheet" href="/plugins/horloge/static/cadran.css"> »
@@ -43,7 +43,7 @@ Fonctionnalité: Les pages et les routes des plugins dans Machin intranet
 		Étant donné le plugin « bancal » qui ajoute à l'accueil une section en échec
 		Et l'intranet, de nouveau, avec ses plugins
 		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
-		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
+		Alors l'API répond 200, une page « MachinCast - Radio Thune » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
 		Et l'accueil a, sous l'antenne en direct, les sections « cadran », « alarmes »
 		Et le journal dit « plugin « bancal » : sa section de l'accueil a échoué : cadran cassé »
 

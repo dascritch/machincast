@@ -6838,6 +6838,11 @@ msgstr "Semaine du {first} au {last}"
 msgid "MachinCast version {version}."
 msgstr "MachinCast version {version}."
 
+#: machincast/intranet/pages.py
+#, python-brace-format
+msgid "icon {path} unreadable: the one of MachinCast instead"
+msgstr "icône {path} illisible : celle de MachinCast à la place"
+
 #: machincast/intranet/portal.py
 msgid "Connection"
 msgstr "Connexion"

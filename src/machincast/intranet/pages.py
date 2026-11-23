@@ -12,6 +12,7 @@ Sans session, une page mène à la mire ; une session à valider, à la page de 
 """
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -28,6 +29,9 @@ from machincast.intranet.app import Request, Response, Route, redirect
 from machincast.intranet.portal import Connect, Portal
 from machincast.intranet.queries import Connection
 from machincast.intranet.sessions import Session
+from machincast.shortcut import ICON
+
+log = logging.getLogger(__name__)
 
 SPECIFICATION = "doc/fr/spec.md#13-intranet-et-api"
 """L'intranet et son API, dans la spécification."""
@@ -57,6 +61,21 @@ def week_context(found: list[dict[str, Any]], first: date, now: datetime) -> dic
 	}
 
 
+ICONS = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+"""Les images d'interface.icon, et leur type."""
+
+
+def icon_response(icon: Path | None) -> Response:
+	"""L'icône choisie, si elle se lit, ou celle de MachinCast."""
+	for path in (icon, ICON):
+		if (path is not None) and (path.suffix.lower() in ICONS):
+			try:
+				return Response(200, path.read_bytes(), ICONS[path.suffix.lower()])
+			except OSError:
+				log.info(_("icon {path} unreadable: the one of MachinCast instead").format(path=path))
+	return Response(404, b"", "text/plain; charset=utf-8")
+
+
 HomeSections = Callable[[Session, Request], Awaitable[tuple[str, str]]]
 """Les sections des plugins sous l'accueil : leur HTML, et leur en-tête."""
 
@@ -66,9 +85,18 @@ class Pages:
 	radio, l'horloge."""
 
 	def __init__(
-		self, portal: Portal, connect: Connect, state_socket: Path, radio: str, clock: Clock | None = None
+		self,
+		portal: Portal,
+		connect: Connect,
+		state_socket: Path,
+		radio: str,
+		clock: Clock | None = None,
+		icon: Path | None = None,
 	) -> None:
 		self.portal = portal
+		self.icon = icon
+		"""interface.icon, l'icône de l'application choisie dans l'interface : celle de l'intranet
+		(https://github.com/dascritch/machincast/issues/598)."""
 		self.connect = connect
 		self.state_socket = state_socket
 		self.radio = radio
@@ -85,6 +113,7 @@ class Pages:
 			("GET", "/calendar"): self.calendar,
 			("GET", "/documentation"): self.documentation,
 			("GET", "/static/*"): template.static,
+			("GET", "/favicon"): self.favicon,
 		}
 
 	async def _database[T](self, action: Callable[[Connection], T]) -> T:
@@ -118,6 +147,11 @@ class Pages:
 			navigation=self.navigation,
 			**context,
 		)
+
+	async def favicon(self, request: Request) -> Response:
+		"""L'icône de l'intranet, sans session : celle de l'application choisie dans l'interface, ou celle de
+		MachinCast si aucune ne l'est, ou si elle ne se lit pas (https://github.com/dascritch/machincast/issues/598)."""
+		return await asyncio.to_thread(icon_response, self.icon)
 
 	async def home(self, request: Request) -> Response:
 		"""L'accueil, en direct."""

@@ -1,5 +1,7 @@
 {#- L'accueil : l'antenne en direct, puis les sections des plugins (https://github.com/dascritch/machincast/issues/512). -#}
 {% extends "layout.html.jinja" %}
+{#- Son titre : « MachinCast - » et le nom de la radio (https://github.com/dascritch/machincast/issues/598). -#}
+{% block title %}MachinCast - {{ radio }}{% endblock %}
 {% block main %}
 {% include "live.html.jinja" %}
 {{ sections }}
