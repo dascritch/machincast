@@ -61,22 +61,22 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 10 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin, 0010.api-sessions-without-code »
+		Alors 11 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin, 0010.api-sessions-without-code, 0011.api-second-factor »
 
 	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
 		https://github.com/dascritch/machincast/issues/454
 		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
 		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
-		Et j'annule les 8 dernières migrations
+		Et j'annule les 9 dernières migrations
 		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	Scénario: Annuler l'ordre ascendant du tableau ramène ces banques à l'ordre descendant, le mode séquentiel
 		https://github.com/dascritch/machincast/issues/535
 		Quand j'enregistre dans "banks" : internal_name = 'Jingles', mode = 'sequential_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
-		Et j'annule les 7 dernières migrations
+		Et j'annule les 8 dernières migrations
 		Alors les banques « Jingles », « Chroniques » sont en modes « sequential », « filename_ascending »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
@@ -196,8 +196,35 @@ Fonctionnalité: Schéma de la base de données
 		Étant donné les éléments de référence en base
 		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
 		Et j'enregistre dans "api_sessions" : user_id = 1, token_hash = repeat('b', 64), validate_before = now()
-		Et j'annule la dernière migration
+		Et j'annule les 2 dernières migrations
 		Alors la session de l'intranet sans code est invalide
+
+	Plan du scénario: La clé de l'application d'authentification d'un compte est en base32, de 32 caractères
+		https://github.com/dascritch/machincast/issues/601
+		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1', totp_secret = '<clé>'
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| clé                              | verdict |
+			| JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP | accepte |
+			| JBSWY3DPEHPK3PXP                 | refuse  |
+			| jbswy3dpehpk3pxpjbswy3dpehpk3pxp | refuse  |
+			| JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PX1 | refuse  |
+
+	Plan du scénario: Un navigateur connu d'un compte n'en garde que l'empreinte, unique
+		https://github.com/dascritch/machincast/issues/601
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
+		Et j'enregistre dans "api_browsers" : user_id = 1, token_hash = repeat('a', 64)
+		Et j'enregistre dans "api_browsers" : <valeurs>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| valeurs                                       | verdict |
+			| user_id = 1, token_hash = repeat('b', 64)     | accepte |
+			| user_id = 1, token_hash = repeat('a', 64)     | refuse  |
+			| user_id = 1, token_hash = 'jeton-en-clair'    | refuse  |
+			| user_id = 2, token_hash = repeat('b', 64)     | refuse  |
 
 	Plan du scénario: Une session de l'intranet incohérente est refusée
 		https://github.com/dascritch/machincast/issues/539 : l'empreinte du jeton, unique, un code à 6 chiffres, s'il y en

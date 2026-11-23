@@ -55,6 +55,16 @@
        <string>Created</string>
       </property>
      </column>
+     <column>
+      <property name="text">
+       <string>Authentication app</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Known browsers</string>
+      </property>
+     </column>
     </widget>
    </item>
    <item>
@@ -106,6 +116,44 @@
         <string>❌ Delete…</string>
        </property>
       </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="second_factor">
+     <item>
+      <widget class="QPushButton" name="authenticator">
+       <property name="toolTip">
+        <string>A new key for the authentication app of the account, the second factor of the intranet</string>
+       </property>
+       <property name="text">
+        <string>Authentication app…</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="remove_authenticator">
+       <property name="text">
+        <string>Remove the authentication app</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="forget_browsers">
+       <property name="toolTip">
+        <string>Its next connection, from any browser, goes through the first connection again</string>
+       </property>
+       <property name="text">
+        <string>Forget its browsers</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="second_factor_space">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </spacer>
      </item>
     </layout>
    </item>

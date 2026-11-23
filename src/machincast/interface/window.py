@@ -97,7 +97,7 @@ from machincast.interface import (
 )
 from machincast.interface.adding import add_files
 from machincast.interface.airplay_tab import WITHOUT_METADATA, AirplayScreen
-from machincast.interface.api_tab import ApiScreen
+from machincast.interface.api_tab import ISSUER, ApiScreen
 from machincast.interface.application import identify
 from machincast.interface.background_programming import guarantee
 from machincast.interface.bank_card import BankCard
@@ -927,7 +927,7 @@ class MainWindow(QMainWindow):
 			hours = SESSION
 			if self.configuration is not None:
 				hours = preferences.intranet(self.configuration).session
-			api = ApiScreen(self.connection, hours)
+			api = ApiScreen(self.connection, hours, issuer=f"{ISSUER} {self.station}".strip())
 			self.remote_connections.refused.connect(lambda _said: api.refresh_sessions())
 			api.announces.connect(self.ui.state_bar.showMessage)
 			self.tab_manager.add_tab(api, _("API"))

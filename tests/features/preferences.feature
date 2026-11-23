@@ -685,6 +685,19 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| non installée | se choisit                                                                                 |
 			| installée     | est grisée, avec l'infobulle « Impossible en production : le serveur intranet est installé en service. » |
 
+	Scénario: La page « Intranet » règle le second facteur
+		https://github.com/dascritch/machincast/issues/601
+		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet allumé
+		Alors le second facteur est « Aucun », parmi « Aucun », « Application d'authentification », « Validation au pupitre »
+		Quand je choisis le second facteur « Application d'authentification »
+		Alors la fenêtre donne le second facteur « totp »
+
+	Scénario: Le second facteur s'écrit dans machincast.toml, et fait rallumer le serveur
+		Étant donné un fichier de configuration sans section [intranet]
+		Quand j'enregistre le second facteur « desk »
+		Alors le fichier règle le second facteur à « desk »
+		Et changer le second facteur fait rallumer le serveur intranet
+
 	Scénario: La sécurité de la première connexion s'écrit dans machincast.toml, et fait rallumer le serveur
 		Étant donné un fichier de configuration sans section [intranet]
 		Quand j'enregistre la première connexion « desk »

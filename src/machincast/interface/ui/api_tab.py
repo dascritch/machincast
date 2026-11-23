@@ -81,6 +81,30 @@ class Ui_ApiScreen(object):
 
         self.arrangement.addLayout(self.actions)
 
+        self.second_factor = QHBoxLayout()
+        self.second_factor.setObjectName(u"second_factor")
+        self.authenticator = QPushButton(ApiScreen)
+        self.authenticator.setObjectName(u"authenticator")
+
+        self.second_factor.addWidget(self.authenticator)
+
+        self.remove_authenticator = QPushButton(ApiScreen)
+        self.remove_authenticator.setObjectName(u"remove_authenticator")
+
+        self.second_factor.addWidget(self.remove_authenticator)
+
+        self.forget_browsers = QPushButton(ApiScreen)
+        self.forget_browsers.setObjectName(u"forget_browsers")
+
+        self.second_factor.addWidget(self.forget_browsers)
+
+        self.second_factor_space = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.second_factor.addItem(self.second_factor_space)
+
+
+        self.arrangement.addLayout(self.second_factor)
+
         self.sessions_label = QLabel(ApiScreen)
         self.sessions_label.setObjectName(u"sessions_label")
         self.sessions_label.setWordWrap(True)
@@ -126,6 +150,8 @@ class Ui_ApiScreen(object):
     def retranslateUi(self, ApiScreen):
         self.introduction.setText(QCoreApplication.translate("ApiScreen", u"The accounts that can connect to the intranet and to the API, once the intranet server is switched on in the service settings. A password is never kept, only its fingerprint.", None))
         ___qtreewidgetitem = self.users.headerItem()
+        ___qtreewidgetitem.setText(5, QCoreApplication.translate("ApiScreen", u"Known browsers", None))
+        ___qtreewidgetitem.setText(4, QCoreApplication.translate("ApiScreen", u"Authentication app", None))
         ___qtreewidgetitem.setText(3, QCoreApplication.translate("ApiScreen", u"Created", None))
         ___qtreewidgetitem.setText(2, QCoreApplication.translate("ApiScreen", u"State", None))
         ___qtreewidgetitem.setText(1, QCoreApplication.translate("ApiScreen", u"Role", None))
@@ -135,6 +161,15 @@ class Ui_ApiScreen(object):
         self.change_password.setText(QCoreApplication.translate("ApiScreen", u"Change the password\u2026", None))
         self.disable.setText(QCoreApplication.translate("ApiScreen", u"Disable", None))
         self.delete.setText(QCoreApplication.translate("ApiScreen", u"\u274c Delete\u2026", None))
+#if QT_CONFIG(tooltip)
+        self.authenticator.setToolTip(QCoreApplication.translate("ApiScreen", u"A new key for the authentication app of the account, the second factor of the intranet", None))
+#endif // QT_CONFIG(tooltip)
+        self.authenticator.setText(QCoreApplication.translate("ApiScreen", u"Authentication app\u2026", None))
+        self.remove_authenticator.setText(QCoreApplication.translate("ApiScreen", u"Remove the authentication app", None))
+#if QT_CONFIG(tooltip)
+        self.forget_browsers.setToolTip(QCoreApplication.translate("ApiScreen", u"Its next connection, from any browser, goes through the first connection again", None))
+#endif // QT_CONFIG(tooltip)
+        self.forget_browsers.setText(QCoreApplication.translate("ApiScreen", u"Forget its browsers", None))
         self.sessions_label.setText(QCoreApplication.translate("ApiScreen", u"Sessions of the chosen user: waiting for validation at the desk, valid until their limit, or invalid.", None))
         ___qtreewidgetitem1 = self.sessions.headerItem()
         ___qtreewidgetitem1.setText(5, QCoreApplication.translate("ApiScreen", u"Browser", None))

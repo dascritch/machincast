@@ -24,6 +24,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| log              | non  | oui     | non      | non       |
 			| api_users        | non  | non     | non      | non       |
 			| api_sessions     | non  | non     | non      | non       |
+			| api_browsers     | non  | non     | non      | non       |
 
 	Scénario: Droits du binaire indexation
 		https://github.com/dascritch/machincast/issues/195 : l'indexation retire d'une banque les sonores hors de ses durées.
@@ -45,6 +46,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| log              | non  | oui     | non      | non       |
 			| api_users        | non  | non     | non      | non       |
 			| api_sessions     | non  | non     | non      | non       |
+			| api_browsers     | non  | non     | non      | non       |
 
 	Scénario: Droits du serveur intranet
 		https://github.com/dascritch/machincast/issues/537 : il ne fait que lire les comptes.
@@ -67,6 +69,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| log              | oui  | non     | non      | non       |
 			| api_users        | oui  | non     | non      | non       |
 			| api_sessions     | oui  | oui     | oui      | non       |
+			| api_browsers     | oui  | oui     | oui      | non       |
 
 	Plan du scénario: Seule l'interface accepte une connexion à distance, au pupitre
 		https://github.com/dascritch/machincast/issues/547 : le serveur intranet, exposé au réseau, ne modifie que les
@@ -97,6 +100,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| log              | oui  | non     | non      | non       |
 			| api_users        | oui  | oui     | oui      | oui       |
 			| api_sessions     | oui  | oui     | oui      | non       |
+			| api_browsers     | oui  | non     | non      | oui       |
 
 	Plan du scénario: Le binaire lecture ne modifie que le champ « etat » des sonores
 		Alors le rôle "machincast_player" <verdict> modifier la colonne "<colonne>" des sonores

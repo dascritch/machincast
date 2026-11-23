@@ -17,6 +17,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Alors l'intranet est éteint, écoute « 0.0.0.0 » sur le port 8443, et laisse 30 minutes pour valider une connexion
 		Et l'intranet n'a pas de certificat donné
 		Et la première connexion se valide « au pupitre, avec un code »
+		Et le second facteur est « aucun »
 
 	Plan du scénario: Une section [intranet] incohérente est refusée, en nommant la clé
 		Quand je charge la configuration de test, avec dans [intranet] : <valeurs>
@@ -34,6 +35,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 			| certificate = "certificat.pem"             | intranet.certificate |
 			| first_login = "personne"                   | intranet.first_login |
 			| first_login = 1                            | intranet.first_login |
+			| second_factor = "sms"                      | intranet.second_factor |
 			| sans_https = true                          | sans_https           |
 
 	Plan du scénario: La sécurité de la première connexion se règle
@@ -46,6 +48,18 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 			| none      | sans validation             |
 			| desk      | au pupitre                  |
 			| desk_code | au pupitre, avec un code    |
+
+	Plan du scénario: Le second facteur se règle
+		https://github.com/dascritch/machincast/issues/601 : aucun, l'application d'authentification de chaque compte, ou le
+		pupitre, à chaque connexion.
+		Quand je charge la configuration de test, avec dans [intranet] : second_factor = "<valeur>"
+		Alors le second facteur est « <facteur> »
+
+		Exemples:
+			| valeur | facteur                          |
+			| none   | aucun                            |
+			| totp   | application d'authentification   |
+			| desk   | au pupitre                       |
 
 	Plan du scénario: En production, aucune validation n'est pas possible : Machin intranet demande le pupitre et son code
 		https://github.com/dascritch/machincast/issues/600 : la production, c'est le serveur intranet installé en service.

@@ -154,15 +154,23 @@ def pending_count(connection: Connection, user: int) -> int:
 
 
 def insert_pending(
-	connection: Connection, user: int, token_hash: str, code: str | None, client: tuple[str, str | None], minutes: int
+	connection: Connection,
+	user: int,
+	token_hash: str,
+	code: str | None,
+	client: tuple[str, str | None],
+	minutes: int,
+	steps: tuple[bool, bool] = (True, False),
 ) -> None:
 	"""Une session à valider dans les minutes données : l'empreinte de son jeton, son code, aucun quand le pupitre
-	suffit (https://github.com/dascritch/machincast/issues/600), et le navigateur et l'adresse du poste distant."""
+	suffit (https://github.com/dascritch/machincast/issues/600), le navigateur et l'adresse du poste distant, et ce
+	qu'elle attend, le pupitre et l'application d'authentification (https://github.com/dascritch/machincast/issues/601)."""
 	user_agent, address = client
+	desk, totp = steps
 	connection.execute(
-		"INSERT INTO api_sessions (user_id, token_hash, code, user_agent, source_ip, validate_before)"
-		" VALUES (%s, %s, %s, %s, %s, clock_timestamp() + make_interval(mins => %s))",
-		(user, token_hash, code, user_agent, address, minutes),
+		"INSERT INTO api_sessions (user_id, token_hash, code, user_agent, source_ip, validate_before, desk, totp)"
+		" VALUES (%s, %s, %s, %s, %s, clock_timestamp() + make_interval(mins => %s), %s, %s)",
+		(user, token_hash, code, user_agent, address, minutes, desk, totp),
 	)
 
 
@@ -200,14 +208,52 @@ def session_of(connection: Connection, token_hash: str) -> TupleRow | None:
 	).fetchone()
 
 
-def pending_session(connection: Connection, token_hash: str) -> TupleRow | None:
-	"""La session à valider de ce jeton, verrouillée : son identifiant, son code, ses essais, son acceptation au
-	pupitre, et si son délai est passé."""
+def pending_session(connection: Connection, token_hash: str, *, lock: bool = True) -> TupleRow | None:
+	"""La session à valider de ce jeton, verrouillée sauf pour la lire : son identifiant, son code, ses essais, son
+	acceptation au pupitre, si son délai est passé, ce qu'elle attend, le pupitre et l'application d'authentification,
+	et son compte, avec la clé de son application (https://github.com/dascritch/machincast/issues/601)."""
+	locking = ""
+	if lock:
+		locking = " FOR UPDATE OF s"
 	return connection.execute(
-		"SELECT id, code, attempts, accepted_at, validate_before < clock_timestamp() FROM api_sessions"
-		" WHERE token_hash = %s AND state = 'pending' FOR UPDATE",
+		"SELECT s.id, s.code, s.attempts, s.accepted_at, s.validate_before < clock_timestamp(), s.desk, s.totp,"
+		" s.user_id, u.totp_secret FROM api_sessions s JOIN api_users u ON u.id = s.user_id"
+		f" WHERE s.token_hash = %s AND s.state = 'pending'{locking}",
 		(token_hash,),
 	).fetchone()
+
+
+def clear_code(connection: Connection, session: object) -> None:
+	"""Le code du pupitre, saisi : la session n'attend plus que l'application d'authentification."""
+	connection.execute("UPDATE api_sessions SET code = NULL WHERE id = %s", (session,))
+
+
+def totp_secret(connection: Connection, user: int) -> str | None:
+	"""La clé de l'application d'authentification du compte ; None sans elle."""
+	row = connection.execute("SELECT totp_secret FROM api_users WHERE id = %s", (user,)).fetchone()
+	if (row is None) or (row[0] is None):
+		return None
+	return str(row[0])
+
+
+def known_browser(connection: Connection, user: int, token_hash: str) -> bool:
+	"""Ce navigateur est connu du compte : sa dernière connexion notée."""
+	return (
+		connection.execute(
+			"UPDATE api_browsers SET used_at = clock_timestamp() WHERE user_id = %s AND token_hash = %s",
+			(user, token_hash),
+		).rowcount
+		> 0
+	)
+
+
+def remember_browser(connection: Connection, token_hash: str, session_hash: str) -> None:
+	"""Le navigateur de cette session, retenu pour son compte, avec son navigateur."""
+	connection.execute(
+		"INSERT INTO api_browsers (user_id, token_hash, user_agent)"
+		" SELECT user_id, %s, user_agent FROM api_sessions WHERE token_hash = %s",
+		(token_hash, session_hash),
+	)
 
 
 def invalidate(connection: Connection, session: object) -> None:

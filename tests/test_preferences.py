@@ -22,7 +22,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast import shortcut
-from machincast.configuration import Crossfades, DeadAirSettings, FirstLogin, Intranet, load
+from machincast.configuration import Crossfades, DeadAirSettings, FirstLogin, Intranet, SecondFactor, load
 from machincast.interface import __main__ as module_interface
 from machincast.interface import application as module_application
 from machincast.interface import dialogs, intranet_switch, preferences
@@ -1479,6 +1479,49 @@ def written_first_login(intranet_file: Path, value: str) -> None:
 def first_login_restarts() -> None:
 	before = Settings(Crossfades(), None, TEST_PREVIEW)
 	after = dataclasses.replace(before, intranet=Intranet(first_login="none"))
+	assert preferences.intranet_changed(before, after)
+
+
+# ─── Le second facteur (https://github.com/dascritch/machincast/issues/601) ───
+
+
+@then(parsers.re(r"le second facteur est « (?P<chosen>[^»]+) », parmi (?P<choices>.+)"))
+def second_factor_choices(opened: Opened, chosen: str, choices: str) -> None:
+	box = the_window(opened).ui.intranet_second_factor
+	found = []
+	for index in range(box.count()):
+		found.append(box.itemText(index))
+	assert box.currentText() == chosen
+	assert found == re.findall(r"« ([^»]+) »", choices)
+
+
+@when(parsers.parse("je choisis le second facteur « {text} »"))
+def choose_second_factor(opened: Opened, text: str) -> None:
+	box = the_window(opened).ui.intranet_second_factor
+	box.setCurrentIndex(box.findText(text))
+
+
+@then(parsers.parse("la fenêtre donne le second facteur « {value} »"))
+def second_factor_given(opened: Opened, value: str) -> None:
+	assert the_window(opened).settings().intranet.second_factor == value
+
+
+@when(parsers.parse("j'enregistre le second facteur « {value} »"))
+def write_second_factor(intranet_file: Path, value: SecondFactor) -> None:
+	kept = preferences.intranet(intranet_file)
+	_write_intranet(intranet_file, dataclasses.replace(kept, second_factor=value))
+
+
+@then(parsers.parse("le fichier règle le second facteur à « {value} »"))
+def written_second_factor(intranet_file: Path, value: str) -> None:
+	assert load(intranet_file).intranet.second_factor == value
+	assert tomllib.loads(intranet_file.read_text(encoding="utf-8"))["intranet"]["second_factor"] == value
+
+
+@then("changer le second facteur fait rallumer le serveur intranet")
+def second_factor_restarts() -> None:
+	before = Settings(Crossfades(), None, TEST_PREVIEW)
+	after = dataclasses.replace(before, intranet=Intranet(second_factor="desk"))
 	assert preferences.intranet_changed(before, after)
 
 

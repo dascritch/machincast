@@ -59,9 +59,10 @@ from machincast.configuration import (
 	Granularity,
 	Intranet,
 	InvalidConfiguration,
+	SecondFactor,
 	load,
 )
-from machincast.i18n import _
+from machincast.i18n import _, pgettext
 from machincast.interface import intranet_switch
 from machincast.interface.application import ICON, readable
 from machincast.interface.plugins_page import Offered, PluginsPage
@@ -298,6 +299,13 @@ FIRST_LOGINS: dict[FirstLogin, str] = {
 }
 """La sécurité de la première connexion à l'intranet, dans l'ordre de la page « Intranet »
 (https://github.com/dascritch/machincast/issues/600)."""
+SECOND_FACTORS: dict[SecondFactor, str] = {
+	"none": pgettext("second factor", "None"),
+	"totp": _("Authentication app"),
+	"desk": _("Validation at the desk"),
+}
+"""Le second facteur de chaque connexion à l'intranet, dans l'ordre de la page « Intranet »
+(https://github.com/dascritch/machincast/issues/601)."""
 IN_PRODUCTION = _("Impossible in production: the intranet server is installed as a service.")
 
 
@@ -309,12 +317,13 @@ def _write_intranet(document: tomlkit.TOMLDocument, intranet: Intranet) -> None:
 	section = document.get("intranet")
 	default = Intranet()
 	if (section is None) and (
-		(intranet.enabled, intranet.port, intranet.validation, intranet.first_login)
+		(intranet.enabled, intranet.port, intranet.validation, intranet.first_login, intranet.second_factor)
 		== (
 			default.enabled,
 			default.port,
 			default.validation,
 			default.first_login,
+			default.second_factor,
 		)
 	):
 		return
@@ -327,6 +336,8 @@ def _write_intranet(document: tomlkit.TOMLDocument, intranet: Intranet) -> None:
 	section["validation"] = intranet.validation
 	if (intranet.first_login != default.first_login) or ("first_login" in section):
 		section["first_login"] = intranet.first_login
+	if (intranet.second_factor != default.second_factor) or ("second_factor" in section):
+		section["second_factor"] = intranet.second_factor
 
 
 def intranet(path: Path) -> Intranet:
@@ -338,14 +349,15 @@ def intranet(path: Path) -> Intranet:
 
 
 def intranet_changed(before: Settings, after: Settings) -> bool:
-	"""Le serveur intranet est à rallumer ou à éteindre : allumé, éteint, port, durée de validation ou sécurité de la
-	première connexion changés."""
+	"""Le serveur intranet est à rallumer ou à éteindre : allumé, éteint, port, durée de validation, sécurité de la
+	première connexion ou second facteur changés."""
 	first, second = before.intranet, after.intranet
-	return (first.enabled, first.port, first.validation, first.first_login) != (
+	return (first.enabled, first.port, first.validation, first.first_login, first.second_factor) != (
 		second.enabled,
 		second.port,
 		second.validation,
 		second.first_login,
+		second.second_factor,
 	)
 
 
@@ -571,6 +583,9 @@ class PreferencesWindow(QDialog):
 		ui.intranet_port.setValue(all_.intranet.port)
 		ui.intranet_validation.setValue(all_.intranet.validation)
 		self._offer_first_logins(all_.intranet.first_login)
+		for factor, text in SECOND_FACTORS.items():
+			ui.intranet_second_factor.addItem(text, factor)
+		ui.intranet_second_factor.setCurrentIndex(ui.intranet_second_factor.findData(all_.intranet.second_factor))
 		ui.intranet_enabled.toggled.connect(self._show_intranet)
 		ui.intranet_port.valueChanged.connect(self._show_intranet)
 		self._show_intranet()
@@ -600,6 +615,13 @@ class PreferencesWindow(QDialog):
 			item.setToolTip(IN_PRODUCTION)
 		box.setCurrentIndex(box.findData(chosen))
 
+	def _second_factor(self) -> SecondFactor:
+		chosen = self.ui.intranet_second_factor.currentData()
+		for value in SECOND_FACTORS:
+			if value == chosen:
+				return value
+		return self.intranet.second_factor
+
 	def _first_login(self) -> FirstLogin:
 		chosen = self.ui.intranet_first_login.currentData()
 		for value in FIRST_LOGINS:
@@ -612,7 +634,7 @@ class PreferencesWindow(QDialog):
 		distants (https://github.com/dascritch/machincast/issues/538)."""
 		ui = self.ui
 		enabled = ui.intranet_enabled.isChecked()
-		for widget in (ui.intranet_port, ui.intranet_validation, ui.intranet_first_login):
+		for widget in (ui.intranet_port, ui.intranet_validation, ui.intranet_first_login, ui.intranet_second_factor):
 			widget.setEnabled(enabled)
 		ui.intranet_addresses.setVisible(enabled)
 		# Sans le service, sous le compte qui le lance, sans cloisonnement (https://github.com/dascritch/machincast/issues/549).
@@ -863,6 +885,7 @@ class PreferencesWindow(QDialog):
 				port=ui.intranet_port.value(),
 				validation=ui.intranet_validation.value(),
 				first_login=self._first_login(),
+				second_factor=self._second_factor(),
 			),
 			self._plugins(),
 		)

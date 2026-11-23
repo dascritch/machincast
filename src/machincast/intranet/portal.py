@@ -33,6 +33,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.clock import Clock, SystemClock
 from machincast.configuration import Intranet as Settings
 from machincast.i18n import _
 from machincast.intranet import rendering, sessions
@@ -73,6 +74,16 @@ def shown(name: str) -> str:
 def cookie(value: str, max_age: int) -> tuple[str, str]:
 	"""L'en-tête qui pose le cookie de session : jamais en clair, jamais lu par un script, jamais envoyé d'ailleurs."""
 	return ("set-cookie", f"{COOKIE}={value}; Max-Age={max_age}; Path=/; Secure; HttpOnly; SameSite=Strict")
+
+
+def browser_cookie(value: str) -> tuple[str, str]:
+	"""L'en-tête qui pose le cookie d'un navigateur connu (https://github.com/dascritch/machincast/issues/601), comme
+	celui de la session : jamais en clair, jamais lu par un script, jamais envoyé d'ailleurs."""
+	max_age = sessions.BROWSER_DAYS * 86400
+	return (
+		"set-cookie",
+		f"{sessions.BROWSER_COOKIE}={value}; Max-Age={max_age}; Path=/; Secure; HttpOnly; SameSite=Strict",
+	)
 
 
 def bearer(request: Request) -> str | None:
@@ -136,27 +147,35 @@ def login_page(message: str = "", name: str = "", status: int = 200) -> Response
 	return _page("login.html.jinja", status, title=_("Connection"), name=name, message=message)
 
 
-def validation_page(message: str = "", status: int = 200, *, with_code: bool = True) -> Response:
-	"""La page qui demande le code donné au pupitre (validation.html.jinja), et ce qui a refusé le précédent ; sans
-	code, elle dit d'attendre l'acceptation au pupitre, et se relit toutes les 5 secondes
-	(https://github.com/dascritch/machincast/issues/600)."""
+def validation_page(message: str = "", status: int = 200, *, stage: str = "code") -> Response:
+	"""La page de la validation (validation.html.jinja), et ce qui a refusé le code précédent, selon ce que la session
+	attend : « code », le code donné au pupitre ; « waiting », l'acceptation au pupitre, sans code, la page se relisant
+	toutes les 5 secondes (https://github.com/dascritch/machincast/issues/600) ; « totp », le code de l'application
+	d'authentification (https://github.com/dascritch/machincast/issues/601)."""
 	explanation = _(
 		"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
 		"address. Once your connection is accepted there, the studio gives you a 6-digit code: enter it "
 		"here."
 	)
-	if not with_code:
+	field = _("6-digit code")
+	title = _("Validation at the desk")
+	if stage == "waiting":
 		explanation = _(
 			"An action must be done at the studio desk: MachinCast shows there your name, your browser and your "
 			"address. Once your connection is accepted there, this page goes on by itself."
 		)
+		field = ""
+	if stage == "totp":
+		title = _("Second factor")
+		explanation = _("Enter the code that your authentication app shows for this account.")
+		field = _("The 6-digit code of your authentication app")
 	return _page(
 		"validation.html.jinja",
 		status,
-		title=_("Validation at the desk"),
+		title=title,
 		explanation=explanation,
 		message=message,
-		with_code=with_code,
+		field=field,
 	)
 
 
@@ -164,10 +183,20 @@ class Portal:
 	"""Les routes de la connexion, et la session de chaque requête."""
 
 	def __init__(
-		self, settings: Settings, connect: Connect, throttle: Throttle | None = None, codes: Throttle | None = None
+		self,
+		settings: Settings,
+		connect: Connect,
+		throttle: Throttle | None = None,
+		codes: Throttle | None = None,
+		*,
+		clock: Clock | None = None,
 	) -> None:
 		self.settings = settings
 		self.connect = connect
+		self.clock: Clock = (clock) or (SystemClock())
+		"""L'heure des codes de l'application d'authentification (https://github.com/dascritch/machincast/issues/601)."""
+		self.used: dict[int, int] = {}
+		"""Le dernier pas accepté de l'application d'authentification de chaque compte : un code ne sert qu'une fois."""
 		self.throttle = (throttle) or (Throttle())
 		"""Les mots de passe refusés, par adresse ; une connexion réussie les efface."""
 		self.codes = (codes) or (Throttle())
@@ -241,15 +270,48 @@ class Portal:
 		if previous is not None:
 			# Se reconnecter du même navigateur abandonne sa session d'avant, à valider ou valide.
 			await self._database(lambda connection: sessions.end(connection, previous))
+		browser = request.cookie(sessions.BROWSER_COOKIE)
+		known = await self._database(lambda connection: sessions.known_browser(connection, user, browser))
+		desk, with_code, totp = self._steps(known=known)
+		if totp:
+			secret = await self._database(lambda connection: sessions.totp_secret(connection, user))
+			if secret is None:
+				log.warning(
+					_("[{address}] intranet connection refused, user “{name}”: no authentication app").format(
+						address=address, name=shown(name)
+					)
+				)
+				return login_page(
+					_("This account has no authentication app: have it set up at the studio, in the API tab."),
+					name,
+					403,
+				)
+		client = (request.headers.get("user-agent", ""), address)
+		if (not desk) and (not totp):
+			return await self._without_validation(user, client, name, known=known)
+		return await self._pending(user, client, name, (desk, with_code, totp))
+
+	def _steps(self, *, known: bool) -> tuple[bool, bool, bool]:
+		"""Ce que la connexion passe : le pupitre, son code, l'application d'authentification. Un navigateur inconnu
+		passe la première connexion (https://github.com/dascritch/machincast/issues/600), puis le second facteur ; un
+		navigateur connu, le second facteur seul (https://github.com/dascritch/machincast/issues/601)."""
+		factor = self.settings.second_factor
+		desk = factor == "desk"
+		with_code = False
+		if not known:
+			desk = (desk) or (self.settings.first_login != "none")
+			with_code = self.settings.first_login == "desk_code"
+		return desk, with_code, factor == "totp"
+
+	async def _pending(self, user: int, client: tuple[str, str], name: str, steps: tuple[bool, bool, bool]) -> Response:
+		"""Une session à valider, et la page de la validation ; 429 si le compte en a déjà MAXIMUM_PENDING."""
+		address = client[1]
+		desk, with_code, totp = steps
 		value = sessions.token()
-		agent = request.headers.get("user-agent", "")
-		if self.settings.first_login == "none":
-			return await self._without_validation(user, value, (agent, address), name)
 		minutes = self.settings.validation
-		with_code = self.settings.first_login == "desk_code"
 		given = await self._database(
 			lambda connection: sessions.open_pending(
-				connection, user, value, minutes, (agent, address), with_code=with_code
+				connection, user, value, minutes, client, with_code=with_code, steps=(desk, totp)
 			)
 		)
 		if given is None:
@@ -267,69 +329,84 @@ class Portal:
 				429,
 			)
 		max_age = (minutes * 60) + (self.settings.session * 3600)
-		log.info(
-			_("[{address}] intranet connection of “{name}”, to validate at the desk").format(
-				address=address, name=shown(name)
-			)
-		)
+		said = _("[{address}] intranet connection of “{name}”, to validate at the desk")
+		if not desk:
+			said = _("[{address}] intranet connection of “{name}”, waiting for the code of its authentication app")
+		log.info(said.format(address=address, name=shown(name)))
 		return redirect("/validation", [cookie(value, max_age)])
 
-	async def _without_validation(self, user: int, value: str, client: tuple[str, str], name: str) -> Response:
-		"""Sans validation au pupitre, une session valide aussitôt, et l'accueil
-		(https://github.com/dascritch/machincast/issues/600) ; le journal le dit, en WARNING."""
+	async def _without_validation(self, user: int, client: tuple[str, str], name: str, *, known: bool) -> Response:
+		"""Ni pupitre ni application d'authentification : une session valide aussitôt, et l'accueil. Un navigateur
+		inconnu, sans validation de la première connexion, le journal le dit, en WARNING
+		(https://github.com/dascritch/machincast/issues/600) ; un navigateur connu, sans second facteur, en INFO
+		(https://github.com/dascritch/machincast/issues/601)."""
 		hours = self.settings.session
+		value = sessions.token()
 		await self._database(lambda connection: sessions.open_valid(connection, user, value, hours, client))
+		if known:
+			log.info(
+				_("[{address}] intranet connection of “{name}”, from a known browser").format(
+					address=client[1], name=shown(name)
+				)
+			)
+			return redirect("/", [cookie(value, hours * 3600)])
 		log.warning(
 			_("[{address}] intranet connection of “{name}”, without validation at the desk").format(
 				address=client[1], name=shown(name)
 			)
 		)
-		return redirect("/", [cookie(value, hours * 3600)])
+		return redirect("/", [cookie(value, hours * 3600), await self._remember(value)])
 
-	def _with_code(self) -> bool:
-		return self.settings.first_login != "desk"
+	async def _remember(self, value: str) -> tuple[str, str]:
+		"""Le navigateur de cette session valide, retenu pour son compte (https://github.com/dascritch/machincast/issues/601) :
+		le cookie qui le dit."""
+		browser = await self._database(lambda connection: sessions.remember_browser(connection, value))
+		return browser_cookie(browser)
 
 	async def validation_form(self, request: Request) -> Response:
-		"""Le code à saisir ; sans code, la connexion acceptée au pupitre entre d'elle-même, à la relecture de la
-		page (https://github.com/dascritch/machincast/issues/600)."""
+		"""Ce que la session attend : le code du pupitre, celui de l'application d'authentification, ou l'acceptation
+		au pupitre, sans code, la page se relisant ; une session qui n'attend plus rien entre
+		(https://github.com/dascritch/machincast/issues/600, https://github.com/dascritch/machincast/issues/601)."""
 		found = await self.session(request)
-		if (found is None) or (found.state == "invalid"):
+		value = bearer(request)
+		if (found is None) or (found.state == "invalid") or (value is None):
 			return redirect("/login")
 		if found.state == "valid":
 			return redirect("/")
-		if self._with_code():
-			return validation_page()
-		value = bearer(request)
-		assert value is not None
-		hours = self.settings.session
-		outcome = await self._database(lambda connection: sessions.validate(connection, value, None, hours))
-		if outcome == "valid":
-			self._validated(request.client, found.user)
-			return redirect("/")
-		if outcome == "invalid":
+		chosen = await self._database(lambda connection: sessions.stage(connection, value))
+		if chosen == "invalid":
 			return redirect("/login")
-		return validation_page(with_code=False)
+		if chosen != "ready":
+			return validation_page(stage=chosen)
+		outcome = await self._database(lambda connection: sessions.validate(connection, self._validation(value, None)))
+		if outcome == "valid":
+			return await self._validated(request.client, found.user, value)
+		return redirect("/login")
 
-	def _validated(self, address: str, user: str) -> None:
+	def _validation(self, value: str, given: str | None) -> sessions.Validation:
+		return sessions.Validation(value, given, self.settings.session, self.clock.now(), self.used)
+
+	async def _validated(self, address: str, user: str, value: str, *, by_app: bool = False) -> Response:
+		"""La session validée, au pupitre ou par l'application d'authentification : les codes faux de l'adresse et du
+		compte effacés, le navigateur retenu, et l'accueil."""
 		self.codes.succeeded(address)
 		self.codes.succeeded(f"{ACCOUNT}{user}")
-		log.info(
-			_("[{address}] intranet connection of “{name}” validated at the desk").format(
-				address=address, name=shown(user)
-			)
-		)
+		said = _("[{address}] intranet connection of “{name}” validated at the desk")
+		if by_app:
+			said = _("[{address}] intranet connection of “{name}” validated by its authentication app")
+		log.info(said.format(address=address, name=shown(user)))
+		return redirect("/", [await self._remember(value)])
 
 	async def validation(self, request: Request) -> Response:
 		"""Le code saisi : valide, l'accueil ; faux, la page le redemande ; invalide, la mire. Chaque code faux compte
 		pour l'adresse et pour le compte ; au-delà de FAILURES, aucun code n'est essayé avant un quart d'heure."""
 		value = bearer(request)
-		if value is None:
-			return redirect("/login")
 		found = await self.session(request)
-		if found is None:
+		if (value is None) or (found is None):
 			return redirect("/login")
 		address = request.client
 		name = shown(found.user)
+		chosen = await self._database(lambda connection: sessions.stage(connection, value))
 		if self._codes_blocked(address, found.user):
 			log.warning(
 				_(
@@ -337,12 +414,9 @@ class Portal:
 					"hour"
 				).format(address=address, name=name)
 			)
-			return validation_page(
-				_("Too many wrong codes: wait a quarter of an hour."), 429, with_code=self._with_code()
-			)
+			return validation_page(_("Too many wrong codes: wait a quarter of an hour."), 429, stage=chosen)
 		given = request.form().get("code", "")
-		hours = self.settings.session
-		outcome = await self._database(lambda connection: sessions.validate(connection, value, given, hours))
+		outcome = await self._database(lambda connection: sessions.validate(connection, self._validation(value, given)))
 		if outcome == "waiting":
 			return validation_page(
 				_(
@@ -350,17 +424,30 @@ class Portal:
 					"code."
 				),
 				409,
-				with_code=self._with_code(),
+				stage=chosen,
 			)
 		if outcome == "valid":
-			self._validated(address, found.user)
-			return redirect("/")
-		if outcome in ("wrong", "exhausted"):
+			return await self._validated(address, found.user, value, by_app=chosen == "totp")
+		if outcome == "totp":
+			return redirect("/validation")
+		return self._refused(outcome, address, found.user)
+
+	def _refused(self, outcome: str, address: str, user: str) -> Response:
+		"""Un code faux, compté pour l'adresse et le compte, ou la session devenue invalide."""
+		name = shown(user)
+		if outcome in ("wrong", "wrong_totp", "exhausted"):
 			self.codes.failed(address)
-			self.codes.failed(f"{ACCOUNT}{found.user}")
+			self.codes.failed(f"{ACCOUNT}{user}")
 		if outcome == "wrong":
 			log.warning(_("[{address}] wrong validation code, user “{name}”").format(address=address, name=name))
 			return validation_page(_("Wrong code: ask again at the desk."), 400)
+		if outcome == "wrong_totp":
+			log.warning(
+				_("[{address}] wrong code of the authentication app, user “{name}”").format(address=address, name=name)
+			)
+			return validation_page(
+				_("Wrong code: enter the one that your authentication app shows."), 400, stage="totp"
+			)
 		log.warning(
 			_(
 				"[{address}] intranet connection of “{name}” invalid: not validated in time, or too many wrong codes"

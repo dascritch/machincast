@@ -6,6 +6,10 @@ supprime, après confirmation. Le mot de passe n'est jamais gardé, seulement so
 point, tiret et souligné.
 
 Le compte se saisit dans la fenêtre ApiUserDialog, que les scénarios remplacent par ask_account.
+
+Le second facteur (https://github.com/dascritch/machincast/issues/601) : l'onglet règle l'application d'authentification
+d'un compte, une nouvelle clé montrée une seule fois avec son adresse otpauth:// (show_authenticator), ou la retire ; il
+dit ses navigateurs connus, et les oublie : sa prochaine connexion repasse la première connexion.
 """
 
 import logging
@@ -18,14 +22,14 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox, QTreeWidgetItem, QWidget
 
 from machincast.configuration import SESSION
-from machincast.i18n import _, counted, pgettext
+from machincast.i18n import _, counted, ngettext, pgettext
 from machincast.interface import dialogs, display
 from machincast.interface.columns import Columns
 from machincast.interface.queries import api_users as queries
 from machincast.interface.ui.api_tab import Ui_ApiScreen
 from machincast.interface.ui.api_user import Ui_ApiUserDialog
 from machincast.intranet import sessions
-from machincast.shared import passwords
+from machincast.shared import passwords, totp
 
 log = logging.getLogger(__name__)
 
@@ -45,6 +49,9 @@ ENABLE = pgettext("account", "Enable")
 """« Réactiver » un compte, quand « Activer » un sonore."""
 IDENTIFIER = Qt.ItemDataRole.UserRole
 COLUMNS_VIEW = "api-utilisateurs"
+AUTHENTICATOR_SET = _("set")
+"""L'application d'authentification d'un compte réglée ; display.EMPTY sinon."""
+ISSUER = "MachinCast"
 
 
 @dataclass(frozen=True)
@@ -127,6 +134,32 @@ def show_token(parent: QWidget, name: str, value: str) -> None:
 	window.exec()
 
 
+def grouped(secret: str) -> str:
+	"""La clé, en groupes de quatre caractères, plus facile à recopier."""
+	groups = []
+	for start in range(0, len(secret), 4):
+		groups.append(secret[start : start + 4])
+	return " ".join(groups)
+
+
+def show_authenticator(parent: QWidget, name: str, secret: str, uri: str) -> bool:
+	"""La nouvelle clé de l'application d'authentification du compte, montrée une seule fois, et son adresse
+	otpauth:// : « Enregistrer » la garde, « Annuler » garde l'ancienne, s'il y en a une."""
+	window = QMessageBox(parent)
+	window.setIcon(QMessageBox.Icon.Information)
+	window.setWindowTitle(_("Authentication app of {name}").format(name=name))
+	window.setText(
+		_(
+			"Add this key to the authentication app of {name}, by hand or by the address below, then save it. It is "
+			"shown only this once."
+		).format(name=name)
+	)
+	window.setInformativeText(f"{grouped(secret)}\n\n{uri}")
+	window.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+	window.setStandardButtons(QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel)
+	return window.exec() == QMessageBox.StandardButton.Save
+
+
 def ask_account(parent: QWidget, connection: psycopg.Connection[TupleRow], name: str | None) -> Account | None:
 	"""Le compte saisi, ou le nouveau mot de passe du compte nommé ; None, la fenêtre annulée."""
 	window = ApiUserDialog(parent, connection, name)
@@ -149,11 +182,18 @@ class ApiScreen(QWidget):
 	"""Ce que vient de faire l'onglet, pour la barre d'état."""
 
 	def __init__(
-		self, connection: psycopg.Connection[TupleRow], session_hours: int = SESSION, parent: QWidget | None = None
+		self,
+		connection: psycopg.Connection[TupleRow],
+		session_hours: int = SESSION,
+		parent: QWidget | None = None,
+		*,
+		issuer: str = ISSUER,
 	) -> None:
 		super().__init__(parent)
 		self.connection = connection
 		self.session_hours = session_hours
+		self.issuer = issuer
+		"""Le nom que l'application d'authentification donne à la clé : « MachinCast » et la radio."""
 		self.ui = Ui_ApiScreen()
 		self.ui.setupUi(self)
 		for role in queries.ROLES:
@@ -170,6 +210,9 @@ class ApiScreen(QWidget):
 		self.ui.sessions.currentItemChanged.connect(self._follow_session)
 		self.ui.new_session.clicked.connect(self.new_session)
 		self.ui.invalidate_session.clicked.connect(self.invalidate_session)
+		self.ui.authenticator.clicked.connect(self.set_up_authenticator)
+		self.ui.remove_authenticator.clicked.connect(self.remove_authenticator)
+		self.ui.forget_browsers.clicked.connect(self.forget_browsers)
 		self.refresh()
 
 	def refresh(self) -> None:
@@ -187,10 +230,23 @@ class ApiScreen(QWidget):
 			state = ACTIVE
 			if user.disabled_at is not None:
 				state = DISABLED
-			line = QTreeWidgetItem([user.name, ROLE_NAMES[user.role], state, display.date(user.created_at)])
+			authenticator = display.EMPTY
+			if user.authenticator:
+				authenticator = AUTHENTICATOR_SET
+			line = QTreeWidgetItem(
+				[
+					user.name,
+					ROLE_NAMES[user.role],
+					state,
+					display.date(user.created_at),
+					authenticator,
+					str(user.browsers),
+				]
+			)
 			line.setData(0, IDENTIFIER, user.identifier)
 			line.setData(1, IDENTIFIER, user.role)
 			line.setData(2, IDENTIFIER, user.disabled_at is not None)
+			line.setData(4, IDENTIFIER, user.authenticator)
 			tree.addTopLevelItem(line)
 			if user.identifier == chosen:
 				tree.setCurrentItem(line)
@@ -213,8 +269,18 @@ class ApiScreen(QWidget):
 	def _follow(self) -> None:
 		"""Les actions sur un compte ne servent qu'un compte choisi ; « Désactiver » devient « Réactiver »."""
 		line = self.ui.users.currentItem()
-		for widget in (self.ui.role, self.ui.change_password, self.ui.disable, self.ui.delete, self.ui.new_session):
+		ui = self.ui
+		for widget in (
+			ui.role,
+			ui.change_password,
+			ui.disable,
+			ui.delete,
+			ui.new_session,
+			ui.authenticator,
+			ui.forget_browsers,
+		):
 			widget.setEnabled(line is not None)
+		ui.remove_authenticator.setEnabled((line is not None) and (bool(line.data(4, IDENTIFIER))))
 		self.refresh_sessions()
 		if line is None:
 			return
@@ -350,3 +416,43 @@ class ApiScreen(QWidget):
 		with self.connection.transaction():
 			queries.delete(self.connection, identifier)
 		self._write(_("User {name} deleted.").format(name=name))
+
+	def set_up_authenticator(self) -> None:
+		"""Une nouvelle clé pour l'application d'authentification du compte, gardée si la fenêtre l'enregistre
+		(https://github.com/dascritch/machincast/issues/601)."""
+		identifier = self.chosen()
+		if identifier is None:
+			return
+		name = self._chosen_name()
+		key = totp.secret()
+		if not show_authenticator(self, name, key, totp.uri(self.issuer, name, key)):
+			return
+		with self.connection.transaction():
+			queries.set_authenticator(self.connection, identifier, key)
+		self._write(_("Authentication app of {name} set: it now gives its codes.").format(name=name))
+
+	def remove_authenticator(self) -> None:
+		identifier = self.chosen()
+		if identifier is None:
+			return
+		name = self._chosen_name()
+		with self.connection.transaction():
+			queries.set_authenticator(self.connection, identifier, None)
+		self._write(_("Authentication app of {name} removed.").format(name=name))
+
+	def forget_browsers(self) -> None:
+		"""Les navigateurs connus du compte, oubliés : sa prochaine connexion repasse la première connexion
+		(https://github.com/dascritch/machincast/issues/601)."""
+		identifier = self.chosen()
+		if identifier is None:
+			return
+		name = self._chosen_name()
+		with self.connection.transaction():
+			count = queries.forget_browsers(self.connection, identifier)
+		self._write(
+			ngettext(
+				"{count} browser of {name} forgotten: its next connection goes through the first connection again.",
+				"{count} browsers of {name} forgotten: its next connection goes through the first connection again.",
+				count,
+			).format(count=count, name=name)
+		)

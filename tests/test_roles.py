@@ -36,6 +36,7 @@ INSERTIONS: dict[str, str] = {
 		"INSERT INTO api_sessions (user_id, token_hash, code, validate_before)"
 		" VALUES ({compte}, repeat('a', 64), '123456', clock_timestamp())"
 	),
+	"api_browsers": "INSERT INTO api_browsers (user_id, token_hash) VALUES ({compte}, repeat('b', 64))",
 }
 CHANGES: dict[str, str] = {
 	"sounds": "title = NULL",
@@ -52,6 +53,7 @@ CHANGES: dict[str, str] = {
 	"log": "message = ''",
 	"api_users": "role = 'actions'",
 	"api_sessions": "attempts = 1",
+	"api_browsers": "used_at = clock_timestamp()",
 }
 
 

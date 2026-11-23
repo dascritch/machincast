@@ -5,8 +5,8 @@ machincast_intranet.
 """
 
 import logging
-from dataclasses import dataclass
-from datetime import timedelta
+from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import psycopg
@@ -15,7 +15,8 @@ from psycopg.rows import TupleRow
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import i18n
-from machincast.configuration import FirstLogin
+from machincast.clock import FixedClock
+from machincast.configuration import FirstLogin, SecondFactor
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
 from machincast.interface.queries import api_users
@@ -23,6 +24,7 @@ from machincast.intranet import sessions
 from machincast.intranet.app import Intranet
 from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal, Throttle
+from machincast.shared import totp
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import Connection
@@ -30,6 +32,9 @@ from tests.interface_steps import Connection
 scenarios("intranet_login.feature")
 
 COOKIE_PREFIX = f"{sessions.COOKIE}="
+CLOCK = FixedClock(datetime(2026, 11, 23, 10, 0, 7, tzinfo=UTC))
+"""L'heure du portail, pour les codes de l'application d'authentification (https://github.com/dascritch/machincast/issues/601)."""
+BROWSER_PREFIX = f"{sessions.BROWSER_COOKIE}="
 
 
 @dataclass
@@ -37,6 +42,12 @@ class Visit:
 	application: Intranet
 	answer: Answer | None = None
 	token: str | None = None
+	browser: str | None = None
+	"""Le cookie du navigateur connu (https://github.com/dascritch/machincast/issues/601)."""
+	settings: Settings = field(default_factory=lambda: Settings(enabled=True))
+	directory: Path = Path()
+	totp: str = ""
+	"""Le dernier code saisi de l'application d'authentification."""
 
 
 def connect() -> psycopg.Connection[TupleRow]:
@@ -45,7 +56,7 @@ def connect() -> psycopg.Connection[TupleRow]:
 
 
 def _application(settings: Settings, directory: Path) -> Intranet:
-	portal = Portal(settings, connect)
+	portal = Portal(settings, connect, clock=CLOCK)
 	home = Pages(portal, connect, directory / "lecture.sock", "Radio Thune")
 	return Intranet({**portal.routes(), **home.routes()})
 
@@ -53,7 +64,12 @@ def _application(settings: Settings, directory: Path) -> Intranet:
 @given("l'application de l'intranet sur la base de test", target_fixture="visit")
 def application(empty_database: Connection, tmp_path: Path) -> Visit:
 	del empty_database
-	return Visit(_application(Settings(enabled=True), tmp_path))
+	return Visit(_application(Settings(enabled=True), tmp_path), directory=tmp_path)
+
+
+def _settle(visit: Visit, settings: Settings) -> None:
+	visit.settings = settings
+	visit.application = _application(settings, visit.directory)
 
 
 FIRST_LOGINS: dict[str, FirstLogin] = {"sans validation": "none", "au pupitre": "desk"}
@@ -61,23 +77,108 @@ FIRST_LOGINS: dict[str, FirstLogin] = {"sans validation": "none", "au pupitre": 
 
 
 @given(parsers.parse("la première connexion réglée « {validation} »"))
-def first_login(visit: Visit, tmp_path: Path, validation: str) -> None:
-	visit.application = _application(Settings(enabled=True, first_login=FIRST_LOGINS[validation]), tmp_path)
+def first_login(visit: Visit, validation: str) -> None:
+	_settle(visit, replace(visit.settings, first_login=FIRST_LOGINS[validation]))
+
+
+SECOND_FACTORS: dict[str, SecondFactor] = {"au pupitre": "desk", "application d'authentification": "totp"}
+"""Le second facteur, comme le disent les scénarios (https://github.com/dascritch/machincast/issues/601)."""
+SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP"
+
+
+@given(parsers.parse("le second facteur réglé « {factor} »"))
+def second_factor(visit: Visit, factor: str) -> None:
+	_settle(visit, replace(visit.settings, second_factor=SECOND_FACTORS[factor]))
+
+
+@given(parsers.parse("l'application d'authentification de « {name} »"))
+def authenticator(empty_database: Connection, name: str) -> None:
+	api_users.set_authenticator(empty_database, _user(empty_database, name), SECRET)
+
+
+def _user(empty_database: Connection, name: str) -> int:
+	found = empty_database.execute("SELECT id FROM api_users WHERE name = %s", (name,)).fetchone()
+	assert found is not None
+	identifier = found[0]
+	assert isinstance(identifier, int)
+	return identifier
+
+
+def _send_totp(visit: Visit, given: str) -> None:
+	visit.totp = given
+	_keep(visit, call(visit.application, "POST", "/validation", form={"code": given}, headers=_cookie(visit)))
+
+
+@given("j'ai saisi le code de l'application d'authentification")
+@when("je saisis le code de l'application d'authentification")
+def enter_totp(visit: Visit) -> None:
+	_send_totp(visit, totp.code(SECRET, CLOCK.now()))
+
+
+@when("je saisis un code faux de l'application d'authentification")
+def enter_wrong_totp(visit: Visit) -> None:
+	right = int(totp.code(SECRET, CLOCK.now()))
+	_send_totp(visit, f"{(right + 500_000) % 1_000_000:06d}")
+
+
+@when("je saisis de nouveau le même code de l'application d'authentification")
+def enter_same_totp(visit: Visit) -> None:
+	_send_totp(visit, visit.totp)
+
+
+@then(parsers.parse("« {name} » a {count:d} navigateur connu"))
+def known_browsers(empty_database: Connection, name: str, count: int) -> None:
+	found = empty_database.execute(
+		"SELECT count(*) FROM api_browsers b JOIN api_users u ON u.id = b.user_id WHERE u.name = %s", (name,)
+	).fetchone()
+	assert found == (count,)
+
+
+@then(parsers.parse("le navigateur est retenu, Secure, HttpOnly et SameSite=Strict, pour {days:d} jours"))
+def browser_kept(visit: Visit, days: int) -> None:
+	assert visit.answer is not None
+	posed = _posed(visit.answer, BROWSER_PREFIX)
+	assert posed is not None
+	assert f"; Max-Age={days * 86400}; Path=/; Secure; HttpOnly; SameSite=Strict" in posed, posed
+	assert visit.browser is not None
+
+
+@then(parsers.parse("la session est à valider, avec {count:d} code faux compté"))
+def pending_counted(empty_database: Connection, count: int) -> None:
+	found = empty_database.execute("SELECT state::text, attempts FROM api_sessions ORDER BY id DESC LIMIT 1").fetchone()
+	assert found == ("pending", count)
+
+
+def _posed(answer: Answer, prefix: str) -> str | None:
+	"""L'en-tête Set-Cookie de ce cookie, parmi ceux de la réponse."""
+	for key, value in answer.headers:
+		if (key == "set-cookie") and (value.startswith(prefix)):
+			return value
+	return None
 
 
 def _keep(visit: Visit, answer: Answer) -> None:
-	"""La réponse, et le jeton qu'elle pose, comme le garderait le navigateur."""
+	"""La réponse, et les cookies qu'elle pose, la session et le navigateur connu, comme le garderait le navigateur."""
 	visit.answer = answer
-	posed = answer.header("set-cookie")
-	if (posed is not None) and (posed.startswith(COOKIE_PREFIX)):
+	posed = _posed(answer, COOKIE_PREFIX)
+	if posed is not None:
 		value = posed[len(COOKIE_PREFIX) :].split(";")[0]
 		visit.token = (value) or (None)
+	posed = _posed(answer, BROWSER_PREFIX)
+	if posed is not None:
+		value = posed[len(BROWSER_PREFIX) :].split(";")[0]
+		visit.browser = (value) or (None)
 
 
 def _cookie(visit: Visit) -> dict[str, str]:
-	if visit.token is None:
+	jar = []
+	if visit.token is not None:
+		jar.append(f"{sessions.COOKIE}={visit.token}")
+	if visit.browser is not None:
+		jar.append(f"{sessions.BROWSER_COOKIE}={visit.browser}")
+	if jar == []:
 		return {}
-	return {"cookie": f"{sessions.COOKIE}={visit.token}"}
+	return {"cookie": "; ".join(jar)}
 
 
 @when(parsers.re(r"je demande « (?P<method>[A-Z]+) (?P<path>[^»]+) »$"))
@@ -149,8 +250,9 @@ def login_from_address(visit: Visit, name: str, password: str, address: str) -> 
 @given(parsers.parse("je me suis connecté depuis un autre navigateur en « {name} », mot de passe « {password} »"))
 @when(parsers.parse("je me connecte depuis un autre navigateur en « {name} », mot de passe « {password} »"))
 def login_elsewhere(visit: Visit, name: str, password: str) -> None:
-	"""Un autre navigateur, sans le cookie de celui d'avant."""
+	"""Un autre navigateur, sans les cookies de celui d'avant."""
 	visit.token = None
+	visit.browser = None
 	_login(visit, name, password)
 
 

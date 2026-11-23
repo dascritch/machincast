@@ -15,6 +15,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 			| nom       | mot de passe    | rôle      | état      |
 			| regie     | tisane-au-micro | consulter | actif     |
 			| stagiaire | cafe-du-matin-1 | consulter | désactivé |
+			| technique | reglage-du-soir | consulter | actif     |
 		Et l'application de l'intranet sur la base de test
 
 	Scénario: Sans session, l'accueil mène à la mire de connexion
@@ -157,7 +158,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Quand je saisis le code donné au pupitre
 		Alors la session est valide, pour 12 heures
 		Quand je me déconnecte
-		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Et je me connecte depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
 		Et le pupitre accepte la connexion
 		Et je saisis un code faux 4 fois
 		Alors la réponse est 400, et dit « Code faux : redemandez-le au pupitre. »
@@ -270,6 +271,97 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 		Et le journal de l'intranet finit par :
 			| niveau  | message                                                                   |
 			| WARNING | [10.0.0.31] connexion à l'intranet de « regie », sans validation au pupitre |
+
+	# ─── Le navigateur connu, et le second facteur (https://github.com/dascritch/machincast/issues/601) ───
+
+	Scénario: Un navigateur validé est retenu : la connexion suivante, sans second facteur, n'attend plus le pupitre
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
+		Quand je saisis le code donné au pupitre
+		Alors le navigateur est retenu, Secure, HttpOnly et SameSite=Strict, pour 400 jours
+		Et « regie » a 1 navigateur connu
+		Quand je me déconnecte
+		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « / »
+		Et la session est valide, pour 12 heures
+		Quand je me connecte depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « /validation »
+
+	Scénario: Le navigateur d'un autre compte n'est pas connu du compte
+		Étant donné que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
+		Et que j'ai saisi le code donné au pupitre
+		Quand je me déconnecte
+		Et je me connecte en « technique », mot de passe « reglage-du-soir »
+		Alors la réponse est 303, vers « /validation »
+
+	Scénario: Avec le second facteur au pupitre, un navigateur connu attend encore l'acceptation, sans code
+		Étant donné le second facteur réglé « au pupitre »
+		Et que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
+		Et que j'ai saisi le code donné au pupitre
+		Quand je me déconnecte
+		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « /validation »
+		Et la base a une session à valider de « regie », sans code
+		Quand le pupitre accepte la connexion
+		Et je demande « GET /validation »
+		Alors la réponse est 303, vers « / »
+		Et la session est valide, pour 12 heures
+
+	Scénario: Avec l'application d'authentification, chaque connexion demande son code, même d'un navigateur connu
+		Étant donné la première connexion réglée « sans validation »
+		Et le second facteur réglé « application d'authentification »
+		Et l'application d'authentification de « regie »
+		Quand je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « /validation »
+		Quand je demande « GET /validation »
+		Alors la réponse est 200, et dit « Le code à 6 chiffres de votre application d'authentification »
+		Quand je saisis le code de l'application d'authentification
+		Alors la réponse est 303, vers « / »
+		Et la session est valide, pour 12 heures
+		Quand je me déconnecte
+		Et je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « /validation »
+
+	Scénario: Un code faux de l'application d'authentification se redemande, et se compte
+		Étant donné la première connexion réglée « sans validation »
+		Et le second facteur réglé « application d'authentification »
+		Et l'application d'authentification de « regie »
+		Et que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Quand je saisis un code faux de l'application d'authentification
+		Alors la réponse est 400, et dit « Code faux : saisissez celui que montre votre application d'authentification. »
+		Et la session est à valider, avec 1 code faux compté
+
+	Scénario: Un code de l'application d'authentification ne sert qu'une fois
+		Étant donné la première connexion réglée « sans validation »
+		Et le second facteur réglé « application d'authentification »
+		Et l'application d'authentification de « regie »
+		Et que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que j'ai saisi le code de l'application d'authentification
+		Quand je me connecte depuis un autre navigateur en « regie », mot de passe « tisane-au-micro »
+		Et je saisis de nouveau le même code de l'application d'authentification
+		Alors la réponse est 400, et dit « Code faux : saisissez celui que montre votre application d'authentification. »
+
+	Scénario: Une première connexion passe le pupitre et son code, puis l'application d'authentification
+		Étant donné le second facteur réglé « application d'authentification »
+		Et l'application d'authentification de « regie »
+		Et que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Et que le pupitre a accepté la connexion
+		Quand je saisis le code donné au pupitre
+		Alors la réponse est 303, vers « /validation »
+		Et la session est à valider
+		Quand je demande « GET /validation »
+		Alors la réponse est 200, et dit « Le code à 6 chiffres de votre application d'authentification »
+		Quand je saisis le code de l'application d'authentification
+		Alors la réponse est 303, vers « / »
+		Et la session est valide, pour 12 heures
+
+	Scénario: Sans application d'authentification, un compte ne se connecte pas quand elle est demandée
+		Étant donné le second facteur réglé « application d'authentification »
+		Quand je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 403, et dit « Ce compte n'a pas d'application d'authentification : faites-la régler au studio, dans l'onglet API. »
+		Et aucune session n'est ouverte
 
 	Scénario: Chaque connexion laisse une ligne au journal, l'adresse du client en tête, jamais le mot de passe
 		Un analyseur de journal (fail2ban) reconnaît un refus à son niveau, WARNING, et à l'adresse entre crochets en
