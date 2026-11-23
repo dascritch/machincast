@@ -183,3 +183,14 @@ def session_state(monkeypatch: pytest.MonkeyPatch) -> None:
 	for name, variable in SESSION_STATE:
 		module = importlib.import_module(name)
 		monkeypatch.setattr(module, variable, getattr(module, variable))
+
+
+@pytest.fixture(autouse=True)
+def administrator_allows(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Les paramètres du service s'ouvrent au réglage sans demander polkit, sauf dans les scénarios qui l'éprouvent
+	(https://github.com/dascritch/machincast/issues/603)."""
+	if request.module.__name__.endswith("test_service_settings_admin"):
+		return
+	from machincast.interface.administrator import Administrator
+
+	monkeypatch.setattr(Administrator, "ask", lambda self: self.decided.emit(True))

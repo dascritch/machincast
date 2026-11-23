@@ -28,6 +28,7 @@ Fonctionnalité: Schéma de la base de données
 			| airplay          |
 			| log              |
 			| api_users        |
+			| api_browsers     |
 			| api_sessions     |
 
 	Scénario: La purge entre deux scénarios vide chaque table, et remet les identifiants à 1

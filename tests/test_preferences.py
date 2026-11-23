@@ -523,6 +523,7 @@ def window_preferences(
 		*,
 		configuration: object = None,
 		offered: object = (),
+		read_only: bool = False,
 	) -> None:
 		launching.shown_list = (shown_list, shown_output)
 
