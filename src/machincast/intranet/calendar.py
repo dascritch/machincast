@@ -107,6 +107,9 @@ def _entry(planned: Planned) -> dict[str, Any]:
 		"covered": (on_air == []) and (not planned.skipped),
 		"skipped": planned.skipped,
 		"deleted": event.deleted_at is not None,
+		# À l'horaire défini : ni un fil musical permanent, ni une occurrence sans fin, ni un secours
+		# (https://github.com/dascritch/machincast/issues/599).
+		"defined": (event.start is not None) and (event.end is not None) and (event.priority != Priority.FALLBACK),
 	}
 
 
