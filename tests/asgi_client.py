@@ -34,10 +34,11 @@ def call(
 	headers: dict[str, str] | None = None,
 	client: str = "10.0.0.31",
 	repeated: list[tuple[str, str]] | None = None,
+	body: bytes = b"",
 ) -> Answer:
 	"""La réponse de l'application à une requête ; un formulaire part en application/x-www-form-urlencoded ; repeated,
-	des en-têtes de plus, envoyés après les autres, même s'ils les répètent, comme HTTP/2 le permet."""
-	body = b""
+	des en-têtes de plus, envoyés après les autres, même s'ils les répètent, comme HTTP/2 le permet ; body, un corps
+	brut, pour une route d'API en JSON."""
 	sent = {"host": "studio.radio.lan:8443", "user-agent": "Firefox/140 (scénario)"}
 	if form is not None:
 		body = urlencode(form).encode()
