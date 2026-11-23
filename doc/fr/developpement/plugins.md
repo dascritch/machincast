@@ -113,6 +113,27 @@ Un point est appelé de deux façons (`machincast.plugins.points`) :
 L'exception d'un abonné est consignée au journal, avec le plugin et le point ; elle n'arrête ni le binaire ni les autres plugins.
 Un abonnement à un point que personne ne déclare est refusé : c'est une faute de frappe, ou un plugin demandé qui manque.
 
+## Faire jouer une occurrence par un autre événement
+
+([#608](https://github.com/dascritch/machincast/issues/608))
+
+Le point du cœur « grid.substitutions » est demandé à chaque lecture de la grille, dans chaque binaire.
+Le plugin y répond une `machincast.shared.grid.Substitution` :
+
+```python
+from machincast.shared.grid import Substitution
+
+
+def register(plugin):
+	plugin.on("grid.substitutions", lambda data: Substitution(cachés, jouant))
+```
+
+- `hidden(event)` : les identifiants des événements que cet événement fait jouer ; hors grille, ils ne jouent plus que par lui ;
+- `playing(event, day)` : l'identifiant de l'événement qui joue son occurrence qui commence ce jour, ou `None` pour qu'il la joue lui-même.
+
+L'un et l'autre lisent l'événement, ses `properties` comprises : c'est là qu'un plugin range ses choix.
+Appelés à chaque lecture de la grille, ils ne lisent pas la base.
+
 ## Ses réglages dans l'interface
 
 Le menu « Plugins » de Machin interface ouvre la fenêtre de chaque plugin activé, avec son nom, sa version et sa description ([#587](https://github.com/dascritch/machincast/issues/587)).

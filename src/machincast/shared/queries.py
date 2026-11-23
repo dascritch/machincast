@@ -12,7 +12,7 @@ Connection = psycopg.Connection[TupleRow]
 EVENT_COLUMNS = (
 	"id, internal_name, priority::text, starts_at, ends_at, recurrence_days::text[], modified_at, deleted_at,"
 	" ARRAY(SELECT s.day FROM event_skips s WHERE s.event_id = events.id), end_of_list::text,"
-	" (properties ->> 'end_fallback_event')::bigint, (properties ->> 'stream_fallback_event')::bigint"
+	" (properties ->> 'end_fallback_event')::bigint, (properties ->> 'stream_fallback_event')::bigint, properties"
 )
 """Ce que la grille lit d'un événement (machincast.shared.grid._events), ses sessions sautées comprises."""
 
