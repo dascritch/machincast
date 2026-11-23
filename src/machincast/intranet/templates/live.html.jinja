@@ -1,9 +1,11 @@
-{#- L'antenne en direct (https://github.com/dascritch/machincast/issues/541) : l'heure, le texte public, l'événement en cours et le suivant, le sonore en cours et le prochain, côte à côte, puis les derniers sonores diffusés. Le script de l'intranet relit les éléments par leur id, et tient les décomptes d'après data-limite. -#}
+{#- L'antenne en direct (https://github.com/dascritch/machincast/issues/541) : l'heure, le texte public à sa droite, sur la même ligne (https://github.com/dascritch/machincast/issues/598), l'événement en cours et le suivant, le sonore en cours et le prochain, côte à côte, puis les derniers sonores diffusés. Le script de l'intranet relit les éléments par leur id, et tient les décomptes d'après data-limite. -#}
 {% macro field(label, identifier, text) %}<dt>{{ label }}</dt><dd><span id="{{ identifier }}">{{ text }}</span></dd>{% endmacro %}
 {% macro countdown(label, identifier, value) %}<dt>{{ label }}</dt><dd><span id="{{ identifier }}" class="decompte" data-limite="{{ value.limit }}">{{ value.text }}</span></dd>{% endmacro %}
 <div id="direct">
+<div class="ligne-heure">
 <p class="heure"><span id="heure">{{ live.hour }}</span></p>
 <p class="texte-public"><span id="texte-public">{{ live.public_text }}</span></p>
+</div>
 <div class="paire">
 <section class="evenement">
 <h2>{{ _("Current event") }}</h2>

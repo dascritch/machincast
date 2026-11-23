@@ -38,7 +38,7 @@ Fonctionnalité: Le cartouchier : des boutons tactiles dans Machin intranet qui 
 
 	Scénario: Les boutons du compte s'affichent sous l'antenne en direct de l'accueil, en couleurs, sans onglet à part
 		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
-		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « En diffusion », pour « regie »
+		Alors l'API répond 200, une page « MachinCast - Radio Thune » du gabarit de « Radio Thune », « En diffusion », pour « regie »
 		Et la page a l'antenne en direct, puis la section « Cartouchier »
 		Et la page a les boutons « Jingle » #aa3300, « Chronique » #336699, « Couper » #990000, « Suivant » #3a6ea5, « Avancer » #3a6ea5
 		Et la page charge la feuille de style « /plugins/cartwall/static/cartwall.css » et le script « /plugins/cartwall/static/cartwall.js »

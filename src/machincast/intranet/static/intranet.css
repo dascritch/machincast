@@ -59,8 +59,13 @@ main a { color: var(--accent); }
 main { max-width: 60rem; margin: 0 auto; padding: 1rem; }
 section { border: 1px solid var(--cadre); border-radius: 6px; padding: 0.6rem 1rem; margin: 0 0 1rem; }
 section h2 { font-size: 1rem; margin: 0 0 0.4rem; color: var(--discret); text-transform: uppercase; letter-spacing: 0.04em; }
+/* L'heure, et le texte public à sa droite, sur la même ligne ; les décomptes des sonores aussi grands qu'elle
+   (https://github.com/dascritch/machincast/issues/598). */
+.ligne-heure { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 1.5rem; }
+.ligne-heure p { margin: 0.4rem 0; }
 .heure { font-size: 2.2rem; font-variant-numeric: tabular-nums; font-weight: 600; }
 .texte-public { font-size: 1.4rem; }
+.sonore .decompte, .prochain .decompte { font-size: 2.2rem; line-height: 1.1; }
 .decompte { font-variant-numeric: tabular-nums; font-weight: 600; }
 .discret { color: var(--discret); }
 /* L'événement en cours et le suivant côte à côte, le sonore en cours et le suivant aussi ; l'un sous l'autre sur un

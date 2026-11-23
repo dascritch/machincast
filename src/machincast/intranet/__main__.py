@@ -88,7 +88,13 @@ def application(configuration: Configuration) -> Application:
 
 	portal = Portal(configuration.intranet, connect)
 	api = ApiV1(portal, connect, configuration.player.intranet_socket)
-	pages = Pages(portal, connect, configuration.player.intranet_socket, configuration.metadata.public_text)
+	pages = Pages(
+		portal,
+		connect,
+		configuration.player.intranet_socket,
+		configuration.metadata.public_text,
+		icon=configuration.interface.icon,
+	)
 	# Les pages et les routes des plugins (https://github.com/dascritch/machincast/issues/588).
 	extensions = Extensions(
 		portal,

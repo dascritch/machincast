@@ -29,7 +29,7 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 			| 2026-11-20 09:03:00 | 2026-11-20 09:06:00 | B      | Deux  | Fil de jour |          |      | oui              |
 		Et Machin player qui publie « Le journal » en cours, puis « Spot », « S1 »
 		Quand je demande à l'API « GET / »
-		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « En diffusion », pour « regie »
+		Alors l'API répond 200, une page « MachinCast - Radio Thune » du gabarit de « Radio Thune », « En diffusion », pour « regie »
 		Et le bandeau mène à « / » « Accueil », la page en cours, et permet de se déconnecter
 		Et la page charge /static/intranet.css et /static/intranet.js, sans script dans la page
 		Et les sections de l'accueil sont, dans l'ordre, « heure », « texte-public », « evenement », « suivant », « sonore », « prochain », « airplay »
@@ -56,7 +56,7 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 
 	Scénario: Sans Machin player, l'accueil montre l'antenne arrêtée
 		Quand je demande à l'API « GET / »
-		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
+		Alors l'API répond 200, une page « MachinCast - Radio Thune » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
 		Et l'accueil montre :
 			| élément      | texte |
 			| texte-public | —     |
@@ -99,3 +99,25 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 			| intranet.js         | 200    | text/javascript; charset=utf-8  |
 			| ../home.py          | 404    | text/plain; charset=utf-8       |
 			| autre.js            | 404    | text/plain; charset=utf-8       |
+
+	# ─── Lisible de loin (https://github.com/dascritch/machincast/issues/598) ───
+
+	Scénario: Le titre public à droite de l'horloge, et les décomptes des sonores aussi grands qu'elle
+		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
+		Alors l'API répond 200, une page « MachinCast - Radio Thune » du gabarit de « Radio Thune », « À l'arrêt », pour « regie »
+		Et l'horloge et le titre public sont sur la même ligne, le titre à droite
+		Et la feuille de style écrit le temps restant des sonores aussi grand que l'horloge
+
+	Scénario: L'icône de l'intranet est celle de l'application, choisie dans l'interface
+		Étant donné l'icône de l'application « logo.svg »
+		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
+		Alors la page déclare l'icône « /favicon »
+		Quand je demande à l'API « GET /favicon », sans jeton
+		Alors l'API répond 200, de type « image/svg+xml »
+		Et l'icône servie est « logo.svg »
+
+	Scénario: Sans icône choisie, ou illisible, l'intranet prend celle de MachinCast
+		Étant donné l'icône de l'application « absente.png », qui n'existe pas
+		Quand je demande à l'API « GET /favicon », sans jeton
+		Alors l'API répond 200, de type « image/png »
+		Et l'icône servie est celle de MachinCast
