@@ -100,14 +100,8 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 			known.plural = message.plural
 		known.references.append(reference)
 
-	for path in sorted(package.rglob("*.py")):
-		relative = path.relative_to(package.parent).as_posix()
-		if "/ui/" not in relative:
-			for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-				message = _message(node)
-				if message is not None:
-					# Le fichier seul, sans numéro de ligne : déplacer du code ne change pas le catalogue.
-					add(message, relative)
+	for message, reference in code_messages(package):
+		add(message, reference)
 	for path in sorted(package.rglob("*.ui")):
 		relative = path.relative_to(package.parent).as_posix()
 
@@ -131,6 +125,20 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 
 		for found_message in BASH_MESSAGE.finditer(text):
 			add_script_message(found_message, script, text)
+	return found
+
+
+def code_messages(package: Path = PACKAGE) -> list[tuple[Message, str]]:
+	"""Les messages du code Python, et leur fichier, sans numéro de ligne : déplacer du code ne change pas le
+	catalogue."""
+	found = []
+	for path in sorted(package.rglob("*.py")):
+		relative = path.relative_to(package.parent).as_posix()
+		if "/ui/" not in relative:
+			for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+				message = _message(node)
+				if message is not None:
+					found.append((message, relative))
 	return found
 
 
