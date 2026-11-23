@@ -726,6 +726,18 @@ def hidden_commands(interface: Context) -> None:
 	assert (ui.playback.isHidden(), ui.stop.isHidden(), ui.time.isHidden()) == (True, True, True)
 
 
+@then("le moniteur de l'antenne cache « Début joué », « Fin joué » et « Écouter comme à l'antenne »")
+def hidden_markers(interface: Context) -> None:
+	ui = window(interface).preview.ui
+	assert (ui.played_start.isHidden(), ui.played_end.isHidden(), ui.as_on_air.isHidden()) == (True, True, True)
+
+
+@then("la pré-écoute montre « Début joué », « Fin joué » et « Écouter comme à l'antenne »")
+def shown_markers(interface: Context) -> None:
+	ui = window(interface).preview.ui
+	assert (ui.played_start.isHidden(), ui.played_end.isHidden(), ui.as_on_air.isHidden()) == (False, False, False)
+
+
 @then("la forme d'onde du direct avance bientôt, à la place de la frise")
 def live_wave_moves(interface: Context, qtbot: QtBot) -> None:
 	opened = window(interface).preview
@@ -744,7 +756,7 @@ def live_wave_moves(interface: Context, qtbot: QtBot) -> None:
 
 @then(
 	parsers.re(
-		r"le bouton sous le voyant de la diffusion est (?P<soon>bientôt )?« (?P<text>[^»]+) »(?P<icon>, avec le casque)?"
+		r"le bouton du cartouche de la diffusion est (?P<soon>bientôt )?« (?P<text>[^»]+) »(?P<icon>, avec le casque)?"
 	)
 )
 def monitor_button(interface: Context, qtbot: QtBot, soon: str | None, text: str, icon: str | None) -> None:
@@ -756,7 +768,20 @@ def monitor_button(interface: Context, qtbot: QtBot, soon: str | None, text: str
 		assert same_icon(button.icon(), icons.icon("preview"))
 
 
-@when("je clique sur le bouton sous le voyant de la diffusion")
+@then(
+	parsers.parse(
+		"le bouton du moniteur est dans le cartouche de l'état de la diffusion, sans texte, avec l'infobulle « {tooltip} »"
+	)
+)
+def monitor_in_frame(interface: Context, tooltip: str) -> None:
+	ui = home(interface).ui
+	assert ui.monitor.parentWidget() is ui.state_frame
+	assert ui.playback_state.parentWidget() is ui.state_frame
+	assert ui.monitor.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonIconOnly
+	assert ui.monitor.toolTip() == tooltip
+
+
+@when("je clique sur le bouton du cartouche de la diffusion")
 def click_monitor(interface: Context, qtbot: QtBot) -> None:
 	qtbot.mouseClick(home(interface).ui.monitor, Qt.MouseButton.LeftButton)
 

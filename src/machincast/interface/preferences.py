@@ -31,6 +31,7 @@ MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux r
 """
 
 import dataclasses
+import html
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import time, timedelta
@@ -274,6 +275,19 @@ def _write_daily(document: tomlkit.TOMLDocument, daily: time) -> None:
 		section = document["schedule"]
 	assert isinstance(section, tomlkit.items.Table)
 	section["daily"] = daily.isoformat(timespec="minutes")
+
+
+def address_list(addresses: Sequence[str]) -> str:
+	"""Les adresses de l'intranet et de son API à donner aux autres postes, en liste à puces, chacune en lien
+	(https://github.com/dascritch/machincast/issues/604)."""
+	items = []
+	for address in addresses:
+		written = html.escape(address)
+		items.append(f'<li><a href="{written}">{written}</a></li>')
+	introduction = html.escape(
+		_("Addresses to give to the other computers, for the intranet and its API:"), quote=False
+	)
+	return f"<p>{introduction}</p><ul>{''.join(items)}</ul>"
 
 
 def _write_intranet(document: tomlkit.TOMLDocument, intranet: Intranet) -> None:
@@ -566,9 +580,8 @@ class PreferencesWindow(QDialog):
 			said = intranet_switch.RUNNING
 		ui.intranet_running.setText(said)
 		if enabled:
-			addresses = network.to_give(self.intranet.address, ui.intranet_port.value())
 			ui.intranet_addresses.setText(
-				_("Address to give to the other computers: {addresses}").format(addresses=", ".join(addresses))
+				address_list(network.to_give(self.intranet.address, ui.intranet_port.value()))
 			)
 
 	def _offer_power_save(self) -> None:

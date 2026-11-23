@@ -15,10 +15,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFormLayout, QGroupBox,
-    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
-    QProgressBar, QPushButton, QSizePolicy, QSpacerItem,
-    QTableView, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFormLayout, QFrame,
+    QGroupBox, QHBoxLayout, QHeaderView, QLabel,
+    QLineEdit, QProgressBar, QPushButton, QSizePolicy,
+    QSpacerItem, QTableView, QToolButton, QVBoxLayout,
+    QWidget)
 
 class Ui_DefaultScreen(object):
     def setupUi(self, DefaultScreen):
@@ -54,9 +55,13 @@ class Ui_DefaultScreen(object):
 
         self.banner.addWidget(self.public_text)
 
-        self.state_column = QVBoxLayout()
-        self.state_column.setObjectName(u"state_column")
-        self.playback_state = QLabel(DefaultScreen)
+        self.state_frame = QFrame(DefaultScreen)
+        self.state_frame.setObjectName(u"state_frame")
+        self.state_line = QHBoxLayout(self.state_frame)
+        self.state_line.setSpacing(4)
+        self.state_line.setObjectName(u"state_line")
+        self.state_line.setContentsMargins(2, 2, 2, 2)
+        self.playback_state = QLabel(self.state_frame)
         self.playback_state.setObjectName(u"playback_state")
         font2 = QFont()
         font2.setPointSize(12)
@@ -64,15 +69,17 @@ class Ui_DefaultScreen(object):
         self.playback_state.setFont(font2)
         self.playback_state.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
-        self.state_column.addWidget(self.playback_state)
+        self.state_line.addWidget(self.playback_state)
 
-        self.monitor = QPushButton(DefaultScreen)
+        self.monitor = QToolButton(self.state_frame)
         self.monitor.setObjectName(u"monitor")
+        self.monitor.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        self.monitor.setAutoRaise(True)
 
-        self.state_column.addWidget(self.monitor)
+        self.state_line.addWidget(self.monitor)
 
 
-        self.banner.addLayout(self.state_column)
+        self.banner.addWidget(self.state_frame)
 
         self.banner.setStretch(1, 1)
 
@@ -534,6 +541,9 @@ class Ui_DefaultScreen(object):
     def retranslateUi(self, DefaultScreen):
 #if QT_CONFIG(tooltip)
         self.public_text.setToolTip(QCoreApplication.translate("DefaultScreen", u"What the public outputs show of the current sound", None))
+#endif // QT_CONFIG(tooltip)
+#if QT_CONFIG(tooltip)
+        self.state_frame.setToolTip(QCoreApplication.translate("DefaultScreen", u"State of Machin player", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(tooltip)
         self.playback_state.setToolTip(QCoreApplication.translate("DefaultScreen", u"State of Machin player", None))

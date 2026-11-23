@@ -5129,6 +5129,11 @@ msgid "To the second"
 msgstr "À la seconde"
 
 #: machincast/interface/preferences.py
+msgid ""
+"Addresses to give to the other computers, for the intranet and its API:"
+msgstr "Adresses à donner aux autres postes, pour l'intranet et son API :"
+
+#: machincast/interface/preferences.py
 msgid "Backup directory"
 msgstr "Répertoire des sauvegardes"
 
@@ -5160,11 +5165,6 @@ msgid ""
 "Demonstration: a sound of 30 s, with silences of 3 s and 4 s. {summary}"
 msgstr ""
 "Démonstration : un sonore de 30 s, aux silences de 3 s et 4 s. {summary}"
-
-#: machincast/interface/preferences.py
-#, python-brace-format
-msgid "Address to give to the other computers: {addresses}"
-msgstr "Adresse à donner aux autres postes : {addresses}"
 
 #: machincast/interface/preferences.py
 #, python-brace-format
