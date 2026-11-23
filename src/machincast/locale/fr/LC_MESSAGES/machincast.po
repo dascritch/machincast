@@ -3774,6 +3774,12 @@ msgstr ""
 
 #: machincast/interface/event_card.py
 #, python-brace-format
+msgid "plugin “{plugin}”: a section of the event card is expected"
+msgstr ""
+"plugin « {plugin} » : une section de la fiche d'un événement est attendue"
+
+#: machincast/interface/event_card.py
+#, python-brace-format
 msgid "“{event}”"
 msgstr "« {event} »"
 

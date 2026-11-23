@@ -35,6 +35,11 @@ CORE: dict[str, str] = {
 		"machincast.shared.grid.Substitution, the events that an event plays, off the grid, and the one that plays "
 		"each of its occurrences (https://github.com/dascritch/machincast/issues/608)"
 	),
+	"interface.event_card": (
+		"asked by Machin interface when the card of an event opens, with “card”, “connection” and “parent”: the "
+		"plugin answers a machincast.interface.event_card.CardSection, its section of the card, saved with the event "
+		"(https://github.com/dascritch/machincast/issues/611)"
+	),
 	"interface.plugin_window": (
 		"asked by Machin interface, of one plugin, when its window opens from the menu “Plugins”, with “parent”, the "
 		"window: the plugin answers a QWidget, its settings, shown under its name, version and description "
