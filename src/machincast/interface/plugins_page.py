@@ -1,9 +1,9 @@
 """Les plugins dans l'interface (https://github.com/dascritch/machincast/issues/587, ticket enfant de
 https://github.com/dascritch/machincast/issues/348).
 
-- L'onglet « Plugins » des « Paramètres du service de diffusion… » (PluginsPage) : chaque plugin du répertoire des
-  plugins, avec son nom, sa version, sa description et, s'il n'est pas activable, pourquoi
-  (machincast.plugins.availability) ; une case l'active ou le désactive. La liste s'enregistre dans [plugins] enabled
+- L'onglet « Plugins » des « Paramètres du service… » (PluginsPage) : un élément dépliable par plugin du répertoire
+  des plugins, son nom, sa version et s'il peut être activé ; déplié, sa description et, s'il ne peut pas l'être,
+  chacune de ses raisons (machincast.plugins.availability), déplié d'emblée ; une case l'active ou le désactive. La liste s'enregistre dans [plugins] enabled
   du fichier de configuration (machincast.interface.preferences.write), et l'onglet dit qu'il faut relancer la
   diffusion, l'indexation et l'interface : chaque binaire ne charge ses plugins qu'à son démarrage.
 - Le menu « Plugins » de la fenêtre principale (fill_menu) : une entrée par plugin activé, qui ouvre sa fenêtre
@@ -21,8 +21,8 @@ from PySide6.QtWidgets import (
 	QHeaderView,
 	QLabel,
 	QMenu,
-	QTableWidget,
-	QTableWidgetItem,
+	QTreeWidget,
+	QTreeWidgetItem,
 	QVBoxLayout,
 	QWidget,
 )
@@ -33,8 +33,10 @@ from machincast.i18n import _
 from machincast.plugins.manifest import Manifest
 
 WINDOW_POINT = "interface.plugin_window"
-COLUMNS = (_("Active"), _("Plugin"), _("Version"), _("Description"), _("State"))
+COLUMNS = (_("Plugin"), _("Version"), _("State"))
 AVAILABLE = _("can be enabled")
+UNAVAILABLE = _("cannot be enabled")
+NOT_AVAILABLE = _("It cannot be enabled:")
 ABSENT = _("absent from the directory of the plugins")
 RESTART = _(
 	"The plugins change at the next start of the broadcast, of the indexing and of the interface: restart them."
@@ -98,55 +100,70 @@ def _offered(found: plugins.Found, manifests: dict[str, Manifest], configuration
 
 
 class PluginsPage(QWidget):
-	"""L'onglet « Plugins » : une ligne par plugin, sa case cochée s'il est activé."""
+	"""L'onglet « Plugins » : un élément dépliable par plugin, sa case cochée s'il est activé ; déplié, sa
+	description, puis ce qui l'empêche d'être activé, une raison par ligne. Un plugin qui ne peut pas l'être est
+	déplié d'emblée."""
 
 	def __init__(self, offered_list: Sequence[Offered], enabled: Sequence[str], parent: QWidget | None = None) -> None:
 		super().__init__(parent)
 		self.offered_list = list(offered_list)
 		self.initial = tuple(enabled)
 		layout = QVBoxLayout(self)
-		self.table = QTableWidget(len(self.offered_list), len(COLUMNS), self)
-		self.table.setObjectName("plugins")
-		self.table.setHorizontalHeaderLabels(list(COLUMNS))
-		self.table.verticalHeader().setVisible(False)
-		self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-		self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-		for row, plugin in enumerate(self.offered_list):
-			self._show(row, plugin)
-		layout.addWidget(self.table)
+		self.tree = QTreeWidget(self)
+		self.tree.setObjectName("plugins")
+		self.tree.setColumnCount(len(COLUMNS))
+		self.tree.setHeaderLabels(list(COLUMNS))
+		self.tree.setWordWrap(True)
+		self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+		for column in (1, 2):
+			self.tree.header().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+		self.tree.header().setStretchLastSection(False)
+		self.items: list[QTreeWidgetItem] = []
+		for plugin in self.offered_list:
+			self.items.append(self._show(plugin))
+		layout.addWidget(self.tree)
 		self.restart = QLabel(RESTART, self)
 		self.restart.setObjectName("restart")
 		self.restart.setWordWrap(True)
 		layout.addWidget(self.restart)
-		self.table.itemChanged.connect(self._changed)
+		self.tree.itemChanged.connect(self._changed)
 		self._changed()
 
-	def _show(self, row: int, plugin: Offered) -> None:
-		box = QTableWidgetItem()
-		flags = Qt.ItemFlag.ItemIsUserCheckable
+	def _show(self, plugin: Offered) -> QTreeWidgetItem:
+		item = QTreeWidgetItem(self.tree, [plugin.label, plugin.version, _state(plugin)])
 		enabled = plugin.name in self.initial
-		# Un plugin activé se désactive toujours ; un autre ne s'active que s'il le peut.
+		# Un plugin activé se décoche toujours ; un autre n'a de case que s'il peut être activé. Il n'est jamais grisé :
+		# ses raisons doivent se lire.
+		item.setFlags(Qt.ItemFlag.ItemIsEnabled)
 		if (enabled) or (plugin.reasons == ()):
-			flags |= Qt.ItemFlag.ItemIsEnabled
-		box.setFlags(flags)
-		box.setCheckState(Qt.CheckState.Unchecked)
+			item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+			item.setCheckState(0, Qt.CheckState.Unchecked)
 		if enabled:
-			box.setCheckState(Qt.CheckState.Checked)
-		self.table.setItem(row, 0, box)
-		state = AVAILABLE
+			item.setCheckState(0, Qt.CheckState.Checked)
+		lines = []
+		if plugin.description != "":
+			lines.append(plugin.description)
 		if plugin.reasons != ():
-			state = "; ".join(plugin.reasons)
-		for column, text in enumerate((plugin.label, plugin.version, plugin.description, state), start=1):
-			item = QTableWidgetItem(text)
-			item.setToolTip(text)
-			self.table.setItem(row, column, item)
+			lines.append(NOT_AVAILABLE)
+		for reason in plugin.reasons:
+			lines.append(f"• {reason}")
+		for line in lines:
+			child = QTreeWidgetItem(item, [line])
+			child.setFirstColumnSpanned(True)
+			child.setToolTip(0, line)
+			child.setFlags(Qt.ItemFlag.ItemIsEnabled)
+			if line == NOT_AVAILABLE:
+				font = child.font(0)
+				font.setBold(True)
+				child.setFont(0, font)
+		item.setExpanded(plugin.reasons != ())
+		return item
 
 	def enabled(self) -> tuple[str, ...]:
 		"""Les plugins cochés : ceux qui l'étaient, dans leur ordre, puis les nouveaux, dans celui de l'onglet."""
 		checked = []
-		for row, plugin in enumerate(self.offered_list):
-			item = self.table.item(row, 0)
-			if (item is not None) and (item.checkState() == Qt.CheckState.Checked):
+		for plugin, item in zip(self.offered_list, self.items, strict=True):
+			if (_checkable(item)) and (item.checkState(0) == Qt.CheckState.Checked):
 				checked.append(plugin.name)
 		kept = []
 		for name in self.initial:
@@ -160,6 +177,16 @@ class PluginsPage(QWidget):
 	def _changed(self) -> None:
 		"""L'avertissement de la relance, dès que la liste diffère de celle du fichier."""
 		self.restart.setVisible(self.enabled() != self.initial)
+
+
+def _checkable(item: QTreeWidgetItem) -> bool:
+	return bool(item.flags() & Qt.ItemFlag.ItemIsUserCheckable)
+
+
+def _state(plugin: Offered) -> str:
+	if plugin.reasons == ():
+		return AVAILABLE
+	return UNAVAILABLE
 
 
 class PluginWindow(QDialog):

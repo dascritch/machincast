@@ -13,7 +13,7 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QMenu, QTableWidget, QWidget
+from PySide6.QtWidgets import QLabel, QMenu, QTreeWidget, QTreeWidgetItem, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -117,59 +117,67 @@ def has_no_tab(opened: Opened) -> None:
 	assert _window(opened).plugins_page is None
 
 
-def _box(item: Any) -> str:
-	state = "décochée"
-	if item.checkState() == Qt.CheckState.Checked:
-		state = "cochée"
-	if not (item.flags() & Qt.ItemFlag.ItemIsEnabled):
-		state += " grisée"
-	return state
+def _box(item: QTreeWidgetItem) -> str:
+	assert item.flags() & Qt.ItemFlag.ItemIsEnabled, "un plugin n'est jamais grisé : ses raisons doivent se lire"
+	if not (item.flags() & Qt.ItemFlag.ItemIsUserCheckable):
+		return "sans case"
+	if item.checkState(0) == Qt.CheckState.Checked:
+		return "cochée"
+	return "décochée"
 
 
-def _rows(opened: Opened) -> list[list[str]]:
-	table = _page(opened).findChild(QTableWidget, "plugins")
-	assert table is not None
-	rows = []
-	for row in range(table.rowCount()):
-		line = [_box(table.item(row, 0))]
-		for column in range(1, table.columnCount()):
-			item = table.item(row, column)
-			assert item is not None
-			line.append(item.text())
-		rows.append(line)
-	return rows
+def _items(opened: Opened) -> list[QTreeWidgetItem]:
+	tree = _page(opened).findChild(QTreeWidget, "plugins")
+	assert tree is not None
+	items = []
+	for index in range(tree.topLevelItemCount()):
+		item = tree.topLevelItem(index)
+		assert item is not None
+		items.append(item)
+	return items
 
 
-@then("l'onglet « Plugins » montre :")
+@then("l'onglet « Plugins » montre, un élément dépliable par plugin :")
 def shows(opened: Opened, datatable: list[list[str]]) -> None:
-	rows = _rows(opened)
-	expected = datatable[1:]
-	assert len(rows) == len(expected), rows
-	for row, line in zip(rows, expected, strict=True):
+	rows = []
+	for item in _items(opened):
+		expanded = {True: "oui", False: "non"}[item.isExpanded()]
+		rows.append([_box(item), item.text(0), item.text(1), item.text(2), expanded])
+	expected = []
+	for line in datatable[1:]:
 		cells = []
 		for cell in line:
 			cells.append(cell.strip())
-		box, name, version, description, state = cells
-		assert row[:4] == [box, name, version, description], rows
-		assert state in row[4], rows
+		expected.append(cells)
+	assert rows == expected
 
 
-@then(parsers.parse("l'onglet « Plugins » a la ligne « {name} », {box}, « {state} »"))
-def has_row(opened: Opened, name: str, box: str, state: str) -> None:
+@then(parsers.parse("le plugin « {name} », déplié, dit :"))
+def unfolded(opened: Opened, name: str, datatable: list[list[str]]) -> None:
 	found = []
-	for row in _rows(opened):
-		if row[1] == name:
-			found.append((row[0], row[4]))
-	assert found == [(box, state)], _rows(opened)
+	for item in _items(opened):
+		if item.text(0) == name:
+			found.append(item)
+	assert len(found) == 1, name
+	lines = []
+	for index in range(found[0].childCount()):
+		child = found[0].child(index)
+		assert child is not None
+		lines.append(child.text(0))
+	expected = []
+	for line in datatable:
+		expected.append(line[0].strip())
+	assert len(lines) == len(expected), lines
+	# Une raison longue, comme l'erreur du JSON illisible, se reconnaît à son début.
+	for line, start in zip(lines, expected, strict=True):
+		assert line.startswith(start), lines
 
 
 def _check(opened: Opened, name: str, state: Qt.CheckState) -> None:
 	page = _page(opened)
-	for row, each in enumerate(page.offered_list):
+	for each, item in zip(page.offered_list, page.items, strict=True):
 		if each.name == name:
-			item = page.table.item(row, 0)
-			assert item is not None
-			item.setCheckState(state)
+			item.setCheckState(0, state)
 			return
 	raise AssertionError(name)
 

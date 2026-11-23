@@ -72,7 +72,7 @@ enabled = ["cartwall"]
 # The settings of the plugin, described by its README.md.
 ```
 
-Without editing the file, the “Plugins” tab of the “Broadcast service settings…” (menu “File”) lists each plugin, with its name, its version, its description and, if it cannot be enabled, why; its box enables or disables it, in `[plugins] enabled`, without touching the settings of the plugins ([#587](https://github.com/dascritch/machincast/issues/587)).
+Without editing the file, the “Plugins” tab of the “Broadcast service settings…” (menu “File”) lists each plugin, with its name and its version; unfolded, its description and, if it cannot be enabled, why, for instance its table missing until its `install.sh` has been run; its box enables or disables it, in `[plugins] enabled`, without touching the settings of the plugins ([#587](https://github.com/dascritch/machincast/issues/587)).
 The “Plugins” menu of the main window opens the window of each enabled plugin: its name, its version, its description and the settings it brings.
 Enabling takes effect when each program starts: restart the broadcast, the indexing, the interface and the intranet server.
 Each program only loads the plugins that concern it, and only if they can be enabled: a version of MachinCast that suits them, the plugins they require, their libraries, their programs and their tables.

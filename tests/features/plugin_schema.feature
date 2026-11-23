@@ -30,6 +30,14 @@ Fonctionnalité: Le schéma SQL d'un plugin et son installation
 		Alors l'installation réussit, et dit « plugin « horloge », simulation : sauvegarde, puis application de horloge.0001.sonneries », sans sauvegarde
 		Et la table « horloge_sonneries » n'existe pas
 
+	Scénario: Tant que ses tables manquent, le plugin n'est pas activable, et la raison dit comment l'installer
+		Étant donné le plugin « horloge » demande la table « horloge_sonneries »
+		Quand MachinCast vérifie si « horloge » peut être activé
+		Alors il ne peut pas l'être, parce que « la table « horloge_sonneries » manque : installez le plugin avec {plugins}/horloge/install.sh »
+		Quand le plugin « horloge » est installé
+		Et MachinCast vérifie si « horloge » peut être activé
+		Alors il peut l'être
+
 	Plan du scénario: Des migrations fautives refusent l'installation, sans rien faire
 		Étant donné que le plugin « horloge » a <défaut>
 		Quand le plugin « horloge » est installé

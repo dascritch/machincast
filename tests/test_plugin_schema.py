@@ -12,7 +12,7 @@ import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import maintenance
+from machincast import maintenance, plugins
 from machincast.configuration import Backup, Configuration, Plugins
 from machincast.database import url_yoyo
 from machincast.plugins import installation, schema
@@ -253,3 +253,34 @@ def journal_says(caplog: pytest.LogCaptureFixture, message: str) -> None:
 	for record in caplog.records:
 		messages.append(record.getMessage())
 	assert message in messages, messages
+
+
+@given(parsers.parse("le plugin « {name} » demande la table « {table} »"))
+def requires_table(plugin: Path, name: str, table: str) -> None:
+	manifest = json.loads((plugin / "manifest.json").read_text(encoding="utf-8"))
+	manifest["requires"] = {"tables": [table]}
+	(plugin / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+
+@when(parsers.parse("MachinCast vérifie si « {name} » peut être activé"), target_fixture="reasons")
+def check_availability(configuration: Configuration, plugin_directory: Path, name: str) -> list[str]:
+	found = plugins.discover(plugin_directory)
+	manifests = {}
+	for each in found:
+		if each.manifest is not None:
+			manifests[each.name] = each.manifest
+	chosen = []
+	for each in found:
+		if each.name == name:
+			chosen.append(each)
+	return plugins.availability(chosen[0], manifests, configuration, "Machin_player")
+
+
+@then(parsers.parse("il ne peut pas l'être, parce que « {reason} »"))
+def unavailable(reasons: list[str], plugin_directory: Path, reason: str) -> None:
+	assert reasons == [reason.replace("{plugins}", str(plugin_directory))]
+
+
+@then("il peut l'être")
+def available(reasons: list[str]) -> None:
+	assert reasons == []
