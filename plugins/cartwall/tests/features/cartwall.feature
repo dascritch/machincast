@@ -5,8 +5,7 @@ Fonctionnalité: Le cartouchier : des boutons tactiles dans Machin intranet qui 
 	afin de faciliter la transition d'antenne avec les directs.
 
 	https://github.com/dascritch/machincast/issues/512, plugin de https://github.com/dascritch/machincast/issues/348.
-	La page /plugins/cartwall montre l'antenne en direct, comme l'accueil de l'intranet, puis les boutons du compte de la
-	session ; chaque bouton demande une action d'antenne à Machin player, au nom du compte, qui la consigne avec lui.
+	L'accueil de l'intranet montre, sous l'antenne en direct, les boutons du compte de la session, sans onglet à part ; chaque bouton demande une action d'antenne à Machin player, au nom du compte, qui la consigne avec lui.
 	Les boutons se règlent par compte dans Machin interface. Machin player est imité par une socket qui publie un état,
 	retient les demandes et y répond.
 
@@ -35,26 +34,27 @@ Fonctionnalité: Le cartouchier : des boutons tactiles dans Machin intranet qui 
 		Et Machin player, qui publie l'événement suivant « 12 » et fait les demandes
 		Et l'intranet avec le cartouchier
 
-	# ─── La page ───────────────────────────────────────────
+	# ─── L'accueil ─────────────────────────────────────────
 
-	Scénario: La page montre l'antenne en direct, puis les boutons du compte, en couleurs
-		Quand je demande à l'API « GET /plugins/cartwall », avec le jeton « jeton-de-regie »
-		Alors l'API répond 200, une page « Cartouchier » du gabarit de « Radio Thune », « En diffusion », pour « regie »
-		Et le bandeau mène à « /plugins/cartwall » « Cartouchier », la page en cours, et permet de se déconnecter
-		Et la page a l'antenne en direct, l'heure, le texte public, les événements et les sonores, avec leurs décomptes
+	Scénario: Les boutons du compte s'affichent sous l'antenne en direct de l'accueil, en couleurs, sans onglet à part
+		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
+		Alors l'API répond 200, une page « Accueil » du gabarit de « Radio Thune », « En diffusion », pour « regie »
+		Et la page a l'antenne en direct, puis la section « Cartouchier »
 		Et la page a les boutons « Jingle » #aa3300, « Chronique » #336699, « Couper » #990000, « Suivant » #3a6ea5, « Avancer » #3a6ea5
 		Et la page charge la feuille de style « /plugins/cartwall/static/cartwall.css » et le script « /plugins/cartwall/static/cartwall.js »
+		Et le bandeau n'a pas d'entrée « Cartouchier »
+		Quand je demande à l'API « GET /plugins/cartwall », avec le jeton « jeton-de-regie »
+		Alors l'API répond 404
 
-	Scénario: Un compte « consulter » voit l'antenne, et ses boutons grisés
-		Quand je demande à l'API « GET /plugins/cartwall », avec le jeton « jeton-d-invite »
-		Alors l'API répond 200, une page « Cartouchier » du gabarit de « Radio Thune », « En diffusion », pour « invite »
-		Et la page a les boutons grisés « Suivant »
+	Scénario: Un compte « consulter » voit ses boutons grisés sous l'accueil
+		Quand je demande à l'API « GET / », avec le jeton « jeton-d-invite »
+		Alors la page a les boutons grisés « Suivant »
 		Et la page dit « Ce compte ne fait que consulter : les boutons sont pour les comptes qui peuvent agir sur l'antenne. »
 
-	Scénario: Un compte sans bouton le lit sur la page
+	Scénario: Un compte sans bouton garde l'accueil tel quel
 		Étant donné les boutons de « regie » retirés
-		Quand je demande à l'API « GET /plugins/cartwall », avec le jeton « jeton-de-regie »
-		Alors la page dit « Aucun bouton pour ce compte : ils se règlent dans Machin interface, menu « Plugins », « Cartouchier ». »
+		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
+		Alors la page n'a pas de section « Cartouchier », ni ses fichiers
 
 	# ─── Les boutons, par l'API ────────────────────────────
 

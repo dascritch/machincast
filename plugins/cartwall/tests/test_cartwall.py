@@ -172,13 +172,13 @@ def without_following(player: FakePlayer) -> None:
 @given("l'intranet avec le cartouchier", target_fixture="api")
 def application(socket_path: Path, player: FakePlayer, monkeypatch: pytest.MonkeyPatch) -> Api:
 	clock = FixedClock(NOW)
-	monkeypatch.setattr(intranet, "CLOCK", clock)
 	points = Points()
 	points.subscribe("cartwall", POINT, lambda data: intranet.extension())
 	portal = Portal(Settings(enabled=True), connect)
 	pages = Pages(portal, connect, socket_path, "Radio Thune", clock)
 	extensions = Extensions(portal, connect, socket_path, "Radio Thune", points.collect(POINT))
 	pages.navigation = extensions.navigation
+	pages.home_sections = extensions.home
 	return Api(Intranet({**portal.routes(), **pages.routes(), **extensions.routes()}), socket_path, NOW)
 
 
@@ -214,22 +214,24 @@ def deleted(base: Connection, name: str) -> None:
 # ─── La page ───────────────────────────────────────────────
 
 
-@then("la page a l'antenne en direct, l'heure, le texte public, les événements et les sonores, avec leurs décomptes")
-def live(api: Api) -> None:
+@then(parsers.parse("la page a l'antenne en direct, puis la section « {title} »"))
+def live_then_section(api: Api, title: str) -> None:
 	text = _page(api)
-	for identifier_ in (
-		"direct",
-		"heure",
-		"texte-public",
-		"evenement-nom",
-		"suivant-nom",
-		"sonore-nom",
-		"prochain-nom",
-	):
-		assert f'id="{identifier_}"' in text, identifier_
-	for countdown in ("evenement-reste", "sonore-reste", "prochain-attente"):
-		assert re.search(rf'id="{countdown}"[^>]*data-limite', text), countdown
-	assert "Radio Thune" in text
+	assert 'id="direct"' in text
+	assert text.index('id="direct"') < text.index('<section id="cartouchier"'), text
+	assert f"<h2>{title}</h2>" in text
+
+
+@then(parsers.parse("le bandeau n'a pas d'entrée « {label} »"))
+def no_entry(api: Api, label: str) -> None:
+	assert f">{label}</a>" not in _page(api)
+
+
+@then(parsers.parse("la page n'a pas de section « {title} », ni ses fichiers"))
+def no_section(api: Api, title: str) -> None:
+	text = _page(api)
+	assert ('id="cartouchier"' not in text) and (f"<h2>{title}</h2>" not in text)
+	assert "/plugins/cartwall/static/" not in text
 
 
 def _buttons(api: Api) -> list[tuple[str, str, bool]]:
