@@ -27,7 +27,7 @@ enabled = ["alternation"]
 | `manifest.json` | S'accroche à `Machin_player`, `Machin_interface` et `Machin_intranet`, les binaires qui lisent la grille. |
 | `src/machincast_alternation/rotation.py` | L'alternance d'un événement, lue dans `properties`, et l'émission qui joue chaque occurrence : sa réponse au point « grid.substitutions » ([#608](https://github.com/dascritch/machincast/issues/608)). |
 | `src/machincast_alternation/section.py` | La section « Émissions en alternance » de la fiche d'un événement, par le point « interface.event_card » ([#611](https://github.com/dascritch/machincast/issues/611)). |
-| `src/machincast_alternation/queries.py` | La lecture et l'écriture de `properties`, sous la seule clé du plugin. |
+| `src/machincast_alternation/queries.py` | La lecture et l'écriture de `properties`, sous la seule clé du plugin, et la création d'une émission sur le créneau partagé. |
 | `src/machincast_alternation/texts.py` | Ses textes, et leur traduction. |
 | `tests/` | Ses scénarios, lancés par `bin/Machin dev-test`, après ceux du cœur. |
 

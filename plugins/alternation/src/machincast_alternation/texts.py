@@ -11,6 +11,15 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 			"Cet événement joue, chaque semaine, l'une des émissions ci-dessous, à la place d'une liste de lecture"
 		),
 		"Shows that share the slot": "Émissions qui se partagent le créneau",
+		"Create a show on this shared slot": "Créer une émission sur ce créneau partagé",
+		"A new show, created with the event, on its slot: fill in its play list in its own card afterwards": (
+			"Une nouvelle émission, créée avec l'événement, sur son créneau : remplissez ensuite sa liste de lecture"
+			" dans sa propre fiche"
+		),
+		"Name of the show": "Nom de l'émission",
+		"A name is required.": "Un nom est demandé.",
+		"Another event is already called “{name}”.": "Un autre événement s'appelle déjà « {name} ».",
+		"{name} (to create)": "{name} (à créer)",
 		"Rhythm": "Rythme",
 		"Rotation": "Rotation",
 		"Monthly, by the week of the month": "Par mois, selon la semaine du mois",

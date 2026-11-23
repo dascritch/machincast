@@ -148,6 +148,40 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 			{"alternation": {"mode": "fortnightly", "candidates": [2, 3, 4], "rotation": {"1": 2, "2": 3}, "choices": {}}}
 			"""
 
+	Scénario: Créer une émission sur le créneau partagé l'ajoute, cochée, et l'enregistre avec l'événement méta
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Alors le bouton « Créer une émission sur ce créneau partagé » est à côté de « Émissions qui se partagent le créneau »
+		Quand je crée l'émission « Clara » sur ce créneau partagé
+		Alors elle propose les émissions « Les ahuris », « Matinale », « Sonia », « Zôtre », « Clara (à créer) », dont « Les ahuris », « Sonia », « Zôtre », « Clara (à créer) » sont cochées
+		Et la section signale un changement
+		Et l'événement « Clara » n'existe pas encore
+		Quand je choisis « Clara (à créer) » pour le 5e rang de la rotation
+		Et la section s'enregistre
+		Alors l'événement « Clara » est une émission, de « 2026-12-02 20:00 » à « 2026-12-02 21:00 », sans jour de récurrence
+		Et l'alternance de « Mercredi soir » a « Clara » parmi ses émissions, et au 5e rang de sa rotation
+		Quand la grille est lue
+		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Les ahuris » le 9, « Zôtre » le 16, « Les ahuris » le 23, « Clara » le 30
+
+	Scénario: Une émission à créer au nom déjà pris n'est pas ajoutée, et la section dit pourquoi
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et je crée l'émission « Matinale » sur ce créneau partagé
+		Alors elle propose les émissions « Les ahuris », « Matinale », « Sonia », « Zôtre », dont aucune n'est cochée
+		Et elle dit, sous ses émissions, « Un autre événement s'appelle déjà « Matinale ». »
+
+	Scénario: La même émission à créer n'est ajoutée qu'une fois
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et je crée l'émission « Clara » sur ce créneau partagé
+		Et je crée l'émission « Clara » sur ce créneau partagé
+		Alors elle propose les émissions « Les ahuris », « Matinale », « Sonia », « Zôtre », « Clara (à créer) », dont « Clara (à créer) » sont cochées
+		Et elle dit, sous ses émissions, « Un autre événement s'appelle déjà « Clara ». »
+
+	Scénario: Abandonner la création ne change rien
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et j'abandonne la création d'une émission sur ce créneau partagé
+		Alors elle propose les émissions « Les ahuris », « Matinale », « Sonia », « Zôtre », dont aucune n'est cochée
+		Et la section ne signale aucun changement
+
 	Scénario: Retirer une émission la retire de la rotation, qui revient à l'événement lui-même
 		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
 		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »

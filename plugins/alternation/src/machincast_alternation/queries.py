@@ -40,3 +40,23 @@ def write(connection: Connection, event: int, stored: dict[str, object] | None) 
 		"UPDATE events SET properties = properties || jsonb_build_object('alternation', %s::jsonb) WHERE id = %s",
 		(json.dumps(stored), event),
 	)
+
+
+def name_taken(connection: Connection, name: str) -> bool:
+	"""Un événement, non supprimé, porte ce nom interne."""
+	found = connection.execute(
+		"SELECT 1 FROM events WHERE internal_name = %s AND deleted_at IS NULL", (name,)
+	).fetchone()
+	return found is not None
+
+
+def create(connection: Connection, name: str, meta: int) -> int:
+	"""Une émission sur le créneau de l'événement méta, aux dates de sa première occurrence, sans jour de récurrence :
+	hors grille dès qu'elle est dans son alternance, enregistrée dans la même transaction. Son identifiant."""
+	found = connection.execute(
+		"INSERT INTO events (internal_name, priority, starts_at, ends_at)"
+		" SELECT %s, 'show', starts_at, ends_at FROM events WHERE id = %s RETURNING id",
+		(name, meta),
+	).fetchone()
+	assert found is not None
+	return int(str(found[0]))
