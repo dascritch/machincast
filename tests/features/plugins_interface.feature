@@ -64,12 +64,13 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 		Alors les paramètres activent les plugins « horloge »
 
 	# ─── L'installation à la validation ──────────────────
-	# Les tables d'un plugin sont créées par MachinCast (machincast.plugins.installation), après une sauvegarde de la
-	# base : à la validation des paramètres, chaque plugin qu'ils activent s'installe, par son install.sh, ou, sans lui,
-	# par l'installation commune.
+	# Les tables d'un plugin ne sont créées que par son install.sh, qui lance machincast.plugins.installation : à la
+	# validation des paramètres, chaque plugin qu'ils activent lance son install.sh ; ses tables sont créées après une
+	# sauvegarde de la base.
 
 	Scénario: Un plugin dont les tables sont à créer est activable, et l'onglet dit qu'elles le seront à la validation
-		Étant donné le plugin « horloge » a la migration « horloge.0001.sonneries » qui crée la table « horloge_sonneries »
+		Étant donné le plugin « horloge » a la migration « horloge.0001.sonneries » qui crée la table « horloge__sonneries »
+		Et le plugin « horloge » a l'install.sh du guide des plugins
 		Et la base de production des scénarios est la base de test
 		Quand j'ouvre les paramètres du service
 		Alors le plugin « horloge », déplié, dit :
@@ -77,18 +78,29 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 			| Ses tables seront créées à la validation des paramètres, après une sauvegarde de la base. |
 		Et l'onglet « Plugins » a « horloge » activable
 
+	Scénario: Un plugin qui a des migrations, mais pas d'install.sh, ne peut pas être activé, et rien ne l'installe
+		Étant donné le plugin « horloge » a la migration « horloge.0001.sonneries » qui crée la table « horloge__sonneries »
+		Et le plugin « horloge » n'a pas d'install.sh
+		Et la base de production des scénarios est la base de test
+		Quand j'ouvre les paramètres du service
+		Alors le plugin « horloge », déplié, dit :
+			| Dit l'heure                                                  |
+			| Il ne peut pas être activé :                                 |
+			| • ses migrations n'ont pas de install.sh, qui crée ses tables |
+
 	Scénario: À la validation, un plugin activé lance son install.sh, avec la sauvegarde et la configuration
 		Étant donné le plugin « horloge » a un install.sh qui note ses arguments
 		Quand je valide les paramètres en activant « horloge »
 		Alors l'install.sh de « horloge » a reçu la sauvegarde et la configuration
 		Et l'installation dit « plugin « horloge » installé »
 
-	Scénario: Sans install.sh, MachinCast installe le plugin : ses tables, après une sauvegarde de la base
-		Étant donné le plugin « horloge » a la migration « horloge.0001.sonneries » qui crée la table « horloge_sonneries »
+	Scénario: À la validation, l'install.sh du plugin crée ses tables, après une sauvegarde de la base
+		Étant donné le plugin « horloge » a la migration « horloge.0001.sonneries » qui crée la table « horloge__sonneries »
+		Et le plugin « horloge » a l'install.sh du guide des plugins
 		Et la base de production des scénarios est la base de test
 		Quand je valide les paramètres en activant « horloge »
 		Alors l'installation dit « plugin « horloge » installé »
-		Et la table « horloge_sonneries » existe, après une sauvegarde de la base
+		Et la table « horloge__sonneries » existe, après une sauvegarde de la base
 
 	Scénario: Un install.sh en échec le dit, avec sa dernière ligne
 		Étant donné le plugin « horloge » a un install.sh qui échoue en disant « paquet manquant »
@@ -126,6 +138,22 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 		Quand l'interface charge ses plugins
 		Et j'ouvre la fenêtre du plugin « horloge »
 		Alors elle montre « horloge », « 1.2.0 », « Dit l'heure », et dit « Ce plugin n'apporte pas de réglages ici. »
+
+	Scénario: Un plugin activé pendant que l'interface tourne se charge à l'ouverture de sa fenêtre, avec ses réglages
+		Étant donné le plugin « horloge » apporte à sa fenêtre le réglage « Sonner les heures »
+		Quand l'interface charge ses plugins
+		Et j'active « horloge » pendant que l'interface tourne
+		Et l'interface charge son menu « Plugins »
+		Et j'ouvre la fenêtre du plugin « horloge »
+		Alors l'interface a chargé « horloge »
+		Et elle montre « horloge », « 1.2.0 », « Dit l'heure » et le réglage « Sonner les heures »
+
+	Scénario: Un plugin qui ne peut pas être chargé dit pourquoi dans sa fenêtre, à la place de ses réglages
+		Étant donné les plugins activés « cartes »
+		Et le plugin « cartes » s'accroche aussi à « Machin_interface »
+		Quand l'interface charge ses plugins
+		Et j'ouvre la fenêtre du plugin « cartes »
+		Alors elle ne montre pas de réglages, et dit que le plugin n'est pas chargé, parce que « il demande le plugin « absent », qui n'est pas activé »
 
 	Scénario: Sans plugin activé, le menu « Plugins » le dit
 		Quand l'interface charge ses plugins
