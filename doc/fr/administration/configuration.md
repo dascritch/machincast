@@ -72,7 +72,7 @@ enabled = ["cartwall"]
 # Les réglages du plugin, que décrit son README.md.
 ```
 
-Sans éditer le fichier, l'onglet « Plugins » des « Paramètres du service… » (menu « Fichier ») liste chaque plugin, avec son nom, sa version, sa description et, s'il ne peut pas être activé, pourquoi ; sa case l'active ou le désactive, dans `[plugins] enabled`, sans toucher aux réglages des plugins ([#587](https://github.com/dascritch/machincast/issues/587)).
+Sans éditer le fichier, l'onglet « Plugins » des « Paramètres du service… » (menu « Fichier ») liste chaque plugin, avec son nom et sa version ; déplié, sa description et, s'il ne peut pas être activé, pourquoi, par exemple sa table qui manque tant que son `install.sh` n'a pas été lancé ; sa case l'active ou le désactive, dans `[plugins] enabled`, sans toucher aux réglages des plugins ([#587](https://github.com/dascritch/machincast/issues/587)).
 Le menu « Plugins » de la fenêtre principale ouvre la fenêtre de chaque plugin activé : son nom, sa version, sa description et les réglages qu'il apporte.
 L'activation vaut au démarrage de chaque programme : relancer la diffusion, l'indexation, l'interface et le serveur intranet.
 Chaque programme ne charge que les plugins qui le concernent, et seulement s'ils sont activables : une version de MachinCast qui leur convient, les plugins qu'ils demandent, leurs bibliothèques, leurs programmes et leurs tables.

@@ -203,7 +203,9 @@ def _requirements(manifest: Manifest, manifests: Mapping[str, Manifest], enabled
 	return reasons
 
 
-def _missing_tables(configuration: Configuration, executable: str, tables: tuple[str, ...]) -> list[str]:
+def _missing_tables(configuration: Configuration, executable: str, found: Found, tables: tuple[str, ...]) -> list[str]:
+	"""Les tables du plugin qui manquent à la base de production, et comment les créer : son install.sh
+	(https://github.com/dascritch/machincast/issues/586)."""
 	if tables == ():
 		return []
 	role = ROLES.get(executable, database.Role.INTERFACE)
@@ -215,7 +217,11 @@ def _missing_tables(configuration: Configuration, executable: str, tables: tuple
 		return [_("its tables cannot be checked: {error}").format(error=error)]
 	reasons = []
 	for table in missing:
-		reasons.append(_("the table “{table}” is missing").format(table=table))
+		reasons.append(
+			_("the table “{table}” is missing: install the plugin with {script}").format(
+				table=table, script=found.directory / "install.sh"
+			)
+		)
 	return reasons
 
 
@@ -258,7 +264,7 @@ def availability(
 	if found.manifest is None:
 		return [str(found.problem)]
 	reasons = _requirements(found.manifest, manifests, frozenset(configuration.plugins.enabled))
-	reasons += _missing_tables(configuration, executable, found.manifest.requires.tables)
+	reasons += _missing_tables(configuration, executable, found, found.manifest.requires.tables)
 	if reasons != []:
 		return reasons
 	return _checked(found, _context(found.manifest, configuration, executable, {}, Live()))

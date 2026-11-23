@@ -16,15 +16,24 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 		Et le plugin « cartes » demande le plugin « absent » >=1
 		Et le plugin « casse » dont le manifest a un JSON illisible
 
-	Scénario: L'onglet « Plugins » montre chaque plugin, et pourquoi il ne peut pas être activé
+	Scénario: L'onglet « Plugins » déplie chaque plugin qui ne peut pas être activé, avec ses raisons
 		Étant donné les plugins activés « horloge »
 		Quand j'ouvre les paramètres du service
 		Alors ils ont l'onglet « Plugins »
-		Et l'onglet « Plugins » montre :
-			| case            | plugin  | version | description | état                                  |
-			| décochée grisée | cartes  | 0.3     | Des cartes  | il demande le plugin « absent », qui n'est pas activé |
-			| décochée grisée | casse   |         |             | manifest.json illisible               |
-			| cochée          | horloge | 1.2.0   | Dit l'heure | activable                             |
+		Et l'onglet « Plugins » montre, un élément dépliable par plugin :
+			| case      | plugin  | version | état          | déplié |
+			| sans case | cartes  | 0.3     | pas activable | oui    |
+			| sans case | casse   |         | pas activable | oui    |
+			| cochée    | horloge | 1.2.0   | activable     | non    |
+		Et le plugin « cartes », déplié, dit :
+			| Des cartes                                              |
+			| Il ne peut pas être activé :                            |
+			| • il demande le plugin « absent », qui n'est pas activé |
+		Et le plugin « casse », déplié, dit :
+			| Il ne peut pas être activé : |
+			| • manifest.json illisible    |
+		Et le plugin « horloge », déplié, dit :
+			| Dit l'heure |
 		Et l'onglet « Plugins » ne demande pas de relancer
 
 	Scénario: Les préférences de l'interface n'ont pas d'onglet « Plugins »
@@ -47,7 +56,9 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 	Scénario: Un plugin activé qui n'est plus dans le répertoire se désactive
 		Étant donné les plugins activés « horloge », « disparu »
 		Quand j'ouvre les paramètres du service
-		Alors l'onglet « Plugins » a la ligne « disparu », cochée, « absent du répertoire des plugins »
+		Alors le plugin « disparu », déplié, dit :
+			| Il ne peut pas être activé :        |
+			| • absent du répertoire des plugins |
 		Quand je décoche le plugin « disparu »
 		Alors les paramètres activent les plugins « horloge »
 

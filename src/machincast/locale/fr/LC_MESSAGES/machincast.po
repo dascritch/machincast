@@ -4984,6 +4984,14 @@ msgid "can be enabled"
 msgstr "activable"
 
 #: machincast/interface/plugins_page.py
+msgid "cannot be enabled"
+msgstr "pas activable"
+
+#: machincast/interface/plugins_page.py
+msgid "It cannot be enabled:"
+msgstr "Il ne peut pas être activé :"
+
+#: machincast/interface/plugins_page.py
 msgid "absent from the directory of the plugins"
 msgstr "absent du répertoire des plugins"
 
@@ -5004,10 +5012,6 @@ msgid "This plugin brings no settings here."
 msgstr "Ce plugin n'apporte pas de réglages ici."
 
 #: machincast/interface/plugins_page.py
-msgid "Active"
-msgstr "Activé"
-
-#: machincast/interface/plugins_page.py
 msgid "Plugin"
 msgstr "Plugin"
 
@@ -5015,10 +5019,6 @@ msgstr "Plugin"
 #: machincast/interface/window.py
 msgid "Version"
 msgstr "Version"
-
-#: machincast/interface/plugins_page.py
-msgid "Description"
-msgstr "Description"
 
 #: machincast/interface/power_save_switch.py
 msgid "Sound cards always awake"
@@ -7987,8 +7987,8 @@ msgstr "MachinCast {version} n'est pas de ses versions, {versions}"
 
 #: machincast/plugins/__init__.py
 #, python-brace-format
-msgid "the table “{table}” is missing"
-msgstr "la table « {table} » manque"
+msgid "the table “{table}” is missing: install the plugin with {script}"
+msgstr "la table « {table} » manque : installez le plugin avec {script}"
 
 #: machincast/plugins/__init__.py
 #, python-brace-format
