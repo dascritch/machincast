@@ -27,10 +27,9 @@ from PySide6.QtWidgets import (
 from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.i18n import date_and_hour, short_date
-from machincast.interface.card import Refusal
-from machincast.interface.event_card import CardSection
+from machincast.interface.card import CardSection, Refusal
 from machincast.shared import grid
-from machincast_alternation import queries, rotation
+from machincast_alternation import queries, rotation, sharing
 from machincast_alternation.queries import Connection
 from machincast_alternation.texts import t
 
@@ -175,6 +174,22 @@ class AlternationSection(CardSection):
 		self.enabled.setChecked(rotation.KEY in properties)
 		self._loading = False
 		self._toggled()
+		self.replaces_grid.emit(self.shared_slot(identifier))
+
+	def shared_slot(self, identifier: int | None) -> str:
+		"""Ce que dit la fiche d'une émission qu'une alternance fait jouer, à la place de l'encadré de sa grille ; rien
+		pour un autre événement (https://github.com/dascritch/machincast/issues/609)."""
+		if identifier is None:
+			return ""
+		lines = []
+		for meta, name, shared in queries.sharing(self.connection, identifier):
+			known = queries.names(self.connection, shared)
+			others = []
+			for candidate in shared:
+				if (candidate != identifier) and (candidate in known):
+					others.append(known[candidate])
+			lines.append(sharing.text(name, grid.read_event(self.connection, meta), sorted(others)))
+		return "\n".join(lines)
 
 	def _fill_candidates(self, chosen: tuple[int, ...]) -> None:
 		self.candidates.clear()

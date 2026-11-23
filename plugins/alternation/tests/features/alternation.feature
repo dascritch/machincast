@@ -163,6 +163,26 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Quand la grille est lue
 		Alors le calendrier de décembre 2026 montre « Sonia » le 2, « Les ahuris » le 9, « Zôtre » le 16, « Les ahuris » le 23, « Clara » le 30
 
+	Scénario: L'émission créée sur le créneau partagé prend son nom pour nom public, et hérite de l'événement méta
+		Étant donné « Mercredi soir » masque ses sonores, passe en fin de liste au secours « Panne », et a pour secours de stream tombé « Panne »
+		Et l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et je crée l'émission « Clara » sur ce créneau partagé
+		Et la section s'enregistre
+		Alors l'événement « Clara » a pour nom public « Clara »
+		Et « Clara » masque ses sonores, passe en fin de liste au secours « Panne », et a pour secours de stream tombé « Panne »
+
+	Scénario: Sans masquage, fin de liste ni secours, l'émission créée n'en a pas non plus
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Et je crée l'émission « Clara » sur ce créneau partagé
+		Et la section s'enregistre
+		Alors « Clara » laisse décider le masquage, rejoue sa liste, sans secours
+		Et « Clara » a pour propriétés :
+			"""
+			{}
+			"""
+
 	Scénario: Une émission à créer au nom déjà pris n'est pas ajoutée, et la section dit pourquoi
 		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
 		Et je crée l'émission « Matinale » sur ce créneau partagé
@@ -210,6 +230,42 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Alors la section n'est pas cochée
 		Et elle dit « Enregistrez l'événement pour voir ses passages à venir. »
 		Et sa rotation est par « 1re semaine du mois », « 2e semaine du mois », « 3e semaine du mois », « 4e semaine du mois », « 5e semaine du mois »
+
+	# ─── La fiche d'une émission de l'alternance ───────────
+
+	Scénario: La fiche d'une émission de l'alternance dit le créneau qu'elle partage, à la place de l'encadré de sa grille
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Et le poste à l'heure de Paris
+		Et l'horloge de l'interface au « 2026-11-23 10:00:00 »
+		Et la section des émissions en alternance, dans la fiche d'un événement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Les ahuris »
+		Alors la fiche montre, à la place de l'encadré de la grille, « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h, avec les émissions « Sonia » et « Zôtre ». »
+		Quand j'ouvre la fiche de l'événement « Matinale »
+		Alors la fiche montre l'encadré de la grille
+
+	Scénario: Avec une seule autre émission, la fiche la nomme
+		Étant donné l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
+		Quand j'ouvre la section des émissions en alternance de « Sonia », le « 2026-11-23 10:00 »
+		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le mercredi de 20h à 21h, avec l'émission « Zôtre ». »
+
+	Scénario: Un événement méta qui revient deux jours par semaine, à la demi-heure, les dit
+		Étant donné « Mercredi soir » revient le lundi et le mercredi, de 20:30 à 21:00
+		Et l'alternance par quinzaine de « Mercredi soir » : « Sonia », « Zôtre »
+		Quand j'ouvre la section des émissions en alternance de « Zôtre », le « 2026-11-23 10:00 »
+		Alors la section remplace l'encadré de la grille par « Cette émission partage le créneau « Mercredi soir », le lundi et le mercredi de 20h30 à 21h, avec l'émission « Sonia ». »
+
+	Scénario: La fiche de l'événement méta, ou d'un événement hors de toute alternance, garde l'encadré de sa grille
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Les ahuris », « Zôtre », « Les ahuris », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Mercredi soir », le « 2026-11-23 10:00 »
+		Alors la section laisse l'encadré de la grille
+		Quand j'ouvre la section des émissions en alternance de « Matinale », le « 2026-11-23 10:00 »
+		Alors la section laisse l'encadré de la grille
+
+	Scénario: Une émission retirée de l'alternance retrouve l'encadré de sa grille
+		Étant donné l'alternance de « Mercredi soir » : « Sonia », « Sonia », « Zôtre », « Sonia », « Sonia »
+		Quand j'ouvre la section des émissions en alternance de « Les ahuris », le « 2026-11-23 10:00 »
+		Alors la section laisse l'encadré de la grille
 
 	# ─── Le plugin ─────────────────────────────────────────
 

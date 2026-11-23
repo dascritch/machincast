@@ -20,6 +20,19 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"A name is required.": "Un nom est demandé.",
 		"Another event is already called “{name}”.": "Un autre événement s'appelle déjà « {name} ».",
 		"{name} (to create)": "{name} (à créer)",
+		"{first} and {last}": "{first} et {last}",
+		"on {day}": "le {day}",
+		"from {start} to {end}": "de {start} à {end}",
+		"from {start} on": "à partir de {start}",
+		"“{name}”": "« {name} »",
+		"“{name}”, {when}": "« {name} », {when}",
+		"This show shares the slot {slot}.": "Cette émission partage le créneau {slot}.",
+		"This show shares the slot {slot}, with the show {others}.": (
+			"Cette émission partage le créneau {slot}, avec l'émission {others}."
+		),
+		"This show shares the slot {slot}, with the shows {others}.": (
+			"Cette émission partage le créneau {slot}, avec les émissions {others}."
+		),
 		"Rhythm": "Rythme",
 		"Rotation": "Rotation",
 		"Monthly, by the week of the month": "Par mois, selon la semaine du mois",
