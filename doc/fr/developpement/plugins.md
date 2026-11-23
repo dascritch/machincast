@@ -195,7 +195,8 @@ Le plugin y répond une `machincast.interface.card.CardSection`, un `QWidget`, m
 - `read(identifier)` lit l'élément, ou celui que la fiche copie, dans une transaction ; `None` pour un nouvel élément ;
 - `write(identifier)` s'écrit dans la transaction de l'enregistrement de l'élément, et lève `machincast.interface.card.Refusal(message, *champs)` pour le refuser : la fiche le signale, et rien n'est écrit ;
 - son signal `changed` rend la fiche modifiée ;
-- dans la fiche d'un événement seulement, `replaces_items(True)` cache la liste de lecture, qu'elle remplace, `replaces_items(False)` la rend, `grid_widget()` rend ce qu'elle place sous les jours de la récurrence, au-dessus de l'explication des dates, par exemple la case qui la montre ; `None` par défaut ; `replaces_grid(texte)` met un encadré de ce texte à la place de celui de la grille, caché, `replaces_grid("")` le rend ([#609](https://github.com/dascritch/machincast/issues/609)).
+- dans la fiche d'un événement seulement, `replaces_items(True)` cache la liste de lecture, qu'elle remplace, `replaces_items(False)` la rend, `grid_widget()` rend ce qu'elle place sous les jours de la récurrence, au-dessus de l'explication des dates, par exemple la case qui la montre ; `None` par défaut ; `grid_replacement()` rend ce qui peut prendre la place de l'encadré de la grille, que `replaces_grid(True)` cache, et `replaces_grid(False)` rend ; `days_changed(jours)` reçoit les jours de la récurrence cochés, de 0 (lundi) à 6, à chaque changement ([#609](https://github.com/dascritch/machincast/issues/609)).
+- dans toutes les fiches, son signal `opens(genre, identifiant, nom)` ouvre la fiche d'un élément.
 
 ## Suivre et vérifier les fiches
 

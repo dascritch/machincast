@@ -2197,7 +2197,7 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 - **Tests** : ceux d'un plugin sont dans son `tests/` ; `Machin dev-test` lance, après ceux du cœur, un `mypy --strict` et un `pytest` par plugin qui a des tests ; avec `--scenarios`, seulement pour le nom `plugins`, qui lance aussi `plugins.feature`.
 
 - **Fiche d'un événement** ([#611](https://github.com/dascritch/machincast/issues/611), `machincast.interface.card.CardSection`) : à l'ouverture de la fiche, le point « interface.event_card » rend la section de chaque plugin, montrée à côté de la liste de lecture.
-	Elle lit l'événement avec la fiche, la rend modifiée à chaque changement, s'écrit dans la même transaction que l'événement, et peut refuser l'enregistrement ; elle peut cacher la liste, qu'elle remplace, placer un widget, sa case par exemple, sous les jours de la récurrence (`grid_widget`), et mettre un encadré de son texte à la place de celui de la grille (`replaces_grid`, [#609](https://github.com/dascritch/machincast/issues/609)).
+	Elle lit l'événement avec la fiche, la rend modifiée à chaque changement, s'écrit dans la même transaction que l'événement, et peut refuser l'enregistrement ; elle peut cacher la liste, qu'elle remplace, placer un widget, sa case par exemple, sous les jours de la récurrence (`grid_widget`), mettre son propre encadré à la place de celui de la grille (`grid_replacement`, `replaces_grid`), suivre les jours de la récurrence cochés (`days_changed`) et ouvrir la fiche d'un autre élément (`opens`, [#609](https://github.com/dascritch/machincast/issues/609)).
 	Une réponse d'un autre type est consignée, et laissée.
 
 ### 14.2 Le schéma d'un plugin et son installation

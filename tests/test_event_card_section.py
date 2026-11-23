@@ -6,9 +6,10 @@ Le plugin « note » est imité par un abonné au point « interface.event_card 
 """
 
 import json
+import re
 from typing import Any
 
-from PySide6.QtWidgets import QCheckBox, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QLabel, QLineEdit, QVBoxLayout, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import plugins
@@ -18,6 +19,8 @@ from machincast.plugins.points import CORE
 from tests.interface_steps import Connection, Context, window
 
 scenarios("event_card_section.feature")
+
+DAYS = {"Lundi": 0, "Mardi": 1, "Mercredi": 2, "Jeudi": 3, "Vendredi": 4, "Samedi": 5, "Dimanche": 6}
 
 
 class Note(CardSection):
@@ -30,19 +33,24 @@ class Note(CardSection):
 		self.text = QLineEdit(self)
 		self.without_list = QCheckBox("Sans liste", self)
 		self.shared = QCheckBox("Créneau partagé", self)
+		self.replacement = QLabel("Partagé avec « Journal du soir ».")
+		self.replacement.setObjectName("note_replacement")
+		self.days: list[frozenset[int]] = []
 		arrangement = QVBoxLayout(self)
 		arrangement.addWidget(self.text)
 		arrangement.addWidget(self.without_list)
 		arrangement.addWidget(self.shared)
 		self.text.textChanged.connect(self.changed)
 		self.without_list.toggled.connect(self.replaces_items)
-		self.shared.toggled.connect(self._share)
+		self.shared.toggled.connect(self.replaces_grid)
+		self.replacement.linkActivated.connect(lambda _link: self.opens.emit("event", self.other, "Journal du soir"))
+		self.other = 0
 
-	def _share(self, shared: bool) -> None:
-		text = ""
-		if shared:
-			text = "Partagé avec « Journal du soir »."
-		self.replaces_grid.emit(text)
+	def grid_replacement(self) -> QWidget | None:
+		return self.replacement
+
+	def days_changed(self, days: frozenset[int]) -> None:
+		self.days.append(days)
 
 	def grid_widget(self) -> QWidget | None:
 		return self.without_list
@@ -152,18 +160,45 @@ def tick(interface: Context, gesture: str, label: str) -> None:
 @then(parsers.re(r"la fiche de l'événement montre, à la place de l'encadré de la grille, « (?P<text>.+) »$"))
 def grid_replaced(interface: Context, text: str) -> None:
 	card = _card(interface)
+	replacement = _section(interface).replacement
 	assert card.ui.grid_group.isHidden()
-	assert not card.grid_replacement.isHidden()
-	assert card.grid_replacement.text() == text
+	assert not replacement.isHidden()
+	assert replacement.text() == text
 	top = card.ui.top
-	assert top.indexOf(card.grid_replacement) == top.indexOf(card.ui.grid_group) + 1
+	assert top.indexOf(replacement) == top.indexOf(card.ui.grid_group) + 1
 
 
 @then("la fiche de l'événement montre l'encadré de la grille")
 def grid_shown(interface: Context) -> None:
-	card = _card(interface)
-	assert not card.ui.grid_group.isHidden()
-	assert card.grid_replacement.isHidden()
+	assert not _card(interface).ui.grid_group.isHidden()
+	assert _section(interface).replacement.isHidden()
+
+
+@when(parsers.parse("je coche le jour « {day} » de la récurrence"))
+def tick_day(interface: Context, day: str) -> None:
+	_card(interface).days[DAYS[day]].setChecked(True)
+
+
+@then(parsers.re(r"la section du plugin « note » sait les jours cochés : (?P<days>.+)"))
+def days_known(interface: Context, days: str) -> None:
+	expected = set()
+	for name in re.findall(r"« ([^»]+) »", days):
+		expected.add(DAYS[name])
+	assert _section(interface).days[-1] == frozenset(expected)
+
+
+@when(parsers.parse("la section du plugin « note » ouvre la fiche de l'événement « {name} »"))
+def section_opens(empty_database: Connection, interface: Context, name: str) -> None:
+	found = empty_database.execute("SELECT id FROM events WHERE internal_name = %s", (name,)).fetchone()
+	assert found is not None
+	section = _section(interface)
+	section.other = int(str(found[0]))
+	section.replacement.linkActivated.emit("ouvrir")
+
+
+@then(parsers.parse("l'onglet ouvert est la fiche de l'événement « {name} »"))
+def card_opened(interface: Context, name: str) -> None:
+	assert _card(interface).ui.internal_name.text() == name
 
 
 @then(parsers.parse("la fiche signale « {text} »"))
