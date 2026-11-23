@@ -293,7 +293,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Les crossfades ont leur propre page, la première (https://github.com/dascritch/machincast/issues/234).
 
 		Quand la fenêtre des préférences s'ouvre sur : granularité « tenth », maximum 5 s, début par défaut 1,5 s, fin par défaut aucune
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde », « Intranet »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde », « Intranet », « Plugins »
 		Et elle montre : granularité « Au dixième de seconde », maximum « 5,0 s », début par défaut « 1,5 s », fin par défaut aucune
 		Et son maximum se règle par pas de 0,1 s, à partir de 0,1 s
 		Quand j'y choisis la granularité « À la seconde »
@@ -414,7 +414,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| casque-usb        | Casque USB    |
 			| preecoute-factice | Haut-parleurs |
 		Quand la fenêtre des préférences s'ouvre sur l'antenne « carte-1 » et la pré-écoute « preecoute-factice »
-		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde », « Intranet »
+		Alors elle s'intitule « Paramètres du service », avec les pages « Crossfades », « Audio », « Tâches », « Sauvegarde », « Intranet », « Plugins »
 		Et le choix de l'antenne propose :
 			| sortie         | état     |
 			| Carte 1        | active   |
@@ -625,7 +625,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Exemples:
 			| fenêtre                    | titre                       | pages                                       | montrés                                                        | cachés                                                                 |
 			| préférences de l'interface | Préférences de l'interface  | Crossfades et silences, Interface, Audio, Base | la granularité, le seuil de silence, la pré-écoute              | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie |
-			| paramètres du service      | Paramètres du service       | Crossfades, Audio, Tâches, Sauvegarde, Intranet | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
+			| paramètres du service      | Paramètres du service       | Crossfades, Audio, Tâches, Sauvegarde, Intranet, Plugins | le maximum, les durées par défaut, les positions, le blanc, l'antenne, le type de sortie | la granularité, le seuil de silence, la pré-écoute              |
 
 	Scénario: Les paramètres du service rendent tels quels les réglages de l'interface qu'ils ne montrent pas
 		Quand j'ouvre la fenêtre des paramètres du service, sur une granularité « second », un seuil de silence de -55 dB et la pré-écoute « casque-usb »

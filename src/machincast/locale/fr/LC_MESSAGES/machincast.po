@@ -4724,6 +4724,7 @@ msgid "Type"
 msgstr "Type"
 
 #: machincast/interface/lists.py
+#: machincast/interface/plugins_page.py
 #: machincast/interface/ui/api_tab.ui
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/preview.ui
@@ -4978,6 +4979,47 @@ msgstr "Indisponible : {message}"
 msgid "Unavailable: {text}"
 msgstr "Indisponible : {text}"
 
+#: machincast/interface/plugins_page.py
+msgid "can be enabled"
+msgstr "activable"
+
+#: machincast/interface/plugins_page.py
+msgid "absent from the directory of the plugins"
+msgstr "absent du répertoire des plugins"
+
+#: machincast/interface/plugins_page.py
+msgid ""
+"The plugins change at the next start of the broadcast, of the indexing and "
+"of the interface: restart them."
+msgstr ""
+"Les plugins changent au prochain démarrage de la diffusion, de l'indexation "
+"et de l'interface : relancez-les."
+
+#: machincast/interface/plugins_page.py
+msgid "No plugin enabled"
+msgstr "Aucun plugin activé"
+
+#: machincast/interface/plugins_page.py
+msgid "This plugin brings no settings here."
+msgstr "Ce plugin n'apporte pas de réglages ici."
+
+#: machincast/interface/plugins_page.py
+msgid "Active"
+msgstr "Activé"
+
+#: machincast/interface/plugins_page.py
+msgid "Plugin"
+msgstr "Plugin"
+
+#: machincast/interface/plugins_page.py
+#: machincast/interface/window.py
+msgid "Version"
+msgstr "Version"
+
+#: machincast/interface/plugins_page.py
+msgid "Description"
+msgstr "Description"
+
 #: machincast/interface/power_save_switch.py
 msgid "Sound cards always awake"
 msgstr "Cartes son toujours éveillées"
@@ -5077,6 +5119,10 @@ msgstr "Où copier machincast.toml"
 #: machincast/interface/preferences.py
 msgid "Crossfades and silences"
 msgstr "Crossfades et silences"
+
+#: machincast/interface/preferences.py
+msgid "Plugins"
+msgstr "Plugins"
 
 #: machincast/interface/preferences.py
 msgid "A web address, starting with http:// or https://"
@@ -6379,6 +6425,10 @@ msgid "&Broadcast"
 msgstr "&Diffusion"
 
 #: machincast/interface/window.py
+msgid "Pl&ugins"
+msgstr "Pl&ugins"
+
+#: machincast/interface/window.py
 msgid "&Maintenance"
 msgstr "&Maintenance"
 
@@ -6519,10 +6569,6 @@ msgstr "Documentation"
 #: machincast/interface/window.py
 msgid "Report a problem…"
 msgstr "Signaler un problème…"
-
-#: machincast/interface/window.py
-msgid "Version"
-msgstr "Version"
 
 #: machincast/interface/window.py
 #, python-brace-format

@@ -63,6 +63,7 @@ from machincast.configuration import (
 	RETENTION,
 	SESSION,
 	Audio,
+	Configuration,
 	Crossfades,
 	DeadAirSettings,
 	Interface,
@@ -86,6 +87,7 @@ from machincast.interface import (
 	installation_notes,
 	interruption,
 	key_hints,
+	plugins_page,
 	preferences,
 	service_access,
 	suggestions,
@@ -491,6 +493,11 @@ class MainWindow(QMainWindow):
 		self.interruptions = self.on_air_menu.actions
 		self.cutoff_by_fallback = self.on_air_menu.fallback
 		self.broadcast_menu.aboutToShow.connect(self.broadcast.reread_fallback)
+		# Une entrée par plugin activé, relue à chaque ouverture (https://github.com/dascritch/machincast/issues/587) ;
+		# Alt+U l'ouvre, Alt+P restant au moniteur de l'antenne.
+		self.plugins_menu = self.menuBar().addMenu(_("Pl&ugins"))
+		self.plugins_menu.aboutToShow.connect(self._fill_plugins_menu)
+		self._fill_plugins_menu()
 		maintenance = self.menuBar().addMenu(_("&Maintenance"))
 		_upcoming(
 			maintenance.addAction(_("Output monitor…")), "ticket 85"
@@ -1212,12 +1219,23 @@ class MainWindow(QMainWindow):
 			notes=installation_notes.settings(self.configuration).notes,
 			team_link=installation_notes.settings(self.configuration).team_link,
 			intranet=preferences.intranet(self.configuration),
+			plugins=preferences.plugins_enabled(self.configuration),
 		)
+		# Les plugins proposés, dans les paramètres du service (https://github.com/dascritch/machincast/issues/587).
+		offered: list[plugins_page.Offered] = []
+		if kind == preferences.SERVICE:
+			offered = self._offered_plugins()
 		# L'état du service, lu à l'ouverture : en marche, la carte de l'antenne ne se choisit pas
 		# (https://github.com/dascritch/machincast/issues/339).
 		self.broadcast.reread_service()
 		settings = dialogs.set_preferences(
-			self, shown_list, audio.output, self.broadcast.service, kind, configuration=self.configuration
+			self,
+			shown_list,
+			audio.output,
+			self.broadcast.service,
+			kind,
+			configuration=self.configuration,
+			offered=offered,
 		)
 		if settings is None:
 			return
@@ -1247,6 +1265,33 @@ class MainWindow(QMainWindow):
 			self.broadcast.control.control("restart")
 			return
 		self.statusBar().showMessage(text)
+
+	def _plugins_configuration(self) -> Configuration | None:
+		"""La configuration, pour les plugins ; None si elle ne se lit pas."""
+		if self.configuration is None:
+			return None
+		try:
+			return load(self.configuration)
+		except InvalidConfiguration:
+			return None
+
+	def _offered_plugins(self) -> list[plugins_page.Offered]:
+		configuration = self._plugins_configuration()
+		if configuration is None:
+			return []
+		return plugins_page.offered(configuration)
+
+	def _fill_plugins_menu(self) -> None:
+		configuration = self._plugins_configuration()
+		if configuration is None:
+			self.plugins_menu.clear()
+			self.plugins_menu.addAction(plugins_page.NONE_ENABLED).setEnabled(False)
+			return
+		plugins_page.fill_menu(self.plugins_menu, configuration, self.open_plugin)
+
+	def open_plugin(self, plugin: plugins_page.Offered) -> None:
+		"""La fenêtre du plugin : son nom, sa version, sa description et ses réglages."""
+		plugins_page.PluginWindow(plugin, self).exec()
 
 	def apply_preferences(self, settings: preferences.Settings) -> str:
 		"""Les réglages valent dans l'interface ; ce qu'en dit la barre d'état."""

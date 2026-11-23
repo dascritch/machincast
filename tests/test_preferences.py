@@ -522,6 +522,7 @@ def window_preferences(
 		_kind: object = None,
 		*,
 		configuration: object = None,
+		offered: object = (),
 	) -> None:
 		launching.shown_list = (shown_list, shown_output)
 

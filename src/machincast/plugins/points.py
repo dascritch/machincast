@@ -30,6 +30,11 @@ CORE: dict[str, str] = {
 		"asked by Machin intranet when it starts, without data: the plugin answers its pages, API routes and static "
 		"files, a machincast.intranet.extensions.Extension (https://github.com/dascritch/machincast/issues/588)"
 	),
+	"interface.plugin_window": (
+		"asked by Machin interface, of one plugin, when its window opens from the menu “Plugins”, with “parent”, the "
+		"window: the plugin answers a QWidget, its settings, shown under its name, version and description "
+		"(https://github.com/dascritch/machincast/issues/587)"
+	),
 }
 """Les points du cœur, et ce qu'ils disent : chaque ticket qui en ajoute un le décrit ici, avec ses données
 (https://github.com/dascritch/machincast/issues/348)."""
@@ -92,6 +97,18 @@ class Points:
 				answers.append((subscription.plugin, subscription.function(given)))
 			except Exception as error:
 				_failed(subscription, point, error)
+		return answers
+
+	def collect_from(self, plugin: str, point: str, data: Mapping[str, Any] | None = None) -> list[object]:
+		"""Les réponses d'un seul plugin abonné au point, comme collect : celui dont s'ouvre la fenêtre, par exemple."""
+		given: Mapping[str, Any] = (data) or ({})
+		answers = []
+		for subscription in self._subscriptions.get(point, []):
+			if subscription.plugin == plugin:
+				try:
+					answers.append(subscription.function(given))
+				except Exception as error:
+					_failed(subscription, point, error)
 		return answers
 
 	def notify(self, point: str, data: Mapping[str, Any] | None = None) -> None:

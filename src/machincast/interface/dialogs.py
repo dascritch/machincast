@@ -5,6 +5,7 @@ la remplacent par la réponse attendue, et aucune fenêtre modale n'attend un cl
 """
 
 import dataclasses
+from collections.abc import Sequence
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
@@ -30,6 +31,7 @@ from machincast.interface import intents
 from machincast.interface.choice import Choice
 from machincast.interface.intents import label
 from machincast.interface.lists import BANKS, FEEDS, SEQUENCES, SOUNDS, Line
+from machincast.interface.plugins_page import Offered
 from machincast.interface.preferences import SERVICE, Kind, PreferencesWindow, Settings
 from machincast.interface.suggestions import Response, Shortfalls, SuggestionsWindow
 from machincast.interface.version import News
@@ -355,13 +357,15 @@ def set_preferences(
 	kind: Kind = SERVICE,
 	*,
 	configuration: Path | None = None,
+	offered: Sequence[Offered] = (),
 ) -> Settings | None:
 	"""Les préférences réglées dans leur fenêtre ; None si elle est abandonnée
 	(https://github.com/dascritch/machincast/issues/145). Le service de diffusion en marche verrouille la carte de
 	l'antenne (https://github.com/dascritch/machincast/issues/339). kind : les préférences de l'interface, ou les
 	paramètres du service (https://github.com/dascritch/machincast/issues/389). configuration : le fichier que la
-	page « Sauvegarde » copie (https://github.com/dascritch/machincast/issues/347)."""
-	window = PreferencesWindow(settings, output, parent, service, kind, configuration=configuration)
+	page « Sauvegarde » copie (https://github.com/dascritch/machincast/issues/347). offered : les plugins de l'onglet
+	« Plugins » (https://github.com/dascritch/machincast/issues/587)."""
+	window = PreferencesWindow(settings, output, parent, service, kind, configuration=configuration, offered=offered)
 	if window.exec() != QDialog.DialogCode.Accepted:
 		return None
 	return window.settings()

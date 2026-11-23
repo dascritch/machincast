@@ -72,6 +72,8 @@ enabled = ["cartwall"]
 # The settings of the plugin, described by its README.md.
 ```
 
+Without editing the file, the “Plugins” tab of the “Broadcast service settings…” (menu “File”) lists each plugin, with its name, its version, its description and, if it cannot be enabled, why; its box enables or disables it, in `[plugins] enabled`, without touching the settings of the plugins ([#587](https://github.com/dascritch/machincast/issues/587)).
+The “Plugins” menu of the main window opens the window of each enabled plugin: its name, its version, its description and the settings it brings.
 Enabling takes effect when each program starts: restart the broadcast, the indexing, the interface and the intranet server.
 Each program only loads the plugins that concern it, and only if they can be enabled: a version of MachinCast that suits them, the plugins they require, their libraries, their programs and their tables.
 A plugin set aside is so in the journal of the program (`Machin logs` for the broadcast), with its reasons, for instance `plugin “cartwall” not loaded: the program “ffmpeg” is missing`; the program starts anyway.
