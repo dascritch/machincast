@@ -5,6 +5,7 @@ déconnecter » ; dessous, la page. Sa feuille de style et son script sont servi
 (/static/), la Content-Security-Policy n'acceptant aucune ressource d'ailleurs, ni script dans la page.
 """
 
+from collections.abc import Sequence
 from html import escape
 from importlib import resources
 
@@ -22,10 +23,11 @@ HEAD = """<link rel="stylesheet" href="/static/intranet.css">
 """
 
 
-def banner(radio: str, state: str, user: str, current: str) -> str:
-	"""Le bandeau : la radio, l'état de la diffusion, la navigation, la page en cours marquée, et la déconnexion."""
+def banner(radio: str, state: str, user: str, current: str, navigation: Sequence[tuple[str, str]] = ()) -> str:
+	"""Le bandeau : la radio, l'état de la diffusion, la navigation, celle des plugins après celle de l'intranet
+	(https://github.com/dascritch/machincast/issues/588), la page en cours marquée, et la déconnexion."""
 	links = []
-	for address, label in NAVIGATION:
+	for address, label in (*NAVIGATION, *navigation):
 		marked = ""
 		if address == current:
 			marked = ' aria-current="page"'
@@ -43,12 +45,24 @@ def banner(radio: str, state: str, user: str, current: str) -> str:
 </header>"""
 
 
-def layout(title: str, body: str, *, radio: str, state: str, user: str, current: str) -> Response:
-	"""Une page de l'intranet, dans le gabarit."""
+def layout(
+	title: str,
+	body: str,
+	*,
+	radio: str,
+	state: str,
+	user: str,
+	current: str,
+	navigation: Sequence[tuple[str, str]] = (),
+	status: int = 200,
+	head: str = "",
+) -> Response:
+	"""Une page de l'intranet, dans le gabarit ; head ajoute ses feuilles de style et ses scripts, ceux d'un plugin."""
 	return page(
 		title,
-		f"{banner(radio, state, user, current)}\n<main>\n{body}\n</main>",
-		head=HEAD,
+		f"{banner(radio, state, user, current, navigation)}\n<main>\n{body}\n</main>",
+		status=status,
+		head=HEAD + head,
 	)
 
 

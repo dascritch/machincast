@@ -6649,6 +6649,7 @@ msgid "no TLS certificate for the intranet: {error}"
 msgstr "aucun certificat TLS pour l'intranet : {error}"
 
 #: machincast/intranet/api.py
+#: machincast/intranet/extensions.py
 #: machincast/intranet/portal.py
 msgid "A valid session is required."
 msgstr "Une session valide est nécessaire."
@@ -6715,6 +6716,24 @@ msgstr "supprimé"
 #, python-brace-format
 msgid "intranet certificate generated: {path}"
 msgstr "certificat de l'intranet généré : {path}"
+
+#: machincast/intranet/extensions.py
+msgid "This account cannot act on the antenna."
+msgstr "Ce compte ne peut pas agir sur l'antenne."
+
+#: machincast/intranet/extensions.py
+#, python-brace-format
+msgid "plugin “{name}”: “{path}” is not a path of the intranet"
+msgstr "plugin « {name} » : « {path} » n'est pas un chemin de l'intranet"
+
+#: machincast/intranet/extensions.py
+#, python-brace-format
+msgid "plugin “{name}”: an intranet extension is expected"
+msgstr "plugin « {name} » : une extension de l'intranet est attendue"
+
+#: machincast/intranet/extensions.py
+msgid "This page is for the accounts that can act on the antenna."
+msgstr "Cette page est réservée aux comptes qui peuvent agir sur l'antenne."
 
 #: machincast/intranet/home.py
 msgid "Last sounds on air"

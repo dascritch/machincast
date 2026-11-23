@@ -93,6 +93,8 @@ class Pages:
 		self.state_socket = state_socket
 		self.radio = radio
 		self.clock = (clock) or (SystemClock())
+		self.navigation: list[tuple[str, str]] = []
+		"""Les pages des plugins dans le bandeau (https://github.com/dascritch/machincast/issues/588)."""
 
 	def routes(self) -> dict[tuple[str, str], Route]:
 		return {
@@ -130,6 +132,7 @@ class Pages:
 			state=str(state.get("state", "stopped")),
 			user=session.user,
 			current=current,
+			navigation=self.navigation,
 		)
 
 	async def home(self, request: Request) -> Response:
@@ -146,6 +149,7 @@ class Pages:
 			state=str(direct.get("state", "stopped")),
 			user=found.user,
 			current="/",
+			navigation=self.navigation,
 		)
 
 	async def calendar(self, request: Request) -> Response:

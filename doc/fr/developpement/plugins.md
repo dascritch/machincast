@@ -113,6 +113,47 @@ Un point est appelé de deux façons (`machincast.plugins.points`) :
 L'exception d'un abonné est consignée au journal, avec le plugin et le point ; elle n'arrête ni le binaire ni les autres plugins.
 Un abonnement à un point que personne ne déclare est refusé : c'est une faute de frappe, ou un plugin demandé qui manque.
 
+## Ses pages dans l'intranet
+
+Un plugin qui s'accroche à `Machin_intranet` y ajoute ses pages, ses routes d'API et ses fichiers statiques ([#588](https://github.com/dascritch/machincast/issues/588)), en répondant au point demandé `intranet.extensions` une `machincast.intranet.extensions.Extension` :
+
+```python
+from pathlib import Path
+
+from machincast.intranet.extensions import Endpoint, Extension, Page
+
+STATIC = Path(__file__).parent / "static"
+
+
+async def cadran(tools, request):
+	return f'<p id="horloge">{tools.session.user}</p>'
+
+
+async def sonner(tools, request):
+	answer = await tools.ask({"command": "insert", "sequence": 12})
+	return 200, {"done": answer.done, "reason": answer.reason}
+
+
+def register(plugin):
+	plugin.on(
+		"intranet.extensions",
+		lambda data: Extension(
+			pages=(Page("", "Horloge", cadran, navigation="Horloge", assets=("horloge.css", "horloge.js")),),
+			endpoints=(Endpoint("POST", "sonner", sonner, role="actions"),),
+			static=STATIC,
+		),
+	)
+```
+
+- Une page est servie en GET sous `/plugins/<nom>/<chemin>`, dans le gabarit de l'intranet ; avec un libellé (`navigation`), elle entre au bandeau.
+- Une route d'API est servie sous `/api/v1/plugins/<nom>/<chemin>`, en GET ou en POST, et rend un statut et une valeur JSON.
+- Le rôle demandé (`role`) est `consult`, par défaut, ou `actions` ; sans session, une page mène à la connexion et une route répond 401 ; un rôle insuffisant reçoit 403.
+- Les fichiers statiques sont ceux d'un seul répertoire (`static`), servis sous `/plugins/<nom>/static/`, aux types `.css`, `.js`, `.svg`, `.png`, `.woff2` et `.json`.
+	L'intranet refuse les styles et les scripts écrits dans la page : ils vont dans ces fichiers, que la page charge par `assets`.
+- `tools` donne la session (`tools.session.user`, `tools.session.role`), la base au rôle `machincast_intranet` (`await tools.database(fonction)`), le dernier état de l'antenne (`await tools.state()`) et les demandes à Machin player, au nom du compte, avec leur réponse (`await tools.ask(demande)`).
+
+Détails : [spécification, § 14.3](../spec.md#143-les-pages-et-les-routes-dun-plugin-dans-lintranet).
+
 ## Ses tables et son install.sh
 
 ([#586](https://github.com/dascritch/machincast/issues/586), `machincast.plugins.schema`)
