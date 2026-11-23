@@ -113,6 +113,21 @@ Un point est appelé de deux façons (`machincast.plugins.points`) :
 L'exception d'un abonné est consignée au journal, avec le plugin et le point ; elle n'arrête ni le binaire ni les autres plugins.
 Un abonnement à un point que personne ne déclare est refusé : c'est une faute de frappe, ou un plugin demandé qui manque.
 
+## Ses réglages dans l'interface
+
+Le menu « Plugins » de Machin interface ouvre la fenêtre de chaque plugin activé, avec son nom, sa version et sa description ([#587](https://github.com/dascritch/machincast/issues/587)).
+Un plugin qui s'accroche à `Machin_interface` y ajoute ses réglages en répondant au point demandé `interface.plugin_window` un `QWidget`, dont le parent est la fenêtre (`data["parent"]`) :
+
+```python
+from PySide6.QtWidgets import QCheckBox
+
+
+def register(plugin):
+	plugin.on("interface.plugin_window", lambda data: QCheckBox("Sonner les heures", data["parent"]))
+```
+
+Seul le plugin de la fenêtre est demandé (`Points.collect_from`) ; ses réglages s'enregistrent où il le décide, dans sa section `[plugins.<nom>]` ou ses tables.
+
 ## Ses pages dans l'intranet
 
 Un plugin qui s'accroche à `Machin_intranet` y ajoute ses pages, ses routes d'API et ses fichiers statiques ([#588](https://github.com/dascritch/machincast/issues/588)), en répondant au point demandé `intranet.extensions` une `machincast.intranet.extensions.Extension` :

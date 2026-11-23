@@ -380,8 +380,7 @@ def _replace_choices(interface: Context) -> None:
 		_output: AudioOutput,
 		_service: ServiceState = ABSENT,
 		kind: str = "service",
-		*,
-		configuration: Path | None = None,
+		**_keywords: object,
 	) -> Settings | None:
 		"""Les crossfades et les périphériques du scénario ; ceux qu'il ne règle pas restent ceux montrés."""
 		interface.shown_kinds.append(kind)
@@ -392,7 +391,7 @@ def _replace_choices(interface: Context) -> None:
 		interface.shown_retentions.append(shown_list.retention)
 		interface.shown_dailies.append(shown_list.daily)
 		interface.shown_backups.append(shown_list.backup_directory)
-		interface.preferences_configurations.append(configuration)
+		interface.preferences_configurations.append(_keywords.get("configuration"))  # type: ignore[arg-type]
 		interface.shown_table_rows.append(shown_list.table_rows)
 		interface.shown_clippings.append(shown_list.clipping)
 		interface.shown_icons.append(shown_list.icon)
@@ -440,6 +439,7 @@ def _replace_choices(interface: Context) -> None:
 			(interface.adjusted_backups) or (shown_list.backup_directory),
 			*((interface.adjusted_notes) or ((shown_list.notes, shown_list.team_link))),
 			(interface.adjusted_intranet) or (shown_list.intranet),
+			shown_list.plugins,
 		)
 
 	monkeypatch.setattr(dialogs, "set_preferences", preferences)

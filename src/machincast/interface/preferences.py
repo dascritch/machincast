@@ -31,6 +31,7 @@ MachinCast ; la fenêtre principale la donne aussitôt à ses fenêtres et aux r
 """
 
 import dataclasses
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import time, timedelta
 from pathlib import Path
@@ -61,6 +62,7 @@ from machincast.configuration import (
 from machincast.i18n import _
 from machincast.interface import intranet_switch
 from machincast.interface.application import ICON, readable
+from machincast.interface.plugins_page import Offered, PluginsPage
 from machincast.interface.power_save_switch import PowerSaveSwitch
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.timeline import Plan, Timeline, demonstration_shape
@@ -157,6 +159,8 @@ class Settings:
 	intranet: Intranet = Intranet()
 	"""La section [intranet] : le serveur intranet, éteint par défaut
 	(https://github.com/dascritch/machincast/issues/538)."""
+	plugins: tuple[str, ...] = ()
+	"""plugins.enabled : les plugins activés, dans l'ordre (https://github.com/dascritch/machincast/issues/587)."""
 	"""backup.directory : où l'export et la maintenance écrivent leur sauvegarde
 	(https://github.com/dascritch/machincast/issues/347)."""
 
@@ -164,7 +168,8 @@ class Settings:
 def service_changed(before: Settings, after: Settings) -> bool:
 	"""Vrai si un réglage que Machin player ne prend qu'à son redémarrage a changé : les durées et les positions des
 	crossfades, le type de sortie, la carte de l'antenne, le blanc dans un sonore
-	(https://github.com/dascritch/machincast/issues/389)."""
+	(https://github.com/dascritch/machincast/issues/389), les plugins activés
+	(https://github.com/dascritch/machincast/issues/587)."""
 	first, second = before.crossfades, after.crossfades
 	crossfades = (first.start, first.end, first.maximum, first.entry, first.output) != (
 		second.start,
@@ -174,7 +179,13 @@ def service_changed(before: Settings, after: Settings) -> bool:
 		second.output,
 	)
 	output = (after.output is not None) and (after.output != before.output)
-	return (crossfades) or (output) or (after.on_air != before.on_air) or (after.dead_air != before.dead_air)
+	return (
+		(crossfades)
+		or (output)
+		or (after.on_air != before.on_air)
+		or (after.dead_air != before.dead_air)
+		or (after.plugins != before.plugins)
+	)
 
 
 CLOCK: Clock = SystemClock()
@@ -352,6 +363,28 @@ def _write_interface(document: tomlkit.TOMLDocument, settings: Settings) -> None
 			del section_interface[key]
 
 
+def _write_plugins(document: tomlkit.TOMLDocument, enabled: tuple[str, ...]) -> None:
+	"""plugins.enabled (https://github.com/dascritch/machincast/issues/587) ; les réglages de chaque plugin,
+	[plugins.<nom>], restent tels quels. Sans plugin activé, une section absente ne se crée pas."""
+	if ("plugins" not in document) and (enabled == ()):
+		return
+	if "plugins" not in document:
+		document.add("plugins", tomlkit.table())
+	section = document["plugins"]
+	assert isinstance(section, tomlkit.items.Table)
+	names = tomlkit.array()
+	names.extend(enabled)
+	section["enabled"] = names
+
+
+def plugins_enabled(path: Path) -> tuple[str, ...]:
+	"""[plugins] enabled du fichier ; aucun s'il ne se lit pas."""
+	try:
+		return load(path).plugins.enabled
+	except InvalidConfiguration:
+		return ()
+
+
 def write(path: Path, settings: Settings) -> None:
 	"""Écrit les réglages dans les sections [crossfades], [audio], [silences], [dead_air], [interface] et [database] du
 	fichier de configuration, sous leurs noms anglais (https://github.com/dascritch/machincast/issues/357) ; le reste du
@@ -365,6 +398,7 @@ def write(path: Path, settings: Settings) -> None:
 	_write_daily(document, settings.daily)
 	_write_backup(document, settings.backup_directory)
 	_write_intranet(document, settings.intranet)
+	_write_plugins(document, settings.plugins)
 	if "crossfades" not in document:
 		document.add("crossfades", tomlkit.table())
 	section = document["crossfades"]
@@ -430,6 +464,7 @@ class PreferencesWindow(QDialog):
 		*,
 		timers: bool | None = None,
 		configuration: Path | None = None,
+		offered: Sequence[Offered] = (),
 	) -> None:
 		super().__init__(parent)
 		self.ui = Ui_PreferencesWindow()
@@ -503,6 +538,12 @@ class PreferencesWindow(QDialog):
 		ui.intranet_enabled.toggled.connect(self._show_intranet)
 		ui.intranet_port.valueChanged.connect(self._show_intranet)
 		self._show_intranet()
+		# Les plugins, dans les paramètres du service seulement (https://github.com/dascritch/machincast/issues/587).
+		self.enabled_plugins = all_.plugins
+		self.plugins_page: PluginsPage | None = None
+		if kind == SERVICE:
+			self.plugins_page = PluginsPage(offered, all_.plugins)
+			ui.pages.addTab(self.plugins_page, _("Plugins"))
 		self.power_save: PowerSaveSwitch | None = None
 		if kind == SERVICE:
 			self._offer_power_save()
@@ -765,7 +806,13 @@ class PreferencesWindow(QDialog):
 				port=ui.intranet_port.value(),
 				validation=ui.intranet_validation.value(),
 			),
+			self._plugins(),
 		)
+
+	def _plugins(self) -> tuple[str, ...]:
+		if self.plugins_page is None:
+			return self.enabled_plugins
+		return self.plugins_page.enabled()
 
 	def _notes(self) -> Path | None:
 		text = self.ui.notes.text().strip()

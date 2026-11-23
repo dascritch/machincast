@@ -24,7 +24,7 @@ Fonctionnalité: Rafraîchir les onglets de l'interface
 	Scénario: Le menu « Affichage » n'a plus « Rafraîchir les onglets » : F5 suffit
 		https://github.com/dascritch/machincast/issues/532
 		Quand la fenêtre de l'interface s'ouvre
-		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Tableau », « Diffusion », « Maintenance », « Aide »
+		Alors la barre de menus a les menus « Fichier », « Affichage », « Onglets », « Tableau », « Diffusion », « Plugins », « Maintenance », « Aide »
 		Et le menu « Affichage » a les entrées :
 			| entrée                         | état     | raccourci    | infobulle |
 			| Rechercher…                    | active   | Ctrl+F       |           |
