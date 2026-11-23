@@ -25,6 +25,8 @@ from machincast.log import configure as configure_log
 PACKAGE = Path(__file__).parent
 SCRIPTS = ("bin/Machin", "bin/i18n.bash", "install.sh")
 """Les scripts bash de MachinCast, dans le dépôt : leurs messages sont relevés aussi (bin/i18n.bash)."""
+TEMPLATE_MESSAGE = re.compile(r'\b_\(\s*"((?:[^"\\]|\\.)+)"\s*\)')
+"""Un message d'un gabarit Jinja2 : _("…"), entre guillemets droits doubles."""
 BASH_MESSAGE = re.compile(r"\b(?:t|tf|etape|info|annonce|echec|avertissement|demander_oui) '([^']+)'")
 """Un message d'un script : le premier argument, entre apostrophes, d'une fonction qui le traduit."""
 SOURCE_LANGUAGE_HEADER = (
@@ -116,6 +118,8 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 
 		for element in ElementTree.parse(path).iter("string"):
 			add_screen_text(element, relative)
+	for message, reference in template_messages(package):
+		add(message, reference)
 	for script in scripts(package):
 		text = script.read_text(encoding="utf-8")
 
@@ -127,6 +131,17 @@ def extract(package: Path = PACKAGE) -> dict[str, Message]:
 
 		for found_message in BASH_MESSAGE.finditer(text):
 			add_script_message(found_message, script, text)
+	return found
+
+
+def template_messages(package: Path = PACKAGE) -> list[tuple[Message, str]]:
+	"""Les _("…") des gabarits Jinja2 de l'intranet, et leur fichier
+	(https://github.com/dascritch/machincast/issues/597)."""
+	found = []
+	for path in sorted(package.rglob("*.jinja")):
+		relative = path.relative_to(package.parent).as_posix()
+		for match in TEMPLATE_MESSAGE.finditer(path.read_text(encoding="utf-8")):
+			found.append((Message(match.group(1)), relative))
 	return found
 
 

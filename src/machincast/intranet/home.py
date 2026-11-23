@@ -2,7 +2,7 @@
 
 Dans l'ordre : l'heure, le texte public en cours, l'événement en cours (début, fin, temps restant), l'événement
 suivant (début, fin), le sonore en cours (durée, temps restant), le sonore suivant (durée, attente avant son début),
-puis les derniers sonores diffusés ; l'événement en cours et le suivant côte à côte, le sonore en cours et le suivant
+puis les derniers sonores diffusés, écrits par live.html.jinja (https://github.com/dascritch/machincast/issues/597) ; l'événement en cours et le suivant côte à côte, le sonore en cours et le suivant
 aussi (https://github.com/dascritch/machincast/issues/579). Le serveur écrit la page telle qu'est l'antenne à son
 chargement ; son script (static/intranet.js) la relit sur /api/v1/live et tient les décomptes, à la seconde. Durées et
 décomptes s'écrivent HH:MM:SS.
@@ -11,10 +11,9 @@ Sans session, l'accueil mène à la mire ; une session à valider, à la page de
 """
 
 from datetime import datetime
-from html import escape
 from typing import Any
 
-from machincast.i18n import _
+from machincast.intranet import rendering
 
 EMPTY = "—"
 
@@ -76,43 +75,24 @@ def name(sound: dict[str, Any] | None) -> str:
 	return str((sound.get("location")) or (EMPTY))
 
 
-def _countdown(identifier: str, limit: Any, now: datetime) -> str:
-	"""Un décompte, que le script tient à jour d'après data-limite."""
+def _countdown(limit: Any, now: datetime) -> dict[str, str]:
+	"""Un décompte : sa limite, que le script tient à jour d'après data-limite, et son texte."""
 	value = ""
 	found = _moment(limit)
 	if found is not None:
 		value = found.isoformat()
-	return (
-		f'<span id="{identifier}" class="decompte" data-limite="{escape(value)}">{escape(remaining(limit, now))}</span>'
-	)
+	return {"limit": value, "text": remaining(limit, now)}
 
 
-def _field(label: str, content: str) -> str:
-	return f"<dt>{escape(label)}</dt><dd>{content}</dd>"
-
-
-def _span(identifier: str, text: str) -> str:
-	return f'<span id="{identifier}">{escape(text)}</span>'
-
-
-def _section(identifier: str, title: str, fields: list[str]) -> str:
-	return f'<section class="{identifier}">\n<h2>{escape(title)}</h2>\n<dl>{"".join(fields)}</dl>\n</section>'
-
-
-def _pair(first: str, second: str) -> str:
-	"""Deux sections côte à côte, l'une sous l'autre sur un écran étroit."""
-	return f'<div class="paire">\n{first}\n{second}\n</div>'
-
-
-def _airplay(plays: list[dict[str, Any]]) -> str:
+def _airplay(plays: list[dict[str, Any]]) -> list[dict[str, str]]:
 	lines = []
 	for play in plays:
-		lines.append(f"<li>{escape(hour(play.get('start')))} {escape(name(play))}</li>")
-	return f'<section class="airplay">\n<h2>{escape(_("Last sounds on air"))}</h2>\n<ol id="airplay">{"".join(lines)}</ol>\n</section>'
+		lines.append({"hour": hour(play.get("start")), "name": name(play)})
+	return lines
 
 
-def body(direct: dict[str, Any], now: datetime) -> str:
-	"""Les sections de l'accueil, dans l'ordre, telles qu'est l'antenne à now."""
+def live_context(direct: dict[str, Any], now: datetime) -> dict[str, Any]:
+	"""Ce que live.html.jinja montre de l'antenne à now : chaque valeur déjà écrite, heure, durée ou décompte."""
 	events = (direct.get("events")) or ({})
 	current_event = (events.get("current")) or ({})
 	next_event = (events.get("next")) or ({})
@@ -123,55 +103,34 @@ def body(direct: dict[str, Any], now: datetime) -> str:
 		upcoming = following[0]
 	upcoming_fields = (upcoming) or ({})
 	current_fields = (current) or ({})
-	return "\n".join(
-		(
-			'<div id="direct">',
-			f'<p class="heure">{_span("heure", hour(now, seconds=True))}</p>',
-			f'<p class="texte-public">{_span("texte-public", (direct.get("public_text")) or (EMPTY))}</p>',
-			_pair(
-				_section(
-					"evenement",
-					_("Current event"),
-					[
-						_field(_("Name"), _span("evenement-nom", (current_event.get("name")) or (EMPTY))),
-						_field(_("Start"), _span("evenement-debut", hour(current_event.get("start")))),
-						_field(_("End"), _span("evenement-fin", hour(current_event.get("end")))),
-						_field(_("Remaining"), _countdown("evenement-reste", current_event.get("end"), now)),
-					],
-				),
-				_section(
-					"suivant",
-					_("Next event"),
-					[
-						_field(_("Name"), _span("suivant-nom", (next_event.get("name")) or (EMPTY))),
-						_field(_("Start"), _span("suivant-debut", hour(next_event.get("start")))),
-						_field(_("End"), _span("suivant-fin", hour(next_event.get("end")))),
-					],
-				),
-			),
-			_pair(
-				_section(
-					"sonore",
-					_("Current sound"),
-					[
-						_field(_("Sound"), _span("sonore-nom", name(current))),
-						_field(_("Duration"), _span("sonore-duree", duration(current_fields.get("duration")))),
-						_field(_("Remaining"), _countdown("sonore-reste", current_fields.get("estimated_end"), now)),
-					],
-				),
-				_section(
-					"prochain",
-					_("Next sound"),
-					[
-						_field(_("Sound"), _span("prochain-nom", name(upcoming))),
-						_field(_("Duration"), _span("prochain-duree", duration(upcoming_fields.get("duration")))),
-						_field(
-							_("Starts in"), _countdown("prochain-attente", upcoming_fields.get("estimated_start"), now)
-						),
-					],
-				),
-			),
-			_airplay((direct.get("previous")) or ([])),
-			"</div>",
-		)
-	)
+	return {
+		"hour": hour(now, seconds=True),
+		"public_text": (direct.get("public_text")) or (EMPTY),
+		"event": {
+			"name": (current_event.get("name")) or (EMPTY),
+			"start": hour(current_event.get("start")),
+			"end": hour(current_event.get("end")),
+			"remaining": _countdown(current_event.get("end"), now),
+		},
+		"next_event": {
+			"name": (next_event.get("name")) or (EMPTY),
+			"start": hour(next_event.get("start")),
+			"end": hour(next_event.get("end")),
+		},
+		"sound": {
+			"name": name(current),
+			"duration": duration(current_fields.get("duration")),
+			"remaining": _countdown(current_fields.get("estimated_end"), now),
+		},
+		"next_sound": {
+			"name": name(upcoming),
+			"duration": duration(upcoming_fields.get("duration")),
+			"starts_in": _countdown(upcoming_fields.get("estimated_start"), now),
+		},
+		"airplay": _airplay((direct.get("previous")) or ([])),
+	}
+
+
+def body(direct: dict[str, Any], now: datetime) -> str:
+	"""L'antenne en direct, telle qu'elle est à now (live.html.jinja)."""
+	return rendering.render("live.html.jinja", live=live_context(direct, now))

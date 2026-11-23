@@ -2079,6 +2079,12 @@ Chaque page de l'intranet, une fois connecté, a le même gabarit minimaliste : 
 Sa feuille de style et son script sont servis par l'intranet lui-même, sous `/static/` : la Content-Security-Policy n'accepte aucune ressource d'ailleurs, ni script dans la page.
 Sous `/static/`, seuls `intranet.css` et `intranet.js` sont servis ; tout autre chemin répond 404.
 
+**Gabarits** ([#597](https://github.com/dascritch/machincast/issues/597), `machincast.intranet.rendering`) : chaque page vient d'un gabarit Jinja2 de `machincast/intranet/templates/` : `page.html.jinja`, la page HTML ; `layout.html.jinja`, qui l'étend du bandeau (`banner.html.jinja`) ; puis `home.html.jinja` et l'antenne en direct (`live.html.jinja`), `calendar.html.jinja`, `documentation.html.jinja`, `login.html.jinja`, `validation.html.jinja`, `forbidden.html.jinja`.
+- Un plugin chargé par Machin intranet surcharge un gabarit en fournissant, dans son `templates/`, un fichier du même nom ; le premier plugin, dans l'ordre de `[plugins] enabled`, l'emporte ; l'original reste joignable sous `machincast/<nom>`, pour l'étendre.
+- L'échappement HTML est automatique ; une variable absente est une erreur (`StrictUndefined`).
+- Les textes passent par `_()`, celui de MachinCast : `machincast.catalog` relève les `_("…")` des gabarits, comme ceux du code.
+- La page et ses routes d'un plugin rendent ses gabarits, ou ceux de l'intranet, par `Tools.render`.
+
 L'accueil, `GET /`, montre l'antenne en direct, dans cet ordre :
 
 1. l'heure ;

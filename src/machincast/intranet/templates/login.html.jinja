@@ -1,0 +1,13 @@
+{#- La mire : le nom gardé après un refus, et ce qui l'a refusé (https://github.com/dascritch/machincast/issues/539). -#}
+{% extends "page.html.jinja" %}
+{% block body %}
+<h1>{{ machin }}</h1>
+<form method="post" action="/login">
+<p><label>{{ _("User name") }}<br><input name="name" autocomplete="username" required autofocus value="{{ name }}"></label></p>
+<p><label>{{ _("Password") }}<br><input name="password" type="password" autocomplete="current-password" required></label></p>
+<p><button type="submit">{{ _("Connect") }}</button></p>
+</form>
+{% if message %}
+<p role="alert">{{ message }}</p>
+{% endif %}
+{% endblock %}

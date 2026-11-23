@@ -3,14 +3,18 @@
 Minimaliste : en haut, le nom de la radio, l'état de la diffusion, les liens vers les pages de l'intranet et « Se
 déconnecter » ; dessous, la page. Sa feuille de style et son script sont servis par l'intranet lui-même
 (/static/), la Content-Security-Policy n'acceptant aucune ressource d'ailleurs, ni script dans la page.
+
+Le gabarit et les pages sont des fichiers Jinja2, surchargeables par un plugin (machincast.intranet.rendering,
+https://github.com/dascritch/machincast/issues/597) : layout.html.jinja, le bandeau dans banner.html.jinja.
 """
 
 from collections.abc import Sequence
-from html import escape
 from importlib import resources
+from typing import Any
 
 from machincast.i18n import _
-from machincast.intranet.app import TITLE, Request, Response, page
+from machincast.intranet import rendering
+from machincast.intranet.app import HTML, TITLE, Request, Response
 
 STATES = {"playing": _("Broadcasting"), "dead_air": _("Dead air on air"), "stopped": _("Stopped")}
 """L'état de la diffusion, comme l'écrit l'onglet Antenne de l'interface."""
@@ -18,31 +22,39 @@ NAVIGATION = (("/", _("Home")), ("/calendar", _("Calendar")), ("/documentation",
 """Les pages de l'intranet, dans l'ordre du bandeau."""
 STATIC = {"intranet.css": "text/css; charset=utf-8", "intranet.js": "text/javascript; charset=utf-8"}
 """Les seuls fichiers servis sous /static/, et leur type."""
-HEAD = """<link rel="stylesheet" href="/static/intranet.css">
-<script src="/static/intranet.js" defer></script>
-"""
 
 
-def banner(radio: str, state: str, user: str, current: str, navigation: Sequence[tuple[str, str]] = ()) -> str:
-	"""Le bandeau : la radio, l'état de la diffusion, la navigation, celle des plugins après celle de l'intranet
-	(https://github.com/dascritch/machincast/issues/588), la page en cours marquée, et la déconnexion."""
-	links = []
-	for address, label in (*NAVIGATION, *navigation):
-		marked = ""
-		if address == current:
-			marked = ' aria-current="page"'
-		links.append(f'<a href="{address}"{marked}>{escape(label)}</a>')
-	labels = []
-	for key, label in STATES.items():
-		labels.append(f'data-{key.replace("_", "-")}="{escape(label)}"')
-	return f"""<header class="bandeau">
-<span class="radio">{escape(radio)}</span>
-<span class="machin">{TITLE}</span>
-<span id="etat" class="etat {escape(state)}" {" ".join(labels)}>{escape(STATES.get(state, state))}</span>
-<nav>{" ".join(links)}</nav>
-<span class="discret">{escape(user)}</span>
-<form method="post" action="/logout"><button type="submit">{escape(_("Disconnect"))}</button></form>
-</header>"""
+def framed(
+	name: str,
+	title: str,
+	*,
+	radio: str,
+	state: str,
+	user: str,
+	current: str,
+	navigation: Sequence[tuple[str, str]] = (),
+	status: int = 200,
+	head: str = "",
+	**context: Any,
+) -> Response:
+	"""Le gabarit name, une page qui étend layout.html.jinja : le bandeau, la radio, l'état de la diffusion, la
+	navigation, celle des plugins après celle de l'intranet (https://github.com/dascritch/machincast/issues/588), la page
+	en cours marquée ; head ajoute ses feuilles de style et ses scripts, ceux d'un plugin."""
+	links = [*NAVIGATION, *navigation]
+	text = rendering.render(
+		name,
+		title=title,
+		machin=TITLE,
+		radio=radio,
+		state=state,
+		states=STATES,
+		user=user,
+		current=current,
+		navigation=links,
+		head=rendering.html(head),
+		**context,
+	)
+	return Response(status, text.encode("utf-8"), HTML)
 
 
 def layout(
@@ -57,12 +69,18 @@ def layout(
 	status: int = 200,
 	head: str = "",
 ) -> Response:
-	"""Une page de l'intranet, dans le gabarit ; head ajoute ses feuilles de style et ses scripts, ceux d'un plugin."""
-	return page(
+	"""Une page de l'intranet, son corps déjà écrit en HTML, dans le gabarit."""
+	return framed(
+		"layout.html.jinja",
 		title,
-		f"{banner(radio, state, user, current, navigation)}\n<main>\n{body}\n</main>",
+		radio=radio,
+		state=state,
+		user=user,
+		current=current,
+		navigation=navigation,
 		status=status,
-		head=HEAD + head,
+		head=head,
+		body=rendering.html(body),
 	)
 
 

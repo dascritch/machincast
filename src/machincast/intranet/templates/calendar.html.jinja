@@ -1,0 +1,11 @@
+{#- Le calendrier de la semaine, en grille horaire (https://github.com/dascritch/machincast/issues/580). -#}
+{% extends "layout.html.jinja" %}
+{% block main %}
+<h1>{{ week_title }}</h1>
+<nav class="semaines">
+<a id="precedente" rel="prev" href="/calendar?week={{ before }}">{{ _("Previous week") }}</a>
+<a id="aujourdhui" href="/calendar">{{ _("This week") }}</a>
+<a id="suivante" rel="next" href="/calendar?week={{ after }}">{{ _("Next week") }}</a>
+</nav>
+{{ grid }}
+{% endblock %}

@@ -1,0 +1,9 @@
+{#- Le bandeau : la radio, l'état de la diffusion, la navigation, celle des plugins après celle de l'intranet, la page en cours marquée, et la déconnexion. -#}
+<header class="bandeau">
+<span class="radio">{{ radio }}</span>
+<span class="machin">{{ machin }}</span>
+<span id="etat" class="etat {{ state }}"{% for key, label in states.items() %} data-{{ key | replace("_", "-") }}="{{ label }}"{% endfor %}>{{ states.get(state, state) }}</span>
+<nav>{% for address, label in navigation %}{% if not loop.first %} {% endif %}<a href="{{ address }}"{% if address == current %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}</nav>
+<span class="discret">{{ user }}</span>
+<form method="post" action="/logout"><button type="submit">{{ _("Disconnect") }}</button></form>
+</header>

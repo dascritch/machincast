@@ -2094,12 +2094,12 @@ msgid "Session of “{name}” of {day_and_month} at {first:%H:%M} skipped."
 msgstr "Session de « {name} » du {day_and_month} à {first:%H:%M} sautée."
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/pages.py
+#: machincast/intranet/templates/calendar.html.jinja
 msgid "Previous week"
 msgstr "Semaine précédente"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/pages.py
+#: machincast/intranet/templates/calendar.html.jinja
 msgid "Next week"
 msgstr "Semaine suivante"
 
@@ -2656,9 +2656,9 @@ msgstr "durée inconnue"
 #: machincast/interface/simulation.py
 #: machincast/interface/sound_card.py
 #: machincast/interface/timeline.py
-#: machincast/intranet/home.py
 #: machincast/player/simulation.py
 #: machincast/interface/ui/sound_card.ui
+#: machincast/intranet/templates/live.html.jinja
 msgid "Start"
 msgstr "Début"
 
@@ -2668,18 +2668,18 @@ msgstr "Début"
 #: machincast/interface/simulation.py
 #: machincast/interface/sound_card.py
 #: machincast/interface/timeline.py
-#: machincast/intranet/home.py
 #: machincast/player/simulation.py
 #: machincast/interface/ui/sound_card.ui
+#: machincast/intranet/templates/live.html.jinja
 msgid "End"
 msgstr "Fin"
 
 #: machincast/interface/default_screen.py
 #: machincast/interface/export_airplay.py
 #: machincast/interface/lists.py
-#: machincast/intranet/home.py
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/sound_card.ui
+#: machincast/intranet/templates/live.html.jinja
 msgid "Duration"
 msgstr "Durée"
 
@@ -4001,9 +4001,9 @@ msgstr "Message"
 
 #: machincast/interface/incidents.py
 #: machincast/interface/search.py
-#: machincast/intranet/home.py
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/sound_card.ui
+#: machincast/intranet/templates/live.html.jinja
 msgid "Sound"
 msgstr "Sonore"
 
@@ -4731,8 +4731,8 @@ msgid "State"
 msgstr "État"
 
 #: machincast/interface/lists.py
-#: machincast/intranet/home.py
 #: machincast/interface/ui/sound_card.ui
+#: machincast/intranet/templates/live.html.jinja
 msgid "Name"
 msgstr "Nom"
 
@@ -6584,6 +6584,7 @@ msgstr "Ouvrir l'onglet {title}"
 #: machincast/interface/window.py
 #: machincast/intranet/pages.py
 #: machincast/intranet/template.py
+#: machincast/intranet/templates/documentation.html.jinja
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -6807,40 +6808,6 @@ msgstr "plugin « {name} » : sa section de l'accueil a échoué : {error}"
 msgid "plugin “{name}”: an intranet extension is expected"
 msgstr "plugin « {name} » : une extension de l'intranet est attendue"
 
-#: machincast/intranet/extensions.py
-msgid "This page is for the accounts that can act on the antenna."
-msgstr "Cette page est réservée aux comptes qui peuvent agir sur l'antenne."
-
-#: machincast/intranet/home.py
-msgid "Last sounds on air"
-msgstr "Derniers sonores diffusés"
-
-#: machincast/intranet/home.py
-msgid "Current event"
-msgstr "Événement en cours"
-
-#: machincast/intranet/home.py
-msgid "Next event"
-msgstr "Événement suivant"
-
-#: machincast/intranet/home.py
-#: machincast/interface/ui/default_screen.ui
-msgid "Current sound"
-msgstr "Sonore en cours"
-
-#: machincast/intranet/home.py
-#: machincast/interface/ui/default_screen.ui
-msgid "Next sound"
-msgstr "Prochain sonore"
-
-#: machincast/intranet/home.py
-msgid "Remaining"
-msgstr "Reste"
-
-#: machincast/intranet/home.py
-msgid "Starts in"
-msgstr "Démarre dans"
-
 #: machincast/intranet/hour_grid.py
 #, python-brace-format
 msgid "{weekday}. {day:02d}/{month:02d}"
@@ -6856,27 +6823,15 @@ msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
 msgstr "adresses du poste illisibles par iproute2, devinées : {error}"
 
 #: machincast/intranet/pages.py
-#, python-brace-format
-msgid "Week from {first} to {last}"
-msgstr "Semaine du {first} au {last}"
-
-#: machincast/intranet/pages.py
 #: machincast/intranet/template.py
 #: machincast/interface/ui/preferences.ui
 msgid "Home"
 msgstr "Accueil"
 
 #: machincast/intranet/pages.py
-msgid "Broadcast guide"
-msgstr "Guide de l'antenne"
-
-#: machincast/intranet/pages.py
-msgid "Intranet and API specification"
-msgstr "Spécification de l'intranet et de l'API"
-
-#: machincast/intranet/pages.py
-msgid "This week"
-msgstr "Cette semaine"
+#, python-brace-format
+msgid "Week from {first} to {last}"
+msgstr "Semaine du {first} au {last}"
 
 #: machincast/intranet/pages.py
 #, python-brace-format
@@ -6890,6 +6845,16 @@ msgstr "Connexion"
 #: machincast/intranet/portal.py
 msgid "Validation at the desk"
 msgstr "Validation au pupitre"
+
+#: machincast/intranet/portal.py
+msgid ""
+"An action must be done at the studio desk: MachinCast shows there your "
+"name, your browser and your address. Once your connection is accepted "
+"there, the studio gives you a 6-digit code: enter it here."
+msgstr ""
+"Une action doit être faite au pupitre : MachinCast y montre votre nom, "
+"votre navigateur et votre adresse. Une fois votre connexion acceptée, le "
+"studio vous donne un code à 6 chiffres : saisissez-le ici."
 
 #: machincast/intranet/portal.py
 msgid ""
@@ -6920,41 +6885,6 @@ msgstr ""
 #: machincast/intranet/portal.py
 msgid "Wrong code: ask again at the desk."
 msgstr "Code faux : redemandez-le au pupitre."
-
-#: machincast/intranet/portal.py
-msgid "User name"
-msgstr "Nom d'utilisateur"
-
-#: machincast/intranet/portal.py
-msgid "Password"
-msgstr "Mot de passe"
-
-#: machincast/intranet/portal.py
-msgid "Connect"
-msgstr "Se connecter"
-
-#: machincast/intranet/portal.py
-msgid ""
-"An action must be done at the studio desk: MachinCast shows there your "
-"name, your browser and your address. Once your connection is accepted "
-"there, the studio gives you a 6-digit code: enter it here."
-msgstr ""
-"Une action doit être faite au pupitre : MachinCast y montre votre nom, "
-"votre navigateur et votre adresse. Une fois votre connexion acceptée, le "
-"studio vous donne un code à 6 chiffres : saisissez-le ici."
-
-#: machincast/intranet/portal.py
-msgid "6-digit code"
-msgstr "Code à 6 chiffres"
-
-#: machincast/intranet/portal.py
-msgid "Validate"
-msgstr "Valider"
-
-#: machincast/intranet/portal.py
-#: machincast/intranet/template.py
-msgid "Disconnect"
-msgstr "Se déconnecter"
 
 #: machincast/intranet/portal.py
 #, python-brace-format
@@ -8929,6 +8859,11 @@ msgid "Event on air"
 msgstr "Événement à l'antenne"
 
 #: machincast/interface/ui/default_screen.ui
+#: machincast/intranet/templates/live.html.jinja
+msgid "Current sound"
+msgstr "Sonore en cours"
+
+#: machincast/interface/ui/default_screen.ui
 msgid ""
 "Waveform, silences and fades of the current sound, as the broadcast plays it"
 msgstr ""
@@ -8974,6 +8909,11 @@ msgstr "Plus de 5 secondes sous -50 dBFS"
 #: machincast/interface/ui/default_screen.ui
 msgid "Dead air"
 msgstr "Blanc"
+
+#: machincast/interface/ui/default_screen.ui
+#: machincast/intranet/templates/live.html.jinja
+msgid "Next sound"
+msgstr "Prochain sonore"
 
 #: machincast/interface/ui/default_screen.ui
 msgid ""
@@ -9939,6 +9879,67 @@ msgstr ""
 #: machincast/interface/ui/suggestions.ui
 msgid "&Do not offer at launch again"
 msgstr "&Ne plus proposer au lancement"
+
+#: machincast/intranet/templates/banner.html.jinja
+#: machincast/intranet/templates/validation.html.jinja
+msgid "Disconnect"
+msgstr "Se déconnecter"
+
+#: machincast/intranet/templates/calendar.html.jinja
+msgid "This week"
+msgstr "Cette semaine"
+
+#: machincast/intranet/templates/documentation.html.jinja
+msgid "Broadcast guide"
+msgstr "Guide de l'antenne"
+
+#: machincast/intranet/templates/documentation.html.jinja
+msgid "Intranet and API specification"
+msgstr "Spécification de l'intranet et de l'API"
+
+#: machincast/intranet/templates/forbidden.html.jinja
+msgid "This page is for the accounts that can act on the antenna."
+msgstr "Cette page est réservée aux comptes qui peuvent agir sur l'antenne."
+
+#: machincast/intranet/templates/live.html.jinja
+msgid "Current event"
+msgstr "Événement en cours"
+
+#: machincast/intranet/templates/live.html.jinja
+msgid "Remaining"
+msgstr "Reste"
+
+#: machincast/intranet/templates/live.html.jinja
+msgid "Next event"
+msgstr "Événement suivant"
+
+#: machincast/intranet/templates/live.html.jinja
+msgid "Starts in"
+msgstr "Démarre dans"
+
+#: machincast/intranet/templates/live.html.jinja
+msgid "Last sounds on air"
+msgstr "Derniers sonores diffusés"
+
+#: machincast/intranet/templates/login.html.jinja
+msgid "User name"
+msgstr "Nom d'utilisateur"
+
+#: machincast/intranet/templates/login.html.jinja
+msgid "Password"
+msgstr "Mot de passe"
+
+#: machincast/intranet/templates/login.html.jinja
+msgid "Connect"
+msgstr "Se connecter"
+
+#: machincast/intranet/templates/validation.html.jinja
+msgid "6-digit code"
+msgstr "Code à 6 chiffres"
+
+#: machincast/intranet/templates/validation.html.jinja
+msgid "Validate"
+msgstr "Valider"
 
 #: bin/Machin
 msgid ""

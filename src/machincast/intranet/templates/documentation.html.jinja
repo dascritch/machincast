@@ -1,0 +1,10 @@
+{#- Les liens vers la documentation de la version installée (https://github.com/dascritch/machincast/issues/542). -#}
+{% extends "layout.html.jinja" %}
+{% block main %}
+<h1>{{ _("Documentation") }}</h1>
+<p>{{ version_text }}</p>
+<ul class="documentation">
+<li><a id="guide" href="{{ guide }}">{{ _("Broadcast guide") }}</a></li>
+<li><a id="specification" href="{{ specification }}">{{ _("Intranet and API specification") }}</a></li>
+</ul>
+{% endblock %}

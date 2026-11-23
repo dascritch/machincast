@@ -22,6 +22,8 @@ dependencies = [
 	"hypercorn>=0.17",
 	# Les versions des plugins et celles qu'ils demandent (https://github.com/dascritch/machincast/issues/585).
 	"packaging>=24",
+	# Les gabarits de l'intranet, surchargeables par un plugin (https://github.com/dascritch/machincast/issues/597).
+	"jinja2>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -58,7 +60,7 @@ Machin_intranet = "machincast.intranet.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-machincast = ["py.typed", "templates/*.md", "migrations/*.sql", "locale/*/LC_MESSAGES/*.po", "interface/*.png", "interface/news.md", "interface/news.*.md", "interface/icons/*.svg", "intranet/static/*"]
+machincast = ["py.typed", "templates/*.md", "migrations/*.sql", "locale/*/LC_MESSAGES/*.po", "interface/*.png", "interface/news.md", "interface/news.*.md", "interface/icons/*.svg", "intranet/static/*", "intranet/templates/*.jinja"]
 
 # ─── Qualité ───────────────────────────────────────────────
 
