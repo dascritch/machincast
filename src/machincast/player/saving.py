@@ -31,6 +31,7 @@ from psycopg.rows import TupleRow
 
 from machincast.i18n import N_, _, logged
 from machincast.player import queries
+from machincast.plugins import incidents
 
 Level = Literal["info", "warning", "incident"]
 LEVELS = {"info": _("info"), "warning": _("warning"), "incident": _("incident")}
@@ -110,6 +111,11 @@ def record(
 		)
 	with connection.transaction():
 		queries.insert_log(connection, (instant, level, kind, message), (sound, bank, event), origin, api_user)
+	if level == "incident":
+		# Les plugins abonnés à log_incident (https://github.com/dascritch/machincast/issues/592).
+		incidents.tell(
+			level, logged(kind), logged(message), instant, {"sound": sound, "bank": bank, "event": event}, origin
+		)
 
 
 def _start(connection: psycopg.Connection[TupleRow], play: Play) -> None:

@@ -150,6 +150,20 @@ En simulation, aucun point n'est appelé.
 Ils sont notifiés : l'erreur d'un plugin est consignée, et n'arrête ni le parcours ni la vérification.
 Pour compléter le sonore, le plugin ouvre sa propre connexion : celle de l'indexation ne quitte pas son fil.
 
+## Être prévenu d'un incident grave
+
+([#592](https://github.com/dascritch/machincast/issues/592), `machincast.plugins.incidents`)
+
+Le point `log_incident` est notifié dans chaque binaire, pour une entrée du log de niveau « incident » et pour toute erreur de son journal (ERROR ou CRITICAL) :
+
+```python
+def register(plugin):
+	plugin.on("log_incident", lambda data: envoyer_un_courriel(data["executable"], data["kind"], data["message"]))
+```
+
+Ses données : `executable`, `instant`, `level` (`incident`, `error` ou `critical`), `kind`, `message`, `references` (`sound`, `bank` et `event`, ou `None`) et `origin`.
+Ce que le journal consigne pendant l'appel d'un abonné de `log_incident`, son échec compris, n'est pas un incident : un plugin qui ne parvient pas à prévenir ne se prévient pas lui-même en boucle.
+
 ## Faire jouer une occurrence par un autre événement
 
 ([#608](https://github.com/dascritch/machincast/issues/608))
