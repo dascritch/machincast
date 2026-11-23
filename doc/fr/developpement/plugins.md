@@ -12,7 +12,7 @@ plugins/horloge/
 	README.md
 	manifest.json
 	check.py                       facultatif
-	install.sh                     son installation (#586)
+	install.sh                     son installation, voir plus bas
 	src/machincast_horloge/__init__.py
 	tests/
 	bin/
