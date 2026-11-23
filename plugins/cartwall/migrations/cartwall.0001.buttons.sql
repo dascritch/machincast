@@ -5,7 +5,7 @@ CREATE TABLE cartwall__buttons (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	api_user_id bigint NOT NULL REFERENCES api_users (id) ON DELETE CASCADE,
 	position integer NOT NULL CHECK (position >= 1),
-	label varchar(64) NOT NULL CHECK (btrim(label) <> ''),
+	label varchar(128) NOT NULL CHECK (btrim(label) <> ''),
 	colour char(7) NOT NULL DEFAULT '#3a6ea5' CHECK (colour ~ '^#[0-9a-f]{6}$'),
 	action text NOT NULL CHECK (action IN (
 		'skip_sound', 'skip_sequence', 'cut_to_background', 'restart_sound', 'restart_event', 'restart_sequence',

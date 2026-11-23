@@ -31,6 +31,8 @@ from machincast_cartwall.buttons import ACTIONS, BLANKS, DEFAULT_COLOUR, INSERTI
 from machincast_cartwall.texts import t
 
 COLOUR = re.compile(r"^#[0-9a-f]{6}$")
+LABEL = 128
+"""La longueur d'un intitulé, celle de cartwall__buttons.label : assez pour l'action et sa cible qu'il propose."""
 
 Connect = Callable[[], queries.Connection]
 
@@ -65,7 +67,7 @@ class ButtonsSettings(QWidget):
 		self.list.setObjectName("buttons")
 		self.label = QLineEdit(self)
 		self.label.setObjectName("label")
-		self.label.setMaxLength(64)
+		self.label.setMaxLength(LABEL)
 		self.colour = QLineEdit(DEFAULT_COLOUR, self)
 		self.colour.setObjectName("colour")
 		self.action = QComboBox(self)
@@ -83,6 +85,10 @@ class ButtonsSettings(QWidget):
 		self.account.currentIndexChanged.connect(self._read)
 		self.list.currentRowChanged.connect(self._show)
 		self.action.currentIndexChanged.connect(self._targets)
+		# L'intitulé proposé, tant qu'il n'a pas été écrit : l'action et sa cible.
+		self.suggested = ""
+		self.action.currentIndexChanged.connect(self._suggest)
+		self.target.currentIndexChanged.connect(self._suggest)
 		self._targets()
 		self._read()
 
@@ -180,6 +186,8 @@ class ButtonsSettings(QWidget):
 		if (row < 0) or (row >= len(self.buttons)):
 			return
 		button = self.buttons[row]
+		# L'intitulé d'un bouton enregistré reste le sien : rien n'est plus proposé.
+		self.suggested = ""
 		self.label.setText(button.label)
 		self.colour.setText(button.colour)
 		self.action.setCurrentIndex(self.action.findData(button.action))
@@ -200,6 +208,19 @@ class ButtonsSettings(QWidget):
 		empty: list[tuple[int, str]] = []
 		for identifier, name in self._base(lambda connection: queries.targets(connection, kind), empty):
 			self.target.addItem(name, identifier)
+
+	def _suggest(self) -> None:
+		"""Pré-remplit l'intitulé du nom de l'action et de sa cible, tant qu'il est vide ou garde la proposition
+		précédente ; un intitulé écrit n'est jamais remplacé."""
+		current = self.label.text()
+		if (current.strip() != "") and (current != self.suggested):
+			return
+		suggestion = action_label(str(self.action.currentData()))
+		if self.target.currentIndex() >= 0:
+			suggestion = f"{suggestion} « {self.target.currentText()} »"
+		self.label.setText(suggestion)
+		# Coupé à la longueur de l'intitulé, il reste reconnu comme proposé.
+		self.suggested = self.label.text()
 
 	def _fields(self) -> queries.Fields | None:
 		"""Le bouton du formulaire ; None s'il est incomplet, et le message dit pourquoi."""

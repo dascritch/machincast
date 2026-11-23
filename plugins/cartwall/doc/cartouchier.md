@@ -36,6 +36,7 @@ Les actions possibles sont celles du menu « Diffusion » de l'interface, sauf d
 ## Régler les boutons
 
 Dans Machin interface, menu « Plugins », « Cartouchier… » : choisir le compte, puis, pour chaque bouton, son intitulé, sa couleur (`#rrggbb`), son action, ce qu'elle vise (une séquence, une banque, un secours ou un feed) et, pour une insertion, son blanc.
+Tant que l'intitulé n'est pas écrit, il se remplit du nom de l'action et de sa cible, par exemple « Couper l'antenne par un secours « Attente » » ; un intitulé écrit, ou celui d'un bouton déjà enregistré, n'est jamais remplacé.
 « Ajouter » le met au bout, « Remplacer » change le bouton choisi, « Monter » et « Descendre » le déplacent, « Retirer » l'enlève.
 Chaque changement s'enregistre aussitôt ; l'accueil le montre à son prochain chargement.
 

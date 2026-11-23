@@ -122,13 +122,14 @@ def no_target(opened: Opened) -> None:
 def fill(opened: Opened, fields: str) -> None:
 	window = _window(opened)
 	label, colour, action_, target, blank = _names(fields)
-	window.label.setText(label)
-	window.colour.setText(colour)
 	_choose(window.action, action_)
 	if target != "":
 		_choose(window.target, target)
 	if blank != "":
 		_choose(window.blank, blank)
+	# L'intitulé, écrit après le choix de l'action, remplace celui qu'elle propose.
+	window.label.setText(label)
+	window.colour.setText(colour)
 
 
 @when(parsers.parse("je choisis le bouton « {label} »"))
@@ -171,3 +172,18 @@ def says(opened: Opened, text: str) -> None:
 @then("la fenêtre dit que les boutons ne se lisent ni ne s'enregistrent")
 def unreachable(opened: Opened) -> None:
 	assert _window(opened).message.text() == "Les boutons ne se lisent ni ne s'enregistrent : connexion refusée"
+
+
+@when(parsers.parse("je choisis la cible « {name} »"))
+def target(opened: Opened, name: str) -> None:
+	_choose(_window(opened).target, name)
+
+
+@when(parsers.parse("j'écris l'intitulé « {text} »"))
+def write_label(opened: Opened, text: str) -> None:
+	_window(opened).label.setText(text)
+
+
+@then(parsers.parse("l'intitulé est « {text} »"))
+def label_is(opened: Opened, text: str) -> None:
+	assert _window(opened).label.text() == text
