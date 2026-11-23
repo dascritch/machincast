@@ -4,6 +4,7 @@
 Les plugins sont créés dans un répertoire temporaire par les étapes de tests/test_plugins.py, réenregistrées ici.
 """
 
+import dataclasses
 import re
 import shutil
 import tomllib
@@ -18,16 +19,25 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast import plugins
-from machincast.configuration import Configuration, Crossfades
+from machincast.configuration import Configuration, Crossfades, Plugins
+from machincast.database import url_yoyo
 from machincast.interface import preferences
-from machincast.interface.plugins_page import Offered, PluginsPage, PluginWindow, fill_menu, offered
+from machincast.interface.plugins_page import (
+	Installer,
+	Offered,
+	PluginsPage,
+	PluginWindow,
+	fill_menu,
+	newly_enabled,
+	offered,
+)
 from machincast.interface.preferences import INTERFACE, SERVICE, Kind, PreferencesWindow, Settings, service_changed
-from tests.database_fixtures import sample_configuration_path
+from machincast.plugins import schema
+from tests.database_fixtures import configuration_test, sample_configuration_path, sample_database_parameters
 from tests.test_plugins import (
 	NAME,
 	_names,
 	_package,
-	configuration,
 	enabled,
 	faulty_plugin,
 	forgotten_plugins,
@@ -39,7 +49,7 @@ from tests.test_plugins import (
 
 scenarios("plugins_interface.feature")
 
-__all__ = ["configuration", "forgotten_plugins", "plugin_directory", "settings"]
+__all__ = ["forgotten_plugins", "plugin_directory", "settings"]
 
 TEST_PREVIEW = "preecoute-factice"
 
@@ -51,6 +61,29 @@ given(
 given(parsers.parse("le plugin « {name} » dont le manifest a {defect}"))(faulty_plugin)
 given(parsers.parse("le plugin « {name} » demande le plugin « {other} » {versions}"))(requires_plugin)
 given(parsers.re(rf"les plugins activés (?P<names>{NAME}(?:, {NAME})*)$"))(enabled)
+
+
+@pytest.fixture
+def production() -> dict[str, bool]:
+	return {"test": False}
+
+
+@pytest.fixture
+def configuration(plugin_directory: Path, settings: dict[str, Any], production: dict[str, bool]) -> Configuration:
+	"""La configuration des tests, et ses plugins ; sa « base de production » est la base de test quand le scénario
+	installe un plugin : jamais la vraie."""
+	loaded = configuration_test()
+	if production["test"]:
+		_socket, name = sample_database_parameters()
+		loaded = dataclasses.replace(
+			loaded, database=dataclasses.replace(loaded.database, production=name, test=f"{name}-jamais")
+		)
+	return dataclasses.replace(
+		loaded,
+		plugins=Plugins(
+			enabled=tuple(settings["enabled"]), directory=plugin_directory, settings=dict(settings["settings"])
+		),
+	)
 
 
 class Opened:
@@ -356,3 +389,137 @@ def shows_without_settings(opened: Opened, name: str, version: str, description:
 	assert window is not None
 	label = window.findChild(QLabel, "no_settings")
 	assert (label is not None) and (label.text() == text)
+
+
+# ─── L'installation à la validation (https://github.com/dascritch/machincast/issues/587) ───
+
+
+@given("la base de production des scénarios est la base de test")
+def production_is_test(production: dict[str, bool], empty_database: Any) -> None:
+	production["test"] = True
+
+
+@given(parsers.parse("le plugin « {name} » a la migration « {identifier} » qui crée la table « {table} »"))
+def migration(plugin_directory: Path, name: str, identifier: str, table: str) -> Iterator[None]:
+	directory = plugin_directory / name / "migrations"
+	directory.mkdir()
+	(directory / f"{identifier}.sql").write_text(f"CREATE TABLE {table} (id integer);\n", encoding="utf-8")
+	(directory / f"{identifier}.rollback.sql").write_text(f"DROP TABLE {table};\n", encoding="utf-8")
+	yield
+	# Les tables du plugin, créées par le scénario, ne restent pas pour le suivant.
+	_socket, base = sample_database_parameters()
+	schema.cancel(url_yoyo(_socket, base), plugin_directory / name)
+
+
+@given(parsers.parse("le plugin « {name} » a un install.sh qui note ses arguments"))
+def noting_script(plugin_directory: Path, name: str) -> None:
+	_script(
+		plugin_directory / name,
+		'for argument in "$@"; do echo "$argument"; done > "$(dirname "$0")/arguments"\necho "fait"\n',
+	)
+
+
+@given(parsers.parse("le plugin « {name} » a un install.sh qui échoue en disant « {text} »"))
+def failing_script(plugin_directory: Path, name: str, text: str) -> None:
+	_script(plugin_directory / name, f'echo "début"\necho "{text}"\nexit 3\n')
+
+
+def _script(directory: Path, body: str) -> None:
+	script = directory / "install.sh"
+	script.write_text(f"#!/usr/bin/env bash\n{body}", encoding="utf-8")
+	script.chmod(0o755)
+
+
+class Installation:
+	message: str | None = None
+	installed: list[Offered] | None = None
+	configuration_file: Path | None = None
+	backups: Path | None = None
+	installer: Installer | None = None
+
+
+@pytest.fixture
+def installation() -> Installation:
+	return Installation()
+
+
+def _configuration_file(tmp_path: Path, configuration: Configuration) -> Path:
+	"""Le fichier que l'installation lit : celui des tests, sur la base de production du scénario."""
+	path = tmp_path / "machincast-installation.toml"
+	text = sample_configuration_path().read_text(encoding="utf-8")
+	text = text.replace(
+		'production = "machincast_aucune_production"', f'production = "{configuration.database.production}"'
+	)
+	text = text.replace('test = "machincast_test"', f'test = "{configuration.database.test}"')
+	path.write_text(text, encoding="utf-8")
+	return path
+
+
+@when(parsers.parse("je valide les paramètres en activant « {name} »"))
+def validate(
+	opened: Opened,
+	parent: QWidget,
+	qtbot: QtBot,
+	tmp_path: Path,
+	configuration: Configuration,
+	installation: Installation,
+	name: str,
+) -> None:
+	_open(opened, parent, configuration, SERVICE)
+	_check(opened, name, Qt.CheckState.Checked)
+	_install(opened, qtbot, tmp_path, configuration, installation)
+
+
+def _install(
+	opened: Opened, qtbot: QtBot, tmp_path: Path, configuration: Configuration, installation: Installation
+) -> None:
+	page = _page(opened)
+	installation.installed = newly_enabled(page.offered_list, page.initial, _window(opened).settings().plugins)
+	if installation.installed == []:
+		return
+	installation.configuration_file = _configuration_file(tmp_path, configuration)
+	installation.backups = tmp_path / "sauvegardes"
+	installer = Installer()
+	installation.installer = installer
+	with qtbot.waitSignal(installer.finished, timeout=60000) as signal:
+		installer.start(installation.installed, installation.configuration_file, installation.backups)
+	installation.message = signal.args[0]
+
+
+@when("je valide les paramètres")
+def validate_as_is(
+	opened: Opened, qtbot: QtBot, tmp_path: Path, configuration: Configuration, installation: Installation
+) -> None:
+	_install(opened, qtbot, tmp_path, configuration, installation)
+
+
+@then(parsers.parse("l'install.sh de « {name} » a reçu la sauvegarde et la configuration"))
+def received(plugin_directory: Path, installation: Installation, name: str) -> None:
+	arguments = (plugin_directory / name / "arguments").read_text(encoding="utf-8").splitlines()
+	assert arguments == ["--backups", str(installation.backups), "--config", str(installation.configuration_file)]
+
+
+@then(parsers.parse("l'installation dit « {text} »"))
+def installation_says(installation: Installation, text: str) -> None:
+	assert installation.message == text
+
+
+@then(parsers.parse("la table « {table} » existe, après une sauvegarde de la base"))
+def table_created(empty_database: Any, installation: Installation, table: str) -> None:
+	assert empty_database.execute("SELECT to_regclass(%s)", (table,)).fetchone() == (table,)
+	assert installation.backups is not None
+	assert list(installation.backups.iterdir()) != []
+
+
+@then("la validation n'installe aucun plugin")
+def nothing_installed(installation: Installation) -> None:
+	assert installation.installed == []
+
+
+@then(parsers.parse("l'onglet « Plugins » a « {name} » activable"))
+def can_be_enabled(opened: Opened, name: str) -> None:
+	found = []
+	for item in _items(opened):
+		if item.text(0) == name:
+			found.append((_box(item), item.text(2)))
+	assert found == [("décochée", "activable")]

@@ -191,7 +191,10 @@ GRANT SELECT ON horloge_sonneries TO machincast_player;
 - Ses `GRANT` ne donnent qu'aux rôles des binaires où il s'accroche (`machincast_player` pour `Machin_player`…) : l'installation refuse un plugin qui donne à un autre.
 - Préfixer ses tables de son nom évite qu'elles croisent celles d'un autre plugin.
 
-Son `install.sh` lance l'installation commune, avec le Python du venv de MachinCast :
+Ses tables sont créées par MachinCast, jamais par le plugin lui-même : à la validation des « Paramètres du service… » qui l'activent, Machin interface lance son `install.sh`, avec `--backups` et `--config`, sans terminal ; sans `install.sh`, l'installation commune ([#587](https://github.com/dascritch/machincast/issues/587)).
+Inutile de déclarer ses propres tables dans `requires.tables` : tant que ses migrations ne sont pas appliquées, chaque binaire l'écarte, et dit comment l'installer.
+
+Son `install.sh` lance l'installation commune, avec le Python du venv de MachinCast, `MACHINCAST_PYTHON` quand l'interface le lance ; il peut faire d'autres préparatifs avant :
 
 ```bash
 #!/usr/bin/env bash

@@ -262,8 +262,11 @@ def requires_table(plugin: Path, name: str, table: str) -> None:
 	(plugin / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
-@when(parsers.parse("MachinCast vérifie si « {name} » peut être activé"), target_fixture="reasons")
-def check_availability(configuration: Configuration, plugin_directory: Path, name: str) -> list[str]:
+@when(
+	parsers.re(r"(?P<who>MachinCast|l'onglet « Plugins ») vérifie si « (?P<name>[^»]+) » peut être activé"),
+	target_fixture="reasons",
+)
+def check_availability(configuration: Configuration, plugin_directory: Path, who: str, name: str) -> list[str]:
 	found = plugins.discover(plugin_directory)
 	manifests = {}
 	for each in found:
@@ -273,7 +276,7 @@ def check_availability(configuration: Configuration, plugin_directory: Path, nam
 	for each in found:
 		if each.name == name:
 			chosen.append(each)
-	return plugins.availability(chosen[0], manifests, configuration, "Machin_player")
+	return plugins.availability(chosen[0], manifests, configuration, "Machin_player", installing=who != "MachinCast")
 
 
 @then(parsers.parse("il ne peut pas l'être, parce que « {reason} »"))

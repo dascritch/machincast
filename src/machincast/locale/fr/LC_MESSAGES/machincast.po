@@ -5012,6 +5012,29 @@ msgid "This plugin brings no settings here."
 msgstr "Ce plugin n'apporte pas de réglages ici."
 
 #: machincast/interface/plugins_page.py
+msgid ""
+"Its tables will be created when the settings are validated, after a backup "
+"of the database."
+msgstr ""
+"Ses tables seront créées à la validation des paramètres, après une "
+"sauvegarde de la base."
+
+#: machincast/interface/plugins_page.py
+#, python-brace-format
+msgid "Installation of the plugins: {names}…"
+msgstr "Installation des plugins : {names}…"
+
+#: machincast/interface/plugins_page.py
+#, python-brace-format
+msgid "plugin “{name}” installed"
+msgstr "plugin « {name} » installé"
+
+#: machincast/interface/plugins_page.py
+#, python-brace-format
+msgid "installation of the plugin “{name}” failed, code {code}: {output}"
+msgstr "installation du plugin « {name} » en échec, code {code} : {output}"
+
+#: machincast/interface/plugins_page.py
 msgid "Plugin"
 msgstr "Plugin"
 
@@ -7965,6 +7988,15 @@ msgstr ""
 #: machincast/plugins/__init__.py
 msgid "its check.py returns a list of reasons"
 msgstr "son check.py rend une liste de raisons"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
+msgid ""
+"its tables are not created: enable it in the settings of the broadcast "
+"service of Machin interface, which installs it, or run {script}"
+msgstr ""
+"ses tables ne sont pas créées : activez-le dans les paramètres du service "
+"de Machin interface, qui l'installe, ou lancez {script}"
 
 #: machincast/plugins/__init__.py
 #, python-brace-format
