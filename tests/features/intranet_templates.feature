@@ -17,7 +17,7 @@ Fonctionnalité: Les gabarits Jinja2 de l'intranet, surchargeables par un plugin
 		Et l'API de l'intranet sur la base de test, à « 2026-11-20 10:00:00 »
 
 	Scénario: Sans plugin, l'intranet a ses propres gabarits
-		Alors les gabarits de l'intranet sont « banner », « calendar », « documentation », « forbidden », « home », « layout », « live », « login », « page », « validation »
+		Alors les gabarits de l'intranet sont « agenda », « banner », « calendar », « documentation », « forbidden », « home », « layout », « live », « login », « page », « validation »
 		Quand je demande à l'API « GET /documentation », avec le jeton « jeton-de-regie »
 		Alors la page contient « <h1>Documentation</h1> »
 

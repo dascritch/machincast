@@ -24,12 +24,14 @@ import logging
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import date
 from html import escape
 from pathlib import Path
 from typing import Any
 
+from machincast.clock import SystemClock
 from machincast.i18n import _
-from machincast.intranet import live, rendering, template
+from machincast.intranet import agenda, live, rendering, template
 from machincast.intranet.api import answer, error
 from machincast.intranet.app import Request, Response, Route, redirect
 from machincast.intranet.portal import Connect, Portal
@@ -77,6 +79,12 @@ class Tools:
 	async def state(self) -> dict[str, Any]:
 		"""Le dernier état publié par Machin player."""
 		return await asyncio.to_thread(live.read_state, self.state_socket)
+
+	async def agenda(self, first: date) -> list[dict[str, Any]]:
+		"""L'agenda de la semaine de first, une seule couche d'événements à venir, à reprendre à un autre usage ;
+		machincast.intranet.agenda.render l'écrit en grille horaire (https://github.com/dascritch/machincast/issues/599)."""
+		now = SystemClock().now()
+		return await self.database(lambda connection: agenda.week(connection, first, now))
 
 	def render(self, template_: str, /, **context: Any) -> str:
 		"""Un gabarit Jinja2, celui du plugin, dans son templates/, ou un de l'intranet

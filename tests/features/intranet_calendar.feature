@@ -61,49 +61,57 @@ Fonctionnalité: Calendrier de l'intranet, en API, en hCalendar et en page, et l
 		Et la grille a pour jours « lundi 16/11 », « mardi 17/11 », « mercredi 18/11 », « jeudi 19/11 », « vendredi 20/11 », « samedi 21/11 », « dimanche 22/11 »
 		Et la grille a pour heures « 00:00 » à « 23:00 », et s'ouvre à 07:00
 		Et le « vendredi 20/11 » est aujourd'hui, l'heure actuelle à 10:00
-		Et la bande de la journée entière du « mercredi 18/11 » montre « Fil de jour »
-		Et la bande de la journée entière du « jeudi 19/11 » montre « Fil de jour »
-		Et les heures du « mercredi 18/11 » montrent « Matinale », « Spécial », « Chronique »
-		Et les heures du « jeudi 19/11 » ne montrent rien
 		Et la page n'a aucun attribut style
 
-	Scénario: Dans la grille, les blocs qui se chevauchent sont côte à côte, pleins là où ils sont à l'antenne
-		Quand je demande à l'API « GET /calendar?week=2026-11-18 »
-		Alors les heures du « mercredi 18/11 » ont pour blocs :
-			| nom       | priorité | heures        | colonne | à l'antenne                  | estompé |
-			| Matinale  | show     | 07:00 – 09:00 | 1 sur 3 | 07:00 – 07:30, 08:30 – 09:00 | non     |
-			| Spécial   | special  | 07:30 – 08:30 | 2 sur 3 | 07:30 – 08:30                | non     |
-			| Chronique | show     | 07:45 – 08:00 | 3 sur 3 | —                            | oui     |
-		Et le bloc « Matinale » du « mercredi 18/11 » dit :
-			"""
-			Matinale — émission
-			07:00 – 09:00
-			Joue de 07:00 à 07:30 et de 08:30 à 09:00 ; masqué le reste du temps par un autre événement
-			"""
-		Et le bloc « Chronique » du « mercredi 18/11 » dit :
-			"""
-			Chronique — émission
-			07:45 – 08:00
-			Masqué en entier par un autre événement
-			"""
-		Et le bloc « Fil de jour » de la bande du « mercredi 18/11 » est à l'antenne de 00:00 à 07:00, et de 09:00 à 24:00
+	# ─── L'agenda : une seule couche d'événements à venir (https://github.com/dascritch/machincast/issues/599) ───
 
-	Scénario: Dans la grille, une session sautée est hachurée, et ne cache rien
+	Scénario: L'agenda ne montre que ce qui passera à l'antenne, une seule couche, en morceaux
+		Étant donné les événements :
+			| name      | public_name | priority | starts_at        | ends_at          | days |
+			| Journal   |             | show     | 2026-11-23 07:00 | 2026-11-23 09:00 |      |
+			| Flash     |             | special  | 2026-11-23 07:30 | 2026-11-23 08:30 |      |
+			| Revue     |             | show     | 2026-11-23 07:45 | 2026-11-23 08:00 |      |
+			| Nuit      |             | show     | 2026-11-24 22:00 |                  |      |
+		Et l'événement de secours « Attente »
+		Quand je demande à l'API « GET /calendar?week=2026-11-23 »
+		Alors les heures du « lundi 23/11 » ont pour blocs :
+			| nom     | priorité | heures        | colonne | à l'antenne   | estompé |
+			| Journal | show     | 07:00 – 07:30 | 1 sur 1 | 07:00 – 07:30 | non     |
+			| Flash   | special  | 07:30 – 08:30 | 1 sur 1 | 07:30 – 08:30 | non     |
+			| Journal | show     | 08:30 – 09:00 | 1 sur 1 | 08:30 – 09:00 | non     |
+		Et les heures du « mardi 24/11 » ne montrent rien
+		Et la bande de la journée entière du « lundi 23/11 » ne montre rien
+
+	Scénario: L'agenda ne montre pas ce qui est passé, mais montre l'en cours
+		Étant donné les événements :
+			| name     | public_name | priority | starts_at        | ends_at          | days |
+			| Réveil   |             | show     | 2026-11-20 06:00 | 2026-11-20 08:00 |      |
+			| Débat    |             | show     | 2026-11-20 09:30 | 2026-11-20 11:00 |      |
+			| Soirée   |             | show     | 2026-11-20 20:00 | 2026-11-20 22:00 |      |
+		Quand je demande à l'API « GET /calendar?week=2026-11-20 »
+		Alors les heures du « vendredi 20/11 » montrent « Débat », « Soirée »
+		Et les heures du « mercredi 18/11 » ne montrent rien
+
+	Scénario: Une session sautée n'est pas dans l'agenda
 		Étant donné les événements :
 			| name     | public_name | priority | starts_at        | ends_at          | days                                     |
-			| Magazine |             | show     | 2026-11-16 18:00 | 2026-11-16 19:00 | monday,tuesday,wednesday,thursday,friday |
-		Et la session du 2026-11-18 de l'événement « Magazine » est sautée
-		Quand je demande à l'API « GET /calendar?week=2026-11-18 »
-		Alors les heures du « mercredi 18/11 » ont pour blocs :
-			| nom       | priorité | heures        | colonne | à l'antenne                  | estompé |
-			| Matinale  | show     | 07:00 – 09:00 | 1 sur 3 | 07:00 – 07:30, 08:30 – 09:00 | non     |
-			| Spécial   | special  | 07:30 – 08:30 | 2 sur 3 | 07:30 – 08:30                | non     |
-			| Chronique | show     | 07:45 – 08:00 | 3 sur 3 | —                            | oui     |
-			| Magazine  | show     | 18:00 – 19:00 | 1 sur 1 | —                            | hachuré |
-		Et les heures du « jeudi 19/11 » ont pour blocs :
-			| nom      | priorité | heures        | colonne | à l'antenne   | estompé |
-			| Magazine | show     | 18:00 – 19:00 | 1 sur 1 | 18:00 – 19:00 | non     |
-		Et le bloc « Fil de jour » de la bande du « mercredi 18/11 » est à l'antenne de 00:00 à 07:00, et de 09:00 à 24:00
+			| Magazine |             | show     | 2026-11-23 18:00 | 2026-11-23 19:00 | monday,tuesday,wednesday,thursday,friday |
+		Et la session du 2026-11-24 de l'événement « Magazine » est sautée
+		Quand je demande à l'API « GET /calendar?week=2026-11-23 »
+		Alors les heures du « lundi 23/11 » montrent « Magazine »
+		Et les heures du « mardi 24/11 » ne montrent rien
+		Et les heures du « mercredi 25/11 » montrent « Magazine »
+
+	Scénario: L'API garde le calendrier entier, toutes les couches, passées comme à venir
+		Quand je demande à l'API « GET /api/v1/calendar?from=2026-11-18&to=2026-11-19 »
+		Alors l'API répond 200, avec le calendrier du « 2026-11-18 » au « 2026-11-19 » : « Fil de jour », « Matinale », « Spécial », « Chronique »
+
+	Scénario: Un plugin reprend l'agenda à un autre usage
+		Étant donné les événements :
+			| name    | public_name | priority | starts_at        | ends_at          | days |
+			| Journal |             | show     | 2026-11-23 07:00 | 2026-11-23 09:00 |      |
+		Alors l'agenda de la semaine du « 2026-11-23 », pour un plugin, est « Journal » de « 2026-11-23 07:00 » à « 2026-11-23 09:00 »
+		Et son HTML est une section « agenda », en grille horaire
 
 	Scénario: La page de la documentation mène au guide de l'antenne et à la spécification de l'intranet, à la version installée
 		Quand je demande à l'API « GET /documentation »

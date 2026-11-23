@@ -2112,14 +2112,16 @@ Le calendrier vient de la grille (`shared.grid.plan`), comme celui de l'interfac
 Il donne aussi les occurrences qu'un événement de priorité plus haute couvre, comme une émission sous un spécial.
 
 - Chaque occurrence a `id`, `name`, `priority`, `start` et `end`, ses heures dessinées, et `on_air`, les moments où elle serait à l'antenne.
-- `covered` : couverte entièrement par d'autres, `on_air` vide ; `skipped` : une session sautée, qui ne joue rien ; `deleted` : d'un événement supprimé.
+- `covered` : couverte entièrement par d'autres, `on_air` vide ; `skipped` : une session sautée, qui ne joue rien ; `deleted` : d'un événement supprimé ; `defined` : à l'horaire défini, ni un fil musical permanent, ni une occurrence sans fin, ni un secours ([#599](https://github.com/dascritch/machincast/issues/599)).
 - En HTML hCalendar, chaque occurrence est un `vevent` (et `h-event`) : son nom en `summary`, ses heures en `dtstart` et `dtend`, sa priorité en `category`.
 - La page `/calendar` montre une semaine en grille horaire, comme le calendrier de l'interface ([#580](https://github.com/dascritch/machincast/issues/580), `machincast.intranet.hour_grid`) : une colonne par jour, du lundi au dimanche, de 0 h à 24 h, les heures à gauche ; aujourd'hui en gras, l'heure actuelle d'un trait rouge.
   La grille montre 12 heures dans sa hauteur, défile, et s'ouvre à 07:00.
   `?week=<un jour de la semaine>` choisit la semaine ; la page mène à la précédente, à celle d'aujourd'hui et à la suivante.
-- Chaque occurrence y est un bloc à ses heures de chaque jour qu'elle touche, de la couleur de sa priorité, comme dans l'interface : pleine où elle est à l'antenne, estompée où un autre événement la couvre, hachurée pour une session sautée ; une occurrence couverte ou sautée a son nom barré.
-  Deux blocs qui se chevauchent se placent côte à côte, de la même façon que dans l'interface (`shared.side_by_side`).
-  Une occurrence de 24 heures ou plus, dont le fil musical permanent, va dans la bande de la journée entière, sous le nom des jours.
+- La page montre l'**agenda** ([#599](https://github.com/dascritch/machincast/issues/599), `machincast.intranet.agenda`) : une seule couche, ce qui passera à l'antenne ; l'API, elle, garde le calendrier entier.
+  Seules les occurrences à l'horaire défini (`defined`) y sont, sans session sautée ni événement supprimé, et seulement aux moments où elles sont à l'antenne : une émission qu'une spéciale remplace n'apparaît pas ; celle qu'une spéciale coupe apparaît avant et après elle, en deux blocs.
+  Seul ce qui finit après maintenant y est : l'en cours et l'à venir.
+  Chaque morceau est un bloc à ses heures, de la couleur de sa priorité, comme dans l'interface ; les morceaux ne se chevauchent jamais.
+- L'agenda est un élément réutilisable : `agenda.items` et `agenda.week` donnent ses morceaux, `agenda.render` son HTML (`agenda.html.jinja`, une `<section class="agenda">` en grille horaire), que la page inclut ; un plugin le reprend à un autre usage, un export en PDF par exemple, par `Tools.agenda`.
   Le survol d'un bloc donne son nom, sa priorité, ses heures et ce qui en joue.
 - La grille est en SVG, sans script ni attribut `style`, que la Content-Security-Policy refuse : chaque bloc se place par les attributs de son SVG, et son texte reste en hCalendar.
   Le script ne fait que l'ouvrir à 07:00 ; sans lui, elle s'ouvre à 0 h.

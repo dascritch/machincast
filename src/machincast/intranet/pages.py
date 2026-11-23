@@ -24,7 +24,7 @@ from machincast.i18n import _
 
 # Sans Qt : machincast.interface.version ne lit que git, pour situer l'installation.
 from machincast.interface import version
-from machincast.intranet import calendar, home, hour_grid, live, rendering, template
+from machincast.intranet import agenda, calendar, home, live, rendering, template
 from machincast.intranet.app import Request, Response, Route, redirect
 from machincast.intranet.portal import Connect, Portal
 from machincast.intranet.queries import Connection
@@ -48,8 +48,9 @@ def specification(address: str) -> str:
 
 
 def week_context(found: list[dict[str, Any]], first: date, now: datetime) -> dict[str, Any]:
-	"""Ce que calendar.html.jinja montre : la semaine de first en grille horaire, telle qu'elle est à now, et les liens
-	vers la précédente, celle d'aujourd'hui et la suivante."""
+	"""Ce que calendar.html.jinja montre : l'agenda de la semaine de first, une seule couche d'événements à venir, en
+	grille horaire, tel qu'il est à now (machincast.intranet.agenda, https://github.com/dascritch/machincast/issues/599),
+	et les liens vers la semaine précédente, celle d'aujourd'hui et la suivante."""
 	last = first + timedelta(days=calendar.WEEK - 1)
 	return {
 		"week_title": _("Week from {first} to {last}").format(
@@ -57,7 +58,7 @@ def week_context(found: list[dict[str, Any]], first: date, now: datetime) -> dic
 		),
 		"before": (first - timedelta(days=calendar.WEEK)).isoformat(),
 		"after": (first + timedelta(days=calendar.WEEK)).isoformat(),
-		"grid": rendering.html(hour_grid.week(found, first, now)),
+		"agenda": rendering.html(agenda.render(agenda.items(found, now), first, now)),
 	}
 
 

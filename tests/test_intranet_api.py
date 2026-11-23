@@ -11,7 +11,7 @@ import json
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,7 @@ from machincast.clock import FixedClock
 from machincast.configuration import PROJECT_DIRECTORY
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
-from machincast.intranet import home, sessions
+from machincast.intranet import agenda, home, sessions
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet
 from machincast.intranet.pages import Pages
@@ -548,13 +548,29 @@ def _share(inside: str, name: str, axis: str, length: str) -> list[tuple[float, 
 	return shares
 
 
-def _blocks(inside: str) -> dict[str, re.Match[str]]:
-	found = {}
+def _blocks(inside: str) -> list[tuple[str, re.Match[str]]]:
+	"""Les blocs, dans l'ordre, avec leur nom : un événement coupé par un autre en a plusieurs
+	(https://github.com/dascritch/machincast/issues/599)."""
+	found = []
 	for block in BLOCK.finditer(inside):
 		names = SUMMARY.findall(block["inside"])
 		assert len(names) == 1, block["inside"]
-		found[html.unescape(names[0])] = block
+		found.append((html.unescape(names[0]), block))
 	return found
+
+
+def _names(found: list[tuple[str, re.Match[str]]]) -> list[str]:
+	names = []
+	for name, _block in found:
+		names.append(name)
+	return names
+
+
+def _named(found: list[tuple[str, re.Match[str]]], wanted: str) -> re.Match[str]:
+	for name, block in found:
+		if name == wanted:
+			return block
+	raise AssertionError(wanted)
 
 
 @then(parsers.re(r"la grille a pour jours (?P<names>.+)"))
@@ -587,17 +603,17 @@ def today(api: Api, day: str, moment: str) -> None:
 
 @then(parsers.re(r"la bande de la journée entière du « (?P<day>[^»]+) » montre (?P<names>.+)"))
 def band_shows(api: Api, day: str, names: str) -> None:
-	assert list(_blocks(_group(api, "bande", day))) == NAME.findall(names)
+	assert _names(_blocks(_group(api, "bande", day))) == NAME.findall(names)
 
 
 @then(parsers.re(r"les heures du « (?P<day>[^»]+) » montrent (?P<names>.+)"))
 def hours_show(api: Api, day: str, names: str) -> None:
-	assert list(_blocks(_group(api, "jour", day))) == NAME.findall(names)
+	assert _names(_blocks(_group(api, "jour", day))) == NAME.findall(names)
 
 
 @then(parsers.parse("les heures du « {day} » ne montrent rien"))
 def hours_empty(api: Api, day: str) -> None:
-	assert _blocks(_group(api, "jour", day)) == {}
+	assert _blocks(_group(api, "jour", day)) == []
 
 
 @then("la page n'a aucun attribut style")
@@ -621,14 +637,13 @@ def day_blocks(api: Api, day: str, datatable: list[list[str]]) -> None:
 	names = []
 	for row in rows:
 		names.append(row[0].strip())
-	assert list(found) == names
-	for row in rows:
+	assert _names(found) == names
+	for row, (_name, block) in zip(rows, found, strict=True):
 		cells = []
 		for cell in row:
 			cells.append(cell.strip())
 		expected = dict(zip(headers, cells, strict=True))
 		name = expected.pop("nom")
-		block = found[name]
 		width = float(block["width"])
 		count = round(100 / 7 / width)
 		column = round((float(block["x"]) - index * 100 / 7) / width) + 1
@@ -648,7 +663,7 @@ def day_blocks(api: Api, day: str, datatable: list[list[str]]) -> None:
 
 @then(parsers.parse("le bloc « {name} » du « {day} » dit :"))
 def block_says(api: Api, name: str, day: str, docstring: str) -> None:
-	inside = _blocks(_group(api, "jour", day))[name]["inside"]
+	inside = _named(_blocks(_group(api, "jour", day)), name)["inside"]
 	title = re.search(r'<div class="vevent[^"]*" title="(?P<title>[^"]*)"', inside)
 	assert title is not None
 	assert html.unescape(title["title"]) == docstring
@@ -656,7 +671,7 @@ def block_says(api: Api, name: str, day: str, docstring: str) -> None:
 
 @then(parsers.re(r"le bloc « (?P<name>[^»]+) » de la bande du « (?P<day>[^»]+) » est à l'antenne (?P<moments>de .+)"))
 def band_on_air(api: Api, name: str, day: str, moments: str) -> None:
-	inside = _blocks(_group(api, "bande", day))[name]["inside"]
+	inside = _named(_blocks(_group(api, "bande", day)), name)["inside"]
 	found = []
 	for left, right in _share(inside, name, "x", "width"):
 		found.append((_clock(left * MINUTES), _clock(right * MINUTES)))
@@ -726,3 +741,37 @@ def served_icon(api: Api, name: str) -> None:
 @then("l'icône servie est celle de MachinCast")
 def default_icon(api: Api) -> None:
 	assert _answer(api).body == ICON.read_bytes()
+
+
+# ─── L'agenda (https://github.com/dascritch/machincast/issues/599) ───
+
+
+@then(parsers.parse("la bande de la journée entière du « {day} » ne montre rien"))
+def band_empty(api: Api, day: str) -> None:
+	assert _blocks(_group(api, "bande", day)) == []
+
+
+@given(parsers.parse("l'événement de secours « {name} »"))
+def fallback_event(empty_database: Connection, name: str) -> None:
+	empty_database.execute("INSERT INTO events (internal_name, priority) VALUES (%s, 'fallback')", (name,))
+
+
+@then(
+	parsers.parse("l'agenda de la semaine du « {first} », pour un plugin, est « {name} » de « {start} » à « {end} »"),
+	target_fixture="layer",
+)
+def plugin_agenda(api: Api, first: str, name: str, start: str, end: str) -> list[dict[str, Any]]:
+	with connect() as connection:
+		layer = agenda.week(connection, date.fromisoformat(first), api.now)
+	found = []
+	for item in layer:
+		found.append((item["name"], item["start"].isoformat(sep=" ")[:16], item["end"].isoformat(sep=" ")[:16]))
+	assert found == [(name, start, end)]
+	return layer
+
+
+@then(parsers.parse("son HTML est une section « {name} », en grille horaire"))
+def agenda_html(api: Api, layer: list[dict[str, Any]], name: str) -> None:
+	text = agenda.render(layer, date(2026, 11, 23), api.now)
+	assert text.startswith(f'<section class="{name}">'), text
+	assert '<div class="calendrier">' in text
