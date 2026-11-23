@@ -113,6 +113,45 @@ Un point est appelé de deux façons (`machincast.plugins.points`) :
 L'exception d'un abonné est consignée au journal, avec le plugin et le point ; elle n'arrête ni le binaire ni les autres plugins.
 Un abonnement à un point que personne ne déclare est refusé : c'est une faute de frappe, ou un plugin demandé qui manque.
 
+## Ses tables et son install.sh
+
+([#586](https://github.com/dascritch/machincast/issues/586), `machincast.plugins.schema`)
+
+Les tables d'un plugin viennent de ses migrations, dans `migrations/`, au format de celles du cœur ([règles de la base](../regles/base-de-donnees.md#migrations)) : `<nom>.NNNN.<sujet>.sql` et son annulation `<nom>.NNNN.<sujet>.rollback.sql`.
+Préfixés du nom du plugin, leurs identifiants ne croisent jamais ceux du cœur ni ceux d'un autre plugin.
+
+```sql
+-- plugins/horloge/migrations/horloge.0001.sonneries.sql
+CREATE TABLE horloge_sonneries (
+	id bigserial PRIMARY KEY,
+	sound_id bigint REFERENCES sounds (id) ON DELETE CASCADE,
+	ring text NOT NULL
+);
+GRANT SELECT ON horloge_sonneries TO machincast_player;
+```
+
+- Une table d'un plugin peut désigner celles du cœur ; jamais l'inverse : le cœur ignore ses plugins.
+	Une clé étrangère vers le cœur cascade (`ON DELETE CASCADE`) ou se met à `NULL`, pour que la suppression d'un élément du cœur ne dépende jamais d'un plugin.
+- Ses `GRANT` ne donnent qu'aux rôles des binaires où il s'accroche (`machincast_player` pour `Machin_player`…) : l'installation refuse un plugin qui donne à un autre.
+- Préfixer ses tables de son nom évite qu'elles croisent celles d'un autre plugin.
+
+Son `install.sh` lance l'installation commune, avec le Python du venv de MachinCast :
+
+```bash
+#!/usr/bin/env bash
+# Installe ou met à jour le plugin (sans option), le désinstalle (--remove), ou dit ce qui serait fait (--simulation).
+set -euo pipefail
+plugin="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "${MACHINCAST_PYTHON:-${plugin}/../../.venv/bin/python}" -m machincast.plugins.installation "${plugin}" "$@"
+```
+
+- Sans option, il applique les migrations qui manquent, sur la base de production, après une sauvegarde (`pg_dump`, comme `Machin maintenance-db`) ; rien s'il n'y a rien à faire.
+- `--remove` annule ses migrations, après une sauvegarde : ses tables partent, aucune table du cœur ni d'un autre plugin n'est touchée.
+- `--simulation` dit ce qui serait fait, sans rien faire.
+- Des migrations mal nommées, sans annulation, ou qui donnent au mauvais rôle, refusent l'installation (code 2), sans sauvegarde ni changement ; une sauvegarde ou une base en échec, code 1.
+
+`Machin maintenance-db` applique aussi les migrations qui manquent aux plugins activés, après celles du cœur.
+
 ## Le tester
 
 Les tests d'un plugin sont dans son `tests/`, à part de ceux de MachinCast.

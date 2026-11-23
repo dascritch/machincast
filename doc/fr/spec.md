@@ -2130,3 +2130,14 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 	Un point **demandé** rend la réponse de chaque abonné, dans l'ordre de chargement des plugins.
 	L'exception d'un abonné est consignée avec le plugin et le point, et n'arrête ni l'appelant ni les autres abonnés.
 - **Tests** : ceux d'un plugin sont dans son `tests/` ; `Machin dev-test` lance, après ceux du cœur, un `mypy --strict` et un `pytest` par plugin qui a des tests ; avec `--scenarios`, seulement pour le nom `plugins`, qui lance aussi `plugins.feature`.
+
+### 14.2 Le schéma d'un plugin et son installation
+
+([#586](https://github.com/dascritch/machincast/issues/586), `machincast.plugins.schema`, `machincast.plugins.installation`)
+
+- Les migrations d'un plugin sont dans son `migrations/`, au format yoyo du cœur, préfixées de son nom : `<nom>.NNNN.<sujet>.sql` et son annulation `.rollback.sql` ; leurs identifiants ne croisent jamais ceux du cœur dans `_yoyo_migration`, ni ceux d'un autre plugin.
+- Une table d'un plugin ne désigne que celles du cœur, jamais l'inverse ; ses `GRANT` ne donnent qu'aux rôles des binaires où il s'accroche (`plugins.ROLES`), sinon l'installation est refusée.
+- `plugins/<nom>/install.sh` lance `python -m machincast.plugins.installation <répertoire>` : sans option, il applique ses migrations qui manquent, sur la base de production, après une sauvegarde (`maintenance.back_up`) ; `--remove` les annule, après une sauvegarde, sans toucher aux tables du cœur ni aux fichiers ; `--simulation` dit ce qui serait fait.
+	Un manifest invalide, des migrations mal nommées, sans annulation ou qui donnent au mauvais rôle : code 2, rien n'est fait ; une sauvegarde ou une base en échec : code 1.
+- `Machin maintenance-db` applique aussi, après celles du cœur, les migrations qui manquent aux plugins activés, dans l'ordre de `[plugins] enabled` (`maintenance.update_plugins`).
+- Les scénarios du cœur ne comptent que ses migrations à lui, qui commencent par un chiffre (`database_fixtures.purge_database`).

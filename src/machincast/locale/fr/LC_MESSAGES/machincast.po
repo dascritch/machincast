@@ -171,6 +171,7 @@ msgstr "réimportation faite"
 
 #: machincast/backup.py
 #: machincast/maintenance.py
+#: machincast/plugins/installation.py
 msgid ""
 "directory of the backup; by default backup.directory of the configuration"
 msgstr ""
@@ -235,6 +236,7 @@ msgstr "base de données injoignable ({production}) : {error}"
 #: machincast/interface/__main__.py
 #: machincast/maintenance.py
 #: machincast/player/__main__.py
+#: machincast/plugins/installation.py
 #, python-brace-format
 msgid "database error: {error}"
 msgstr "erreur de base de données : {error}"
@@ -6951,13 +6953,6 @@ msgstr "sauvegarde faite : {size} Mo"
 
 #: machincast/maintenance.py
 #, python-brace-format
-msgid "schema of database {production}: {count} migration applied"
-msgid_plural "schema of database {production}: {count} migrations applied"
-msgstr[0] "schéma de la base {production} : {count} migration appliquée"
-msgstr[1] "schéma de la base {production} : {count} migrations appliquées"
-
-#: machincast/maintenance.py
-#, python-brace-format
 msgid "database {name} optimised (VACUUM ANALYZE)"
 msgstr "base {name} optimisée (VACUUM ANALYZE)"
 
@@ -6978,6 +6973,21 @@ msgstr "{file} existe déjà, relancer dans une seconde"
 #, python-brace-format
 msgid "schema of database {production} up to date"
 msgstr "schéma de la base {production} à jour"
+
+#: machincast/maintenance.py
+#, python-brace-format
+msgid "schema of database {production}: {count} migration applied"
+msgid_plural "schema of database {production}: {count} migrations applied"
+msgstr[0] "schéma de la base {production} : {count} migration appliquée"
+msgstr[1] "schéma de la base {production} : {count} migrations appliquées"
+
+#: machincast/maintenance.py
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "plugin “{name}”: {count} migration applied"
+msgid_plural "plugin “{name}”: {count} migrations applied"
+msgstr[0] "plugin « {name} » : {count} migration appliquée"
+msgstr[1] "plugin « {name} » : {count} migrations appliquées"
 
 #: machincast/maintenance.py
 #, python-brace-format
@@ -7002,6 +7012,12 @@ msgstr "rôles {list} endossables par le compte"
 msgid "backup impossible: {error}; maintenance stopped, nothing was changed"
 msgstr ""
 "sauvegarde impossible : {error} ; maintenance arrêtée, rien n'a été modifié"
+
+#: machincast/maintenance.py
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "plugin “{name}”: {problem}"
+msgstr "plugin « {name} » : {problem}"
 
 #: machincast/notes.py
 msgid ""
@@ -7886,6 +7902,62 @@ msgstr "le plugin « {name} » n'a pas pu se charger : {error}"
 msgid "no such plugin in {directory}"
 msgstr "aucun plugin de ce nom dans {directory}"
 
+#: machincast/plugins/installation.py
+msgid ""
+"Installs, updates or removes a plugin: its tables, after a backup of the "
+"database"
+msgstr ""
+"Installe, met à jour ou désinstalle un plugin : ses tables, après une "
+"sauvegarde de la base"
+
+#: machincast/plugins/installation.py
+msgid "application of"
+msgstr "application de"
+
+#: machincast/plugins/installation.py
+msgid "cancellation of"
+msgstr "annulation de"
+
+#: machincast/plugins/installation.py
+msgid "directory of the plugin, in plugins/"
+msgstr "répertoire du plugin, dans plugins/"
+
+#: machincast/plugins/installation.py
+msgid "cancels its migrations, after a backup"
+msgstr "annule ses migrations, après une sauvegarde"
+
+#: machincast/plugins/installation.py
+msgid "says what would be done, without doing it"
+msgstr "dit ce qui serait fait, sans le faire"
+
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "plugin “{name}”: {count} migration cancelled"
+msgid_plural "plugin “{name}”: {count} migrations cancelled"
+msgstr[0] "plugin « {name} » : {count} migration annulée"
+msgstr[1] "plugin « {name} » : {count} migrations annulées"
+
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "plugin {plugin}: {error}"
+msgstr "plugin {plugin} : {error}"
+
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "plugin “{name}”: nothing to do"
+msgstr "plugin « {name} » : rien à faire"
+
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "plugin “{name}”, simulation: backup, then {action} {migrations}"
+msgstr ""
+"plugin « {name} », simulation : sauvegarde, puis {action} {migrations}"
+
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "backup impossible: {error}; nothing was changed"
+msgstr "sauvegarde impossible : {error} ; rien n'a été modifié"
+
 #: machincast/plugins/manifest.py
 msgid "requires: an object is expected"
 msgstr "requires : un objet est attendu"
@@ -8020,6 +8092,25 @@ msgstr ""
 #, python-brace-format
 msgid "unknown extension point “{point}”"
 msgstr "point d'extension inconnu « {point} »"
+
+#: machincast/plugins/schema.py
+#, python-brace-format
+msgid "migration {file}: its name starts with “{name}.”"
+msgstr "migration {file} : son nom commence par « {name}. »"
+
+#: machincast/plugins/schema.py
+#, python-brace-format
+msgid "migration {file}: its cancellation {rollback} is missing"
+msgstr "migration {file} : son annulation {rollback} manque"
+
+#: machincast/plugins/schema.py
+#, python-brace-format
+msgid ""
+"migration {file}: it grants rights to {role}, the role of a binary it does "
+"not hook into"
+msgstr ""
+"migration {file} : elle donne des droits à {role}, le rôle d'un binaire où "
+"il ne s'accroche pas"
 
 #: machincast/power_save.py
 msgid "sound cards always awake"

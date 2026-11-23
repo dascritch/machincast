@@ -103,7 +103,9 @@ def purge_database(connection: psycopg.Connection[tuple[object, ...]]) -> None:
 	Entre deux scénarios (https://github.com/dascritch/machincast/issues/280), yoyo ne repasse que si une migration
 	manque, après un scénario qui en a annulé : compter celles qu'il a appliquées suffit sinon. Les tables, presque
 	vides, se vident par DELETE : dix fois plus vite qu'un TRUNCATE, qui recrée leurs fichiers."""
-	applied = connection.execute("SELECT count(*) FROM _yoyo_migration").fetchone()
+	# Celles du cœur seulement, qui commencent par un chiffre : un plugin préfixe les siennes de son nom
+	# (https://github.com/dascritch/machincast/issues/586).
+	applied = connection.execute("SELECT count(*) FROM _yoyo_migration WHERE migration_id ~ '^[0-9]'").fetchone()
 	if applied != (migration_count(),):
 		apply_migrations(url_yoyo(*sample_database_parameters()))
 	sequences = connection.execute(

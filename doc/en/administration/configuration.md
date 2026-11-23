@@ -77,6 +77,10 @@ Each program only loads the plugins that concern it, and only if they can be ena
 A plugin set aside is so in the journal of the program (`Machin logs` for the broadcast), with its reasons, for instance `plugin “cartwall” not loaded: the program “ffmpeg” is missing`; the program starts anyway.
 A misspelled plugin name, or one given twice, refuses the configuration (code 2).
 
+A plugin with its own tables is installed first, by its `install.sh` ([#586](https://github.com/dascritch/machincast/issues/586)): `plugins/cartwall/install.sh` creates its tables, after a backup of the database, `--simulation` says what it would do, `--remove` takes them away, always after a backup.
+Neither touches the tables of MachinCast nor the sound files.
+`Machin maintenance-db` also updates the tables of the enabled plugins.
+
 ## Expiry duration
 
 `database.retention` ([#268](https://github.com/dascritch/machincast/issues/268)) is the duration, in whole days, 1 at least, after which [`Machin purge`](commandes.md#database-purge-machin-purge) erases from the database the airplay plays, the rows of the log, and the elements deleted or whose file has disappeared. 60 days by default; a decimal number, a text or 0 are refused (code 2). The interface also sets it, **File → Interface preferences…**, **Database** page, which writes it to the `[database]` section, and the card of a deleted element gives the day it will be erased.
