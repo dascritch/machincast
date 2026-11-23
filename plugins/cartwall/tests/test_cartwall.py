@@ -187,7 +187,7 @@ def application(socket_path: Path, player: FakePlayer, monkeypatch: pytest.Monke
 
 @given(parsers.parse("les boutons de « {user} » retirés"))
 def removed(base: Connection, user: str) -> None:
-	base.execute("DELETE FROM cartwall_buttons WHERE api_user_id = %s", (identifier(base, "api_users", "name", user),))
+	base.execute("DELETE FROM cartwall__buttons WHERE api_user_id = %s", (identifier(base, "api_users", "name", user),))
 
 
 @given(parsers.parse("le sonore à l'antenne vient de la banque « {name} »"))
@@ -201,7 +201,7 @@ def on_air_from(base: Connection, name: str) -> None:
 @given(parsers.parse("le bouton « {label} » de « {user} » insère la banque « {name} »"))
 def inserts(base: Connection, label: str, user: str, name: str) -> None:
 	base.execute(
-		"UPDATE cartwall_buttons SET bank_id = %s WHERE label = %s AND api_user_id = %s",
+		"UPDATE cartwall__buttons SET bank_id = %s WHERE label = %s AND api_user_id = %s",
 		(identifier(base, "banks", "internal_name", name), label, identifier(base, "api_users", "name", user)),
 	)
 
@@ -328,7 +328,7 @@ def _press(api: Api, body: str, token: str) -> None:
 def press(api: Api, base: Connection, label: str, user: str | None, token: str) -> None:
 	owner = (user) or ("regie")
 	line = base.execute(
-		"SELECT b.id FROM cartwall_buttons b JOIN api_users u ON u.id = b.api_user_id WHERE b.label = %s AND u.name = %s",
+		"SELECT b.id FROM cartwall__buttons b JOIN api_users u ON u.id = b.api_user_id WHERE b.label = %s AND u.name = %s",
 		(label, owner),
 	).fetchone()
 	assert line is not None

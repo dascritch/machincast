@@ -1,1 +1,1 @@
-DROP TABLE cartwall_buttons;
+DROP TABLE cartwall__buttons;
