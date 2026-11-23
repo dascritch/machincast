@@ -59,6 +59,24 @@ An output impossible to write (folder without write permission, full disk) is re
 
 The interface keeps, for each account, the layout of the columns of each of its tables: their order, the hidden columns and the chosen widths ([#207](https://github.com/dascritch/machincast/issues/207), [Table columns](../utilisateur/listes.md#table-columns)). It is not a setting of the machine: it is not in `machincast.toml`, but in `~/.config/machincast/vues.ini` (or `$XDG_CONFIG_HOME/machincast/vues.ini`), one section per table, such as `[liste-sonores]` or `[fiche-banque-sonores]`. Deleting this file gives all the tables of the account their original layout back; « Reset the columns », in the interface, does it for a single one. A layout kept for other columns, by a previous version of MachinCast, is forgotten.
 
+## Plugins
+
+A plugin adds a function to MachinCast ([#348](https://github.com/dascritch/machincast/issues/348)): it is a directory of `plugins/`, in the MachinCast directory.
+It is enabled in the `[plugins]` section, and its settings, if any, go in its own section ([#585](https://github.com/dascritch/machincast/issues/585)):
+
+```toml
+[plugins]
+enabled = ["cartwall"]
+
+[plugins.cartwall]
+# The settings of the plugin, described by its README.md.
+```
+
+Enabling takes effect when each program starts: restart the broadcast, the indexing, the interface and the intranet server.
+Each program only loads the plugins that concern it, and only if they can be enabled: a version of MachinCast that suits them, the plugins they require, their libraries, their programs and their tables.
+A plugin set aside is so in the journal of the program (`Machin logs` for the broadcast), with its reasons, for instance `plugin “cartwall” not loaded: the program “ffmpeg” is missing`; the program starts anyway.
+A misspelled plugin name, or one given twice, refuses the configuration (code 2).
+
 ## Expiry duration
 
 `database.retention` ([#268](https://github.com/dascritch/machincast/issues/268)) is the duration, in whole days, 1 at least, after which [`Machin purge`](commandes.md#database-purge-machin-purge) erases from the database the airplay plays, the rows of the log, and the elements deleted or whose file has disappeared. 60 days by default; a decimal number, a text or 0 are refused (code 2). The interface also sets it, **File → Interface preferences…**, **Database** page, which writes it to the `[database]` section, and the card of a deleted element gives the day it will be erased.

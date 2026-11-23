@@ -288,3 +288,35 @@ machin_dev() {
 	[ "${status}" -eq 2 ]
 	[[ "${stderr}" == *"dev-screenshots prend au plus un répertoire"* ]]
 }
+
+# ─── Les plugins (https://github.com/dascritch/machincast/issues/585) ───
+
+# Un plugin factice, avec son src/ et ses tests/.
+ecrire_plugin() {
+	mkdir -p "${PROJET}/plugins/$1/src" "${PROJET}/plugins/$1/tests"
+}
+
+@test "Machin dev-test vérifie chaque plugin qui a des tests, à part, après MachinCast" {
+	ecrire_plugin horloge
+	mkdir -p "${PROJET}/plugins/sans-tests/src"
+	run "${MACHIN}" dev-test
+	[ "${status}" -eq 0 ]
+	run cut -d ' ' -f 1,2,3 "${APPELS}"
+	[ "${output}" = "$(printf '%s\n' "ruff [check] [--no-cache]" "ruff [format] [--no-cache]" "mypy [--strict] [src/]" "shellcheck [-x] [install.sh]" "pytest dans ${PROJET}," "mypy [--strict] [plugins/horloge/src]" "pytest [plugins/horloge/tests] dans" "bats [tests/wrapper] dans")" ]
+	run "${MACHIN}" dev-test
+	[[ "${output}" == *"mypy horloge"*"réussi"* ]]
+	[[ "${output}" == *"pytest horloge"*"réussi"* ]]
+}
+
+@test "Machin dev-test --scenarios ne vérifie les plugins que pour le nom plugins" {
+	ecrire_modules
+	ecrire_plugin horloge
+	printf 'scenarios("plugins.feature")\n' >"${PROJET}/tests/test_plugins.py"
+	touch "${PROJET}/tests/features/plugins.feature"
+	run "${MACHIN}" dev-test --scenarios streams
+	run grep -c "plugins/horloge" "${APPELS}"
+	[ "${output}" -eq 0 ]
+	run "${MACHIN}" dev-test --scenarios plugins
+	grep -qF "pytest [tests/test_base.py] [tests/test_language.py] [tests/test_documentation.py] [tests/test_guide.py] [tests/test_plugins.py] " "${APPELS}"
+	grep -qF "pytest [plugins/horloge/tests] " "${APPELS}"
+}

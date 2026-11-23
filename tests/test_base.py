@@ -657,6 +657,7 @@ QUERY_MODULES = (
 	"interface/queries/",
 	"admin_queries.py",
 	"shared/queries.py",
+	"plugins/queries.py",
 	# open_connection endosse le rôle (SET ROLE), avant toute requête.
 	"database.py",
 )

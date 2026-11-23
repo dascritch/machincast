@@ -105,6 +105,9 @@ Development (computer installed by ./install.sh --dev):
                tests/features/streams.feature), with those of the style, the catalogues
                and the documentation; bats runs only for the name wrapper. The full run
                is for the tests and code review ticket.
+               Each plugin of plugins/ with a tests directory gets its own mypy --strict
+               and pytest, after those of MachinCast; with --scenarios, only for the name
+               plugins, which also runs the scenarios of the plugin base.
                With --coverage (before --scenarios), pytest runs under coverage, the code
                started in subprocesses included, and the summary adds the coverage report:
                the percentage of each module, with the lines never run.
@@ -356,6 +359,8 @@ choisir_scenarios() {
 			BATS_DEMANDE=true
 			continue
 		fi
+		# plugins : la fonctionnalité du socle, et les vérifications de chaque plugin.
+		[[ "${nom}" != plugins ]] || PLUGINS_DEMANDES=true
 		module="$(module_de "${nom}")" || erreur_usage "$(tf 'unknown feature: %s' "${nom}")"
 		for deja in "${MODULES[@]}"; do
 			[[ "${deja}" == "${module}" ]] && continue 2
@@ -375,10 +380,26 @@ lancer_pytest_couvert() {
 	verifier_avec "coverage report" venv coverage report
 }
 
+# Les vérifications de chaque plugin qui a des tests (https://github.com/dascritch/machincast/issues/585) : son src/
+# sous mypy --strict, puis ses tests, à part de ceux de MachinCast, qui n'ont pas à être rejoués pour lui.
+verifier_plugins() {
+	local plugin nom
+	shopt -s nullglob
+	for plugin in plugins/*/; do
+		plugin="${plugin%/}"
+		nom="${plugin#plugins/}"
+		[[ -d "${plugin}/tests" ]] || continue
+		[[ ! -d "${plugin}/src" ]] || verifier_avec "mypy ${nom}" venv mypy --strict "${plugin}/src"
+		verifier_avec "pytest ${nom}" venv pytest "${plugin}/tests"
+	done
+	shopt -u nullglob
+}
+
 lancer_dev_test() {
 	local venv scripts ligne liste
 	MODULES=()
 	BATS_DEMANDE=true
+	PLUGINS_DEMANDES=true
 	COUVERTURE=false
 	if (($# > 0)) && [[ "$1" == --coverage ]]; then
 		COUVERTURE=true
@@ -391,7 +412,10 @@ lancer_dev_test() {
 	fi
 	venv="$(exiger_venv)"
 	cd "$(projet)"
-	(($# == 0)) || choisir_scenarios "$@"
+	if (($# > 0)); then
+		PLUGINS_DEMANDES=false
+		choisir_scenarios "$@"
+	fi
 	export VIRTUAL_ENV="${venv}"
 	PATH="${venv}/bin:${PATH}"
 	export PATH
@@ -411,6 +435,7 @@ lancer_dev_test() {
 	else
 		verifier_avec "pytest" venv pytest "${MODULES[@]}"
 	fi
+	! "${PLUGINS_DEMANDES}" || verifier_plugins
 	if "${BATS_DEMANDE}"; then
 		verifier_avec "bats" PATH bats tests/wrapper
 	else
