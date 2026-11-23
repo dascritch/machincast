@@ -162,6 +162,11 @@ fallback = false
 # validation = 30
 # Hours a validated session lasts, from 1 to 720; 12 by default (https://github.com/dascritch/machincast/issues/539).
 # session = 12
+# How a connection by name and password becomes a valid session (https://github.com/dascritch/machincast/issues/600):
+# "desk_code", by default, accepted at the studio desk, then by the 6-digit code it gives; "desk", accepted at the desk,
+# the browser comes in by itself; "none", without validation, refused in production, when the intranet server is
+# installed as a service: it then falls back to "desk_code".
+# first_login = "desk_code"
 # A certificate of the internal certification authority, and its private key, in PEM; a relative path starts from
 # this file. Both, or none.
 # certificate = "tls/intranet.pem"

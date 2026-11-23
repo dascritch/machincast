@@ -15,6 +15,7 @@ from psycopg.rows import TupleRow
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import i18n
+from machincast.configuration import FirstLogin
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
 from machincast.interface.queries import api_users
@@ -43,12 +44,25 @@ def connect() -> psycopg.Connection[TupleRow]:
 	return open_connection(socket, database, Role.INTRANET)
 
 
+def _application(settings: Settings, directory: Path) -> Intranet:
+	portal = Portal(settings, connect)
+	home = Pages(portal, connect, directory / "lecture.sock", "Radio Thune")
+	return Intranet({**portal.routes(), **home.routes()})
+
+
 @given("l'application de l'intranet sur la base de test", target_fixture="visit")
 def application(empty_database: Connection, tmp_path: Path) -> Visit:
 	del empty_database
-	portal = Portal(Settings(enabled=True), connect)
-	home = Pages(portal, connect, tmp_path / "lecture.sock", "Radio Thune")
-	return Visit(Intranet({**portal.routes(), **home.routes()}))
+	return Visit(_application(Settings(enabled=True), tmp_path))
+
+
+FIRST_LOGINS: dict[str, FirstLogin] = {"sans validation": "none", "au pupitre": "desk"}
+"""La sécurité de la première connexion, comme la disent les scénarios (https://github.com/dascritch/machincast/issues/600)."""
+
+
+@given(parsers.parse("la première connexion réglée « {validation} »"))
+def first_login(visit: Visit, tmp_path: Path, validation: str) -> None:
+	visit.application = _application(Settings(enabled=True, first_login=FIRST_LOGINS[validation]), tmp_path)
 
 
 def _keep(visit: Visit, answer: Answer) -> None:
@@ -181,7 +195,8 @@ def enter_grouped_code(visit: Visit, empty_database: Connection) -> None:
 
 
 def _wrong(visit: Visit, empty_database: Connection) -> None:
-	code = str(_row(empty_database)[1])
+	# Sans code (https://github.com/dascritch/machincast/issues/600), n'importe lequel.
+	code = str((_row(empty_database)[1]) or ("000000"))
 	wrong = f"{(int(code) + 1) % 1_000_000:06d}"
 	_keep(visit, call(visit.application, "POST", "/validation", form={"code": wrong}, headers=_cookie(visit)))
 
@@ -287,6 +302,26 @@ def pending_session(empty_database: Connection, name: str, address: str, agent: 
 	assert len(str(code)) == 6
 	assert isinstance(delay, timedelta)
 	assert abs(delay - timedelta(minutes=minutes)) < timedelta(seconds=5)
+
+
+@then(parsers.parse("la base a une session à valider de « {name} », sans code"))
+def pending_without_code(empty_database: Connection, name: str) -> None:
+	state, code, *_rest, user, _identifier = _row(empty_database)
+	assert (state, code, user) == ("pending", None, name)
+
+
+@then("la page se relit d'elle-même, sans demander de code")
+def reloading(visit: Visit) -> None:
+	assert visit.answer is not None
+	body = visit.answer.text()
+	assert '<meta http-equiv="refresh" content="5">' in body, body
+	assert 'name="code"' not in body, body
+
+
+@when("le pupitre refuse la connexion")
+def desk_refuses(empty_database: Connection) -> None:
+	"""Comme « Refuser » dans le bandeau du pupitre, au rôle de l'interface."""
+	api_users.invalidate(empty_database, int(str(_row(empty_database)[8])))
 
 
 @then("la base ne garde que l'empreinte SHA-256 du cookie")

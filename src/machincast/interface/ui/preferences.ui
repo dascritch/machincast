@@ -824,6 +824,23 @@
            </property>
           </widget>
          </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="intranet_first_login_caption">
+           <property name="text">
+            <string>&amp;First connection</string>
+           </property>
+           <property name="buddy">
+            <cstring>intranet_first_login</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="intranet_first_login">
+           <property name="toolTip">
+            <string>How a connection by name and password to the intranet becomes a valid session</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>

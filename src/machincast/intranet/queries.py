@@ -154,15 +154,30 @@ def pending_count(connection: Connection, user: int) -> int:
 
 
 def insert_pending(
-	connection: Connection, user: int, token_hash: str, code: str, client: tuple[str, str | None], minutes: int
+	connection: Connection, user: int, token_hash: str, code: str | None, client: tuple[str, str | None], minutes: int
 ) -> None:
-	"""Une session à valider dans les minutes données : l'empreinte de son jeton, son code, et le navigateur et
-	l'adresse du poste distant."""
+	"""Une session à valider dans les minutes données : l'empreinte de son jeton, son code, aucun quand le pupitre
+	suffit (https://github.com/dascritch/machincast/issues/600), et le navigateur et l'adresse du poste distant."""
 	user_agent, address = client
 	connection.execute(
 		"INSERT INTO api_sessions (user_id, token_hash, code, user_agent, source_ip, validate_before)"
 		" VALUES (%s, %s, %s, %s, %s, clock_timestamp() + make_interval(mins => %s))",
 		(user, token_hash, code, user_agent, address, minutes),
+	)
+
+
+def insert_valid(
+	connection: Connection, user: int, token_hash: str, client: tuple[str, str | None], hours: int
+) -> None:
+	"""Une session valide aussitôt, pour hours heures, sans validation au pupitre
+	(https://github.com/dascritch/machincast/issues/600) : l'empreinte de son jeton, le navigateur et l'adresse du
+	poste distant."""
+	user_agent, address = client
+	connection.execute(
+		"INSERT INTO api_sessions (user_id, token_hash, user_agent, source_ip, state, validated_at, expires_at)"
+		" SELECT %s, %s, %s, %s, 'valid', moment.now, moment.now + make_interval(hours => %s)"
+		" FROM (SELECT clock_timestamp() AS now) moment",
+		(user, token_hash, user_agent, address, hours),
 	)
 
 

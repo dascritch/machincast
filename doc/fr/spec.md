@@ -321,12 +321,12 @@ Les sessions de l'intranet et de l'API ([#539](https://github.com/dascritch/mach
 | `token_hash` | Empreinte SHA-256 du jeton du cookie, unique ; jamais le jeton lui-même. |
 | `origin` | `intranet` (la mire de connexion) ou `interface` (générée au pupitre, pour l'API), type `api_session_origin`. |
 | `state` | `pending` (à valider), `valid` ou `invalid`, type `api_session_state`. |
-| `code`, `attempts` | Le code à 6 chiffres à donner au poste distant, tant que la session est à valider ; les codes faux saisis. |
+| `code`, `attempts` | Le code à 6 chiffres à donner au poste distant, tant que la session est à valider, aucun quand l'acceptation au pupitre suffit ([#600](https://github.com/dascritch/machincast/issues/600), migration `0010.api-sessions-without-code`) ; les codes faux saisis. |
 | `accepted_at` | L'acceptation de la connexion au pupitre, avant laquelle son code n'est ni montré ni essayé ([#547](https://github.com/dascritch/machincast/issues/547), migration `0008.api-sessions-acceptance`). |
 | `user_agent`, `source_ip` | Le navigateur et l'adresse du poste distant. |
 | `created_at`, `validate_before`, `validated_at`, `expires_at`, `ended_at` | L'ouverture, la limite de validation, la validation, la limite de la session valide, sa fin. |
 
-Une session à valider a son code et sa limite de validation, une session valide sa limite et plus de code (`CHECK`).
+Une session à valider a sa limite de validation, une session valide sa limite et plus de code (`CHECK`).
 
 #### Choix de modélisation
 
@@ -2034,6 +2034,12 @@ MachinCast fonctionne hors ligne ; un serveur intranet et son API s'ouvrent à l
 	Cinq échecs d'une même adresse en un quart d'heure la font attendre un quart d'heure, 429 (`portal.Throttle`, en mémoire).
 	Cinq codes faux d'une même adresse, ou d'un même compte, font aussi attendre un quart d'heure, avant même que le mot de passe soit lu : la réponse ne dit pas s'il était bon ([#547](https://github.com/dascritch/machincast/issues/547), `Portal.codes`).
 	Une connexion réussie efface les mots de passe refusés de l'adresse, mais pas ses codes faux : seule une session validée au pupitre les efface.
+- **Sécurité de la première connexion** (`intranet.first_login`, [#600](https://github.com/dascritch/machincast/issues/600)), réglée dans la page « Intranet » des paramètres du service, « Première connexion » :
+	`desk_code`, par défaut, « Validation au pupitre, avec un code », les étapes ci-dessous ;
+	`desk`, « Validation au pupitre », la session à valider n'a pas de code : « Accepter », au pupitre, suffit, et la page `/validation`, qui se relit toutes les 5 secondes (`<meta http-equiv="refresh">`, la Content-Security-Policy n'acceptant aucun script dans la page), la rend valide et mène à l'accueil ; un code envoyé n'est pas lu ;
+	`none`, « Aucune validation », des identifiants valides ouvrent aussitôt une session valide, et le journal le dit en `WARNING` (`sessions.open_valid`).
+	En production, le serveur intranet installé en service (`service.INTRANET_UNIT_FILE`), `none` est impossible : la page « Intranet » la grise, avec son infobulle, et Machin intranet, lancé ainsi, demande `desk_code`, et le dit à son journal (`__main__.guarded`).
+	Changer ce réglage fait rallumer le serveur intranet.
 2. **Session à valider** : des identifiants valides ouvrent une session `pending`, si le compte n'en a pas déjà deux (`sessions.MAXIMUM_PENDING`, 429 sinon ; se reconnecter du même navigateur remplace sa session d'avant), un jeton aléatoire de 32 octets dans le cookie `machincast_session` (`Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`), dont la base ne garde que l'empreinte SHA-256, et un code à 6 chiffres ; la réponse mène à `/validation`, qui dit qu'une action doit être faite au pupitre.
 3. **Au pupitre** : l'interface relit toutes les 3 secondes les connexions à valider (`machincast.interface.remote_connections`) ; un bandeau orange, au-dessus des onglets, nomme le compte, l'adresse IP source, le navigateur et l'heure limite.
 	« Accepter » montre le code à donner, en deux groupes de trois chiffres ([#547](https://github.com/dascritch/machincast/issues/547), `api_users.accept`) : le studio décide qui il laisse entrer avant de donner un code.

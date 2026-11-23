@@ -671,6 +671,26 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 			| en marche | éteint  | Serveur intranet : en marche. |
 			| arrêté    | allumé  | Serveur intranet : arrêté.    |
 
+	Plan du scénario: La page « Intranet » règle la sécurité de la première connexion, sans « Aucune validation » en production
+		https://github.com/dascritch/machincast/issues/600 : la production, c'est le serveur intranet installé en service.
+		Étant donné l'unité du serveur intranet <unité>
+		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet allumé
+		Alors la première connexion est « Validation au pupitre, avec un code », parmi « Aucune validation », « Validation au pupitre », « Validation au pupitre, avec un code »
+		Et « Aucune validation » <proposée>
+		Quand je choisis la première connexion « Validation au pupitre »
+		Alors la fenêtre donne la première connexion « desk »
+
+		Exemples:
+			| unité         | proposée                                                                                   |
+			| non installée | se choisit                                                                                 |
+			| installée     | est grisée, avec l'infobulle « Impossible en production : le serveur intranet est installé en service. » |
+
+	Scénario: La sécurité de la première connexion s'écrit dans machincast.toml, et fait rallumer le serveur
+		Étant donné un fichier de configuration sans section [intranet]
+		Quand j'enregistre la première connexion « desk »
+		Alors le fichier règle la première connexion à « desk »
+		Et changer la première connexion fait rallumer le serveur intranet
+
 	Scénario: Les réglages de l'intranet s'écrivent dans machincast.toml, l'adresse d'écoute et le certificat gardés
 		Étant donné un fichier de configuration dont l'intranet écoute « 10.0.0.12 », avec un certificat donné
 		Quand j'enregistre l'intranet allumé, sur le port 9443, avec 15 minutes pour valider une connexion

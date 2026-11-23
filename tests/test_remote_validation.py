@@ -35,10 +35,12 @@ def banner(interface: Context) -> RemoteConnections:
 @given(
 	parsers.re(
 		r"une connexion à valider de « (?P<name>[^»]+) », depuis « (?P<address>[^»]+) », navigateur"
-		r" « (?P<agent>[^»]+) », code « (?P<code>\d{6}) »(?P<late>, délai passé)?"
+		r" « (?P<agent>[^»]+) », (?:code « (?P<code>\d{6}) »|sans code)(?P<late>, délai passé)?"
 	)
 )
-def pending(empty_database: Connection, name: str, address: str, agent: str, code: str, late: str | None) -> None:
+def pending(
+	empty_database: Connection, name: str, address: str, agent: str, code: str | None, late: str | None
+) -> None:
 	delay = "20 minutes"
 	if late is not None:
 		delay = "-1 second"
@@ -73,6 +75,19 @@ def accepted(empty_database: Connection, name: str) -> None:
 		"UPDATE api_sessions SET accepted_at = clock_timestamp() WHERE token_hash = %s",
 		(sessions.fingerprint(f"jeton-{name}"),),
 	)
+
+
+@then(
+	parsers.re(
+		r"le bandeau des connexions à distance montre 1 connexion demandée, qui nomme (?P<names>.+), et dit"
+		r" « (?P<said>[^»]+) »"
+	)
+)
+def requested_saying(interface: Context, qtbot: QtBot, names: str, said: str) -> None:
+	qtbot.waitUntil(lambda: (banner(interface).texts() != []) and (said in banner(interface).texts()[0]), timeout=5000)
+	(text,) = banner(interface).texts()
+	for name in NAME.findall(names):
+		assert name in text, text
 
 
 @then(

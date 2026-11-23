@@ -324,6 +324,14 @@ msgstr ""
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid ""
+"key intranet.first_login: unknown “{fetched}”, possible values: {list}"
+msgstr ""
+"clé intranet.first_login : « {fetched} » inconnue, valeurs possibles : "
+"{list}"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid "key audio.output: unknown “{fetched}”, possible values: {list}"
 msgstr ""
 "clé audio.output : « {fetched} » inconnue, valeurs possibles : {list}"
@@ -5105,6 +5113,12 @@ msgstr ""
 "installe, sauf avec --no-timers. Sans eux, cette heure ne sert pas."
 
 #: machincast/interface/preferences.py
+msgid ""
+"Impossible in production: the intranet server is installed as a service."
+msgstr ""
+"Impossible en production : le serveur intranet est installé en service."
+
+#: machincast/interface/preferences.py
 msgid "Interface preferences"
 msgstr "Préférences de l'interface"
 
@@ -5119,6 +5133,19 @@ msgstr "Préférences de l'interface…"
 #: machincast/interface/preferences.py
 msgid "Broadcast service settings…"
 msgstr "Paramètres du service…"
+
+#: machincast/interface/preferences.py
+msgid "No validation"
+msgstr "Aucune validation"
+
+#: machincast/interface/preferences.py
+#: machincast/intranet/portal.py
+msgid "Validation at the desk"
+msgstr "Validation au pupitre"
+
+#: machincast/interface/preferences.py
+msgid "Validation at the desk, with a code"
+msgstr "Validation au pupitre, avec un code"
 
 #: machincast/interface/preferences.py
 msgid "To the tenth of a second"
@@ -5297,12 +5324,31 @@ msgstr "Accepter"
 
 #: machincast/interface/remote_connections.py
 #, python-brace-format
+msgid "Remote connection of {user} accepted: give it its code."
+msgstr "Connexion à distance de {user} acceptée : donnez-lui son code."
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
 msgid ""
 "Remote connection to validate: <b>{user}</b>, from {address}, {browser}, "
 "until {limit}. Code to give: <b>{code}</b>"
 msgstr ""
 "Connexion à distance à valider : <b>{user}</b>, depuis {address}, "
 "{browser}, jusqu'à {limit}. Code à donner : <b>{code}</b>"
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
+msgid "Remote connection of {user} accepted: it comes in by itself."
+msgstr "Connexion à distance de {user} acceptée : elle entre d'elle-même."
+
+#: machincast/interface/remote_connections.py
+#, python-brace-format
+msgid ""
+"Remote connection requested: <b>{user}</b>, from {address}, {browser}, "
+"until {limit}. Accepted: it comes in by itself within a few seconds."
+msgstr ""
+"Connexion à distance demandée : <b>{user}</b>, depuis {address}, {browser}, "
+"jusqu'à {limit}. Acceptée : elle entre d'elle-même dans quelques secondes."
 
 #: machincast/interface/remote_connections.py
 #, python-brace-format
@@ -5322,8 +5368,12 @@ msgstr[1] "{count} codes faux déjà saisis"
 
 #: machincast/interface/remote_connections.py
 #, python-brace-format
-msgid "Remote connection of {user} accepted: give it its code."
-msgstr "Connexion à distance de {user} acceptée : donnez-lui son code."
+msgid ""
+"Remote connection requested: <b>{user}</b>, from {address}, {browser}, "
+"until {limit}. Accept it to let it in."
+msgstr ""
+"Connexion à distance demandée : <b>{user}</b>, depuis {address}, {browser}, "
+"jusqu'à {limit}. Acceptez-la pour la laisser entrer."
 
 #: machincast/interface/remote_connections.py
 #, python-brace-format
@@ -6696,6 +6746,14 @@ msgstr ""
 
 #: machincast/intranet/__main__.py
 msgid ""
+"the first login without validation is impossible in production: it is "
+"validated at the desk, with a code"
+msgstr ""
+"la première connexion sans validation est impossible en production : elle "
+"se valide au pupitre, avec un code"
+
+#: machincast/intranet/__main__.py
+msgid ""
 "keeps the terminal open after an error, until it is closed: for the window "
 "that the interface opens"
 msgstr ""
@@ -6844,14 +6902,6 @@ msgid "icon {path} unreadable: the one of MachinCast instead"
 msgstr "icône {path} illisible : celle de MachinCast à la place"
 
 #: machincast/intranet/portal.py
-msgid "Connection"
-msgstr "Connexion"
-
-#: machincast/intranet/portal.py
-msgid "Validation at the desk"
-msgstr "Validation au pupitre"
-
-#: machincast/intranet/portal.py
 msgid ""
 "An action must be done at the studio desk: MachinCast shows there your "
 "name, your browser and your address. Once your connection is accepted "
@@ -6860,6 +6910,20 @@ msgstr ""
 "Une action doit être faite au pupitre : MachinCast y montre votre nom, "
 "votre navigateur et votre adresse. Une fois votre connexion acceptée, le "
 "studio vous donne un code à 6 chiffres : saisissez-le ici."
+
+#: machincast/intranet/portal.py
+msgid ""
+"An action must be done at the studio desk: MachinCast shows there your "
+"name, your browser and your address. Once your connection is accepted "
+"there, this page goes on by itself."
+msgstr ""
+"Une action doit être faite au pupitre du studio : MachinCast y montre votre "
+"nom, votre navigateur et votre adresse. Une fois votre connexion acceptée "
+"là-bas, cette page continue d'elle-même."
+
+#: machincast/intranet/portal.py
+msgid "Connection"
+msgstr "Connexion"
 
 #: machincast/intranet/portal.py
 msgid ""
@@ -6896,6 +6960,18 @@ msgstr "Code faux : redemandez-le au pupitre."
 msgid "[{address}] intranet connection of “{name}”, to validate at the desk"
 msgstr ""
 "[{address}] connexion à l'intranet de « {name} », à valider au pupitre"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}”, without validation at the desk"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », sans validation au pupitre"
+
+#: machincast/intranet/portal.py
+#, python-brace-format
+msgid "[{address}] intranet connection of “{name}” validated at the desk"
+msgstr "[{address}] connexion à l'intranet de « {name} » validée au pupitre"
 
 #: machincast/intranet/portal.py
 #, python-brace-format
@@ -6950,11 +7026,6 @@ msgid ""
 msgstr ""
 "[{address}] code de validation refusé, compte « {name} » : trop de codes "
 "faux, attente d'un quart d'heure"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] intranet connection of “{name}” validated at the desk"
-msgstr "[{address}] connexion à l'intranet de « {name} » validée au pupitre"
 
 #: machincast/intranet/portal.py
 #, python-brace-format
@@ -9518,6 +9589,18 @@ msgstr "&Validation d'une connexion sous"
 #: machincast/interface/ui/preferences.ui
 msgid " min"
 msgstr " min"
+
+#: machincast/interface/ui/preferences.ui
+msgid "&First connection"
+msgstr "Première &connexion"
+
+#: machincast/interface/ui/preferences.ui
+msgid ""
+"How a connection by name and password to the intranet becomes a valid "
+"session"
+msgstr ""
+"Comment une connexion à l'intranet, par nom et mot de passe, devient une "
+"session valide"
 
 #: machincast/interface/ui/preferences.ui
 msgid ""

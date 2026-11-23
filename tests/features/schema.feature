@@ -61,22 +61,22 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 9 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin »
+		Alors 10 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin, 0010.api-sessions-without-code »
 
 	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
 		https://github.com/dascritch/machincast/issues/454
 		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
 		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
-		Et j'annule les 7 dernières migrations
+		Et j'annule les 8 dernières migrations
 		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	Scénario: Annuler l'ordre ascendant du tableau ramène ces banques à l'ordre descendant, le mode séquentiel
 		https://github.com/dascritch/machincast/issues/535
 		Quand j'enregistre dans "banks" : internal_name = 'Jingles', mode = 'sequential_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
-		Et j'annule les 6 dernières migrations
+		Et j'annule les 7 dernières migrations
 		Alors les banques « Jingles », « Chroniques » sont en modes « sequential », « filename_ascending »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
@@ -184,9 +184,25 @@ Fonctionnalité: Schéma de la base de données
 			| name = 'technique', password_hash = 'tisane-au-micro'      |
 			| name = 'technique', password_hash = 'scrypt$1', role = 'admin' |
 
+	Scénario: Une session de l'intranet à valider peut n'avoir pas de code, quand le pupitre suffit
+		https://github.com/dascritch/machincast/issues/600
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
+		Et j'enregistre dans "api_sessions" : user_id = 1, token_hash = repeat('b', 64), validate_before = now()
+		Alors la base accepte l'enregistrement
+
+	Scénario: Annuler les sessions sans code rend invalides celles qui attendent encore
+		https://github.com/dascritch/machincast/issues/600
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
+		Et j'enregistre dans "api_sessions" : user_id = 1, token_hash = repeat('b', 64), validate_before = now()
+		Et j'annule la dernière migration
+		Alors la session de l'intranet sans code est invalide
+
 	Plan du scénario: Une session de l'intranet incohérente est refusée
-		https://github.com/dascritch/machincast/issues/539 : l'empreinte du jeton, unique, un code à 6 chiffres pour la
-		session à valider, son délai, et une limite pour la session valide, sans code.
+		https://github.com/dascritch/machincast/issues/539 : l'empreinte du jeton, unique, un code à 6 chiffres, s'il y en
+		a un (https://github.com/dascritch/machincast/issues/600), le délai de la session à valider, et une limite pour la
+		session valide, sans code.
 
 		Étant donné les éléments de référence en base
 		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
@@ -200,7 +216,6 @@ Fonctionnalité: Schéma de la base de données
 			| user_id = 1, token_hash = 'jeton-en-clair', code = '654321', validate_before = now()            |
 			| user_id = 1, token_hash = repeat('b', 64), code = '12345', validate_before = now()              |
 			| user_id = 1, token_hash = repeat('b', 64), code = '12a456', validate_before = now()             |
-			| user_id = 1, token_hash = repeat('b', 64), validate_before = now()                              |
 			| user_id = 1, token_hash = repeat('b', 64), code = '123456'                                      |
 			| user_id = 1, token_hash = repeat('b', 64), state = 'valid', code = '123456', expires_at = now() |
 			| user_id = 1, token_hash = repeat('b', 64), state = 'valid'                                      |

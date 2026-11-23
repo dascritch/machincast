@@ -38,6 +38,17 @@ Fonctionnalité: Validation au pupitre des connexions à distance, et sessions d
 		Et la dernière session de « regie » est acceptée au pupitre
 		Et la barre d'état annonce « Connexion à distance de regie acceptée : donnez-lui son code. »
 
+	Scénario: Sans code, accepter une connexion la laisse entrer d'elle-même
+		https://github.com/dascritch/machincast/issues/600 : la première connexion réglée « au pupitre », sans code.
+		Étant donné une connexion à valider de « regie », depuis « 10.0.0.31 », navigateur « Firefox/140 », sans code
+		Quand la fenêtre de l'interface s'ouvre
+		Et le bandeau des connexions à distance se relit
+		Alors le bandeau des connexions à distance montre 1 connexion demandée, qui nomme « regie », « 10.0.0.31 » et « Firefox/140 », et dit « Acceptez-la pour la laisser entrer. »
+		Quand j'accepte la connexion à distance
+		Alors le bandeau des connexions à distance montre 1 connexion demandée, qui nomme « regie », et dit « Acceptée : elle entre d'elle-même dans quelques secondes. »
+		Et le bandeau ne propose plus que de refuser la connexion
+		Et la barre d'état annonce « Connexion à distance de regie acceptée : elle entre d'elle-même. »
+
 	Scénario: Une connexion qui a reçu des codes faux le dit au pupitre
 		https://github.com/dascritch/machincast/issues/547 : peut-être quelqu'un qui essaie de deviner le code.
 		Étant donné une connexion à valider de « regie », depuis « 10.0.0.31 », navigateur « Firefox/140 », code « 042917 »

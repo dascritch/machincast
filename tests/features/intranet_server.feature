@@ -16,6 +16,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Quand je charge la configuration de test, sans section [intranet]
 		Alors l'intranet est éteint, écoute « 0.0.0.0 » sur le port 8443, et laisse 30 minutes pour valider une connexion
 		Et l'intranet n'a pas de certificat donné
+		Et la première connexion se valide « au pupitre, avec un code »
 
 	Plan du scénario: Une section [intranet] incohérente est refusée, en nommant la clé
 		Quand je charge la configuration de test, avec dans [intranet] : <valeurs>
@@ -31,7 +32,33 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 			| address = "studio"                         | intranet.address     |
 			| enabled = "oui"                            | intranet.enabled     |
 			| certificate = "certificat.pem"             | intranet.certificate |
+			| first_login = "personne"                   | intranet.first_login |
+			| first_login = 1                            | intranet.first_login |
 			| sans_https = true                          | sans_https           |
+
+	Plan du scénario: La sécurité de la première connexion se règle
+		https://github.com/dascritch/machincast/issues/600 : aucune, au pupitre, ou au pupitre avec un code.
+		Quand je charge la configuration de test, avec dans [intranet] : first_login = "<valeur>"
+		Alors la première connexion se valide « <validation> »
+
+		Exemples:
+			| valeur    | validation                  |
+			| none      | sans validation             |
+			| desk      | au pupitre                  |
+			| desk_code | au pupitre, avec un code    |
+
+	Plan du scénario: En production, aucune validation n'est pas possible : Machin intranet demande le pupitre et son code
+		https://github.com/dascritch/machincast/issues/600 : la production, c'est le serveur intranet installé en service.
+		Quand je charge la configuration de test, avec dans [intranet] : first_login = "<valeur>"
+		Et Machin intranet prend ses réglages, <installation>
+		Alors la première connexion se valide « <validation> »
+		Et son journal <dit>
+
+		Exemples:
+			| valeur | installation           | validation               | dit                                                                                                                      |
+			| none   | installé en service     | au pupitre, avec un code | dit « la première connexion sans validation est impossible en production : elle se valide au pupitre, avec un code »     |
+			| none   | sans le service         | sans validation          | ne dit rien                                                                                                              |
+			| desk   | installé en service     | au pupitre               | ne dit rien                                                                                                              |
 
 	Scénario: Un certificat se donne avec sa clé, chemins relatifs au fichier de configuration
 		Quand je charge la configuration de test, avec dans [intranet] : enabled = true, certificate = "tls/cert.pem", key = "tls/cle.pem"

@@ -20,7 +20,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import log, service
-from machincast.configuration import Configuration, InvalidConfiguration, load
+from machincast.configuration import Configuration, Intranet, InvalidConfiguration, load
 from machincast.intranet import __main__ as server
 from machincast.intranet import certificate, live, network, process
 from machincast.intranet.app import Intranet as App
@@ -49,6 +49,7 @@ class Context:
 	response: http.client.HTTPResponse | None = None
 	body: bytes = b""
 	journal: str = ""
+	settings: Intranet | None = None
 
 
 @pytest.fixture
@@ -101,6 +102,34 @@ def defaults(context: Context, address: str, port: int, minutes: int) -> None:
 	assert context.configuration is not None
 	intranet = context.configuration.intranet
 	assert (intranet.enabled, intranet.address, intranet.port, intranet.validation) == (False, address, port, minutes)
+
+
+FIRST_LOGINS = {"sans validation": "none", "au pupitre": "desk", "au pupitre, avec un code": "desk_code"}
+"""La sécurité de la première connexion, comme la disent les scénarios (https://github.com/dascritch/machincast/issues/600)."""
+
+
+@when(parsers.re(r"Machin intranet prend ses réglages, (?P<installation>installé en service|sans le service)"))
+def guarded(context: Context, caplog: pytest.LogCaptureFixture, installation: str) -> None:
+	assert context.configuration is not None
+	with caplog.at_level(logging.INFO):
+		context.settings = server.guarded(
+			context.configuration.intranet, production=installation == "installé en service"
+		)
+	context.journal = caplog.text
+
+
+@then(parsers.parse("la première connexion se valide « {validation} »"))
+def first_login(context: Context, validation: str) -> None:
+	settings = context.settings
+	if settings is None:
+		assert context.configuration is not None
+		settings = context.configuration.intranet
+	assert settings.first_login == FIRST_LOGINS[validation]
+
+
+@then("son journal ne dit rien")
+def journal_silent(context: Context) -> None:
+	assert context.journal == "", context.journal
 
 
 @then("l'intranet n'a pas de certificat donné")

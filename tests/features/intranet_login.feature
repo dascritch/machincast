@@ -230,6 +230,47 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	# ─── Le journal, pour un analyseur de journal (https://github.com/dascritch/machincast/issues/578) ───
 
+	# ─── La sécurité de la première connexion (https://github.com/dascritch/machincast/issues/600) ───
+
+	Scénario: Validée au pupitre sans code, la connexion attend l'acceptation, puis entre d'elle-même
+		Étant donné la première connexion réglée « au pupitre »
+		Quand je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « /validation »
+		Et la base a une session à valider de « regie », sans code
+		Quand je demande « GET /validation »
+		Alors la réponse est 200, et dit « Une action doit être faite au pupitre »
+		Et la page se relit d'elle-même, sans demander de code
+		Quand le pupitre accepte la connexion
+		Et je demande « GET /validation »
+		Alors la réponse est 303, vers « / »
+		Et la session est valide, pour 12 heures
+		Et le journal de l'intranet finit par :
+			| niveau | message                                                              |
+			| INFO   | [10.0.0.31] connexion à l'intranet de « regie », à valider au pupitre |
+			| INFO   | [10.0.0.31] connexion à l'intranet de « regie » validée au pupitre    |
+
+	Scénario: Validée au pupitre sans code, un code envoyé n'est pas lu, et un refus au pupitre ramène à la mire
+		Étant donné la première connexion réglée « au pupitre »
+		Et que je me suis connecté en « regie », mot de passe « tisane-au-micro »
+		Quand je saisis un code faux
+		Alors la réponse est 409, et dit « Votre connexion n'est pas encore acceptée au pupitre »
+		Et la session est à valider, sans code faux compté
+		Quand le pupitre refuse la connexion
+		Et je demande « GET /validation »
+		Alors la réponse est 303, vers « /login »
+
+	Scénario: Sans validation, des identifiants valides ouvrent aussitôt une session valide
+		Étant donné la première connexion réglée « sans validation »
+		Quand je me connecte en « regie », mot de passe « tisane-au-micro »
+		Alors la réponse est 303, vers « / »
+		Et le cookie de session est posé, Secure, HttpOnly et SameSite=Strict
+		Et la session est valide, pour 12 heures
+		Quand je demande « GET / »
+		Alors la réponse est 200, et dit « <title>MachinCast - Radio Thune</title> »
+		Et le journal de l'intranet finit par :
+			| niveau  | message                                                                   |
+			| WARNING | [10.0.0.31] connexion à l'intranet de « regie », sans validation au pupitre |
+
 	Scénario: Chaque connexion laisse une ligne au journal, l'adresse du client en tête, jamais le mot de passe
 		Un analyseur de journal (fail2ban) reconnaît un refus à son niveau, WARNING, et à l'adresse entre crochets en
 		tête du message, avant le nom saisi, qui ne peut donc pas la contrefaire.

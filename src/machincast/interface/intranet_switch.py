@@ -25,9 +25,9 @@ from machincast.clock import Clock, SystemClock
 from machincast.i18n import _
 from machincast.interface import control
 from machincast.intranet import process
-from machincast.service import INTRANET_UNIT
+from machincast.service import INTRANET_UNIT, INTRANET_UNIT_FILE
 
-UNIT_FILE = Path("/etc/systemd/system") / INTRANET_UNIT
+UNIT_FILE = INTRANET_UNIT_FILE
 SWITCHED_ON = _("Intranet server switched on: {addresses}")
 SWITCHED_OFF = _("Intranet server switched off.")
 STARTING = _("Intranet server starting…")
