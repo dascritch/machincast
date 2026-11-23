@@ -74,7 +74,7 @@ class Ui_DefaultScreen(object):
         self.monitor = QToolButton(self.state_frame)
         self.monitor.setObjectName(u"monitor")
         self.monitor.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.monitor.setAutoRaise(True)
+        self.monitor.setAutoRaise(False)
 
         self.state_line.addWidget(self.monitor)
 

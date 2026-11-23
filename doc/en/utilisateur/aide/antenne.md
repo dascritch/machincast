@@ -8,7 +8,7 @@ The numbers refer to the picture; **Help → Contextual help**, or <kbd>F1</kbd>
 1. **Time** (`hour`) : the time of the workstation, to the second; its tooltip gives the date.
 2. **Public text** (`public_text`) : the text of the current sound, as the public page of the radio shows it; `—` without text, for instance for a hidden sound.
 3. **Broadcast state** (`playback_state`) : `On air`, `Dead air` or `Stopped`; its outline is red when the broadcast service is installed, green on a trial workstation.
-4. **On-air monitor** (`monitor`) : the headphones, in the box of the broadcast state; listens to what goes on air, in the monitor window; while listening, it becomes **Stop the on-air monitor**.
+4. **On-air monitor** (`monitor`) : the headphones, in the box of the broadcast state, only while it runs; listens to what goes on air, in the monitor window; while listening, it becomes **Stop the on-air monitor**.
 5. **Event on air** (`on_air_event`) : its name and hours, or “permanent” for a background programming.
 6. **Current sound** (`ongoing_frame`) : the artist, the title, the event, the sequence and the bank it comes from, its schedule and its timeline; the right-click offers to go back to its start, to restart the sequence or the event, and to copy its location.
 7. **Card of the current sound** (`open_ongoing_sound`) : opens its card; the buttons next to it open those of its event, its sequence and its bank.

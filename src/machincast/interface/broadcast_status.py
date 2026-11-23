@@ -67,7 +67,10 @@ def style(*, installed: bool, broadcasting: bool) -> str:
 	text = contrasting_text(border)
 	return (
 		f"#{FRAME} {{ background-color: {border}; border: {BORDER}px solid {border}; }} "
-		f"#{FRAME} QLabel {{ color: {text}; }}"
+		f"#{FRAME} QLabel {{ color: {text}; }} "
+		# Le bouton du moniteur garde les couleurs des autres boutons, pas celles du fond.
+		f"#{FRAME} QToolButton {{ background-color: palette(button); color: palette(button-text);"
+		" border: 1px solid palette(mid); border-radius: 3px; padding: 2px; }"
 	)
 
 

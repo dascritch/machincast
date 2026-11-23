@@ -14,6 +14,8 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from PySide6.QtGui import QPalette
+from PySide6.QtWidgets import QPushButton
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -691,3 +693,26 @@ def password_in_terminal(station: Station) -> None:
 	"""systemctl, dans la fenêtre de terminal, réussit : l'authentification en mode texte acceptée."""
 	arguments = station.terminal.read_text(encoding="utf-8").splitlines()[1:]
 	subprocess.run(arguments, check=True, env={**os.environ, "MACHINCAST_TEST_ERREUR": ""})
+
+
+# ─── Le bouton du moniteur dans le cartouche (https://github.com/dascritch/machincast/issues/604) ───
+
+
+@then("le cartouche montre le bouton du moniteur, aux couleurs des autres boutons, pas à celles de son fond")
+def monitor_shown(interface: Context, qtbot: QtBot) -> None:
+	ui = window(interface).home.ui
+	qtbot.waitUntil(lambda: not ui.monitor.isHidden(), timeout=5000)
+	assert not ui.monitor.autoRaise()
+	frame = ui.state_frame.grab().toImage()
+	button = ui.monitor.grab().toImage()
+	# Le fond du cartouche, dans son coin, n'est pas celui du bouton, en son bord.
+	background = frame.pixelColor(3, 3)
+	assert button.pixelColor(2, button.height() // 2) != background, background.name()
+	reference = QPushButton()
+	assert ui.monitor.palette().color(QPalette.ColorRole.Button) == reference.palette().color(QPalette.ColorRole.Button)
+
+
+@then("le cartouche ne montre pas le bouton du moniteur, inutile à l'arrêt")
+def monitor_hidden(interface: Context, qtbot: QtBot) -> None:
+	ui = window(interface).home.ui
+	qtbot.waitUntil(ui.monitor.isHidden, timeout=5000)

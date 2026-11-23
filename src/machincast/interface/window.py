@@ -823,6 +823,15 @@ class MainWindow(QMainWindow):
 		display.set_preview(self.listen, active=True, tooltip=tooltip)
 		self.home.ui.monitor.setText(text)
 		display.set_preview(self.home.ui.monitor, active=True, tooltip=tooltip)
+		self._show_monitor()
+
+	def _show_monitor(self) -> None:
+		"""Le bouton du moniteur, dans le cartouche de la diffusion, seulement quand elle tourne, blanc compris, ou
+		pendant l'écoute de l'antenne, pour l'arrêter : à l'arrêt, il n'y a rien à écouter
+		(https://github.com/dascritch/machincast/issues/604)."""
+		listening = (self.preview is not None) and (self.preview.on_air_listening())
+		on_air = self.home.state.state in broadcast_status.ON_AIR_STATES
+		self.home.ui.monitor.setVisible((on_air) or (listening))
 
 	def _follow_preview(self) -> None:
 		"""Sur l'entrée « Sortie factice » de la pré-écoute, ses boutons et ses entrées de menu sont grisés, partout
@@ -1381,6 +1390,7 @@ class MainWindow(QMainWindow):
 		installed = self.broadcast.service.installed
 		broadcasting = self.home.state.state == "playing"
 		self.home.ui.state_frame.setStyleSheet(broadcast_status.style(installed=installed, broadcasting=broadcasting))
+		self._show_monitor()
 		indicator = broadcast_status.NOT_BROADCASTING
 		# Un blanc à l'antenne garde le témoin de couleur : la diffusion tourne, sans rien à jouer.
 		if self.home.state.state in broadcast_status.ON_AIR_STATES:

@@ -8,7 +8,7 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 1. **Heure** (`hour`) : l'heure du poste, à la seconde ; son infobulle donne la date.
 2. **Texte public** (`public_text`) : le texte du sonore en cours, tel que l'affiche la page publique de la radio ; `—` sans texte, par exemple pour un sonore masqué.
 3. **État de la diffusion** (`playback_state`) : `En diffusion`, `Blanc à l'antenne` ou `À l'arrêt` ; son liseré est rouge quand le service de diffusion est installé, vert sur un poste d'essai.
-4. **Moniteur de l'antenne** (`monitor`) : le casque, dans le cartouche de l'état de la diffusion ; écoute ce qui sort à l'antenne, dans la fenêtre du moniteur ; pendant l'écoute, il devient **Arrêter le moniteur de l'antenne**.
+4. **Moniteur de l'antenne** (`monitor`) : le casque, dans le cartouche de l'état de la diffusion, seulement quand elle tourne ; écoute ce qui sort à l'antenne, dans la fenêtre du moniteur ; pendant l'écoute, il devient **Arrêter le moniteur de l'antenne**.
 5. **Événement à l'antenne** (`on_air_event`) : son nom et ses heures, ou « permanent » pour un fil musical.
 6. **Sonore en cours** (`ongoing_frame`) : l'artiste, le titre, l'événement, la séquence et la banque d'où il vient, son horaire et sa frise ; le clic droit propose de revenir à son début, de recommencer la séquence ou l'événement, et de copier son emplacement.
 7. **Fiche du sonore en cours** (`open_ongoing_sound`) : ouvre sa fiche ; les boutons voisins ouvrent celles de son événement, de sa séquence et de sa banque.
