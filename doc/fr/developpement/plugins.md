@@ -138,6 +138,18 @@ def register(plugin):
 Les heures sont en ISO 8601, avec leur décalage ; les durées et les positions dans le fichier en secondes, `None` pour un stream.
 En simulation, aucun point n'est appelé.
 
+## Être prévenu de ce que trouve Machin indexer
+
+([#590](https://github.com/dascritch/machincast/issues/590), `machincast.indexer.plugin_points`)
+
+| Point | Quand | Données |
+| --- | --- | --- |
+| `indexer.sound_spotted` | le parcours enregistre un nouveau fichier, en aperçu | `sound`, `location`, `bank`, `bank_name` |
+| `indexer.sound_detailed` | la vérification a écrit ce qu'elle a trouvé d'un sonore | `sound`, `location`, `previous_state`, `state`, `duration`, `artist`, `title`, `metadata`, `file_type`, `detected_start`, `detected_end`, `audited`, `problem` |
+
+Ils sont notifiés : l'erreur d'un plugin est consignée, et n'arrête ni le parcours ni la vérification.
+Pour compléter le sonore, le plugin ouvre sa propre connexion : celle de l'indexation ne quitte pas son fil.
+
 ## Faire jouer une occurrence par un autre événement
 
 ([#608](https://github.com/dascritch/machincast/issues/608))

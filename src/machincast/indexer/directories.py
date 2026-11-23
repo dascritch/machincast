@@ -48,7 +48,7 @@ from psycopg.rows import TupleRow
 
 from machincast import crash
 from machincast.i18n import _
-from machincast.indexer import queries
+from machincast.indexer import plugin_points, queries
 from machincast.indexer.check import ANALYSED, Report, SoundState
 from machincast.protection import INDEXED_EXTENSIONS
 
@@ -133,10 +133,12 @@ def _save(
 ) -> None:
 	"""Enregistre le fichier comme nouveau sonore s'il ne l'est pas, et le rattache à la banque, ou le met en attente
 	de sa vérification ; une ligne dit chaque rattachement."""
+	new = False
 	with connection.transaction():
 		_take_lock(connection)
 		line = queries.known_file(connection, location, bank)
 		if line is None:
+			new = True
 			line = queries.insert_file(connection, location, SoundState.PREVIEW.value, bank)
 			assert line is not None
 			report.new_list += 1
@@ -150,6 +152,8 @@ def _save(
 			scan.waits.append(Waiting(bank, name, sound, location))
 		else:
 			attached = _attach(connection, bank, sound)
+	if new:
+		plugin_points.spotted(sound, location, bank, name)
 	if attached:
 		_announce(report, scan, sound, name, location)
 
