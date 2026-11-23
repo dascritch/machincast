@@ -103,6 +103,8 @@ def plugin(
 	manifest = {"name": name, "version": "1.0", "description": "A clock", "binaries": [binary]}
 	(directory / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 	_migration(directory, identifier, CREATED.format(table=table, role=role), rollback=f"DROP TABLE {table};\n")
+	(directory / "install.sh").write_text(INSTALL, encoding="utf-8")
+	(directory / "install.sh").chmod(0o755)
 	yield directory
 	# Les migrations du plugin, appliquées par le scénario, ne restent pas pour le suivant ; seulement la première,
 	# celle du contexte : les fautives ne sont jamais appliquées.
@@ -120,11 +122,30 @@ FAULTS: dict[str, tuple[str, str, str | None]] = {
 		"GRANT SELECT ON sounds TO machincast_indexer;\n",
 		"SELECT 1;\n",
 	),
+	"la migration « horloge.0002.alarmes » qui crée la table « alarmes »": (
+		"horloge.0002.alarmes",
+		"CREATE TABLE alarmes (id integer);\n",
+		"DROP TABLE alarmes;\n",
+	),
+	"la migration « horloge.0002.alarmes » qui crée la vue « horloge_alarmes »": (
+		"horloge.0002.alarmes",
+		"CREATE OR REPLACE VIEW horloge_alarmes AS SELECT 1;\n",
+		"DROP VIEW horloge_alarmes;\n",
+	),
 }
+INSTALL = """#!/usr/bin/env bash
+set -euo pipefail
+plugin="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "${MACHINCAST_PYTHON}" -m machincast.plugins.installation "${plugin}" "$@"
+"""
+"""L'install.sh d'un plugin de ces scénarios : celui du guide des plugins."""
 
 
 @given(parsers.parse("le plugin « {name} » a {fault}"))
 def faulty(plugin: Path, fault: str) -> None:
+	if fault == "des migrations, mais pas d'install.sh":
+		(plugin / "install.sh").unlink()
+		return
 	identifier, script, rollback = FAULTS[fault]
 	_migration(plugin, identifier, script, rollback=rollback)
 
@@ -287,3 +308,8 @@ def unavailable(reasons: list[str], plugin_directory: Path, reason: str) -> None
 @then("il peut l'être")
 def available(reasons: list[str]) -> None:
 	assert reasons == []
+
+
+@then(parsers.parse("les tables du plugin « {name} » commencent par « {start} »"))
+def prefixed(name: str, start: str) -> None:
+	assert schema.prefix(name) == start

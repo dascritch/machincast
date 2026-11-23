@@ -94,6 +94,15 @@ Fonctionnalité: Vérifications de l'installation
 		Alors la commande se termine sans erreur
 		Et elle affiche la socket, la base de production puis la base de test de cette configuration
 
+	Scénario: Les install.sh des plugins activés sont lus dans la configuration, un par ligne
+		Étant donné les plugins « horloge » avec un install.sh, « muet » sans install.sh, activés avec « absent »
+		Quand je lance « python -m machincast.installation plugins » avec la configuration de ces plugins
+		Alors la commande se termine sans erreur
+		Et elle affiche seulement l'install.sh de « horloge »
+
+	Scénario: install.sh lance l'install.sh de chaque plugin activé, après la base et ses rôles
+		Alors install.sh lance l'install.sh de chaque plugin activé, après la base et ses rôles, avec la configuration et le Python du venv, ou --simulation
+
 	Scénario: La vérification en ligne de commande réussit quand rien ne manque
 		Quand je lance « python -m machincast.installation check » avec la configuration de test
 		Alors la commande se termine sans erreur

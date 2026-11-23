@@ -5012,6 +5012,13 @@ msgstr "Ce plugin n'apporte pas de réglages ici."
 
 #: machincast/interface/plugins_page.py
 msgid ""
+"This plugin is not loaded in Machin interface, so its settings are missing:"
+msgstr ""
+"Ce plugin n'est pas chargé dans Machin interface, et ses réglages manquent "
+"donc :"
+
+#: machincast/interface/plugins_page.py
+msgid ""
 "Its tables will be created when the settings are validated, after a backup "
 "of the database."
 msgstr ""
@@ -5134,6 +5141,7 @@ msgid "Crossfades and silences"
 msgstr "Crossfades et silences"
 
 #: machincast/interface/preferences.py
+#: install.sh
 msgid "Plugins"
 msgstr "Plugins"
 
@@ -7069,14 +7077,6 @@ msgstr[0] "schéma de la base {production} : {count} migration appliquée"
 msgstr[1] "schéma de la base {production} : {count} migrations appliquées"
 
 #: machincast/maintenance.py
-#: machincast/plugins/installation.py
-#, python-brace-format
-msgid "plugin “{name}”: {count} migration applied"
-msgid_plural "plugin “{name}”: {count} migrations applied"
-msgstr[0] "plugin « {name} » : {count} migration appliquée"
-msgstr[1] "plugin « {name} » : {count} migrations appliquées"
-
-#: machincast/maintenance.py
 #, python-brace-format
 msgid ""
 "role {role}: missing from the server, or not assumable by the account; to "
@@ -7099,12 +7099,6 @@ msgstr "rôles {list} endossables par le compte"
 msgid "backup impossible: {error}; maintenance stopped, nothing was changed"
 msgstr ""
 "sauvegarde impossible : {error} ; maintenance arrêtée, rien n'a été modifié"
-
-#: machincast/maintenance.py
-#: machincast/plugins/installation.py
-#, python-brace-format
-msgid "plugin “{name}”: {problem}"
-msgstr "plugin « {name} » : {problem}"
 
 #: machincast/notes.py
 msgid ""
@@ -8023,6 +8017,11 @@ msgstr "{module} n'a pas de fonction register(plugin)"
 
 #: machincast/plugins/__init__.py
 #, python-brace-format
+msgid "it is not enabled, or does not hook into {executable}"
+msgstr "il n'est pas activé, ou ne s'accroche pas à {executable}"
+
+#: machincast/plugins/__init__.py
+#, python-brace-format
 msgid "it requires the plugin “{name}”, which is not enabled"
 msgstr "il demande le plugin « {name} », qui n'est pas activé"
 
@@ -8096,6 +8095,13 @@ msgstr "dit ce qui serait fait, sans le faire"
 
 #: machincast/plugins/installation.py
 #, python-brace-format
+msgid "plugin “{name}”: {count} migration applied"
+msgid_plural "plugin “{name}”: {count} migrations applied"
+msgstr[0] "plugin « {name} » : {count} migration appliquée"
+msgstr[1] "plugin « {name} » : {count} migrations appliquées"
+
+#: machincast/plugins/installation.py
+#, python-brace-format
 msgid "plugin “{name}”: {count} migration cancelled"
 msgid_plural "plugin “{name}”: {count} migrations cancelled"
 msgstr[0] "plugin « {name} » : {count} migration annulée"
@@ -8105,6 +8111,11 @@ msgstr[1] "plugin « {name} » : {count} migrations annulées"
 #, python-brace-format
 msgid "plugin {plugin}: {error}"
 msgstr "plugin {plugin} : {error}"
+
+#: machincast/plugins/installation.py
+#, python-brace-format
+msgid "plugin “{name}”: {problem}"
+msgstr "plugin « {name} » : {problem}"
 
 #: machincast/plugins/installation.py
 #, python-brace-format
@@ -8259,6 +8270,11 @@ msgstr "point d'extension inconnu « {point} »"
 
 #: machincast/plugins/schema.py
 #, python-brace-format
+msgid "its migrations have no {script}, which creates its tables"
+msgstr "ses migrations n'ont pas de {script}, qui crée ses tables"
+
+#: machincast/plugins/schema.py
+#, python-brace-format
 msgid "migration {file}: its name starts with “{name}.”"
 msgstr "migration {file} : son nom commence par « {name}. »"
 
@@ -8266,6 +8282,11 @@ msgstr "migration {file} : son nom commence par « {name}. »"
 #, python-brace-format
 msgid "migration {file}: its cancellation {rollback} is missing"
 msgstr "migration {file} : son annulation {rollback} manque"
+
+#: machincast/plugins/schema.py
+#, python-brace-format
+msgid "migration {file}: the table “{table}” starts with “{prefix}”"
+msgstr "migration {file} : la table « {table} » commence par « {prefix} »"
 
 #: machincast/plugins/schema.py
 #, python-brace-format
@@ -10885,6 +10906,35 @@ msgstr "%s → %s"
 #: install.sh
 msgid "Links"
 msgstr "Liens"
+
+#: install.sh
+msgid ""
+"[simulation] plugins installed once the virtual environment is created"
+msgstr "[simulation] plugins installés une fois l'environnement virtuel créé"
+
+#: install.sh
+msgid "the enabled plugins cannot be read from the configuration"
+msgstr "les plugins activés ne se lisent pas dans la configuration"
+
+#: install.sh
+msgid "no enabled plugin to install"
+msgstr "aucun plugin activé à installer"
+
+#: install.sh
+msgid "plugin %s"
+msgstr "plugin %s"
+
+#: install.sh
+msgid "plugin %s: its install.sh failed"
+msgstr "plugin %s : son install.sh a échoué"
+
+#: install.sh
+msgid ""
+"plugin %s: its install.sh failed; fix it, or disable the plugin, then run "
+"install.sh again"
+msgstr ""
+"plugin %s : son install.sh a échoué ; corrigez-le, ou désactivez le plugin, "
+"puis relancez install.sh"
 
 #: install.sh
 msgid "GStreamer version and plugins, audio output"

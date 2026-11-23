@@ -273,7 +273,14 @@ def pending_migrations(configuration: Configuration, found: Found) -> list[str]:
 
 
 def _uninstalled(configuration: Configuration, found: Found, *, installing: bool) -> list[str]:
-	"""Ses tables pas encore créées, sauf pour l'onglet « Plugins », qui l'installe à sa validation (installing)."""
+	"""Ses migrations fautives (schema.problems) ; ses tables pas encore créées, sauf pour l'onglet « Plugins », qui
+	l'installe à sa validation (installing)."""
+	from machincast.plugins import schema
+
+	assert found.manifest is not None
+	faults = schema.problems(found.directory, found.manifest)
+	if faults != []:
+		return faults
 	try:
 		pending = pending_migrations(configuration, found)
 	except psycopg.Error as error:
@@ -404,6 +411,32 @@ def load(configuration: Configuration, executable: str) -> Loaded:
 	for name in ordered:
 		_load_one(loaded, candidates[name], manifests[name], configuration, executable, versions)
 	return loaded
+
+
+def load_late(configuration: Configuration, executable: str, name: str) -> list[str]:
+	"""Charge dans le binaire en marche un plugin activé après son démarrage, par exemple dans l'onglet « Plugins », puis
+	installé, à l'ouverture de sa fenêtre (https://github.com/dascritch/machincast/issues/587) : ses raisons, s'il ne
+	peut pas l'être ; aucune s'il est chargé, ou l'était déjà."""
+	loaded = _active
+	if name in loaded.names():
+		return []
+	found = _candidates(configuration, executable, Loaded()).get(name)
+	if (found is None) or (found.manifest is None):
+		reasons = [_("it is not enabled, or does not hook into {executable}").format(executable=executable)]
+		if (found is not None) and (found.problem is not None):
+			reasons = [str(found.problem)]
+		loaded.refused[name] = reasons
+		return reasons
+	reasons = availability(found, _all_manifests(configuration), configuration, executable)
+	if reasons != []:
+		loaded.refused[name] = reasons
+		return reasons
+	versions: dict[str, str] = {}
+	for plugin in loaded.plugins:
+		versions[plugin.name] = str(plugin.manifest.version)
+	loaded.refused.pop(name, None)
+	_load_one(loaded, found, found.manifest, configuration, executable, versions)
+	return list(loaded.refused.get(name, []))
 
 
 def _all_manifests(configuration: Configuration) -> dict[str, Manifest]:

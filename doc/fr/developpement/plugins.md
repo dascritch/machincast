@@ -178,20 +178,22 @@ Préfixés du nom du plugin, leurs identifiants ne croisent jamais ceux du cœur
 
 ```sql
 -- plugins/horloge/migrations/horloge.0001.sonneries.sql
-CREATE TABLE horloge_sonneries (
+CREATE TABLE horloge__sonneries (
 	id bigserial PRIMARY KEY,
 	sound_id bigint REFERENCES sounds (id) ON DELETE CASCADE,
 	ring text NOT NULL
 );
-GRANT SELECT ON horloge_sonneries TO machincast_player;
+GRANT SELECT ON horloge__sonneries TO machincast_player;
 ```
 
 - Une table d'un plugin peut désigner celles du cœur ; jamais l'inverse : le cœur ignore ses plugins.
 	Une clé étrangère vers le cœur cascade (`ON DELETE CASCADE`) ou se met à `NULL`, pour que la suppression d'un élément du cœur ne dépende jamais d'un plugin.
 - Ses `GRANT` ne donnent qu'aux rôles des binaires où il s'accroche (`machincast_player` pour `Machin_player`…) : l'installation refuse un plugin qui donne à un autre.
-- Préfixer ses tables de son nom évite qu'elles croisent celles d'un autre plugin.
+- Chaque table, vue, séquence ou type qu'il crée commence par son nom suivi de `__` : `horloge__sonneries`, `cartwall__buttons` ; un tiret du nom devient `_` (`mini-horloge` : `mini_horloge__`). L'installation refuse une migration qui crée une table sans ce préfixe : elle ne croise jamais celles du cœur ni d'un autre plugin.
 
-Ses tables sont créées par MachinCast, jamais par le plugin lui-même : à la validation des « Paramètres du service… » qui l'activent, Machin interface lance son `install.sh`, avec `--backups` et `--config`, sans terminal ; sans `install.sh`, l'installation commune ([#587](https://github.com/dascritch/machincast/issues/587)).
+Ses tables ne sont créées que par son `install.sh` : un plugin qui a des migrations sans `install.sh` est refusé ([#587](https://github.com/dascritch/machincast/issues/587)).
+- À la validation des « Paramètres du service… » qui l'activent, Machin interface lance son `install.sh`, avec `--backups` et `--config`, sans terminal.
+- `./install.sh`, celui de MachinCast, relance celui de chaque plugin activé, avec `--config` (et `--simulation` en simulation), pour ses mises à jour.
 Inutile de déclarer ses propres tables dans `requires.tables` : tant que ses migrations ne sont pas appliquées, chaque binaire l'écarte, et dit comment l'installer.
 
 Son `install.sh` lance l'installation commune, avec le Python du venv de MachinCast, `MACHINCAST_PYTHON` quand l'interface le lance ; il peut faire d'autres préparatifs avant :
@@ -209,7 +211,7 @@ exec "${MACHINCAST_PYTHON:-${plugin}/../../.venv/bin/python}" -m machincast.plug
 - `--simulation` dit ce qui serait fait, sans rien faire.
 - Des migrations mal nommées, sans annulation, ou qui donnent au mauvais rôle, refusent l'installation (code 2), sans sauvegarde ni changement ; une sauvegarde ou une base en échec, code 1.
 
-`Machin maintenance-db` applique aussi les migrations qui manquent aux plugins activés, après celles du cœur.
+`Machin maintenance-db` ne touche pas aux tables des plugins : seul leur `install.sh` les crée, les met à jour ou les retire.
 
 ## Le tester
 
