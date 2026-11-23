@@ -28,7 +28,9 @@ couper l'antenne par l'événement de secours N, et {"command": "cut_by_feed", "
 suit le feed N (https://github.com/dascritch/machincast/issues/323). Un fil
 par client les lit, et les garde jusqu'au pas suivant
 de la diffusion (demandes). Une demande illisible, inconnue, ou plus longue que MAXIMAL_SIZE, est ignorée et
-signalée dans le journal du binaire. Seul le compte qui diffuse peut ouvrir la socket : il n'y a rien d'autre à
+signalée dans le journal du binaire. Une demande de l'intranet peut donner un identifiant (ID) : le binaire lui
+répond, sur la même connexion, entre deux états, faite ou refusée avec sa raison (Request.respond,
+https://github.com/dascritch/machincast/issues/593). Seul le compte qui diffuse peut ouvrir la socket : il n'y a rien d'autre à
 vérifier.
 """
 
@@ -42,7 +44,8 @@ import re
 import socket
 import stat
 import threading
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -85,6 +88,13 @@ USER = "user"
 """Le champ du compte de l'API qui fait la demande, sur la socket de l'intranet seulement."""
 USER_NAME = re.compile(r"^[A-Za-z0-9._-]{1,255}$")
 """Un nom de compte de l'API, comme api_users.name l'accepte."""
+ID = "id"
+"""Le champ de l'identifiant d'une demande de l'intranet, que reprend la réponse
+(https://github.com/dascritch/machincast/issues/593)."""
+REPLY = "reply"
+"""Le champ d'une réponse qui reprend l'identifiant de sa demande : elle dit si la demande a été faite (done), ou la
+raison de son refus (reason)."""
+REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 IGNORED_REQUEST = _("request ignored on the state socket")
 
 
@@ -107,6 +117,20 @@ class Request:
 	"""La socket qui l'a reçue : INTERFACE ou INTRANET (https://github.com/dascritch/machincast/issues/549)."""
 	user: str | None = None
 	"""Le compte de l'API qui la fait, pour une demande de l'intranet : le serveur intranet le tient de la session."""
+	reply: str | None = None
+	"""L'identifiant que donne une demande de l'intranet, pour recevoir sa réponse."""
+	answer: Callable[[dict[str, Any]], None] | None = field(default=None, compare=False, repr=False)
+	"""Envoie une ligne au client qui a fait la demande, entre deux états publiés."""
+
+	def respond(self, refusal: str | None) -> None:
+		"""Répond à une demande qui a un identifiant : faite, ou refusée avec sa raison, en anglais, que le client
+		traduit (https://github.com/dascritch/machincast/issues/593) ; rien sans identifiant."""
+		if (self.reply is None) or (self.answer is None):
+			return
+		if refusal is None:
+			self.answer({REPLY: self.reply, "done": True})
+			return
+		self.answer({REPLY: self.reply, "done": False, "reason": refusal})
 
 
 def interruption_request(item: str) -> str:
@@ -175,6 +199,18 @@ def _user(message: dict[str, Any], origin: str) -> str | None:
 	return user
 
 
+def _reply(message: dict[str, Any], origin: str) -> str | None:
+	"""L'identifiant d'une demande, retiré du message : facultatif, et seulement de l'intranet."""
+	if ID not in message:
+		return None
+	if origin != INTRANET:
+		raise ValueError(_("the identifier of a request is given only on the socket of the intranet"))
+	reply = message.pop(ID)
+	if (not isinstance(reply, str)) or (REQUEST_ID.fullmatch(reply) is None):
+		raise ValueError(_("the identifier of a request: 1 to 64 letters, digits, “_” or “-”"))
+	return reply
+
+
 def read_request(line: bytes, origin: str = INTERFACE) -> Request:
 	"""Une demande reçue de la socket d'origin ; ValueError si elle est illisible ou inconnue."""
 	try:
@@ -184,7 +220,8 @@ def read_request(line: bytes, origin: str = INTERFACE) -> Request:
 	if not isinstance(message, dict):
 		raise ValueError(_("a request is a JSON object"))
 	user = _user(message, origin)
-	return dataclasses.replace(_command(message), origin=origin, user=user)
+	reply = _reply(message, origin)
+	return dataclasses.replace(_command(message), origin=origin, user=user, reply=reply)
 
 
 def _command(message: dict[str, Any]) -> Request:
@@ -383,9 +420,13 @@ class StateSocket:
 	def _serve(self, client: socket.socket, origin: str = INTERFACE) -> None:
 		key = threading.get_ident()
 		sent = 0
+		# Une réponse ne s'écrit pas au milieu d'un état : chacun prend le verrou du client.
+		writing = threading.Lock()
 		with client:
 			client.settimeout(CLIENTS_WAITING)
-			threading.Thread(target=self._listen, args=(client, origin), name="client requests", daemon=True).start()
+			threading.Thread(
+				target=self._listen, args=(client, origin, writing), name="client requests", daemon=True
+			).start()
 			while True:
 				line = None
 				with self._condition:
@@ -399,15 +440,17 @@ class StateSocket:
 							break
 				if line is not None:
 					try:
-						client.sendall(line.encode())
+						with writing:
+							client.sendall(line.encode())
 					except OSError:
 						break
 			with self._condition:
 				self._sent_list.pop(key, None)
 				self._condition.notify_all()
 
-	def _listen(self, client: socket.socket, origin: str = INTERFACE) -> None:
+	def _listen(self, client: socket.socket, origin: str = INTERFACE, writing: threading.Lock | None = None) -> None:
 		"""Les demandes du client, jusqu'à sa déconnexion ou la fermeture de la socket."""
+		answer = functools.partial(_answer, client, (writing) or (threading.Lock()))
 		buffer = b""
 		while not self._closed:
 			try:
@@ -420,9 +463,11 @@ class StateSocket:
 			if received == b"":
 				return
 			if received is not None:
-				buffer = self._receive_lines(buffer + received, origin)
+				buffer = self._receive_lines(buffer + received, origin, answer)
 
-	def _receive_lines(self, buffer: bytes, origin: str = INTERFACE) -> bytes:
+	def _receive_lines(
+		self, buffer: bytes, origin: str = INTERFACE, answer: Callable[[dict[str, Any]], None] | None = None
+	) -> bytes:
 		"""Les demandes complètes du tampon sont reçues ; le reste, une demande commencée, est rendu, ou oublié s'il
 		est trop long."""
 		*lines, rest = buffer.split(b"\n")
@@ -434,13 +479,41 @@ class StateSocket:
 			)
 			rest = b""
 		for line in lines:
-			self._receive(line, origin)
+			self._receive(line, origin, answer)
 		return rest
 
-	def _receive(self, line: bytes, origin: str = INTERFACE) -> None:
+	def _receive(
+		self, line: bytes, origin: str = INTERFACE, answer: Callable[[dict[str, Any]], None] | None = None
+	) -> None:
 		if line.strip() == b"":
 			return
 		try:
-			self._requests.put(read_request(line, origin))
+			self._requests.put(dataclasses.replace(read_request(line, origin), answer=answer))
 		except ValueError as error:
 			log.warning(_("{ignored_request}: {error}").format(ignored_request=IGNORED_REQUEST, error=error))
+			_refuse_unreadable(line, origin, answer, str(error))
+
+
+def _answer(client: socket.socket, writing: threading.Lock, message: dict[str, Any]) -> None:
+	"""Une ligne JSON au client, entre deux états ; un client parti ne reçoit rien."""
+	line = json.dumps({"version": VERSION, **message}, ensure_ascii=False) + "\n"
+	try:
+		with writing:
+			client.sendall(line.encode())
+	except OSError:
+		return
+
+
+def _refuse_unreadable(line: bytes, origin: str, answer: Callable[[dict[str, Any]], None] | None, reason: str) -> None:
+	"""Une demande de l'intranet illisible ou inconnue, mais qui donne un identifiant valide, reçoit son refus."""
+	if (origin != INTRANET) or (answer is None):
+		return
+	try:
+		message = json.loads(line.decode())
+	except (UnicodeDecodeError, json.JSONDecodeError):
+		return
+	if not isinstance(message, dict):
+		return
+	reply = message.get(ID)
+	if (isinstance(reply, str)) and (REQUEST_ID.fullmatch(reply) is not None):
+		answer({REPLY: reply, "done": False, "reason": reason})

@@ -9,15 +9,20 @@
 
 Avec le service, le serveur intranet tourne sous son propre compte, et lit la socket que Machin player lui réserve
 (player.intranet_socket, https://github.com/dascritch/machincast/issues/549). Sans Machin player, l'état est
-« stopped », sans sonore à venir.
+« stopped », sans sonore à venir. Par la même socket, ask envoie une demande à Machin player, au nom du compte de la
+session, et attend sa réponse (https://github.com/dascritch/machincast/issues/593).
 """
 
 import json
+import secrets
 import socket
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from machincast.clock import SystemClock
+from machincast.i18n import _, logged
 from machincast.intranet import queries
 from machincast.intranet.queries import Connection
 from machincast.shared.grid import Planned, plan, read_grid, wall_hour
@@ -159,3 +164,62 @@ def live(connection: Connection, state_socket: Path, instant: datetime) -> dict[
 		"previous": queries.previous_plays(connection),
 		"events": events(connection, instant),
 	}
+
+
+# ─── Les demandes à Machin player (https://github.com/dascritch/machincast/issues/593) ───
+
+ANSWER = 5.0
+"""Secondes pour recevoir la réponse de Machin player à une demande."""
+
+
+@dataclass(frozen=True)
+class Answer:
+	"""La réponse de Machin player à une demande : faite, ou refusée avec sa raison, traduite."""
+
+	done: bool
+	reason: str | None = None
+
+
+def ask(path: Path, request: dict[str, Any], user: str, timeout: float = ANSWER) -> Answer:
+	"""Envoie une demande à Machin player, par la socket de l'intranet, au nom du compte de la session, et attend sa
+	réponse : les états qu'il publie entre-temps sont passés. Sans Machin player, ou sans réponse à temps, la demande
+	est refusée, avec sa raison."""
+	identifier = secrets.token_hex(8)
+	line = json.dumps({**request, "user": user, "id": identifier}) + "\n"
+	clock = SystemClock()
+	deadline = clock.now() + timedelta(seconds=timeout)
+	received = b""
+	try:
+		with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+			client.settimeout(timeout)
+			client.connect(str(path))
+			client.sendall(line.encode())
+			while clock.now() < deadline:
+				client.settimeout(max(0.01, (deadline - clock.now()).total_seconds()))
+				chunk = client.recv(65536)
+				if chunk == b"":
+					break
+				received += chunk
+				answer = _answer(received, identifier)
+				if answer is not None:
+					return answer
+				received = received[received.rfind(b"\n") + 1 :]
+	except (FileNotFoundError, ConnectionRefusedError):
+		return Answer(False, _("Machin player is not broadcasting"))
+	except OSError:
+		pass
+	return Answer(False, _("Machin player did not answer"))
+
+
+def _answer(received: bytes, identifier: str) -> Answer | None:
+	"""La réponse à la demande, parmi les lignes complètes reçues ; None si elle n'y est pas encore."""
+	for line in received.split(b"\n")[:-1]:
+		try:
+			message = json.loads(line)
+		except ValueError:
+			message = None
+		if (isinstance(message, dict)) and (message.get("reply") == identifier):
+			if message.get("done") is True:
+				return Answer(True)
+			return Answer(False, logged(str(message.get("reason", ""))))
+	return None

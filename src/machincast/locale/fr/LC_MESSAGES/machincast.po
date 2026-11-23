@@ -4253,6 +4253,7 @@ msgid "No next event within seven days"
 msgstr "Aucun événement suivant dans les sept jours"
 
 #: machincast/interface/interruption.py
+#: machincast/intranet/live.py
 msgid "Machin player is not broadcasting"
 msgstr "Machin player ne diffuse pas"
 
@@ -6750,6 +6751,10 @@ msgstr "Démarre dans"
 msgid "{weekday}. {day:02d}/{month:02d}"
 msgstr "{weekday}. {day:02d}/{month:02d}"
 
+#: machincast/intranet/live.py
+msgid "Machin player did not answer"
+msgstr "Machin player n'a pas répondu"
+
 #: machincast/intranet/network.py
 #, python-brace-format
 msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
@@ -7473,6 +7478,10 @@ msgid "insertion ignored"
 msgstr "insertion ignorée"
 
 #: machincast/player/interruptions.py
+msgid "nothing on air"
+msgstr "rien à l'antenne"
+
+#: machincast/player/interruptions.py
 #, python-brace-format
 msgid "{manual_interruption} ignored"
 msgstr "{manual_interruption} ignorée"
@@ -7503,9 +7512,25 @@ msgid "of the event “{name}” by the fallback “{by}”"
 msgstr "de l'événement « {name} » par le secours « {by} »"
 
 #: machincast/player/interruptions.py
+msgid "no next event"
+msgstr "aucun événement suivant"
+
+#: machincast/player/interruptions.py
 #, python-brace-format
 msgid "of the event “{name}”, planned on {start:%Y-%m-%d %H:%M}"
 msgstr "de l'événement « {name} », prévu le {start:%Y-%m-%d %H:%M}"
+
+#: machincast/player/interruptions.py
+msgid "no sequence on air"
+msgstr "aucune séquence à l'antenne"
+
+#: machincast/player/interruptions.py
+msgid "the background programming is already on air"
+msgstr "le fil musical est déjà à l'antenne"
+
+#: machincast/player/interruptions.py
+msgid "a stream has no beginning"
+msgstr "un stream n'a pas de début"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
@@ -7524,39 +7549,18 @@ msgstr "de l'événement « {name} » par le feed « {by} »"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
+msgid "{ignored}: {reason}"
+msgstr "{ignored} : {reason}"
+
+#: machincast/player/interruptions.py
+#, python-brace-format
 msgid "event no. {event}, unknown"
 msgstr "l'événement n°{event}, inconnu"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
-msgid "{ignored_advance}: no next event"
-msgstr "{ignored_advance} : aucun événement suivant"
-
-#: machincast/player/interruptions.py
-#, python-brace-format
-msgid "{ignored_advance}: the next event is “{name}”, not {expected}"
-msgstr ""
-"{ignored_advance} : l'événement suivant est « {name} », pas {expected}"
-
-#: machincast/player/interruptions.py
-#, python-brace-format
-msgid "{ignored}: nothing on air"
-msgstr "{ignored} : rien à l'antenne"
-
-#: machincast/player/interruptions.py
-#, python-brace-format
-msgid "{ignored}: no sequence on air"
-msgstr "{ignored} : aucune séquence à l'antenne"
-
-#: machincast/player/interruptions.py
-#, python-brace-format
-msgid "{ignored}: the background programming is already on air"
-msgstr "{ignored} : le fil musical est déjà à l'antenne"
-
-#: machincast/player/interruptions.py
-#, python-brace-format
-msgid "{ignored}: a stream has no beginning"
-msgstr "{ignored} : un stream n'a pas de début"
+msgid "the next event is “{name}”, not {expected}"
+msgstr "l'événement suivant est « {name} », pas {expected}"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
@@ -7585,23 +7589,23 @@ msgstr "retour au début de la séquence {on_air_sequence}"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
-msgid "{ignored}: sequence {sequence} or bank {bank} unknown"
-msgstr "{ignored} : séquence {sequence} ou banque {bank} inconnue"
+msgid "sequence {sequence} or bank {bank} unknown"
+msgstr "séquence {sequence} ou banque {bank} inconnue"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
-msgid "{ignored}: event no. {event} is not a fallback"
-msgstr "{ignored} : l'événement n°{event} n'est pas un secours"
+msgid "event no. {event} is not a fallback"
+msgstr "l'événement n°{event} n'est pas un secours"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
-msgid "{ignored}: feed no. {feed} does not exist"
-msgstr "{ignored} : le feed n°{feed} n'existe pas"
+msgid "feed no. {feed} does not exist"
+msgstr "le feed n°{feed} n'existe pas"
 
 #: machincast/player/interruptions.py
 #, python-brace-format
-msgid "{ignored}: no active stream follows the feed “{name}”"
-msgstr "{ignored} : aucun stream actif ne suit le feed « {name} »"
+msgid "no active stream follows the feed “{name}”"
+msgstr "aucun stream actif ne suit le feed « {name} »"
 
 #: machincast/player/outputs.py
 msgid "inaccessible output"
@@ -7746,6 +7750,17 @@ msgstr "demande ignorée sur la socket d'état"
 #: machincast/player/state.py
 msgid "a request of the intranet names the user who makes it"
 msgstr "une demande de l'intranet nomme le compte qui la fait"
+
+#: machincast/player/state.py
+msgid ""
+"the identifier of a request is given only on the socket of the intranet"
+msgstr ""
+"l'identifiant d'une demande ne se donne que sur la socket de l'intranet"
+
+#: machincast/player/state.py
+msgid "the identifier of a request: 1 to 64 letters, digits, “_” or “-”"
+msgstr ""
+"l'identifiant d'une demande : de 1 à 64 lettres, chiffres, « _ » ou « - »"
 
 #: machincast/player/state.py
 msgid "a request is a JSON object"
