@@ -2308,6 +2308,16 @@ msgstr "Enregistrement impossible : {error}"
 
 #: machincast/interface/card.py
 #, python-brace-format
+msgid "plugin “{plugin}”: a section of the card is expected"
+msgstr "plugin « {plugin} » : une section de la fiche est attendue"
+
+#: machincast/interface/card.py
+#, python-brace-format
+msgid "plugin “{plugin}” refused the saving: {reason}"
+msgstr "le plugin « {plugin} » a refusé l'enregistrement : {reason}"
+
+#: machincast/interface/card.py
+#, python-brace-format
 msgid "{self_}: restoring impossible: {error}"
 msgstr "{self_} : restauration impossible : {error}"
 
@@ -3771,12 +3781,6 @@ msgid ""
 msgstr ""
 "Des streams ont cet événement pour secours : {names}. Il reste de priorité "
 "« Secours »."
-
-#: machincast/interface/event_card.py
-#, python-brace-format
-msgid "plugin “{plugin}”: a section of the event card is expected"
-msgstr ""
-"plugin « {plugin} » : une section de la fiche d'un événement est attendue"
 
 #: machincast/interface/event_card.py
 #, python-brace-format
@@ -6804,6 +6808,11 @@ msgstr "Préférences non enregistrées dans {configuration} : {error}"
 #, python-brace-format
 msgid "Settings not saved in {configuration}: {error}"
 msgstr "Réglages non enregistrés dans {configuration} : {error}"
+
+#: machincast/interface/window.py
+#, python-brace-format
+msgid "plugin “{plugin}”: a menu or an action is expected"
+msgstr "plugin « {plugin} » : un menu ou une action est attendu"
 
 #: machincast/interface/window.py
 #, python-brace-format

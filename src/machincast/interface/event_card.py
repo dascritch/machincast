@@ -42,13 +42,12 @@ from datetime import date, datetime, timedelta
 from PySide6.QtCore import QDateTime, Signal
 from PySide6.QtWidgets import QBoxLayout, QDateTimeEdit, QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
 
-from machincast import plugins
 from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.i18n import _, date_and_hour
 from machincast.interface import display
 from machincast.interface.calendar import day_and_month, long_date
-from machincast.interface.card import ORANGE, Card, Connection, Refusal, rank_of
+from machincast.interface.card import ORANGE, Card, CardSection, Connection, Refusal, card_point, rank_of
 from machincast.interface.items import CATEGORY, FEED, ITEM, Buttons, ItemList
 from machincast.interface.lists import EMPTY_EVENT, FALLBACK_NOT_LOCAL, calls_stream
 from machincast.interface.queries import events as queries
@@ -58,28 +57,8 @@ from machincast.shared.grid import DAYS, NEVER, Event, Priority, overlap, read_g
 
 log = logging.getLogger(__name__)
 
-POINT = "interface.event_card"
+POINT = card_point("event")
 """Le point d'extension des sections de la fiche (machincast.plugins.points.CORE)."""
-
-
-class CardSection(QWidget):
-	"""La section qu'un plugin ajoute à la fiche d'un événement (https://github.com/dascritch/machincast/issues/611)."""
-
-	changed = Signal()
-	"""Un changement de la section : la fiche est modifiée."""
-	replaces_items = Signal(bool)
-	"""Vrai : la section remplace la liste de l'événement, cachée ; faux, elle la rend."""
-
-	def grid_widget(self) -> QWidget | None:
-		"""Ce que la section place sous les jours de la récurrence, au-dessus de l'explication des dates, par exemple
-		la case qui la montre ; None, rien."""
-		return None
-
-	def read(self, identifier: int | None) -> None:
-		"""Lit l'événement, ou celui que la fiche copie, dans une transaction ; None pour un nouvel événement."""
-
-	def write(self, identifier: int) -> None:
-		"""Écrit la section, dans la transaction de l'enregistrement de l'événement ; Refusal pour le refuser."""
 
 
 PRIORITIES: tuple[tuple[str, str], ...] = (
@@ -207,23 +186,13 @@ class EventCard(Card):
 		for day in self.days:
 			day.toggled.connect(self._modify)
 			day.toggled.connect(self._hour_only)
-		self.sections = self._sections()
 		self.load()
 
-	def _sections(self) -> list[CardSection]:
-		"""Les sections des plugins, à côté de la liste ; une réponse d'un autre type est consignée, et laissée."""
-		found = []
-		data = {"card": self, "connection": self.connection, "parent": self}
-		for plugin, answer in plugins.active().points.collect(POINT, data):
-			if not isinstance(answer, CardSection):
-				log.warning(_("plugin “{plugin}”: a section of the event card is expected").format(plugin=plugin))
-			else:
-				self.ui.lists.insertWidget(0, answer)
-				self._under_days(answer.grid_widget())
-				answer.changed.connect(self._modify)
-				answer.replaces_items.connect(self._replace_items)
-				found.append(answer)
-		return found
+	def place_section(self, section: CardSection) -> None:
+		"""À côté de la liste ; son grid_widget sous les jours de la récurrence ; elle peut cacher la liste."""
+		self.ui.lists.insertWidget(0, section)
+		self._under_days(section.grid_widget())
+		section.replaces_items.connect(self._replace_items)
 
 	def _under_days(self, widget: QWidget | None) -> None:
 		"""Le widget d'une section, sous les jours de la récurrence : l'explication des dates descend d'une ligne."""
@@ -314,9 +283,6 @@ class EventCard(Card):
 		self._warn()
 		self._end_of_list()
 		self._announce_session()
-		with self.connection.transaction():
-			for section in self.sections:
-				section.read(lu)
 
 	# ─── Session sautée (https://github.com/dascritch/machincast/issues/295) ───
 
@@ -597,8 +563,6 @@ class EventCard(Card):
 			identifier = self.identifier
 			queries.update(self.connection, identifier, values)
 		self.items.write(identifier)
-		for section in self.sections:
-			section.write(identifier)
 		return identifier
 
 	def _refuse_overlap(

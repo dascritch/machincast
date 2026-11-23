@@ -153,4 +153,4 @@ def properties_read(empty_database: Connection, name: str, properties: str) -> N
 @then(parsers.parse("le point « {point} » est un point du cœur, qui mène à la CardSection"))
 def core_point(point: str) -> None:
 	assert point == POINT
-	assert "machincast.interface.event_card.CardSection" in CORE[point]
+	assert "machincast.interface.card.CardSection" in CORE[point]

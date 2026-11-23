@@ -39,6 +39,12 @@ Pendant l'enregistrement, toute la fiche est grisée, pour montrer que l'applica
 fin, réussie ou refusée (https://github.com/dascritch/machincast/issues/382). Réussi par « Enregistrer », l'enregistrement
 d'une banque, d'un événement, d'une séquence, d'un sonore ou d'un feed ferme son onglet (CLOSES_AFTER_SAVE, finished) ;
 refusé, la fiche reste ouverte, et dit pourquoi.
+
+Les plugins (https://github.com/dascritch/machincast/issues/591) : à sa première lecture, la fiche demande leurs
+sections (CardSection, point « interface.<genre>_card »), lues après elle, écrites dans la transaction de son
+enregistrement ; elle notifie interface.load_<genre> après chaque lecture ; avant de valider l'enregistrement, elle
+demande interface.presave_<genre>, avec la ligne écrite, qu'une raison refuse ; enregistrée, elle notifie
+interface.save_<genre>.
 """
 
 import logging
@@ -70,6 +76,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast import plugins
 from machincast.clock import Clock
 from machincast.i18n import _
 from machincast.interface import deletion, dialogs, intents, key_hints, preferences
@@ -210,6 +217,50 @@ class Refusal(Exception):
 		self.fields = fields
 
 
+class CardSection(QWidget):
+	"""La section qu'un plugin ajoute à une fiche (https://github.com/dascritch/machincast/issues/611,
+	https://github.com/dascritch/machincast/issues/591), par le point « interface.<genre>_card ». Elle lit l'élément
+	avec la fiche, la rend modifiée à chaque changement (changed), s'écrit dans la même transaction que lui, et peut le
+	refuser (Refusal)."""
+
+	changed = Signal()
+	"""Un changement de la section : la fiche est modifiée."""
+	replaces_items = Signal(bool)
+	"""Vrai : la section remplace la liste de l'événement, cachée ; faux, elle la rend. Seule la fiche d'un événement
+	l'écoute."""
+
+	def grid_widget(self) -> QWidget | None:
+		"""Ce que la section place sous les jours de la récurrence de la fiche d'un événement, au-dessus de
+		l'explication des dates, par exemple la case qui la montre ; None, rien."""
+		return None
+
+	def read(self, identifier: int | None) -> None:
+		"""Lit l'élément, ou celui que la fiche copie, dans une transaction ; None pour un nouvel élément."""
+
+	def write(self, identifier: int) -> None:
+		"""Écrit la section, dans la transaction de l'enregistrement de l'élément ; Refusal pour le refuser."""
+
+
+def card_point(category: str) -> str:
+	"""Le point des sections des plugins d'une fiche : « interface.event_card », « interface.bank_card »…"""
+	return f"interface.{category}_card"
+
+
+def load_point(category: str) -> str:
+	"""Notifié quand la fiche a lu l'élément (https://github.com/dascritch/machincast/issues/591)."""
+	return f"interface.load_{category}"
+
+
+def presave_point(category: str) -> str:
+	"""Demandé avant que l'enregistrement de l'élément ne soit validé : une raison le refuse."""
+	return f"interface.presave_{category}"
+
+
+def save_point(category: str) -> str:
+	"""Notifié quand l'élément est enregistré."""
+	return f"interface.save_{category}"
+
+
 class Card(QWidget):
 	changed_title = Signal(str)
 	"""Le titre de l'onglet de la fiche a changé : à la lecture, et après un enregistrement."""
@@ -259,6 +310,9 @@ class Card(QWidget):
 		"""Ce que la fiche d'un élément supprimé a figé."""
 		self._reported_list: list[tuple[QLabel | QAbstractButton | QGroupBox, str]] = []
 		"""Les libellés précédés de ⚠️, avec leur texte d'origine."""
+		self.sections: list[CardSection] = []
+		"""Les sections des plugins, demandées à la première lecture, quand l'écran de la fiche est construit."""
+		self._sections_asked = False
 
 	def plug(
 		self,
@@ -324,7 +378,16 @@ class Card(QWidget):
 		if (self.is_copy()) and (not self._in_database(self.model)):
 			self.message.setText(_("The original is no longer in the database: the copy stays as it is."))
 			return
+		if not self._sections_asked:
+			self._sections_asked = True
+			self.sections = self._plugin_sections()
 		self._read()
+		with self.connection.transaction():
+			for section in self.sections:
+				section.read(self.lu())
+		plugins.active().points.notify(
+			load_point(self.category), {"category": self.category, "identifier": self.lu(), "copy": self.is_copy()}
+		)
 		self._mark(modified=self.is_copy())
 		self.button_delete.setEnabled(self.identifier is not None)
 		self.message.clear()
@@ -371,6 +434,9 @@ class Card(QWidget):
 		try:
 			with self.connection.transaction():
 				identifier = self._write()
+				for section in self.sections:
+					section.write(identifier)
+				row = self._presave(identifier)
 		except Refusal as refusal:
 			self.flag_error(str(refusal), refusal.fields)
 			return False
@@ -380,9 +446,56 @@ class Card(QWidget):
 			return False
 		self.identifier = identifier
 		self.model = None
+		if row is not None:
+			plugins.active().points.notify(
+				save_point(self.category), {"category": self.category, "identifier": identifier, "row": row}
+			)
 		self.load()
 		self.saved.emit(identifier)
 		return True
+
+	# ─── Les plugins (https://github.com/dascritch/machincast/issues/591) ───
+
+	def _plugin_sections(self) -> list[CardSection]:
+		"""Les sections des plugins abonnés au point de la fiche ; une réponse d'un autre type est consignée, et
+		laissée."""
+		found = []
+		data = {"card": self, "connection": self.connection, "parent": self}
+		for plugin, answer in plugins.active().points.collect(card_point(self.category), data):
+			if not isinstance(answer, CardSection):
+				log.warning(_("plugin “{plugin}”: a section of the card is expected").format(plugin=plugin))
+			else:
+				self.place_section(answer)
+				answer.changed.connect(self._modify)
+				found.append(answer)
+		return found
+
+	def place_section(self, section: CardSection) -> None:
+		"""Sous le reste de la fiche, au-dessus de ses boutons."""
+		arrangement = self.layout()
+		assert isinstance(arrangement, QBoxLayout)
+		arrangement.insertWidget(arrangement.count() - 1, section)
+
+	def _presave(self, identifier: int) -> dict[str, object] | None:
+		"""La ligne de l'élément écrit, dans la transaction de l'enregistrement, demandée aux plugins avant qu'elle ne
+		soit validée : la première raison qu'un plugin donne la refuse. None : aucun plugin ne s'y intéresse."""
+		points = plugins.active().points
+		presave = presave_point(self.category)
+		if (points.subscribers(presave) == []) and (points.subscribers(save_point(self.category)) == []):
+			return None
+		row = queries.row(self.connection, deletion.CATEGORIES[self.category].table, identifier)
+		data = {
+			"category": self.category,
+			"identifier": identifier,
+			"row": row,
+			"card": self,
+			"connection": self.connection,
+		}
+		for plugin, answer in points.collect(presave, data):
+			if (isinstance(answer, str)) and (answer != ""):
+				log.info(_("plugin “{plugin}” refused the saving: {reason}").format(plugin=plugin, reason=answer))
+				raise Refusal(answer)
+		return row
 
 	def _delete_or_restore(self) -> None:
 		if self.deleted_at is None:

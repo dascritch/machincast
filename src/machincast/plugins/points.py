@@ -37,8 +37,19 @@ CORE: dict[str, str] = {
 	),
 	"interface.event_card": (
 		"asked by Machin interface when the card of an event opens, with “card”, “connection” and “parent”: the "
-		"plugin answers a machincast.interface.event_card.CardSection, its section of the card, saved with the event "
+		"plugin answers a machincast.interface.card.CardSection, its section of the card, saved with the event; "
+		"its grid_widget goes under the days of the recurrence, and it may replace the play list "
 		"(https://github.com/dascritch/machincast/issues/611)"
+	),
+	"interface.menu": (
+		"asked by Machin interface when its window opens, with “window”, “connection” and “parent”: the plugin "
+		"answers a QMenu or a QAction, or a list of them, put in the menu bar before the menu “Help” "
+		"(https://github.com/dascritch/machincast/issues/591)"
+	),
+	"interface.context_menu": (
+		"asked by Machin interface when the context menu of a line of a list opens, with “menu”, “category”, "
+		"“identifiers” (the selection, or the clicked line), “clicked” and “parent”: the plugin adds its entries "
+		"to the menu (https://github.com/dascritch/machincast/issues/591)"
 	),
 	"player.service_start": (
 		"notified by Machin player when its broadcast starts, with “instant” "
@@ -98,6 +109,29 @@ CORE: dict[str, str] = {
 }
 """Les points du cœur, et ce qu'ils disent : chaque ticket qui en ajoute un le décrit ici, avec ses données
 (https://github.com/dascritch/machincast/issues/348)."""
+CARD_CATEGORIES = {"bank": "a bank", "sequence": "a sequence", "sound": "a sound", "feed": "a feed"}
+"""Les fiches de l'interface, autres que celle d'un événement, et ce qu'elles montrent."""
+for _category, _shown in CARD_CATEGORIES.items():
+	CORE[f"interface.{_category}_card"] = (
+		f"asked by Machin interface when the card of {_shown} opens, with “card”, “connection” and “parent”: the "
+		"plugin answers a machincast.interface.card.CardSection, its section of the card, above its buttons, saved "
+		"with it (https://github.com/dascritch/machincast/issues/591)"
+	)
+for _category, _shown in {"event": "an event", **CARD_CATEGORIES}.items():
+	CORE[f"interface.load_{_category}"] = (
+		f"notified by Machin interface when the card of {_shown} has read it, with “category”, “identifier” (None "
+		"for a new one) and “copy” (https://github.com/dascritch/machincast/issues/591)"
+	)
+	CORE[f"interface.presave_{_category}"] = (
+		f"asked by Machin interface when the card of {_shown} is written, before the saving is committed, with "
+		"“category”, “identifier”, “row” (its line, in JSON), “card” and “connection”: a reason, a non-empty "
+		"string, refuses the saving (https://github.com/dascritch/machincast/issues/591)"
+	)
+	CORE[f"interface.save_{_category}"] = (
+		f"notified by Machin interface when {_shown} is saved, with “category”, “identifier” and “row” "
+		"(https://github.com/dascritch/machincast/issues/591)"
+	)
+
 CLOSING = 5.0
 """Secondes laissées aux notifications en cours, à la fermeture d'un binaire."""
 FAILED = N_("plugin “{plugin}” failed at the extension point “{point}”: {error}")

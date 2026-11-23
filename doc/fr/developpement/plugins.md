@@ -185,17 +185,51 @@ def register(plugin):
 L'un et l'autre lisent l'événement, ses `properties` comprises : c'est là qu'un plugin range ses choix.
 Appelés à chaque lecture de la grille, ils ne lisent pas la base.
 
-## Sa section dans la fiche d'un événement
+## Sa section dans une fiche
 
-([#611](https://github.com/dascritch/machincast/issues/611))
+([#611](https://github.com/dascritch/machincast/issues/611), [#591](https://github.com/dascritch/machincast/issues/591))
 
-Le point du cœur « interface.event_card » est demandé à l'ouverture de la fiche d'un événement, dans Machin interface, avec `card`, la fiche, `connection`, sa connexion, et `parent`.
-Le plugin y répond une `machincast.interface.event_card.CardSection`, un `QWidget`, montrée à côté de la liste de lecture :
+Le point du cœur « interface.<genre>_card » est demandé à l'ouverture d'une fiche, dans Machin interface, avec `card`, la fiche, `connection`, sa connexion, et `parent` : « interface.event_card », « interface.bank_card », « interface.sequence_card », « interface.sound_card » et « interface.feed_card ».
+Le plugin y répond une `machincast.interface.card.CardSection`, un `QWidget`, montrée au-dessus des boutons de la fiche, ou à côté de la liste de lecture dans celle d'un événement :
 
-- `read(identifier)` lit l'événement, ou celui que la fiche copie, dans une transaction ; `None` pour un nouvel événement ;
-- `write(identifier)` s'écrit dans la transaction de l'enregistrement de l'événement, et lève `machincast.interface.card.Refusal(message, *champs)` pour le refuser : la fiche le signale, et rien n'est écrit ;
-- son signal `changed` rend la fiche modifiée ; `replaces_items(True)` cache la liste de lecture, qu'elle remplace, `replaces_items(False)` la rend ;
-- `grid_widget()` rend ce qu'elle place sous les jours de la récurrence, au-dessus de l'explication des dates, par exemple la case qui la montre ; `None` par défaut.
+- `read(identifier)` lit l'élément, ou celui que la fiche copie, dans une transaction ; `None` pour un nouvel élément ;
+- `write(identifier)` s'écrit dans la transaction de l'enregistrement de l'élément, et lève `machincast.interface.card.Refusal(message, *champs)` pour le refuser : la fiche le signale, et rien n'est écrit ;
+- son signal `changed` rend la fiche modifiée ;
+- dans la fiche d'un événement seulement, `replaces_items(True)` cache la liste de lecture, qu'elle remplace, `replaces_items(False)` la rend, et `grid_widget()` rend ce qu'elle place sous les jours de la récurrence, au-dessus de l'explication des dates, par exemple la case qui la montre ; `None` par défaut.
+
+## Suivre et vérifier les fiches
+
+([#591](https://github.com/dascritch/machincast/issues/591))
+
+Pour chaque genre d'élément, `event`, `bank`, `sequence`, `sound` et `feed`, trois points du cœur :
+
+| Point | Comment | Données |
+| --- | --- | --- |
+| `interface.load_<genre>` | notifié, quand la fiche a lu l'élément | `category`, `identifier` (`None` pour un nouvel élément), `copy` |
+| `interface.presave_<genre>` | demandé, quand la fiche est écrite, avant que l'enregistrement ne soit validé | `category`, `identifier`, `row` (sa ligne, en JSON, telle qu'écrite), `card`, `connection` |
+| `interface.save_<genre>` | notifié, une fois l'élément enregistré | `category`, `identifier`, `row` |
+
+À `interface.presave_<genre>`, une chaîne non vide refuse l'enregistrement : la fiche la signale, et rien n'est écrit.
+
+```python
+def register(plugin):
+	plugin.on("interface.presave_bank", lambda data: refuser_sans_majuscule(data["row"]["internal_name"]))
+```
+
+Les points notifiés sont appelés dans le fil des plugins : ils ne touchent pas à l'écran, et ouvrent leur propre connexion pour lire la base.
+
+## Ses menus
+
+([#591](https://github.com/dascritch/machincast/issues/591))
+
+- « interface.menu » est demandé à l'ouverture de la fenêtre, avec `window`, `connection` et `parent` : le plugin répond un `QMenu`, une `QAction`, ou une liste d'entre eux, placés dans la barre de menus avant « Aide ».
+- « interface.context_menu » est demandé au clic droit sur une ligne d'une liste, hors d'un choix d'éléments, avec `menu`, `category`, `identifiers` (la sélection, ou la ligne cliquée), `clicked` et `parent` : le plugin ajoute ses entrées au menu.
+- Le menu « Plugins » ouvre sa fenêtre et ses réglages (ci-dessous).
+
+## Les points d'entrée d'un nouveau plugin
+
+À la création de chaque plugin, la liste des points d'entrée qu'il propose est revue avec le responsable du projet ([#348](https://github.com/dascritch/machincast/issues/348)) : menu général, menu contextuel, section d'une fiche, vérification avant l'enregistrement, points de Machin player, de Machin indexer ou de Machin intranet, `log_incident`, et les points qu'il déclare pour d'autres plugins (`plugin.declare`).
+Un besoin qu'aucun point ne couvre est un ticket du cœur, qui ajoute son point à `points.CORE`, décrit.
 
 ## Ses réglages dans l'interface
 
