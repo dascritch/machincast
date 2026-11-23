@@ -98,7 +98,7 @@ def buttons(base: Connection, user: str, datatable: list[list[str]]) -> None:
 			column, table, name = found
 			columns[column] = identifier(base, table, name, target.strip())
 		base.execute(
-			"INSERT INTO cartwall_buttons (api_user_id, position, label, colour, action, sequence_id, bank_id, event_id,"
+			"INSERT INTO cartwall__buttons (api_user_id, position, label, colour, action, sequence_id, bank_id, event_id,"
 			" feed_id, blank) VALUES (%(account)s, %(position)s, %(label)s, %(colour)s, %(action)s, %(sequence_id)s,"
 			" %(bank_id)s, %(event_id)s, %(feed_id)s, NULLIF(%(blank)s, ''))",
 			{
@@ -117,7 +117,7 @@ def stored(connection: Connection, user: str) -> list[list[str]]:
 	"""Les boutons du compte en base, dans l'ordre, comme les tableaux des scénarios."""
 	lines = connection.execute(
 		"SELECT b.label, b.colour, b.action, COALESCE(s.internal_name, k.internal_name, e.internal_name, f.name, ''),"
-		" COALESCE(b.blank, '') FROM cartwall_buttons b JOIN api_users u ON u.id = b.api_user_id"
+		" COALESCE(b.blank, '') FROM cartwall__buttons b JOIN api_users u ON u.id = b.api_user_id"
 		" LEFT JOIN sequences s ON s.id = b.sequence_id LEFT JOIN banks k ON k.id = b.bank_id"
 		" LEFT JOIN events e ON e.id = b.event_id LEFT JOIN feeds f ON f.id = b.feed_id"
 		" WHERE u.name = %s ORDER BY b.position",

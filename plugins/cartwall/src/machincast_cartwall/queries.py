@@ -18,7 +18,7 @@ SELECT b.id, b.label, b.colour, b.action, COALESCE(b.sequence_id, b.bank_id, b.e
 	COALESCE(k.no_repeat AND k.id = (
 		SELECT a.bank_id FROM airplay a WHERE a.line_type = 'start' ORDER BY a.id DESC LIMIT 1
 	), false)
-FROM cartwall_buttons b
+FROM cartwall__buttons b
 JOIN api_users u ON u.id = b.api_user_id
 LEFT JOIN sequences s ON s.id = b.sequence_id
 LEFT JOIN banks k ON k.id = b.bank_id
@@ -134,9 +134,9 @@ def add(connection: Connection, account: int, fields: Fields) -> int:
 	columns = _columns(fields)
 	with connection.transaction():
 		line = connection.execute(
-			"INSERT INTO cartwall_buttons (api_user_id, position, label, colour, action, sequence_id, bank_id, event_id,"
+			"INSERT INTO cartwall__buttons (api_user_id, position, label, colour, action, sequence_id, bank_id, event_id,"
 			" feed_id, blank) SELECT %(account)s, COALESCE(max(position), 0) + 1, %(label)s, %(colour)s, %(action)s,"
-			" %(sequence_id)s, %(bank_id)s, %(event_id)s, %(feed_id)s, %(blank)s FROM cartwall_buttons"
+			" %(sequence_id)s, %(bank_id)s, %(event_id)s, %(feed_id)s, %(blank)s FROM cartwall__buttons"
 			" WHERE api_user_id = %(account)s RETURNING id",
 			{**columns, "account": account},
 		).fetchone()
@@ -147,7 +147,7 @@ def add(connection: Connection, account: int, fields: Fields) -> int:
 def replace(connection: Connection, button: int, fields: Fields) -> None:
 	with connection.transaction():
 		connection.execute(
-			"UPDATE cartwall_buttons SET label = %(label)s, colour = %(colour)s, action = %(action)s,"
+			"UPDATE cartwall__buttons SET label = %(label)s, colour = %(colour)s, action = %(action)s,"
 			" sequence_id = %(sequence_id)s, bank_id = %(bank_id)s, event_id = %(event_id)s, feed_id = %(feed_id)s,"
 			" blank = %(blank)s WHERE id = %(button)s",
 			{**_columns(fields), "button": button},
@@ -157,25 +157,25 @@ def replace(connection: Connection, button: int, fields: Fields) -> None:
 def remove(connection: Connection, button: int) -> None:
 	"""Retire le bouton ; ceux qui le suivent remontent d'un rang."""
 	with connection.transaction():
-		connection.execute("SET CONSTRAINTS cartwall_buttons_position DEFERRED")
+		connection.execute("SET CONSTRAINTS cartwall__buttons_position DEFERRED")
 		line = connection.execute(
-			"DELETE FROM cartwall_buttons WHERE id = %s RETURNING api_user_id, position", (button,)
+			"DELETE FROM cartwall__buttons WHERE id = %s RETURNING api_user_id, position", (button,)
 		).fetchone()
 		if line is not None:
 			connection.execute(
-				"UPDATE cartwall_buttons SET position = position - 1 WHERE api_user_id = %s AND position > %s", line
+				"UPDATE cartwall__buttons SET position = position - 1 WHERE api_user_id = %s AND position > %s", line
 			)
 
 
 def move(connection: Connection, button: int, offset: int) -> None:
 	"""Échange le bouton avec son voisin, offset -1 avant lui, 1 après ; rien au bord."""
 	with connection.transaction():
-		connection.execute("SET CONSTRAINTS cartwall_buttons_position DEFERRED")
+		connection.execute("SET CONSTRAINTS cartwall__buttons_position DEFERRED")
 		connection.execute(
-			"UPDATE cartwall_buttons AS b SET position = CASE WHEN b.id = m.id THEN m.position + %(offset)s"
-			" ELSE m.position END FROM cartwall_buttons AS m WHERE m.id = %(button)s AND b.api_user_id = m.api_user_id"
+			"UPDATE cartwall__buttons AS b SET position = CASE WHEN b.id = m.id THEN m.position + %(offset)s"
+			" ELSE m.position END FROM cartwall__buttons AS m WHERE m.id = %(button)s AND b.api_user_id = m.api_user_id"
 			" AND b.position IN (m.position, m.position + %(offset)s)"
-			" AND EXISTS (SELECT 1 FROM cartwall_buttons o WHERE o.api_user_id = m.api_user_id"
+			" AND EXISTS (SELECT 1 FROM cartwall__buttons o WHERE o.api_user_id = m.api_user_id"
 			" AND o.position = m.position + %(offset)s)",
 			{"button": button, "offset": offset},
 		)

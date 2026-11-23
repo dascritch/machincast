@@ -7,14 +7,14 @@ Des boutons tactiles dans Machin intranet, qui agissent sur l'antenne, réglés 
 
 ## Installer
 
-Le cocher dans l'onglet « Plugins » des « Paramètres du service… », puis valider : MachinCast crée sa table `cartwall_buttons`, après une sauvegarde de la base, en lançant son `install.sh`.
+Le cocher dans l'onglet « Plugins » des « Paramètres du service… », puis valider : MachinCast crée sa table `cartwall__buttons`, après une sauvegarde de la base, en lançant son `install.sh`.
 Relancer ensuite le serveur intranet et l'interface.
 
 À la main, ou dans `machincast.toml` :
 
 ```bash
 plugins/cartwall/install.sh --simulation   # ce qui serait fait
-plugins/cartwall/install.sh                # sa table cartwall_buttons, après une sauvegarde de la base
+plugins/cartwall/install.sh                # sa table cartwall__buttons, après une sauvegarde de la base
 ```
 
 ```toml
@@ -29,7 +29,7 @@ enabled = ["cartwall"]
 | Chemin | Rôle |
 | --- | --- |
 | `manifest.json` | S'accroche à `Machin_intranet` et `Machin_interface`. |
-| `migrations/` | La table `cartwall_buttons` : les boutons de chaque compte, lus par l'intranet, réglés par l'interface. |
+| `migrations/` | La table `cartwall__buttons` : les boutons de chaque compte, lus par l'intranet, réglés par l'interface. |
 | `src/machincast_cartwall/intranet.py` | La page `/plugins/cartwall` et les routes `GET /api/v1/plugins/cartwall/buttons`, `POST /api/v1/plugins/cartwall/press`. |
 | `src/machincast_cartwall/settings.py` | Les boutons de chaque compte, dans la fenêtre du plugin, menu « Plugins » de l'interface. |
 | `src/machincast_cartwall/buttons.py` | Les actions, et la demande que chacune envoie à Machin player. |

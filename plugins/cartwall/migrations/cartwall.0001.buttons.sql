@@ -1,7 +1,7 @@
 -- Les boutons du cartouchier, par compte de l'API (https://github.com/dascritch/machincast/issues/512) : leur
 -- intitulé, leur couleur, et l'action d'antenne qu'ils demandent à Machin player, avec ce qu'elle vise.
 
-CREATE TABLE cartwall_buttons (
+CREATE TABLE cartwall__buttons (
 	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	api_user_id bigint NOT NULL REFERENCES api_users (id) ON DELETE CASCADE,
 	position integer NOT NULL CHECK (position >= 1),
@@ -17,9 +17,9 @@ CREATE TABLE cartwall_buttons (
 	feed_id bigint REFERENCES feeds (id) ON DELETE CASCADE,
 	-- Le blanc de 5 secondes d'une insertion (https://github.com/dascritch/machincast/issues/594).
 	blank text CHECK (blank IN ('before', 'after', 'both')),
-	CONSTRAINT cartwall_buttons_position UNIQUE (api_user_id, position) DEFERRABLE INITIALLY IMMEDIATE,
+	CONSTRAINT cartwall__buttons_position UNIQUE (api_user_id, position) DEFERRABLE INITIALLY IMMEDIATE,
 	-- Chaque action vise ce qu'il lui faut, et rien d'autre.
-	CONSTRAINT cartwall_buttons_target CHECK (
+	CONSTRAINT cartwall__buttons_target CHECK (
 		(sequence_id IS NOT NULL) = (action = 'insert_sequence')
 		AND (bank_id IS NOT NULL) = (action = 'insert_bank')
 		AND (event_id IS NOT NULL) = (action = 'cut_by_fallback')
@@ -28,7 +28,7 @@ CREATE TABLE cartwall_buttons (
 	)
 );
 
-COMMENT ON TABLE cartwall_buttons IS 'Les boutons du cartouchier de chaque compte de l''API, dans l''ordre de position.';
+COMMENT ON TABLE cartwall__buttons IS 'Les boutons du cartouchier de chaque compte de l''API, dans l''ordre de position.';
 
-GRANT SELECT ON cartwall_buttons TO machincast_intranet;
-GRANT SELECT, INSERT, UPDATE, DELETE ON cartwall_buttons TO machincast_interface;
+GRANT SELECT ON cartwall__buttons TO machincast_intranet;
+GRANT SELECT, INSERT, UPDATE, DELETE ON cartwall__buttons TO machincast_interface;
