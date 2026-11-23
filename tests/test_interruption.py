@@ -348,3 +348,58 @@ def no_insertion(empty_database: Connection) -> None:
 	"""https://github.com/dascritch/machincast/issues/530"""
 	line = empty_database.execute("SELECT count(*) FROM log WHERE kind = %s", (MANUAL_INSERTION,)).fetchone()
 	assert line == (0,)
+
+
+# ─── Un blanc avant ou après une insertion (https://github.com/dascritch/machincast/issues/594) ───
+
+
+def insertion_log(database: Connection) -> list[str]:
+	insertion_log = []
+	for (message,) in database.execute(
+		"SELECT message FROM log WHERE level = 'info' AND kind = %s ORDER BY id", (MANUAL_INSERTION,)
+	).fetchall():
+		insertion_log.append(shown(message))
+	return insertion_log
+
+
+@then(parsers.parse("le log note l'insertion manuelle « {message} »"))
+def noted_insertion(empty_database: Connection, message: str) -> None:
+	assert insertion_log(empty_database) == [message]
+
+
+@when(parsers.parse("le serveur intranet envoie, pour la séquence « {name} », « {line} »"))
+def intranet_sends_sequence(
+	bench: Bench, empty_database: Connection, intranet_client: dict[str, Any], name: str, line: str
+) -> None:
+	found = empty_database.execute("SELECT id FROM sequences WHERE internal_name = %s", (name,)).fetchone()
+	assert found is not None
+	_keep(bench, intranet_client, line.replace("SEQUENCE", str(found[0])))
+
+
+def _published(bench: Bench) -> dict[str, Any]:
+	return broadcast(bench)._state(clock(bench).now(), stop=False)
+
+
+@then(parsers.parse("Machin player annonce « {title} » après un blanc de 5 secondes, à « {start} »"))
+def announced_after_blank(bench: Bench, title: str, start: str) -> None:
+	published = _published(bench)
+	found = []
+	for announced in [published["next"], *published["upcoming"]]:
+		if announced["title"] == title:
+			found.append((announced.get("blank_before"), announced["estimated_start"][11:19]))
+	# Le premier passage annoncé de ce sonore ; la liste du fil musical peut le ramener plus loin.
+	assert found[0] == (5.0, start), published
+
+
+@then(parsers.parse("Machin player annonce un blanc jusqu'à « {end} », en diffusion, sans sonore en cours"))
+def announced_blank(bench: Bench, end: str) -> None:
+	published = _published(bench)
+	assert (published["state"], published["current"]) == ("playing", None), published
+	assert published["blank"]["end"][11:19] == end, published
+
+
+@then("Machin player n'annonce aucun blanc")
+def no_blank(bench: Bench) -> None:
+	published = _published(bench)
+	assert published["blank"] is None
+	assert published["current"] is not None

@@ -118,6 +118,7 @@ from machincast.player.broadcast_text import (
 from machincast.player.broadcast_types import (
 	PRELOAD,
 	WITHOUT_DEFECTS,
+	Parameters,
 	Planned,
 	Playback,
 	Preload,
@@ -137,7 +138,7 @@ from machincast.player.files import check_before_playback
 from machincast.player.history import IN_DATABASE, History
 from machincast.player.interruptions import Interruptions
 from machincast.player.outputs import Outputs, public_text, read_plays
-from machincast.player.rundown import Choice, Cutoff, Decision, Ongoing, Scheduler
+from machincast.player.rundown import INSERTED, Choice, Cutoff, Decision, Ongoing, Scheduler
 from machincast.player.saving import Play, PlayStart
 from machincast.player.state import (
 	ADVANCE,
@@ -167,6 +168,8 @@ UPCOMING = 5
 """Sonores prévus après le prochain : la playlist immédiate (https://github.com/dascritch/machincast/issues/228)."""
 RECONNECTION_DELAY = timedelta(seconds=5)
 """Délai entre deux tentatives de reconnexion d'un stream tombé."""
+BLANK = timedelta(seconds=5)
+"""Le blanc qu'une insertion demande, avant ce qui est inséré ou après (https://github.com/dascritch/machincast/issues/594)."""
 
 EXPIRY_CHECK = timedelta(minutes=1)
 """Intervalle entre deux vérifications de tous les sonores (fin de période de diffusion)."""
@@ -228,6 +231,9 @@ class Broadcast:
 	"""Sonores qui finissent leur crossfade de fin sous le sonore courant."""
 	in_waiting: Choice | None = field(default=None, init=False)
 	"""Sonore suivant, qui attend la fin du sonore courant faute de superposition."""
+	blank_until: datetime | None = field(default=None, init=False)
+	"""La fin du blanc demandé par une insertion, que tient la sortie avant le sonore en attente
+	(https://github.com/dascritch/machincast/issues/594)."""
 	probe: Probe | None = field(default=None, init=False)
 	"""Reconnexion du stream tombé, s'il y en a un."""
 	checked_expiries: datetime | None = field(default=None, init=False)
@@ -322,18 +328,49 @@ class Broadcast:
 						self._prepare_following(current, instant)
 		else:
 			if not self.outgoing_list:
-				# Rien sur la sortie ; tant qu'un stream s'éteint sans superposition, le suivant attend.
-				reserve = self.reserve
-				choice, self.in_waiting = self.in_waiting, None
-				choice = (choice) or (self._take_reserve(instant))
-				if choice is not None:
-					self._play(choice, instant)
-				else:
-					self._play_decision(self._decide(instant, None), reserve, instant)
+				self._without_track(instant)
 		self._follow_probe(instant)
 		self._preload(instant)
 		self._follow_lender(instant)
 		self._publish(instant)
+
+	def _without_track(self, instant: datetime) -> None:
+		"""Rien sur la sortie : le sonore en attente, le réservé, ou la décision de l'ordonnanceur ; tant qu'un stream
+		s'éteint sans superposition, le suivant attend. Avant ou après ce qu'une insertion fait jouer, le blanc qu'elle
+		demande (https://github.com/dascritch/machincast/issues/594) : le sonore suivant attend BLANK."""
+		blank_over = False
+		if self.blank_until is not None:
+			if instant < self.blank_until:
+				return
+			self.blank_until, blank_over = None, True
+		reserve = self.reserve
+		choice, self.in_waiting = self.in_waiting, None
+		choice = (choice) or (self._take_reserve(instant))
+		previous = self._on_air
+		if (
+			(choice is not None)
+			and (not blank_over)
+			and (previous is not None)
+			and (self._blank_between(previous, choice))
+		):
+			self.in_waiting, self.blank_until = choice, instant + BLANK
+			self._publish(instant)
+			return
+		if choice is not None:
+			self._play(choice, instant)
+		else:
+			self._play_decision(self._decide(instant, None), reserve, instant)
+
+	def _blank_between(self, previous: Choice, following: Choice) -> bool:
+		"""Un blanc sépare-t-il ces deux sonores, à la demande de l'insertion
+		(https://github.com/dascritch/machincast/issues/594) : avant le premier sonore inséré, ou après le dernier ?"""
+		insertion = self.scheduler.insertion
+		if insertion is None:
+			return False
+		inserted_before, inserted_after = previous.item.id == INSERTED, following.item.id == INSERTED
+		before = (insertion.blank_before) and (inserted_after) and (not inserted_before)
+		after = (insertion.blank_after) and (inserted_before) and (not inserted_after)
+		return (before) or (after)
 
 	def _decide(self, instant: datetime, ongoing: Ongoing | None) -> Decision:
 		"""La décision de l'ordonnanceur, dont l'occurrence qui prête alors son nom est retenue."""
@@ -445,6 +482,7 @@ class Broadcast:
 		for playback in self._plays():
 			self._finish(playback.play, instant)
 		self.current, self.outgoing_list, self.in_waiting, self.probe, self.reserve = None, [], None, None, None
+		self.blank_until = None
 		self.preload = None
 		self.upcoming = []
 		self._note_on_air(None, instant)
@@ -771,14 +809,35 @@ class Broadcast:
 			upcoming_cutoffs.append(planned.cutoff)
 		cutoffs = [current.cutoff] + upcoming_cutoffs
 		start: datetime | None = current.play.start
-		parameters, occurrence = current.parameters, current.choice.occurrence
+		parameters, previous = current.parameters, current.choice
 		starts: list[datetime | None] = []
 		for (choice, incoming), cutoff in zip(remainder, cutoffs, strict=True):
 			if start is not None:
-				start = _following_start(start, parameters, occurrence, cutoff, incoming)
+				start = self._start_after(start, (previous, parameters), (choice, incoming), cutoff)
 			starts.append(start)
-			parameters, occurrence = incoming, choice.occurrence
+			parameters, previous = incoming, choice
 		return starts
+
+	def _start_after(
+		self,
+		start: datetime,
+		previous: tuple[Choice, Parameters],
+		following: tuple[Choice, Parameters],
+		cutoff: Cutoff | None,
+	) -> datetime | None:
+		"""Le début estimé du sonore following, après previous, qui commence à start : sans superposition, et 5
+		secondes plus tard, quand une insertion demande un blanc entre eux
+		(https://github.com/dascritch/machincast/issues/594)."""
+		choice, parameters = previous
+		incoming_choice, incoming = following
+		if (cutoff is not None) or (not self._blank_between(choice, incoming_choice)):
+			return _following_start(start, parameters, choice.occurrence, cutoff, incoming)
+		end = _following_start(
+			start, parameters, choice.occurrence, None, dataclasses.replace(incoming, start_crossfade=NO_CROSSFADE)
+		)
+		if end is None:
+			return None
+		return end + BLANK
 
 	def _analyse(self, reserve: Reserve, instant: datetime) -> None:
 		"""Fait analyser le sonore réservé s'il n'a pas été vérifié en entier, sans attendre l'analyse."""
@@ -817,7 +876,9 @@ class Broadcast:
 			# Rien ensuite : le sonore finit avec son fondu, et le prochain pas sans voie redemande.
 			return
 		parameters = read_parameters(self.connection, choice, self.crossfades)
-		if overlay(current.parameters.end_crossfade, parameters.start_crossfade):
+		# Un blanc demandé par une insertion : le sonore courant joue jusqu'au bout, sans fondu, et le suivant attend.
+		blank = self._blank_between(current.choice, choice)
+		if (overlay(current.parameters.end_crossfade, parameters.start_crossfade)) and (not blank):
 			self._play(choice, instant, current.parameters.end_crossfade)
 		else:
 			current.track.delete_output_fade()
@@ -927,6 +988,7 @@ class Broadcast:
 				playback_list.append(ongoing)
 		self.outgoing_list = playback_list
 		self.in_waiting, self.probe = None, None
+		self.blank_until = None
 		self.scheduler.resume()
 		self.lender = self.scheduler.lender(instant)
 		choice = self._lent(probe.choice)
@@ -957,6 +1019,7 @@ class Broadcast:
 		for playback in self._plays():
 			self._finish(playback.play, instant, cut=True)
 		self.current, self.outgoing_list, self.in_waiting, self.reserve = None, [], None, None
+		self.blank_until = None
 
 	def _play(
 		self,
@@ -1075,7 +1138,7 @@ class Broadcast:
 			self.interruptions.cut_by_feed(asks.feed)
 			return
 		if asks.command == INSERT:
-			self.interruptions.insert(asks.sequence, asks.bank)
+			self.interruptions.insert(asks.sequence, asks.bank, asks.blank)
 			return
 		self.interruptions.interrupt(asks.item)
 
@@ -1092,6 +1155,52 @@ class Broadcast:
 		if (stop) or (stable != previous) or (old):
 			self.state.publish({"timestamp": iso(instant), **message})
 			self._publication = (stable, instant)
+
+	def _announcements(self, current: Playback | None) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+		"""Le prochain sonore et les sonores à venir, tels que la socket d'état les annonce, avec le blanc qu'une
+		insertion demande avant l'un d'eux (https://github.com/dascritch/machincast/issues/594)."""
+		next_ = None
+		upcoming: list[dict[str, Any]] = []
+		reserve = self.reserve
+		if reserve is None:
+			return next_, upcoming
+		if (self._reserved_details is None) or (self._reserved_details[0] is not reserve):
+			self._reserved_details = (reserve, self._details(reserve.choice, None))
+		starts = self._starts()
+		if starts == []:
+			starts = [None]
+		# La fin de chaque sonore : le début de l'événement qui coupera le suivant, sinon sa durée.
+		planned_list = []
+		for planned in self.upcoming:
+			planned_list.append(planned.cutoff)
+		cutoffs = planned_list + [None]
+		remainder = [(reserve.choice, reserve.parameters, reserve.healthy, self._reserved_details[1])]
+		upcoming_list = []
+		for planned in self.upcoming:
+			upcoming_list.append((planned.choice, planned.parameters, planned.healthy, planned.details))
+		remainder += upcoming_list
+		announcements = []
+		previous = None
+		if current is not None:
+			previous = current.choice
+		for (choice, announced_parameters, healthy, announced_details), start, cutoff in zip(
+			remainder, starts, cutoffs, strict=False
+		):
+			announced = _announces(
+				self._lent(choice, start),
+				announced_parameters,
+				healthy=healthy,
+				details=announced_details,
+				start=start,
+				cutoff=cutoff,
+			)
+			# Le blanc qu'une insertion demande avant ce sonore (https://github.com/dascritch/machincast/issues/594).
+			if (previous is not None) and (self._blank_between(previous, choice)):
+				announced["blank_before"] = _seconds(BLANK)
+			announcements.append(announced)
+			previous = choice
+		next_, upcoming = announcements[0], announcements[1:]
+		return next_, upcoming
 
 	def _state(self, instant: datetime, *, stop: bool) -> dict[str, Any]:
 		current = self.current
@@ -1117,53 +1226,24 @@ class Broadcast:
 			if current.cutoff is not None:
 				event = current.cutoff.occurrence.event
 				ongoing |= {"cut_by": event.name, "cut_by_id": event.id}
-		next_ = None
-		upcoming: list[dict[str, Any]] = []
-		reserve = self.reserve
-		if reserve is not None:
-			if (self._reserved_details is None) or (self._reserved_details[0] is not reserve):
-				self._reserved_details = (reserve, self._details(reserve.choice, None))
-			starts = self._starts()
-			if starts == []:
-				starts = [None]
-			# La fin de chaque sonore : le début de l'événement qui coupera le suivant, sinon sa durée.
-			planned_list = []
-			for planned in self.upcoming:
-				planned_list.append(planned.cutoff)
-			cutoffs = planned_list + [None]
-			remainder = [(reserve.choice, reserve.parameters, reserve.healthy, self._reserved_details[1])]
-			upcoming_list = []
-			for planned in self.upcoming:
-				upcoming_list.append((planned.choice, planned.parameters, planned.healthy, planned.details))
-			remainder += upcoming_list
-			announcements = []
-			for (choice, announced_parameters, healthy, announced_details), start, cutoff in zip(
-				remainder, starts, cutoffs, strict=False
-			):
-				announcements.append(
-					_announces(
-						self._lent(choice, start),
-						announced_parameters,
-						healthy=healthy,
-						details=announced_details,
-						start=start,
-						cutoff=cutoff,
-					)
-				)
-			next_, upcoming = announcements[0], announcements[1:]
+		next_, upcoming = self._announcements(current)
 		if stop:
 			running = "stopped"
 		else:
-			if (current is not None) or (self.outgoing_list):
+			if (current is not None) or (self.outgoing_list) or (self.blank_until is not None):
 				running = "playing"
 			else:
 				running = "dead_air"
 		following = None
 		if not stop:
 			following = _event_announcement(self.interruptions.the_following_event(instant))
+		blank = None
+		if (self.blank_until is not None) and (not stop):
+			blank = {"end": iso(self.blank_until)}
 		return {
 			"state": running,
 			"current": ongoing,
+			"blank": blank,
 			"next": next_,
 			"upcoming": upcoming,
 			"next_event": following,

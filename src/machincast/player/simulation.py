@@ -443,6 +443,8 @@ def _next_deadline(
 		candidates.append(change)
 	if (current is None) and (not broadcast.outgoing_list):
 		candidates.append(instant + WAITING_IN_DEAD_AIR)
+	if broadcast.blank_until is not None:
+		candidates.append(broadcast.blank_until)
 	after = []
 	for candidate in candidates:
 		if candidate > instant:

@@ -650,6 +650,98 @@ Fonctionnalité: Interruption manuelle de l'antenne
 		Et la diffusion s'arrête
 		Alors l'airplay montre les passages « f1 », « j1 », « f2 »
 
+	# ─── Un blanc avant ou après une insertion (https://github.com/dascritch/machincast/issues/594) ───
+	# Le blanc dure 5 secondes : le sonore qui le précède joue jusqu'au bout, sans fondu, et celui qui le suit démarre
+	# à plein volume. L'airplay ne l'enregistre pas ; le log le note avec l'insertion.
+
+	Scénario: Un blanc avant la séquence insérée
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la séquence « Annonce », hors de la grille, des sonores « a1 », « a2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'insère après ce sonore la séquence « Annonce », avec un blanc avant
+		Et la diffusion avance de 200 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:01:00 | oui           |
+			| a1     | 20:01:05 | 20:02:05 | oui           |
+			| a2     | 20:02:05 | 20:03:05 | oui           |
+			| f2     | 20:03:05 | 20:03:30 | oui           |
+		Et le log note l'insertion manuelle « de la séquence « Annonce » après le sonore « f1 », avec un blanc de 5 secondes avant »
+
+	Scénario: Un blanc après le sonore de la banque inséré
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la banque séquentielle « Jingles », hors de la grille, des sonores « j1 », « j2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'insère après ce sonore la banque « Jingles », avec un blanc après
+		Et la diffusion avance de 140 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:01:00 | oui           |
+			| j1     | 20:01:00 | 20:02:00 | oui           |
+			| f2     | 20:02:05 | 20:02:30 | oui           |
+		Et le log note l'insertion manuelle « d'un sonore de la banque « Jingles » après le sonore « f1 », avec un blanc de 5 secondes après »
+
+	Scénario: Un blanc avant et après la séquence insérée, la séquence enchaînée sans blanc
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la séquence « Annonce », hors de la grille, des sonores « a1 », « a2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'insère après ce sonore la séquence « Annonce », avec un blanc avant et après
+		Et la diffusion avance de 200 secondes
+		Et la diffusion s'arrête
+		Alors l'airplay montre :
+			| sonore | début    | fin      | sans incident |
+			| f1     | 20:00:00 | 20:01:00 | oui           |
+			| a1     | 20:01:05 | 20:02:05 | oui           |
+			| a2     | 20:02:05 | 20:03:05 | oui           |
+			| f2     | 20:03:10 | 20:03:30 | oui           |
+
+	Scénario: La socket d'état annonce le blanc dans la playlist immédiate, puis pendant qu'il dure
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la séquence « Annonce », hors de la grille, des sonores « a1 », « a2 »
+		Et chaque sonore dure 60 secondes
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et j'insère après ce sonore la séquence « Annonce », avec un blanc avant et après
+		Alors Machin player annonce « a1 » après un blanc de 5 secondes, à « 20:01:05 »
+		Et Machin player annonce « f2 » après un blanc de 5 secondes, à « 20:03:10 »
+		Quand la diffusion avance de 52 secondes
+		Alors Machin player annonce un blanc jusqu'à « 20:01:05 », en diffusion, sans sonore en cours
+		Quand la diffusion avance de 5 secondes
+		Alors Machin player n'annonce aucun blanc
+
+	Scénario: Une insertion avec un blanc demandée depuis l'intranet
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la séquence « Annonce », hors de la grille, des sonores « a1 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet envoie, pour la séquence « Annonce », « {"command": "insert", "sequence": SEQUENCE, "blank": "before", "user": "regie", "id": "d4"} »
+		Et la diffusion avance de 2 secondes
+		Alors le serveur intranet reçoit la réponse « d4 », faite
+		Et le log note l'insertion manuelle « de la séquence « Annonce » après le sonore « f1 », avec un blanc de 5 secondes avant »
+		Quand la diffusion s'arrête
+
+	Scénario: Un blanc inconnu refuse la demande d'insertion
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et la séquence « Annonce », hors de la grille, des sonores « a1 »
+		Et chaque sonore dure 60 secondes
+		Et la socket d'état et celle de l'intranet dans un répertoire temporaire
+		Quand la diffusion démarre sur un moteur simulé
+		Et la diffusion avance de 10 secondes
+		Et le serveur intranet envoie, pour la séquence « Annonce », « {"command": "insert", "sequence": SEQUENCE, "blank": "pendant", "user": "regie", "id": "e5"} »
+		Alors le serveur intranet reçoit la réponse « e5 », refusée parce que « le blanc d'une insertion est « before », « after » ou « both » »
+		Quand la diffusion s'arrête
+		Alors le log ne note aucune insertion manuelle
+
 	Scénario: Pendant un blanc, une insertion ne fait rien
 		Étant donné le fil musical permanent « Continue », avec les sonores « f1 »
 		Et le sonore « f1 » est à l'état « disabled »

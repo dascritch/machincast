@@ -205,6 +205,10 @@ class Insertion:
 	after: uuid.UUID
 	sequence: int | None = None
 	bank: int | None = None
+	blank_before: bool = False
+	blank_after: bool = False
+	"""Un blanc avant ce qui est inséré, ou après (https://github.com/dascritch/machincast/issues/594) : la diffusion
+	le tient (machincast.player.broadcast)."""
 
 
 @dataclass(frozen=True)
