@@ -1,6 +1,6 @@
 # Émissions en alternance (alternation)
 
-Des émissions qui se partagent le même créneau horaire, une par semaine du mois : un événement « méta » joue, chaque semaine, celle qui est choisie, et l'antenne, le calendrier, l'intranet et l'affichage public la jouent et la montrent sous son nom ([#609](https://github.com/dascritch/machincast/issues/609), ticket enfant de [#606](https://github.com/dascritch/machincast/issues/606)).
+Des émissions qui se partagent le même créneau horaire, une par semaine du mois, ou une semaine sur deux : un événement « méta » joue, chaque semaine, celle qui est choisie, et l'antenne, le calendrier, l'intranet et l'affichage public la jouent et la montrent sous son nom ([#609](https://github.com/dascritch/machincast/issues/609), ticket enfant de [#606](https://github.com/dascritch/machincast/issues/606)).
 
 - Guide d'utilisation : [doc/alternance.md](doc/alternance.md).
 - Écrire un plugin : [doc/fr/developpement/plugins.md](../../doc/fr/developpement/plugins.md).
@@ -34,11 +34,12 @@ enabled = ["alternation"]
 ## Ses données
 
 ```json
-{"alternation": {"candidates": [12, 13, 14], "rotation": {"1": 12, "2": 13, "3": 14, "4": 13, "5": null}, "choices": {"2026-12-16": 12}}}
+{"alternation": {"mode": "monthly", "candidates": [12, 13, 14], "rotation": {"1": 12, "2": 13, "3": 14, "4": 13, "5": null}, "choices": {"2026-12-16": 12}}}
 ```
 
+- `mode` : `monthly`, par mois, ou `fortnightly`, par quinzaine ; `monthly` sans lui.
 - `candidates` : les émissions qui se partagent le créneau ; hors grille, elles ne jouent plus que par l'événement méta.
-- `rotation` : pour la 1re à la 5e occurrence du jour de l'événement dans le mois, l'émission qui joue ; `null`, l'événement méta joue lui-même.
+- `rotation` : par mois, pour la 1re à la 5e occurrence du jour de l'événement dans le mois, l'émission qui joue ; par quinzaine, pour la 1re et la 2e semaine, comptées depuis la semaine de la première occurrence de l'événement, d'un mois à l'autre ; `null`, l'événement méta joue lui-même.
 - `choices` : pour une date, l'émission qui joue, à la place de la rotation.
 
 Une émission qui n'est pas parmi les `candidates` est ignorée.

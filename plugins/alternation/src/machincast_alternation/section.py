@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from machincast.clock import Clock
-from machincast.i18n import date_and_hour
+from machincast.i18n import date_and_hour, short_date
 from machincast.interface.card import Refusal
 from machincast.interface.event_card import CardSection
 from machincast.shared import grid
@@ -45,6 +45,20 @@ def ordinal(rank: int, *, feminine: bool = False) -> str:
 	return t(RANKS[rank - 1])
 
 
+MODE_LABELS = {
+	rotation.MONTHLY: "Monthly, by the week of the month",
+	rotation.FORTNIGHTLY: "Fortnightly, every other week",
+}
+
+
+def fortnight_label(rank: int, following: date | None) -> str:
+	"""« 1re semaine de la quinzaine, dont le 16/12/2026 » : son prochain passage, s'il est connu."""
+	text = t("{rank} week of the fortnight").format(rank=ordinal(rank, feminine=True))
+	if following is None:
+		return text
+	return t("{week}, including {day}").format(week=text, day=short_date(following))
+
+
 def rank_label(rank: int, day: int | None) -> str:
 	"""« 1er mercredi du mois », ou « 1re semaine du mois » pour un événement de plusieurs jours, ou sans jour."""
 	if day is None:
@@ -61,12 +75,19 @@ class AlternationSection(CardSection):
 		self.identifier: int | None = None
 		self.kept_choices: dict[date, int] = {}
 		self.days: list[date] = []
+		self.weekday: int | None = None
+		self.first: date | None = None
+		"""Le jour de la première occurrence de l'événement, d'où part la quinzaine."""
 		self._loading = False
 		self.enabled = QCheckBox(t("Shows in alternation"), self)
 		self.enabled.setToolTip(t("This event plays, each week, one of the shows below, instead of a play list"))
 		self.content = QWidget(self)
 		self.candidates = QListWidget(self.content)
 		self.candidates.setObjectName("candidates")
+		self.mode = QComboBox(self.content)
+		self.mode.setObjectName("mode")
+		for value in rotation.MODES:
+			self.mode.addItem(t(MODE_LABELS[value]), value)
 		self.rotation_boxes: list[QComboBox] = []
 		self.coming_boxes: list[QComboBox] = []
 		self.rotation_form = QFormLayout()
@@ -77,7 +98,9 @@ class AlternationSection(CardSection):
 		inner.setContentsMargins(0, 0, 0, 0)
 		inner.addWidget(QLabel(t("Shows that share the slot"), self.content))
 		inner.addWidget(self.candidates)
-		inner.addWidget(QLabel(t("Rotation in the month"), self.content))
+		inner.addWidget(QLabel(t("Rhythm"), self.content))
+		inner.addWidget(self.mode)
+		inner.addWidget(QLabel(t("Rotation"), self.content))
 		inner.addLayout(self.rotation_form)
 		inner.addWidget(QLabel(t("Coming broadcasts"), self.content))
 		inner.addLayout(self.coming_form)
@@ -94,6 +117,7 @@ class AlternationSection(CardSection):
 			self.rotation_boxes.append(box)
 			self.rotation_form.addRow(rank_label(rank, None), box)
 		self.enabled.toggled.connect(self._toggled)
+		self.mode.currentIndexChanged.connect(self._mode_changed)
 		self.candidates.itemChanged.connect(self._candidates_changed)
 		self.content.setVisible(False)
 
@@ -111,12 +135,17 @@ class AlternationSection(CardSection):
 		if found is None:
 			found = rotation.Alternation()
 		self._fill_candidates(found.candidates)
-		self._label_ranks(event)
+		self.weekday = _weekday(event)
+		self.first = None
+		if event is not None:
+			self.first = rotation.first_day(event)
+		self.mode.setCurrentIndex(max(self.mode.findData(found.mode), 0))
 		self._fill_boxes()
 		for rank, box in zip(rotation.WEEKS, self.rotation_boxes, strict=True):
 			box.setCurrentIndex(max(box.findData(found.rotation.get(rank)), 0))
 		self.kept_choices = dict(found.choices)
 		self._fill_coming(event)
+		self._show_mode()
 		self.enabled.setChecked(rotation.KEY in properties)
 		self._loading = False
 		self._toggled()
@@ -135,16 +164,41 @@ class AlternationSection(CardSection):
 		if not offered:
 			self.coming_note.setText(t("No show or special to share the slot: create them first."))
 
-	def _label_ranks(self, event: grid.Event | None) -> None:
-		day = None
-		if (event is not None) and (len(event.days) == 1):
-			(day,) = tuple(event.days)
-		if (event is not None) and (not event.days) and (event.start is not None):
-			day = event.start.weekday()
-		for rank in rotation.WEEKS:
-			caption = self.rotation_form.labelForField(self.rotation_boxes[rank - 1])
+	# ─── Le rythme ─────────────────────────────────────────
+
+	def chosen_mode(self) -> str:
+		return str(self.mode.currentData())
+
+	def rank_boxes(self) -> list[QComboBox]:
+		"""Les listes de la rotation du rythme choisi : cinq semaines du mois, ou deux de la quinzaine."""
+		return self.rotation_boxes[: len(rotation.RANKS[self.chosen_mode()])]
+
+	def _alternation_rank(self, day: date) -> int:
+		return rotation.Alternation(mode=self.chosen_mode()).rank(day, self.first)
+
+	def _show_mode(self) -> None:
+		"""Les rangs du rythme, chacun nommé ; par quinzaine, avec son prochain passage."""
+		fortnightly = self.chosen_mode() == rotation.FORTNIGHTLY
+		for index, box in enumerate(self.rotation_boxes):
+			rank = index + 1
+			self.rotation_form.setRowVisible(index, rank in rotation.RANKS[self.chosen_mode()])
+			text = rank_label(rank, self.weekday)
+			if fortnightly:
+				text = fortnight_label(rank, self._following(rank))
+			caption = self.rotation_form.labelForField(box)
 			if isinstance(caption, QLabel):
-				caption.setText(rank_label(rank, day))
+				caption.setText(text)
+		self._show_rotation()
+
+	def _following(self, rank: int) -> date | None:
+		for day in self.days:
+			if self._alternation_rank(day) == rank:
+				return day
+		return None
+
+	def _mode_changed(self) -> None:
+		self._show_mode()
+		self._changed()
 
 	def _fill_coming(self, event: grid.Event | None) -> None:
 		while self.coming_form.rowCount() > 0:
@@ -202,7 +256,7 @@ class AlternationSection(CardSection):
 	def _show_rotation(self) -> None:
 		"""Le premier choix d'un passage dit qui joue selon la rotation."""
 		for day, box in zip(self.days, self.coming_boxes, strict=True):
-			rotated = self.rotation_boxes[rotation.week(day) - 1]
+			rotated = self.rotation_boxes[self._alternation_rank(day) - 1]
 			box.setItemText(0, t("According to the rotation: {name}").format(name=rotated.currentText()))
 
 	def _candidates_changed(self) -> None:
@@ -229,7 +283,7 @@ class AlternationSection(CardSection):
 		for identifier, _name in self.chosen_candidates():
 			candidates.append(identifier)
 		ranks: dict[int, int | None] = {}
-		for rank, box in zip(rotation.WEEKS, self.rotation_boxes, strict=True):
+		for rank, box in enumerate(self.rank_boxes(), start=1):
 			ranks[rank] = box.currentData()
 		choices: dict[date, int] = {}
 		today = grid.wall_hour(self.clock.now()).date()
@@ -239,7 +293,7 @@ class AlternationSection(CardSection):
 		for day, box in zip(self.days, self.coming_boxes, strict=True):
 			if box.currentData() is not None:
 				choices[day] = int(box.currentData())
-		return rotation.Alternation(tuple(candidates), ranks, choices)
+		return rotation.Alternation(tuple(candidates), ranks, choices, self.chosen_mode())
 
 	def write(self, identifier: int) -> None:
 		if not self.enabled.isChecked():
@@ -249,3 +303,15 @@ class AlternationSection(CardSection):
 		if not found.candidates:
 			raise Refusal(t("Choose at least one show that shares the slot."), self.candidates)
 		queries.write(self.connection, identifier, found.stored())
+
+
+def _weekday(event: grid.Event | None) -> int | None:
+	"""Le jour de l'événement, s'il n'en a qu'un : celui de ses jours, ou de sa seule occurrence."""
+	if event is None:
+		return None
+	if len(event.days) == 1:
+		(day,) = tuple(event.days)
+		return day
+	if (not event.days) and (event.start is not None):
+		return grid.wall_hour(event.start).weekday()
+	return None

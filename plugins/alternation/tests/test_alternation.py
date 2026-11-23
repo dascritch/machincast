@@ -89,7 +89,7 @@ def _update(connection: Connection, name: str, path: list[str], value: object) -
 	)
 
 
-@given(parsers.re(r"l'alternance de « (?P<meta>[^»]+) » : (?P<ranks>.+)"))
+@given(parsers.re(r"l'alternance de « (?P<meta>[^»]+) » : (?P<ranks>(?:«|—).+)"))
 def alternation(empty_database: Connection, meta: str, ranks: str) -> None:
 	ranked: dict[str, int | None] = {}
 	candidates: list[int] = []
@@ -108,6 +108,17 @@ def alternation(empty_database: Connection, meta: str, ranks: str) -> None:
 	)
 
 
+@given(parsers.re(r"l'alternance par quinzaine de « (?P<meta>[^»]+) » : « (?P<first>[^»]+) », « (?P<second>[^»]+) »"))
+def fortnightly(empty_database: Connection, meta: str, first: str, second: str) -> None:
+	ranked = {"1": _identifier(empty_database, first), "2": _identifier(empty_database, second)}
+	_update(
+		empty_database,
+		meta,
+		["alternation"],
+		{"mode": "fortnightly", "candidates": sorted(ranked.values()), "rotation": ranked, "choices": {}},
+	)
+
+
 @given(parsers.parse("le passage du « {day} » de « {meta} » choisi : « {name} »"))
 def choice(empty_database: Connection, day: str, meta: str, name: str) -> None:
 	_update(empty_database, meta, ["alternation", "choices", day], _identifier(empty_database, name))
@@ -123,10 +134,17 @@ def read(empty_database: Connection, context: Context) -> None:
 	context.read = grid.read_grid(empty_database)
 
 
-@then(parsers.re(r"le calendrier de décembre 2026 montre (?P<shown>.+)"))
-def december(context: Context, shown: str) -> None:
+MONTHS = {
+	"décembre 2026": (datetime(2026, 12, 1), datetime(2027, 1, 1)),
+	"janvier 2027": (datetime(2027, 1, 1), datetime(2027, 2, 1)),
+}
+
+
+@then(parsers.re(r"le calendrier de (?P<month>décembre 2026|janvier 2027) montre (?P<shown>.+)"))
+def month(context: Context, month: str, shown: str) -> None:
 	found = []
-	for planned in grid.plan(context.read, datetime(2026, 12, 1), datetime(2027, 1, 1)):
+	first, last = MONTHS[month]
+	for planned in grid.plan(context.read, first, last):
 		if (planned.start.weekday() == 2) and (planned.start.hour == 20):
 			found.append((planned.occurrence.event.name, planned.start.day))
 	expected = []
@@ -141,6 +159,11 @@ def read_names(context: Context, names: str) -> None:
 	for event in context.read:
 		found.append(event.name)
 	assert found == _names(names)
+
+
+@then(parsers.parse("depuis le « {first} », le « {day} » est la {rank:d} semaine de sa quinzaine"))
+def fortnight(first: str, day: str, rank: int) -> None:
+	assert rotation.fortnight(date.fromisoformat(day), date.fromisoformat(first)) == rank
 
 
 @then(parsers.parse("le « {day} » est le {rank:d} de son mois"))
@@ -225,11 +248,44 @@ def _caption(section: AlternationSection, box: QComboBox, form: Any) -> str:
 	return label.text()
 
 
+@then(parsers.re(r"son rythme est « (?P<mode>[^»]+) »(?:, parmi (?P<modes>.+))?"))
+def mode(context: Context, mode: str, modes: str | None) -> None:
+	box = _section(context).mode
+	assert box.currentText() == mode
+	if modes is not None:
+		found = []
+		for index in range(box.count()):
+			found.append(box.itemText(index))
+		assert found == _names(modes)
+
+
+@when(parsers.parse("je choisis le rythme « {mode} »"))
+def choose_mode(context: Context, mode: str) -> None:
+	box = _section(context).mode
+	box.setCurrentIndex(box.findText(mode))
+
+
+@then(parsers.parse("la rotation montre {count:d} semaines"))
+def shown_ranks(context: Context, count: int) -> None:
+	assert len(_section(context).rank_boxes()) == count
+	hidden = 0
+	for box in _section(context).rotation_boxes:
+		if box.isHidden():
+			hidden += 1
+	assert hidden == len(rotation.WEEKS) - count
+
+
+@then(parsers.parse("le passage du « {day} » est « {text} »"))
+def coming_text(context: Context, day: str, text: str) -> None:
+	section = _section(context)
+	assert section.coming_boxes[section.days.index(date.fromisoformat(day))].currentText() == text
+
+
 @then("sa rotation est :")
 def ranks(context: Context, datatable: list[list[str]]) -> None:
 	section = _section(context)
 	found = []
-	for box in section.rotation_boxes:
+	for box in section.rank_boxes():
 		found.append([_caption(section, box, section.rotation_form), box.currentText()])
 	expected = []
 	for rank, name in datatable[1:]:
@@ -249,7 +305,7 @@ def rank_captions(context: Context, captions: str) -> None:
 @then(parsers.re(r"la rotation est (?P<names>.+)"))
 def rotation_names(context: Context, names: str) -> None:
 	found = []
-	for box in _section(context).rotation_boxes:
+	for box in _section(context).rank_boxes():
 		found.append(box.currentText())
 	assert found == _names(names)
 
