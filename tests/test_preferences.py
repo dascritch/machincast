@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 import tomlkit
-from PySide6.QtCore import QTime
+from PySide6.QtCore import Qt, QTime
 from PySide6.QtGui import QColor, QIcon, QImage, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QComboBox, QDialogButtonBox, QDoubleSpinBox, QPushButton, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
@@ -1331,11 +1331,26 @@ def switch_intranet_on(opened: Opened, port: int, minutes: int) -> None:
 	ui.intranet_validation.setValue(minutes)
 
 
-@then(parsers.parse("la page « Intranet » dit « {text} »"))
-def intranet_says(opened: Opened, text: str) -> None:
-	window_ = the_window(opened)
-	assert not window_.ui.intranet_addresses.isHidden()
-	assert window_.ui.intranet_addresses.text() == text
+@given(parsers.parse("le poste « {domain} », aux adresses « {first} » et « {second} »"))
+def computer_addresses(monkeypatch: pytest.MonkeyPatch, domain: str, first: str, second: str) -> None:
+	monkeypatch.setattr(network, "addresses", lambda: [first, network.LOOPBACK, second])
+	monkeypatch.setattr(network, "names", lambda: [domain, "localhost"])
+
+
+@then(parsers.parse("la page « Intranet » donne aux autres postes, pour l'intranet et son API, les liens {addresses}"))
+def intranet_gives(opened: Opened, addresses: str) -> None:
+	"""Une liste à puces, chaque adresse en lien, qui s'ouvre dans le navigateur
+	(https://github.com/dascritch/machincast/issues/604)."""
+	caption = the_window(opened).ui.intranet_addresses
+	assert not caption.isHidden()
+	assert caption.textFormat() == Qt.TextFormat.RichText
+	assert caption.openExternalLinks()
+	expected = []
+	for address in re.findall(r"« ([^»]+) »", addresses):
+		expected.append(f'<li><a href="{address}">{address}</a></li>')
+	text = caption.text()
+	assert text.startswith("<p>Adresses à donner aux autres postes, pour l'intranet et son API :</p><ul>"), text
+	assert re.findall(r"<li>.*?</li>", text) == expected, text
 
 
 @then(

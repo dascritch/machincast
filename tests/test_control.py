@@ -319,7 +319,7 @@ def on_air_title(interface: Context, title: str) -> None:
 
 
 def _status_style(interface: Context) -> str:
-	return window(interface).home.ui.playback_state.styleSheet()
+	return window(interface).home.ui.state_frame.styleSheet()
 
 
 @then(

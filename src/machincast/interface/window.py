@@ -1362,9 +1362,7 @@ class MainWindow(QMainWindow):
 		de la diffusion (https://github.com/dascritch/machincast/issues/495)."""
 		installed = self.broadcast.service.installed
 		broadcasting = self.home.state.state == "playing"
-		self.home.ui.playback_state.setStyleSheet(
-			broadcast_status.style(installed=installed, broadcasting=broadcasting)
-		)
+		self.home.ui.state_frame.setStyleSheet(broadcast_status.style(installed=installed, broadcasting=broadcasting))
 		indicator = broadcast_status.NOT_BROADCASTING
 		# Un blanc à l'antenne garde le témoin de couleur : la diffusion tourne, sans rien à jouer.
 		if self.home.state.state in broadcast_status.ON_AIR_STATES:

@@ -220,7 +220,8 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 
 	Scénario: Un clic sur le VU-mètre écoute aussitôt l'antenne dans le moniteur, sans lecture, pause ni temps
 		https://github.com/dascritch/machincast/issues/531 : le moniteur de l'antenne écoute dès qu'il s'ouvre ; ses
-		boutons de lecture et son temps, inutiles pour le direct, sont cachés, et sa frise est la forme d'onde du direct.
+		boutons de lecture et son temps, inutiles pour le direct, sont cachés, comme « Début joué », « Fin joué » et « Écouter
+		comme à l'antenne » (https://github.com/dascritch/machincast/issues/604), et sa frise est la forme d'onde du direct.
 
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
@@ -230,6 +231,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et la pré-écoute est bientôt « En lecture »
 		Et le VU-mètre de la pré-écoute montre bientôt du son
 		Et le moniteur de l'antenne cache la lecture, la pause et le temps
+		Et le moniteur de l'antenne cache « Début joué », « Fin joué » et « Écouter comme à l'antenne »
 		Et la forme d'onde du direct avance bientôt, à la place de la frise
 
 	Scénario: L'écoute de l'antenne a pour titre le texte public du sonore en cours, et le suit
@@ -258,6 +260,7 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et je demande la pré-écoute du sonore « Jingle »
 		Et Machin player diffuse un sonore au texte public « Radio Thune, la radio »
 		Alors la fenêtre de pré-écoute reste titrée « Pré-écoute : Jingle »
+		Et la pré-écoute montre « Début joué », « Fin joué » et « Écouter comme à l'antenne »
 
 	Scénario: « Moniteur de l'antenne », en tête du menu « Diffusion », écoute l'antenne aussitôt
 		https://github.com/dascritch/machincast/issues/245 : l'entrée remplace le bouton du bas de la fenêtre.
@@ -270,17 +273,20 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et la pré-écoute montre la source « — »
 		Et la pré-écoute est bientôt « En lecture »
 
-	Scénario: Le bouton « Moniteur de l'antenne », sous le voyant de la diffusion, écoute l'antenne, puis l'arrête
-		https://github.com/dascritch/machincast/issues/531 : comme l'entrée du menu « Diffusion », avec le casque.
+	Scénario: Le bouton « Moniteur de l'antenne », dans le cartouche de la diffusion, écoute l'antenne, puis l'arrête
+		https://github.com/dascritch/machincast/issues/531 : comme l'entrée du menu « Diffusion », avec le casque ; dans le
+		cartouche coloré de l'état de la diffusion, l'icône seule, avec son infobulle
+		(https://github.com/dascritch/machincast/issues/604).
 
 		Étant donné le signal de test « sinusoïde à -10 dB » sur l'antenne factice
 		Quand la fenêtre de l'interface s'ouvre
-		Alors le bouton sous le voyant de la diffusion est « Moniteur de l'antenne », avec le casque
-		Quand je clique sur le bouton sous le voyant de la diffusion
+		Alors le bouton du cartouche de la diffusion est « Moniteur de l'antenne », avec le casque
+		Et le bouton du moniteur est dans le cartouche de l'état de la diffusion, sans texte, avec l'infobulle « Écouter l'antenne sur la sortie de pré-écoute, aussitôt »
+		Quand je clique sur le bouton du cartouche de la diffusion
 		Alors la fenêtre de pré-écoute est ouverte, titrée « en cours : — »
 		Et la pré-écoute est bientôt « En lecture »
-		Et le bouton sous le voyant de la diffusion est bientôt « Arrêter le moniteur de l'antenne »
-		Quand je clique sur le bouton sous le voyant de la diffusion
+		Et le bouton du cartouche de la diffusion est bientôt « Arrêter le moniteur de l'antenne »
+		Quand je clique sur le bouton du cartouche de la diffusion
 		Alors la pré-écoute est bientôt « À l'arrêt »
 
 	Scénario: Pendant l'écoute de l'antenne, l'entrée du menu devient « Arrêter le moniteur de l'antenne », qui l'arrête

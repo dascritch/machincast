@@ -643,7 +643,8 @@ class PreviewWindow(QWidget):
 	def _show_timeline(self, source: Source | None) -> None:
 		"""La frise d'un fichier, et le calcul de sa forme d'onde, lancé en tâche de fond ; rien pour un stream. Pour
 		l'antenne, la forme d'onde du direct, sans lecture, pause ni temps, qui n'ont pas de sens pour elle
-		(https://github.com/dascritch/machincast/issues/531)."""
+		(https://github.com/dascritch/machincast/issues/531), ni « Début joué », « Fin joué » et « Écouter comme à
+		l'antenne » (https://github.com/dascritch/machincast/issues/604)."""
 		self._halt_shape()
 		file = (source is not None) and (not source.stream)
 		on_air = (source is not None) and (source.on_air is not None)
@@ -654,6 +655,8 @@ class PreviewWindow(QWidget):
 		self.ui.playback.setVisible(not on_air)
 		self.ui.stop.setVisible(not on_air)
 		self.ui.time.setVisible(not on_air)
+		for marker in (self.ui.played_start, self.ui.played_end, self.ui.as_on_air):
+			marker.setVisible(not on_air)
 		plan = None
 		duration = None
 		if (source is not None) and (file):

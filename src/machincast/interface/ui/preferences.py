@@ -556,8 +556,10 @@ class Ui_PreferencesWindow(object):
 
         self.intranet_addresses = QLabel(self.intranet_page)
         self.intranet_addresses.setObjectName(u"intranet_addresses")
+        self.intranet_addresses.setTextFormat(Qt.TextFormat.RichText)
         self.intranet_addresses.setWordWrap(True)
-        self.intranet_addresses.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.intranet_addresses.setOpenExternalLinks(True)
+        self.intranet_addresses.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
 
         self.intranet_layout.addWidget(self.intranet_addresses)
 

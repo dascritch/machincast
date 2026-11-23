@@ -1,6 +1,6 @@
 """Le statut coloré de la diffusion (https://github.com/dascritch/machincast/issues/495).
 
-L'état de la diffusion, sur l'onglet Antenne, a en permanence un liseré de 2 px, rouge quand le service de diffusion est
+Le cartouche de l'état de la diffusion, sur l'onglet Antenne, a en permanence un liseré de 2 px, rouge quand le service de diffusion est
 installé, vert pour une diffusion d'essai ; « En diffusion » prend aussi ce fond, et un texte blanc ou noir, celui qui
 contraste le plus. Le titre de la fenêtre dit « MachinCast », le témoin de l'onglet Antenne en diffusion, ⛶ sinon, et le
 nom de la radio, metadata.public_text. Pendant un blanc à l'antenne, la diffusion tourne : le titre garde le témoin.
@@ -18,6 +18,8 @@ NOT_BROADCASTING = "⛶"
 """Le témoin du titre de la fenêtre quand rien n'est en diffusion."""
 BORDER = 2
 """L'épaisseur du liseré, en pixels."""
+FRAME = "state_frame"
+"""Le cartouche de l'état de la diffusion, sur la page de garde : l'état, et le bouton du moniteur de l'antenne."""
 
 
 def _channel(value: int) -> float:
@@ -56,12 +58,17 @@ def colour(*, installed: bool) -> str:
 
 
 def style(*, installed: bool, broadcasting: bool) -> str:
-	"""La feuille de style de l'état de la diffusion : le liseré toujours, le fond en diffusion seulement."""
+	"""La feuille de style du cartouche de l'état de la diffusion, FRAME : le liseré toujours, le fond en diffusion
+	seulement, et le texte de son état qui contraste avec lui ; le bouton du moniteur de l'antenne y garde son icône
+	(https://github.com/dascritch/machincast/issues/604)."""
 	border = colour(installed=installed)
 	if not broadcasting:
-		return f"border: {BORDER}px solid {border}; padding: 2px;"
+		return f"#{FRAME} {{ border: {BORDER}px solid {border}; }}"
 	text = contrasting_text(border)
-	return f"background-color: {border}; color: {text}; border: {BORDER}px solid {border}; padding: 2px;"
+	return (
+		f"#{FRAME} {{ background-color: {border}; border: {BORDER}px solid {border}; }} "
+		f"#{FRAME} QLabel {{ color: {text}; }}"
+	)
 
 
 def window_title(indicator: str, station: str) -> str:

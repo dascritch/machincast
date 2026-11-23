@@ -639,8 +639,15 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet éteint
 		Alors le port et le délai de validation de l'intranet sont grisés, et aucune adresse n'est donnée
 		Quand j'allume l'intranet sur le port 9443, avec 15 minutes pour valider une connexion
-		Alors la page « Intranet » dit « Adresse à donner aux autres postes : https://10.0.0.12:9443/ »
+		Alors la page « Intranet » donne aux autres postes, pour l'intranet et son API, les liens « https://10.0.0.12:9443/ »
 		Et la fenêtre donne l'intranet allumé, sur le port 9443, avec 15 minutes pour valider une connexion
+
+	Scénario: Écoutant toutes les adresses du poste, la page « Intranet » les donne en liste à puces, chacune avec son lien
+		https://github.com/dascritch/machincast/issues/604 : le nom de domaine interne, puis chaque adresse du poste.
+		Étant donné le poste « studio.radio.example », aux adresses « 10.0.0.12 » et « fd00::12 »
+		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet éteint
+		Et j'allume l'intranet sur le port 9443, avec 15 minutes pour valider une connexion
+		Alors la page « Intranet » donne aux autres postes, pour l'intranet et son API, les liens « https://studio.radio.example:9443/ », « https://10.0.0.12:9443/ », « https://[fd00::12]:9443/ »
 
 	Plan du scénario: Sans le service, la page « Intranet » prévient que Machin intranet tourne en mode test, sous le compte
 		https://github.com/dascritch/machincast/issues/549 : sans son compte, ni le cloisonnement de son unité.
