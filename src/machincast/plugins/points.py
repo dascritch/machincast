@@ -74,6 +74,16 @@ CORE: dict[str, str] = {
 		"notified by Machin player when a sound ends, with the data of its start, “instant”, “start”, “played” and "
 		"“end_position” in seconds, “cut” and “error” (https://github.com/dascritch/machincast/issues/589)"
 	),
+	"indexer.sound_spotted": (
+		"notified by Machin indexer when it registers a new file, in preview, with “sound”, “location”, “bank” and "
+		"“bank_name”, the bank whose directory it was found in (https://github.com/dascritch/machincast/issues/590)"
+	),
+	"indexer.sound_detailed": (
+		"notified by Machin indexer when it has written what it found of a sound, with “sound”, “location”, "
+		"“previous_state”, “state”, “duration” in seconds, “artist”, “title”, “metadata”, “file_type”, "
+		"“detected_start” and “detected_end” in seconds, “audited” and “problem” "
+		"(https://github.com/dascritch/machincast/issues/590)"
+	),
 	"interface.plugin_window": (
 		"asked by Machin interface, of one plugin, when its window opens from the menu “Plugins”, with “parent”, the "
 		"window: the plugin answers a QWidget, its settings, shown under its name, version and description "

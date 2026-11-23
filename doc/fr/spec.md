@@ -2270,3 +2270,11 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 - Les données d'un point ne sont lues que si un plugin y est abonné.
 - En simulation, aucun point n'est appelé.
 
+### 14.7 Les points d'extension de Machin indexer
+
+([#590](https://github.com/dascritch/machincast/issues/590), `machincast.indexer.plugin_points`)
+
+- L'indexation prévient les plugins de ce qu'elle trouve, par des points **notifiés** : l'erreur d'un plugin est consignée, et n'arrête ni le parcours ni la vérification.
+- `indexer.sound_spotted` : le parcours vient d'enregistrer un nouveau fichier, en aperçu ; avec le sonore, son chemin, et la banque dont le répertoire l'a fait trouver.
+- `indexer.sound_detailed` : la vérification vient d'écrire ce qu'elle a trouvé d'un sonore ; avec son état avant et après, sa durée, son artiste, son titre, ses métadonnées, le type du fichier, les silences détectés au début et à la fin, s'il a été audité, et son problème.
+- Un sonore inchangé, qui n'est pas décodé de nouveau, n'en dit rien.

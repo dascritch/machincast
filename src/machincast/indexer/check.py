@@ -52,7 +52,7 @@ from machincast.configuration import SILENCE_THRESHOLD
 from machincast.conversion import duration_or_none
 from machincast.fingerprint import audited_since_modification, file_state, modified
 from machincast.i18n import _, decimal, ngettext
-from machincast.indexer import queries
+from machincast.indexer import plugin_points, queries
 from machincast.indexer.audit import Anomaly
 from machincast.indexer.decoding import Check, Checker, FileState, UnavailableDecoder, check_file
 from machincast.indexer.file_type import Kind, kind, type_mime
@@ -512,6 +512,24 @@ def _check_sound(
 		return
 	if decode:
 		report.checked_list += 1
+	merged = written.merged
+	plugin_points.detailed(
+		int(str(identifier)),
+		str(location),
+		{
+			"previous_state": written.before.value,
+			"state": written.after.value,
+			"duration": merged.duration,
+			"artist": merged.artist,
+			"title": merged.title,
+			"metadata": merged.metadata,
+			"file_type": file_type,
+			"detected_start": merged.detected_start,
+			"detected_end": merged.detected_end,
+			"audited": audited,
+			"problem": result.problem,
+		},
+	)
 	_count_change(report, written.before, written.after)
 	_log_check(report, location, result, written.before, written.after, written.merged)
 
