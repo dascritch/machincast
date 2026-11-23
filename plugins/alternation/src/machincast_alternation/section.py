@@ -14,14 +14,18 @@ from PySide6.QtWidgets import (
 	QCheckBox,
 	QComboBox,
 	QFormLayout,
+	QHBoxLayout,
+	QInputDialog,
 	QLabel,
 	QListWidget,
 	QListWidgetItem,
+	QPushButton,
 	QVBoxLayout,
 	QWidget,
 )
 
 from machincast.clock import Clock
+from machincast.conformation import conform
 from machincast.i18n import date_and_hour, short_date
 from machincast.interface.card import Refusal
 from machincast.interface.event_card import CardSection
@@ -84,6 +88,16 @@ class AlternationSection(CardSection):
 		self.content = QWidget(self)
 		self.candidates = QListWidget(self.content)
 		self.candidates.setObjectName("candidates")
+		self.candidates_caption = QLabel(t("Shows that share the slot"), self.content)
+		self.creation = QPushButton(t("Create a show on this shared slot"), self.content)
+		self.creation.setObjectName("creation")
+		self.creation.setToolTip(
+			t("A new show, created with the event, on its slot: fill in its play list in its own card afterwards")
+		)
+		self.candidates_note = QLabel(self.content)
+		self.candidates_note.setWordWrap(True)
+		self.to_create: dict[int, str] = {}
+		"""Les émissions à créer, à l'enregistrement : un identifiant provisoire, négatif, et leur nom."""
 		self.mode = QComboBox(self.content)
 		self.mode.setObjectName("mode")
 		for value in rotation.MODES:
@@ -96,8 +110,13 @@ class AlternationSection(CardSection):
 		self.coming_note.setWordWrap(True)
 		inner = QVBoxLayout(self.content)
 		inner.setContentsMargins(0, 0, 0, 0)
-		inner.addWidget(QLabel(t("Shows that share the slot"), self.content))
+		header = QHBoxLayout()
+		header.addWidget(self.candidates_caption)
+		header.addStretch()
+		header.addWidget(self.creation)
+		inner.addLayout(header)
 		inner.addWidget(self.candidates)
+		inner.addWidget(self.candidates_note)
 		inner.addWidget(QLabel(t("Rhythm"), self.content))
 		inner.addWidget(self.mode)
 		inner.addWidget(QLabel(t("Rotation"), self.content))
@@ -119,6 +138,7 @@ class AlternationSection(CardSection):
 		self.enabled.toggled.connect(self._toggled)
 		self.mode.currentIndexChanged.connect(self._mode_changed)
 		self.candidates.itemChanged.connect(self._candidates_changed)
+		self.creation.clicked.connect(self._create)
 		self.content.setVisible(False)
 
 	def grid_widget(self) -> QWidget | None:
@@ -130,6 +150,8 @@ class AlternationSection(CardSection):
 	def read(self, identifier: int | None) -> None:
 		self._loading = True
 		self.identifier = identifier
+		self.to_create = {}
+		self.candidates_note.clear()
 		properties: dict[str, object] = {}
 		event = None
 		if identifier is not None:
@@ -167,6 +189,37 @@ class AlternationSection(CardSection):
 			item.setCheckState(state)
 		if not offered:
 			self.coming_note.setText(t("No show or special to share the slot: create them first."))
+
+	# ─── Créer une émission sur le créneau partagé ─────────
+
+	def ask_name(self, parent: QWidget) -> str | None:
+		"""Le nom de l'émission à créer ; None, abandonnée."""
+		text, accepted = QInputDialog.getText(parent, t("Create a show on this shared slot"), t("Name of the show"))
+		if not accepted:
+			return None
+		return text
+
+	def _create(self) -> None:
+		"""Une émission à créer, cochée, enregistrée avec l'événement méta ; un nom vide ou pris est refusé."""
+		answer = self.ask_name(self)
+		if answer is None:
+			return
+		name = conform(answer.strip())
+		if name == "":
+			self.candidates_note.setText(t("A name is required."))
+			return
+		with self.connection.transaction():
+			taken = queries.name_taken(self.connection, name)
+		if (taken) or (name in self.to_create.values()):
+			self.candidates_note.setText(t("Another event is already called “{name}”.").format(name=name))
+			return
+		self.candidates_note.clear()
+		provisional = -(len(self.to_create) + 1)
+		self.to_create[provisional] = name
+		item = QListWidgetItem(t("{name} (to create)").format(name=name), self.candidates)
+		item.setData(IDENTIFIER, provisional)
+		item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+		item.setCheckState(Qt.CheckState.Checked)
 
 	# ─── Le rythme ─────────────────────────────────────────
 
@@ -306,7 +359,31 @@ class AlternationSection(CardSection):
 		found = self.alternation()
 		if not found.candidates:
 			raise Refusal(t("Choose at least one show that shares the slot."), self.candidates)
-		queries.write(self.connection, identifier, found.stored())
+		queries.write(self.connection, identifier, self._created(found, identifier).stored())
+
+	def _created(self, found: rotation.Alternation, meta: int) -> rotation.Alternation:
+		"""Les émissions à créer qui sont cochées, créées sur le créneau : leurs identifiants à la place des
+		provisoires."""
+		real: dict[int, int] = {}
+		for provisional, name in self.to_create.items():
+			if provisional in found.candidates:
+				real[provisional] = queries.create(self.connection, name, meta)
+
+		def actual(value: int | None) -> int | None:
+			if value is None:
+				return None
+			return real.get(value, value)
+
+		candidates = []
+		for candidate in found.candidates:
+			candidates.append(real.get(candidate, candidate))
+		ranks: dict[int, int | None] = {}
+		for rank, chosen in found.rotation.items():
+			ranks[rank] = actual(chosen)
+		choices: dict[date, int] = {}
+		for day, chosen_day in found.choices.items():
+			choices[day] = real.get(chosen_day, chosen_day)
+		return rotation.Alternation(tuple(candidates), ranks, choices, found.mode)
 
 
 def _weekday(event: grid.Event | None) -> int | None:

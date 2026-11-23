@@ -228,8 +228,10 @@ def gives_back(context: Context) -> None:
 	assert _section(context).content.isHidden()
 
 
-@then(parsers.re(r"elle propose les émissions (?P<offered>.+), dont (?P<chosen>.+) sont cochées"))
-def offered(context: Context, offered: str, chosen: str) -> None:
+@then(
+	parsers.re(r"elle propose les émissions (?P<offered>.+), dont (?:(?P<chosen>«.+) sont cochées|aucune n'est cochée)")
+)
+def offered(context: Context, offered: str, chosen: str | None) -> None:
 	candidates = _section(context).candidates
 	found = []
 	ticked_list = []
@@ -239,7 +241,7 @@ def offered(context: Context, offered: str, chosen: str) -> None:
 		found.append(item.text())
 		if item.checkState() == Qt.CheckState.Checked:
 			ticked_list.append(item.text())
-	assert (found, ticked_list) == (_names(offered), _names(chosen))
+	assert (found, ticked_list) == (_names(offered), _names((chosen) or ("")))
 
 
 def _caption(section: AlternationSection, box: QComboBox, form: Any) -> str:
@@ -416,3 +418,66 @@ def register(registered: Registered, executable: str) -> None:
 @then(parsers.re(r"il s'abonne seulement à (?P<points>.+)"))
 def subscribed(registered: Registered, points: str) -> None:
 	assert registered.points == _names(points)
+
+
+# ─── Créer une émission sur le créneau partagé ─────────────
+
+
+@then(parsers.parse("le bouton « {label} » est à côté de « {caption} »"))
+def create_button(context: Context, label: str, caption: str) -> None:
+	section = _section(context)
+	assert section.creation.text() == label
+	assert section.candidates_caption.text() == caption
+	assert section.creation.parentWidget() is section.candidates_caption.parentWidget()
+	assert abs(section.creation.y() - section.candidates_caption.y()) < section.creation.height()
+
+
+def _create(context: Context, answer: str | None) -> None:
+	section = _section(context)
+	section.ask_name = lambda _parent: answer  # type: ignore[method-assign]
+	section.creation.click()
+
+
+@when(parsers.parse("je crée l'émission « {name} » sur ce créneau partagé"))
+def create(context: Context, name: str) -> None:
+	_create(context, name)
+
+
+@when("j'abandonne la création d'une émission sur ce créneau partagé")
+def abandon(context: Context) -> None:
+	_create(context, None)
+
+
+@then(parsers.re(r"elle dit, sous ses émissions, « (?P<text>.+) »$"))
+def candidates_note(context: Context, text: str) -> None:
+	assert _section(context).candidates_note.text() == text
+
+
+@then(parsers.parse("l'événement « {name} » n'existe pas encore"))
+def missing(empty_database: Connection, name: str) -> None:
+	assert empty_database.execute("SELECT 1 FROM events WHERE internal_name = %s", (name,)).fetchone() is None
+
+
+@when(parsers.parse("je choisis « {name} » pour le {rank:d}e rang de la rotation"))
+def choose_rank(context: Context, name: str, rank: int) -> None:
+	box = _section(context).rotation_boxes[rank - 1]
+	box.setCurrentIndex(box.findText(name))
+
+
+@then(parsers.parse("l'événement « {name} » est une émission, de « {start} » à « {end} », sans jour de récurrence"))
+def created(empty_database: Connection, name: str, start: str, end: str) -> None:
+	found = empty_database.execute(
+		"SELECT priority::text, starts_at, ends_at, recurrence_days::text[] FROM events WHERE internal_name = %s",
+		(name,),
+	).fetchone()
+	assert found == ("show", date_or_none(start), date_or_none(end), [])
+
+
+@then(parsers.parse("l'alternance de « {meta} » a « {name} » parmi ses émissions, et au {rank:d}e rang de sa rotation"))
+def in_alternation(empty_database: Connection, meta: str, name: str, rank: int) -> None:
+	found = empty_database.execute("SELECT properties FROM events WHERE internal_name = %s", (meta,)).fetchone()
+	assert found is not None
+	stored = found[0]["alternation"]  # type: ignore[index]
+	identifier = _identifier(empty_database, name)
+	assert identifier in stored["candidates"]
+	assert stored["rotation"][str(rank)] == identifier

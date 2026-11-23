@@ -14,6 +14,9 @@ Leurs dates ne comptent plus dès qu'elles sont choisies pour une alternance : e
 1. Créer l'événement du créneau, par exemple « Mercredi soir », une émission le mercredi de 20 h à 21 h, et l'enregistrer.
 2. Dans sa fiche, cocher **Émissions en alternance**, sous les jours de la récurrence : la liste de lecture disparaît, remplacée par la section du plugin.
 3. Cocher, dans **Émissions qui se partagent le créneau**, celles qui alternent.
+	Une émission qui n'existe pas encore se crée de là, par **Créer une émission sur ce créneau partagé**, à côté : son nom demandé, elle s'ajoute à la liste, « Clara (à créer) », cochée.
+	Elle n'est créée qu'à l'enregistrement de l'événement méta, sur son créneau, sans jour de récurrence : il reste à remplir sa liste de lecture dans sa propre fiche.
+	Un nom déjà pris par un autre événement est refusé.
 4. Choisir le **Rythme** :
 	- **Par mois, selon la semaine du mois** : la **Rotation** a cinq lignes, « 1er mercredi du mois », « 2e mercredi du mois », jusqu'au « 5e mercredi du mois », qui ne revient que certains mois ;
 	- **Par quinzaine, une semaine sur deux** : la **Rotation** a deux lignes, « 1re semaine de la quinzaine » et « 2e semaine de la quinzaine », chacune avec son prochain passage, « dont le 16/12/2026 » ; la quinzaine part de la semaine de la première occurrence de l'événement, et continue d'un mois à l'autre, sans recommencer au 1er.
