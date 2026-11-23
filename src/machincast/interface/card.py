@@ -228,14 +228,24 @@ class CardSection(QWidget):
 	replaces_items = Signal(bool)
 	"""Vrai : la section remplace la liste de l'événement, cachée ; faux, elle la rend. Seule la fiche d'un événement
 	l'écoute."""
-	replaces_grid = Signal(str)
-	"""Un texte : il remplace l'encadré de la grille de l'événement, caché ; vide, l'encadré revient
-	(https://github.com/dascritch/machincast/issues/609). Seule la fiche d'un événement l'écoute."""
+	replaces_grid = Signal(bool)
+	"""Vrai : son grid_replacement prend la place de l'encadré de la grille de l'événement, caché ; faux, l'encadré
+	revient (https://github.com/dascritch/machincast/issues/609). Seule la fiche d'un événement l'écoute."""
+	opens = Signal(str, int, str)
+	"""Ouvre la fiche d'un élément : son genre, son identifiant et son nom, comme requested_opening de la fiche."""
 
 	def grid_widget(self) -> QWidget | None:
 		"""Ce que la section place sous les jours de la récurrence de la fiche d'un événement, au-dessus de
 		l'explication des dates, par exemple la case qui la montre ; None, rien."""
 		return None
+
+	def grid_replacement(self) -> QWidget | None:
+		"""Ce qui peut prendre la place de l'encadré de la grille de la fiche d'un événement (replaces_grid) ; None,
+		rien."""
+		return None
+
+	def days_changed(self, days: frozenset[int]) -> None:
+		"""Les jours de la récurrence cochés dans la fiche d'un événement, de 0 (lundi) à 6, à chaque changement."""
 
 	def read(self, identifier: int | None) -> None:
 		"""Lit l'élément, ou celui que la fiche copie, dans une transaction ; None pour un nouvel élément."""
@@ -470,6 +480,7 @@ class Card(QWidget):
 			else:
 				self.place_section(answer)
 				answer.changed.connect(self._modify)
+				answer.opens.connect(self.requested_opening)
 				found.append(answer)
 		return found
 

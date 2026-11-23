@@ -39,7 +39,7 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
 import logging
 from datetime import date, datetime, timedelta
 
-from PySide6.QtCore import QDateTime, Qt, Signal
+from PySide6.QtCore import QDateTime, Signal
 from PySide6.QtWidgets import QBoxLayout, QDateTimeEdit, QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
 
 from machincast.clock import Clock
@@ -110,10 +110,6 @@ DEFAULT_DURATION = timedelta(hours=1)
 """Écart entre le début et une fin qui se coche."""
 SESSION_OUTLINE = f"QFrame#session_sautee {{ border: 4px solid {ORANGE}; }}"
 """Le liseré d'une session sautée : un avertissement, de l'orange de ceux de la fiche."""
-GRID_REPLACEMENT_OUTLINE = (
-	"QLabel#grid_replacement { border: 1px solid palette(mid); border-radius: 4px; padding: 8px; }"
-)
-"""L'encadré d'une section à la place de celui de la grille (https://github.com/dascritch/machincast/issues/609)."""
 REINSTATE = _("Reinstate")
 STARTED = _("It has already started: it can no longer be reinstated.")
 
@@ -138,7 +134,6 @@ class EventCard(Card):
 		ui = self.ui
 		self.plug(ui.save, ui.cancel, ui.delete, ui.message, ui.duplicate)
 		self._build_session_announcement()
-		self._build_grid_replacement()
 		for _value, text in PRIORITIES:
 			ui.priority.addItem(text)
 		for _mask, text in HIDINGS:
@@ -191,6 +186,7 @@ class EventCard(Card):
 		for day in self.days:
 			day.toggled.connect(self._modify)
 			day.toggled.connect(self._hour_only)
+			day.toggled.connect(self._tell_days)
 		self.load()
 
 	def place_section(self, section: CardSection) -> None:
@@ -198,24 +194,32 @@ class EventCard(Card):
 		self.ui.lists.insertWidget(0, section)
 		self._under_days(section.grid_widget())
 		section.replaces_items.connect(self._replace_items)
-		section.replaces_grid.connect(self._replace_grid)
+		replacement = section.grid_replacement()
+		if replacement is not None:
+			self._replacing_grid(replacement)
+			section.replaces_grid.connect(lambda replaced: self._replace_grid(replacement, replaced))
 
-	def _build_grid_replacement(self) -> None:
-		"""L'encadré qu'une section met à la place de celui de la grille, caché sans elle."""
-		self.grid_replacement = QLabel(self)
-		self.grid_replacement.setObjectName("grid_replacement")
-		self.grid_replacement.setWordWrap(True)
-		self.grid_replacement.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-		self.grid_replacement.setStyleSheet(GRID_REPLACEMENT_OUTLINE)
-		self.grid_replacement.hide()
+	def _replacing_grid(self, widget: QWidget) -> None:
+		"""Ce qu'une section met à la place de l'encadré de la grille, à côté de lui, caché tant qu'elle ne le
+		demande pas."""
+		widget.setParent(self)
+		widget.hide()
 		top = self.ui.top
-		top.insertWidget(top.indexOf(self.ui.grid_group) + 1, self.grid_replacement, 1)
+		top.insertWidget(top.indexOf(self.ui.grid_group) + 1, widget, 1)
 
-	def _replace_grid(self, text: str) -> None:
-		"""Un texte : il prend la place de l'encadré de la grille, caché ; vide, l'encadré revient."""
-		self.grid_replacement.setText(text)
-		self.grid_replacement.setVisible(text != "")
-		self.ui.grid_group.setVisible(text == "")
+	def _replace_grid(self, widget: QWidget, replaced: bool) -> None:  # noqa: FBT001  # le booléen du signal
+		"""Vrai : le widget de la section prend la place de l'encadré de la grille, caché ; faux, l'encadré revient."""
+		widget.setVisible(replaced)
+		self.ui.grid_group.setVisible(not replaced)
+
+	def _tell_days(self) -> None:
+		"""Les jours de la récurrence cochés, dits à chaque section."""
+		ticked = set()
+		for index, day in enumerate(self.days):
+			if day.isChecked():
+				ticked.add(index)
+		for section in self.sections:
+			section.days_changed(frozenset(ticked))
 
 	def _under_days(self, widget: QWidget | None) -> None:
 		"""Le widget d'une section, sous les jours de la récurrence : l'explication des dates descend d'une ligne."""

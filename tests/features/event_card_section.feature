@@ -16,6 +16,7 @@ Fonctionnalité: Un plugin ajoute sa section à la fiche d'un événement
 		Et les événements :
 			| name     | public_name | priority | starts_at        | ends_at          | days |
 			| Journal  |             | show     | 2026-10-21 09:00 | 2026-10-21 09:30 |      |
+			| Soirée   |             | show     | 2026-10-21 20:00 | 2026-10-21 21:00 |      |
 		Et l'événement « Journal » a pour propriétés « {"note": {"text": "à relire"}} »
 		Et le plugin « note », qui ajoute sa section à la fiche d'un événement
 
@@ -53,6 +54,19 @@ Fonctionnalité: Un plugin ajoute sa section à la fiche d'un événement
 		Alors la fiche de l'événement montre, à la place de l'encadré de la grille, « Partagé avec « Journal du soir ». »
 		Quand je décoche « Créneau partagé » dans la section du plugin « note »
 		Alors la fiche de l'événement montre l'encadré de la grille
+
+	Scénario: La section sait les jours de la récurrence cochés dans la fiche
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et je coche le jour « Mercredi » de la récurrence
+		Et je coche le jour « Vendredi » de la récurrence
+		Alors la section du plugin « note » sait les jours cochés : « Mercredi », « Vendredi »
+
+	Scénario: La section ouvre la fiche d'un autre événement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et la section du plugin « note » ouvre la fiche de l'événement « Soirée »
+		Alors l'onglet ouvert est la fiche de l'événement « Soirée »
 
 	Scénario: La section peut refuser l'enregistrement, et la fiche le dit, sans rien écrire
 		Quand la fenêtre de l'interface s'ouvre
