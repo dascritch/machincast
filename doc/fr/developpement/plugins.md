@@ -135,13 +135,17 @@ Un plugin qui s'accroche à `Machin_intranet` y ajoute ses pages, ses routes d'A
 ```python
 from pathlib import Path
 
-from machincast.intranet.extensions import Endpoint, Extension, Page
+from machincast.intranet.extensions import Endpoint, Extension, HomeSection, Page
 
 STATIC = Path(__file__).parent / "static"
 
 
 async def cadran(tools, request):
 	return f'<p id="horloge">{tools.session.user}</p>'
+
+
+async def cadran_accueil(tools, request):
+	return '<section id="horloge"><h2>Horloge</h2></section>'
 
 
 async def sonner(tools, request):
@@ -156,11 +160,13 @@ def register(plugin):
 			pages=(Page("", "Horloge", cadran, navigation="Horloge", assets=("horloge.css", "horloge.js")),),
 			endpoints=(Endpoint("POST", "sonner", sonner, role="actions"),),
 			static=STATIC,
+			home=(HomeSection(cadran_accueil, assets=("horloge.css",)),),
 		),
 	)
 ```
 
 - Une page est servie en GET sous `/plugins/<nom>/<chemin>`, dans le gabarit de l'intranet ; avec un libellé (`navigation`), elle entre au bandeau.
+- Une section de l'accueil (`HomeSection`) s'ajoute sous l'antenne en direct, sans page ni entrée au bandeau, pour un compte du rôle demandé ; vide, elle n'ajoute rien.
 - Une route d'API est servie sous `/api/v1/plugins/<nom>/<chemin>`, en GET ou en POST, et rend un statut et une valeur JSON.
 - Le rôle demandé (`role`) est `consult`, par défaut, ou `actions` ; sans session, une page mène à la connexion et une route répond 401 ; un rôle insuffisant reçoit 403.
 - Les fichiers statiques sont ceux d'un seul répertoire (`static`), servis sous `/plugins/<nom>/static/`, aux types `.css`, `.js`, `.svg`, `.png`, `.woff2` et `.json`.

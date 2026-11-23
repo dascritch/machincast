@@ -8,6 +8,7 @@ base de test, au rôle machincast_intranet, comme celles de tests/test_intranet_
 
 import json
 import logging
+import re
 from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
@@ -20,7 +21,7 @@ from machincast.clock import FixedClock
 from machincast.configuration import Intranet as Settings
 from machincast.intranet.api import ApiV1
 from machincast.intranet.app import Intranet, Request
-from machincast.intranet.extensions import POINT, Endpoint, Extension, Extensions, Page, Tools
+from machincast.intranet.extensions import POINT, Endpoint, Extension, Extensions, HomeSection, Page, Tools
 from machincast.intranet.pages import Pages
 from machincast.intranet.portal import Portal
 from machincast.plugins.points import Points
@@ -83,7 +84,23 @@ def _horloge(static: Path) -> Extension:
 		),
 		endpoints=(Endpoint("post", "sonner", _ring, role="actions"),),
 		static=static,
+		home=(
+			HomeSection(_dial, assets=("cadran.css",)),
+			HomeSection(_alarms, role="actions"),
+		),
 	)
+
+
+async def _dial(tools: Tools, request: Request) -> str:
+	return f'<section id="cadran"><h2>Cadran</h2><p>pour {tools.session.user}</p></section>'
+
+
+async def _alarms(tools: Tools, request: Request) -> str:
+	return '<section id="alarmes"><h2>Alarmes</h2></section>'
+
+
+async def _broken(tools: Tools, request: Request) -> str:
+	raise RuntimeError("cadran cassé")
 
 
 @pytest.fixture
@@ -121,6 +138,7 @@ def _routes(socket_path: Path, points: Points) -> tuple[Extensions, dict[Any, An
 	pages = Pages(portal, connect, socket_path, "Radio Thune", clock)
 	extensions = Extensions(portal, connect, socket_path, "Radio Thune", points.collect(POINT))
 	pages.navigation = extensions.navigation
+	pages.home_sections = extensions.home
 	routes = {
 		**portal.routes(),
 		**ApiV1(portal, connect, socket_path, clock).routes(),
@@ -191,3 +209,23 @@ def only(gathered: Mapping[tuple[str, str], object], name: str) -> None:
 	assert gathered != {}
 	for _method, path in gathered:
 		assert f"/plugins/{name}" in path, path
+
+
+@given(parsers.parse("le plugin « {name} » qui ajoute à l'accueil une section en échec"))
+def broken_section(points: Points, name: str) -> None:
+	extension = Extension(home=(HomeSection(_broken),))
+	points.subscribe(name, POINT, lambda data: extension)
+
+
+@given("l'intranet, de nouveau, avec ses plugins", target_fixture="api")
+def again(socket_path: Path, points: Points) -> Api:
+	return application(socket_path, points, "horloge")
+
+
+@then(parsers.re(r"l'accueil a, sous l'antenne en direct, les sections (?P<sections>« .+)$"))
+def home_sections(api: Api, sections: str) -> None:
+	text = _page(api)
+	found = re.findall(r'<section id="([a-z]+)"><h2>', text)
+	assert found == re.findall(r"« ([^»]+) »", sections), found
+	for each in found:
+		assert text.index('id="direct"') < text.index(f'<section id="{each}">')

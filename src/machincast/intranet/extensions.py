@@ -8,7 +8,10 @@ Au démarrage, le serveur demande à chaque plugin chargé abonné au point POIN
   HTML, dans le gabarit « Machin intranet », dont le bandeau gagne celles qui ont un libellé (navigation) ;
 - ses routes d'API, sous /api/v1/plugins/<nom>/<chemin>, en GET ou en POST, en JSON, pour une session valide, en
   cookie ou en « Authorization: Bearer », du rôle qu'elles demandent ; un rôle insuffisant reçoit 403 ;
-- ses fichiers statiques, sous /plugins/<nom>/static/<fichier>, ceux d'un seul répertoire, aux types de STATIC.
+- ses fichiers statiques, sous /plugins/<nom>/static/<fichier>, ceux d'un seul répertoire, aux types de STATIC ;
+- ses sections de l'accueil (HomeSection) : leur HTML, sous l'antenne en direct, pour une session du rôle qu'elles
+  demandent, avec leurs feuilles de style et leurs scripts, sans page ni entrée au bandeau
+  (https://github.com/dascritch/machincast/issues/512).
 
 Pages et routes passent par la même application (machincast.intranet.app) : mêmes en-têtes de sécurité, même
 politique de contenu, même refus d'un formulaire d'un autre site. Leurs fonctions reçoivent un Tools : la session, la
@@ -107,12 +110,24 @@ class Endpoint:
 
 
 @dataclass(frozen=True)
+class HomeSection:
+	"""Une section qu'un plugin ajoute à l'accueil, sous l'antenne en direct."""
+
+	render: Render
+	"""Son HTML, une <section>, sans le gabarit."""
+	role: str = CONSULT
+	assets: tuple[str, ...] = ()
+	"""Ses feuilles de style (.css) et ses scripts (.js), parmi les fichiers statiques du plugin."""
+
+
+@dataclass(frozen=True)
 class Extension:
 	"""Ce qu'un plugin ajoute à l'intranet."""
 
 	pages: tuple[Page, ...] = ()
 	endpoints: tuple[Endpoint, ...] = ()
 	static: Path | None = None
+	home: tuple[HomeSection, ...] = ()
 
 
 def allowed(session: Session, role: str) -> bool:
@@ -146,6 +161,23 @@ class Extensions:
 			for each in extension.pages:
 				if (each.navigation is not None) and (PATH.match(each.path)):
 					self.navigation.append((address(name, each.path), each.navigation))
+
+	async def home(self, session: Session, request: Request) -> tuple[str, str]:
+		"""Les sections des plugins sous l'accueil, que le rôle du compte permet, et leurs feuilles de style et
+		scripts, pour l'en-tête de la page ; une section en échec est consignée, et laissée."""
+		sections = []
+		heads = []
+		tools = Tools(session, self.connect, self.state_socket)
+		for name, extension in self.extensions:
+			for section in extension.home:
+				rendered = None
+				if allowed(session, section.role):
+					rendered = await _section(name, section, tools, request)
+				# Une section vide n'ajoute rien à l'accueil.
+				if (rendered is not None) and (rendered.strip() != ""):
+					sections.append(rendered)
+					heads.append(_assets(name, section.assets))
+		return "\n".join(sections), "".join(heads)
 
 	def routes(self) -> dict[tuple[str, str], Route]:
 		found: dict[tuple[str, str], Route] = {}
@@ -228,6 +260,18 @@ class Extensions:
 			return Response(200, await asyncio.to_thread(path.read_bytes), kind)
 
 		return route
+
+
+async def _section(name: str, section: HomeSection, tools: Tools, request: Request) -> str | None:
+	"""Le HTML de la section ; None si elle échoue, consigné."""
+	try:
+		return await section.render(tools, request)
+	except Exception as error:
+		log.error(
+			_("plugin “{name}”: its section of the home page failed: {error}").format(name=name, error=error),
+			exc_info=error,
+		)
+		return None
 
 
 def address(name: str, path: str) -> str:

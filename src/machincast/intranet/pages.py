@@ -12,7 +12,7 @@ Sans session, une page mène à la mire ; une session à valider, à la page de 
 """
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime, timedelta
 from html import escape
 from pathlib import Path
@@ -81,6 +81,10 @@ def calendar_body(found: list[dict[str, Any]], first: date, now: datetime) -> st
 	)
 
 
+HomeSections = Callable[[Session, Request], Awaitable[tuple[str, str]]]
+"""Les sections des plugins sous l'accueil : leur HTML, et leur en-tête."""
+
+
 class Pages:
 	"""Les pages de l'intranet, et ce qu'il leur faut : la base, la socket d'état de Machin player, le nom de la
 	radio, l'horloge."""
@@ -95,6 +99,9 @@ class Pages:
 		self.clock = (clock) or (SystemClock())
 		self.navigation: list[tuple[str, str]] = []
 		"""Les pages des plugins dans le bandeau (https://github.com/dascritch/machincast/issues/588)."""
+		self.home_sections: HomeSections | None = None
+		"""Les sections des plugins sous l'accueil, et leur en-tête
+		(machincast.intranet.extensions.Extensions.home, https://github.com/dascritch/machincast/issues/512)."""
 
 	def routes(self) -> dict[tuple[str, str], Route]:
 		return {
@@ -142,9 +149,16 @@ class Pages:
 			return found
 		now = self.clock.now()
 		direct = await self._database(lambda connection: live.live(connection, self.state_socket, now))
+		sections, head = "", ""
+		if self.home_sections is not None:
+			sections, head = await self.home_sections(found, request)
+		body = home.body(direct, now)
+		if sections != "":
+			body = f"{body}\n{sections}"
 		return template.layout(
 			_("Home"),
-			home.body(direct, now),
+			body,
+			head=head,
 			radio=self.radio,
 			state=str(direct.get("state", "stopped")),
 			user=found.user,

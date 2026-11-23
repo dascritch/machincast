@@ -98,6 +98,7 @@ def application(configuration: Configuration) -> Application:
 		plugins.active().points.collect(POINT),
 	)
 	pages.navigation = extensions.navigation
+	pages.home_sections = extensions.home
 	return Application({**portal.routes(), **api.routes(), **pages.routes(), **extensions.routes()})
 
 
