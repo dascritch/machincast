@@ -77,6 +77,10 @@ Chaque programme ne charge que les plugins qui le concernent, et seulement s'ils
 Un plugin écarté l'est dans le journal du programme (`Machin logs` pour la diffusion), avec ses raisons, par exemple `plugin « cartwall » pas chargé : le programme « ffmpeg » manque` ; le programme démarre quand même.
 Un nom de plugin mal écrit, ou donné deux fois, refuse la configuration (code 2).
 
+Un plugin qui a ses propres tables s'installe d'abord, par son `install.sh` ([#586](https://github.com/dascritch/machincast/issues/586)) : `plugins/cartwall/install.sh` crée ses tables, après une sauvegarde de la base, `--simulation` dit ce qu'il ferait, `--remove` les retire, toujours après une sauvegarde.
+Ni l'un ni l'autre ne touche aux tables de MachinCast ni aux fichiers sonores.
+`Machin maintenance-db` met aussi à jour les tables des plugins activés.
+
 ## Durée de péremption
 
 `database.retention` ([#268](https://github.com/dascritch/machincast/issues/268)) est la durée, en jours entiers, 1 au moins, après laquelle [`Machin purge`](commandes.md#purge-de-la-base--machin-purge) efface de la base les passages de l'airplay, les lignes du log, et les éléments supprimés ou dont le fichier a disparu. 60 jours par défaut ; un nombre décimal, un texte ou 0 sont refusés (code 2). L'interface la règle aussi, **Fichier → Préférences de l'interface…**, page **Base**, qui l'écrit dans la section `[database]`, et la fiche d'un élément supprimé donne le jour où il sera effacé.

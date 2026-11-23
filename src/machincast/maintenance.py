@@ -6,7 +6,8 @@ Sur la base de production de la configuration, trois étapes, dans l'ordre :
    (--backups, par défaut backup.directory de la configuration, le répertoire personnel du compte sans elle,
    https://github.com/dascritch/machincast/issues/347), lisible par pg_restore et par Machin restore-db. Une
    sauvegarde qui échoue arrête tout : rien n'est modifié sans sauvegarde ;
-2. schéma : les migrations manquantes sont appliquées, puis chaque rôle de MachinCast doit être endossable par le
+2. schéma : les migrations manquantes sont appliquées, celles des plugins activés comprises
+   (https://github.com/dascritch/machincast/issues/586), puis chaque rôle de MachinCast doit être endossable par le
    compte ; un rôle qui ne l'est pas est signalé avec les commandes, à lancer par un administrateur, qui l'autorisent ;
 3. optimisation : VACUUM (ANALYZE), qui récupère la place des lignes effacées et met à jour les statistiques ;
    la diffusion peut continuer pendant ce temps.
@@ -32,12 +33,13 @@ from pathlib import Path
 
 import psycopg
 
-from machincast import admin_queries
+from machincast import admin_queries, plugins
 from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration, Database
 from machincast.database import Role, apply_migrations, url_yoyo
 from machincast.i18n import _, decimal, ngettext
+from machincast.plugins import schema
 from machincast.protection import check_writing
 from machincast.runs import Recording
 
@@ -143,19 +145,47 @@ def back_up(configuration: Configuration, directory: Path) -> Path:
 
 
 def update_schema(configuration: Configuration) -> None:
-	"""Les migrations manquantes ; aucune si le schéma est à jour."""
+	"""Les migrations manquantes, du cœur puis des plugins activés ; aucune si le schéma est à jour."""
 	database = configuration.database
 	count = apply_migrations(url_yoyo(database.socket, database.production))
 	if count == 0:
 		log.info(_("schema of database {production} up to date").format(production=database.production))
-		return
-	log.info(
-		ngettext(
-			"schema of database {production}: {count} migration applied",
-			"schema of database {production}: {count} migrations applied",
-			count,
-		).format(production=database.production, count=count)
-	)
+	else:
+		log.info(
+			ngettext(
+				"schema of database {production}: {count} migration applied",
+				"schema of database {production}: {count} migrations applied",
+				count,
+			).format(production=database.production, count=count)
+		)
+	update_plugins(configuration)
+
+
+def update_plugins(configuration: Configuration) -> None:
+	"""Les migrations manquantes de chaque plugin activé, dans l'ordre de [plugins] enabled
+	(https://github.com/dascritch/machincast/issues/586) ; un plugin aux migrations fautives est signalé, et laissé."""
+	database = configuration.database
+	url = url_yoyo(database.socket, database.production)
+	found_list = {}
+	for found in plugins.discover(plugins.directory(configuration)):
+		found_list[found.name] = found
+	for name in configuration.plugins.enabled:
+		enabled = found_list.get(name)
+		if (enabled is not None) and (enabled.manifest is not None):
+			faults = schema.problems(enabled.directory, enabled.manifest)
+			if faults != []:
+				log.error(_("plugin “{name}”: {problem}").format(name=name, problem="; ".join(faults)))
+			else:
+				_applied(name, schema.apply(url, enabled.directory))
+
+
+def _applied(name: str, count: int) -> None:
+	if count > 0:
+		log.info(
+			ngettext(
+				"plugin “{name}”: {count} migration applied", "plugin “{name}”: {count} migrations applied", count
+			).format(name=name, count=count)
+		)
 
 
 def check_roles(connection: psycopg.Connection[tuple[object, ...]]) -> bool:
