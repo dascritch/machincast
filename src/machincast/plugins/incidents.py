@@ -16,6 +16,8 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime
 
+from machincast.clock import SystemClock
+
 POINT = "log_incident"
 
 
@@ -61,7 +63,7 @@ def tell(
 	loaded = plugins.active()
 	if loaded.points.subscribers(POINT) == []:
 		return
-	when = (instant) or (datetime.now().astimezone())
+	when = (instant) or (SystemClock().now())
 	if when.tzinfo is None:
 		when = when.astimezone()
 	given: dict[str, int | None] = {"sound": None, "bank": None, "event": None}
