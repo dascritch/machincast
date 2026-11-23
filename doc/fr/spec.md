@@ -2278,3 +2278,14 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 - `indexer.sound_spotted` : le parcours vient d'enregistrer un nouveau fichier, en aperçu ; avec le sonore, son chemin, et la banque dont le répertoire l'a fait trouver.
 - `indexer.sound_detailed` : la vérification vient d'écrire ce qu'elle a trouvé d'un sonore ; avec son état avant et après, sa durée, son artiste, son titre, ses métadonnées, le type du fichier, les silences détectés au début et à la fin, s'il a été audité, et son problème.
 - Un sonore inchangé, qui n'est pas décodé de nouveau, n'en dit rien.
+
+### 14.8 log_incident, l'avertissement d'un incident grave
+
+([#592](https://github.com/dascritch/machincast/issues/592), `machincast.plugins.incidents`)
+
+- Dans chaque binaire, le point **notifié** `log_incident` prévient les plugins de chaque incident sérieux consigné, sans les attendre :
+	- une entrée du log de niveau « incident » (`machincast.player.saving.record`), avec sa nature, son message traduits et ce qu'elle concerne (sonore, banque, événement), et d'où vient la demande (`origin`) ;
+	- une erreur du journal du binaire, de niveau ERROR ou CRITICAL, quel que soit le module qui la consigne : sa nature est le nom du module.
+- Ses données : le binaire (`executable`), l'instant, le niveau (`incident`, `error` ou `critical`), la nature, le message, ce qu'il concerne (`references`) et `origin`.
+- Une alerte, une information ou un avertissement n'en est pas un.
+- Un plugin qui échoue à prévenir ne crée pas d'incident à son tour : ce que le journal consigne pendant qu'un abonné de `log_incident` est appelé, son échec compris, est laissé (`points.calling`).

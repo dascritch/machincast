@@ -36,7 +36,7 @@ import psycopg
 from machincast import __version__, database
 from machincast.configuration import PROJECT_DIRECTORY, Configuration
 from machincast.i18n import _
-from machincast.plugins import queries
+from machincast.plugins import incidents, queries
 from machincast.plugins.manifest import InvalidManifest, Manifest, read
 from machincast.plugins.points import Points, Subscriber
 
@@ -134,6 +134,8 @@ class Loaded:
 
 	points: Points = field(default_factory=Points)
 	plugins: list[Plugin] = field(default_factory=list)
+	executable: str = ""
+	"""Le binaire qui les a chargés."""
 	refused: dict[str, list[str]] = field(default_factory=dict)
 	live: Live = field(default_factory=Live)
 
@@ -394,8 +396,9 @@ def _candidates(configuration: Configuration, executable: str, loaded: Loaded) -
 def load(configuration: Configuration, executable: str) -> Loaded:
 	"""Charge les plugins activés qui s'accrochent au binaire, et les rend actifs (active)."""
 	global _active
-	loaded = Loaded()
+	loaded = Loaded(executable=executable)
 	_active = loaded
+	incidents.install()
 	candidates = _candidates(configuration, executable, loaded)
 	manifests: dict[str, Manifest] = {}
 	for name, found in candidates.items():

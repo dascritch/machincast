@@ -84,6 +84,12 @@ CORE: dict[str, str] = {
 		"“detected_start” and “detected_end” in seconds, “audited” and “problem” "
 		"(https://github.com/dascritch/machincast/issues/590)"
 	),
+	"log_incident": (
+		"notified in each binary for each serious incident: an entry of level “incident” of the log, or an error of "
+		"the journal of the binary, with “executable”, “instant”, “level”, “kind”, “message”, “references” (“sound”, "
+		"“bank”, “event”) and “origin”; a plugin failing to warn creates no incident in turn "
+		"(https://github.com/dascritch/machincast/issues/592)"
+	),
 	"interface.plugin_window": (
 		"asked by Machin interface, of one plugin, when its window opens from the menu “Plugins”, with “parent”, the "
 		"window: the plugin answers a QWidget, its settings, shown under its name, version and description "
@@ -95,6 +101,16 @@ CORE: dict[str, str] = {
 CLOSING = 5.0
 """Secondes laissées aux notifications en cours, à la fermeture d'un binaire."""
 FAILED = N_("plugin “{plugin}” failed at the extension point “{point}”: {error}")
+
+
+_calling = threading.local()
+"""Le point dont le fil des plugins appelle un abonné, le temps de l'appel."""
+
+
+def calling() -> str | None:
+	"""Le point dont un abonné est en train d'être appelé dans ce fil ; None hors d'un appel notifié."""
+	point: str | None = getattr(_calling, "point", None)
+	return point
 
 
 class UnknownPoint(Exception):
@@ -195,7 +211,10 @@ def _failed(subscription: _Subscription, point: str, error: Exception) -> None:
 
 
 def _call(subscription: _Subscription, point: str, data: Mapping[str, Any]) -> None:
+	_calling.point = point
 	try:
 		subscription.function(data)
 	except Exception as error:
 		_failed(subscription, point, error)
+	finally:
+		_calling.point = None
