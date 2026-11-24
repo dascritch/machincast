@@ -7,6 +7,7 @@ Sur le poste, avec sa configuration, ce script ouvre le moniteur de l'antenne de
 
 	python -m tests.vu_measures                         # la configuration de machincast.toml
 	python -m tests.vu_measures --config <fichier> --ecoutes 3 --duree 5
+	python -m tests.vu_measures --temoin                # les mêmes phases, sans aucune écoute : le témoin
 
 Pour chaque phase, il donne :
 
@@ -14,7 +15,10 @@ Pour chaque phase, il donne :
   un toutes les 50 ms ;
 - le retard moyen et le pire retard d'un minuteur de 50 ms de Qt : une boucle de l'interface encombrée ;
 - les fils du processus, et les nœuds PipeWire de MachinCast que liste pw-cli, quand il existe : ce qui n'est pas
-  libéré.
+  libéré ;
+- l'état du moniteur : ouvert, ou la raison de son indisponibilité.
+
+Avec --temoin, les phases d'écoute se passent sans écoute : un rythme qui baisse quand même vient du moniteur seul.
 
 Rien n'est écrit, ni en base, ni dans la configuration ; rien ne joue à l'antenne.
 """
@@ -103,9 +107,25 @@ def measure(label: str, monitor: Counted, seconds: float) -> None:
 		average = sum(delays) / len(delays)
 	print(
 		f"| {label} | {monitor.readings / elapsed:.1f} | {monitor.changes / elapsed:.1f} | {average:.1f} |"
-		f" {max(delays, default=0.0):.0f} | {threading.active_count()} | {pipewire_nodes()} |",
+		f" {max(delays, default=0.0):.0f} | {threading.active_count()} | {pipewire_nodes()} |"
+		f" {(monitor.unavailable) or ('ouvert')} |",
 		flush=True,
 	)
+
+
+def listen(audio: Audio, monitor: Counted, listening: int, seconds: float) -> None:
+	"""Une écoute de l'antenne sur la pré-écoute, comme la fenêtre de pré-écoute, puis son arrêt : mesurés tous deux."""
+	player = Player(audio.output, audio.preview)
+	player.load(Source("Antenne", "Antenne", True, None, audio))
+	player.read()
+	reading = QTimer()
+	reading.setInterval(TICK)
+	reading.timeout.connect(player.read_off)
+	reading.start()
+	measure(f"pendant l'écoute {listening}", monitor, seconds)
+	reading.stop()
+	player.halt()
+	measure(f"après l'écoute {listening}", monitor, seconds)
 
 
 def main() -> None:
@@ -113,30 +133,25 @@ def main() -> None:
 	analyser.add_argument("--config", type=Path, default=None, help="configuration, machincast.toml par défaut")
 	analyser.add_argument("--ecoutes", type=int, default=3, help="écoutes de l'antenne, 3 par défaut")
 	analyser.add_argument("--duree", type=float, default=5.0, help="secondes de chaque phase, 5 par défaut")
+	analyser.add_argument("--temoin", action="store_true", help="les mêmes phases, sans écouter l'antenne")
 	options = analyser.parse_args()
 	_application = QApplication([])
 	audio = load(options.config).audio
 	monitor = Counted(audio)
 	monitor.start()
 	wait(2)
+	print(f"{Gst.version_string()}, sortie {audio.output}, antenne {audio.device}, pré-écoute {audio.preview}")
 	print(
-		f"GStreamer {Gst.version_string()}, sortie {audio.output}, antenne {audio.device}, pré-écoute {audio.preview}"
+		"| phase | relevés/s | nouveaux/s | retard moyen (ms) | pire retard (ms) | fils | nœuds MachinCast | moniteur |"
 	)
-	print("| phase | relevés/s | nouveaux/s | retard moyen (ms) | pire retard (ms) | fils | nœuds MachinCast |")
-	print("| --- | --- | --- | --- | --- | --- | --- |")
+	print("| --- | --- | --- | --- | --- | --- | --- | --- |")
 	measure("avant", monitor, options.duree)
 	for listening in range(1, options.ecoutes + 1):
-		player = Player(audio.output, audio.preview)
-		player.load(Source("Antenne", "Antenne", True, None, audio))
-		player.read()
-		reading = QTimer()
-		reading.setInterval(TICK)
-		reading.timeout.connect(player.read_off)
-		reading.start()
-		measure(f"pendant l'écoute {listening}", monitor, options.duree)
-		reading.stop()
-		player.halt()
-		measure(f"après l'écoute {listening}", monitor, options.duree)
+		if options.temoin:
+			measure(f"témoin {listening}, sans écoute", monitor, options.duree)
+			measure(f"témoin {listening}, après", monitor, options.duree)
+		else:
+			listen(audio, monitor, listening, options.duree)
 	if monitor.unavailable is not None:
 		print(f"Moniteur indisponible : {monitor.unavailable}")
 	monitor.halt()
