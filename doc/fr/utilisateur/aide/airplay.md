@@ -10,5 +10,8 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 3. **Filtrer…** (`filter_`) : ne garde que les passages qui contiennent le texte tapé, sans tenir compte des majuscules ni des accents.
 4. **Compte** (`count`) : combien de passages sont montrés, sur combien.
 5. **Passages** (`table`) : un clic sur le titre d'une colonne trie ; double-clic vers les fiches, clic droit pour la pré-écoute et l'emplacement.
+6. **Aujourd'hui** (`today`) : coché, les dernières heures ; décoché, les passages entre deux moments du passé, à exporter de même ([#629](https://github.com/dascritch/machincast/issues/629)).
+7. **Du** (`since`) : le début des passages montrés, pas plus loin que la durée de conservation de l'airplay.
+8. **Au** (`until`) : la fin des passages montrés, entre le début et maintenant.
 
 Pour aller plus loin : [Onglet Airplay](../prise-en-main.md#onglet-airplay).

@@ -160,6 +160,7 @@ def read_plays(
 	play: uuid.UUID | None = None,
 	since: datetime | None = None,
 	ongoing_lender: tuple[int | None] | None = None,
+	until: datetime | None = None,
 ) -> list[Line]:
 	"""Les derniers passages, du plus récent au plus ancien, ou un seul ; nombre None : tous, depuis cet instant s'il
 	est donné. La connexion a le rôle de la lecture, ou celui de l'interface pour l'export de son onglet Airplay
@@ -167,14 +168,15 @@ def read_plays(
 
 	L'événement d'un passage est celui qui lui prête son nom, sinon le sien. ongoing_lender : pour un passage encore
 	en cours, l'événement qui prête son nom à cet instant, ou (None,) sans prêt, à la place de celui qu'il avait à son
-	début (https://github.com/dascritch/machincast/issues/399)."""
+	début (https://github.com/dascritch/machincast/issues/399). until : jusqu'à cet instant, pour l'export des archives
+	(https://github.com/dascritch/machincast/issues/629)."""
 	override = ongoing_lender is not None
 	if ongoing_lender is None:
 		lender = None
 	else:
 		lender = ongoing_lender[0]
 	with connection.transaction():
-		lines = queries.plays(connection, count, play, since, (override, lender))
+		lines = queries.plays(connection, count, play, since, (override, lender), until)
 	plays = []
 	for (
 		start,

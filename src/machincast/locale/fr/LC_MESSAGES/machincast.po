@@ -1551,6 +1551,36 @@ msgid "&Last hours"
 msgstr "&Dernières heures"
 
 #: machincast/interface/airplay_tab.py
+msgid "&Today"
+msgstr "&Aujourd'hui"
+
+#: machincast/interface/airplay_tab.py
+msgid ""
+"Ticked: the last hours; unticked: the plays started between two moments of "
+"the past"
+msgstr ""
+"Coché : les dernières heures ; décoché : les passages commencés entre deux "
+"moments du passé"
+
+#: machincast/interface/airplay_tab.py
+msgid "The plays started from this moment, within the retention period"
+msgstr ""
+"Les passages commencés à partir de ce moment, dans la durée de péremption"
+
+#: machincast/interface/airplay_tab.py
+msgid "The plays started until this moment, between the start and now"
+msgstr ""
+"Les passages commencés jusqu'à ce moment, entre le début et maintenant"
+
+#: machincast/interface/airplay_tab.py
+msgid "&From"
+msgstr "&Du"
+
+#: machincast/interface/airplay_tab.py
+msgid "t&o"
+msgstr "a&u"
+
+#: machincast/interface/airplay_tab.py
 msgid "&Export…"
 msgstr "&Exporter…"
 
@@ -1586,6 +1616,11 @@ msgstr "Exporter l'airplay"
 
 #: machincast/interface/airplay_tab.py
 #, python-brace-format
+msgid "Airplay of the last {hours} hours, at {now:%d/%m/%Y %H:%M}"
+msgstr "Airplay des {hours} dernières heures, au {now:%d/%m/%Y %H:%M}"
+
+#: machincast/interface/airplay_tab.py
+#, python-brace-format
 msgid "{count} play out of {total}"
 msgid_plural "{count} plays out of {total}"
 msgstr[0] "{count} passage sur {total}"
@@ -1593,8 +1628,8 @@ msgstr[1] "{count} passages sur {total}"
 
 #: machincast/interface/airplay_tab.py
 #, python-brace-format
-msgid "Airplay of the last {hours} hours, at {now:%d/%m/%Y %H:%M}"
-msgstr "Airplay des {hours} dernières heures, au {now:%d/%m/%Y %H:%M}"
+msgid "Airplay from {since:%Y-%m-%dT%H:%M} to {until:%Y-%m-%dT%H:%M}"
+msgstr "Airplay du {since:%Y-%m-%dT%H:%M} au {until:%Y-%m-%dT%H:%M}"
 
 #: machincast/interface/airplay_tab.py
 #, python-brace-format
