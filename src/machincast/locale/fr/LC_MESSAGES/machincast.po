@@ -5249,6 +5249,10 @@ msgid "Unavailable: unknown on-air output."
 msgstr "Indisponible : sortie de l'antenne inconnue."
 
 #: machincast/interface/monitor.py
+msgid "monitoring port slowed down, reopened"
+msgstr "port de monitoring ralenti, rouvert"
+
+#: machincast/interface/monitor.py
 #, python-brace-format
 msgid "PulseAudio, {name}.monitor"
 msgstr "PulseAudio, {name}.monitor"

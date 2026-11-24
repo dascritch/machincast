@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF, Qt, QTimer
 from PySide6.QtDBus import QDBusConnection, QDBusMessage
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QLabel
@@ -147,6 +147,53 @@ def cut_port(interface: Context) -> None:
 	tap = pipeline.get_by_name("robinet")
 	assert tap is not None
 	tap.set_property("drop", True)
+
+
+class Trickle:
+	"""Le minuteur qui ouvre et ferme la valve du signal « coupable », et le pipeline ralenti."""
+
+	def __init__(self) -> None:
+		self.timer = QTimer()
+		self.pipeline: object = None
+
+
+@pytest.fixture
+def trickle() -> Iterator[Trickle]:
+	found = Trickle()
+	yield found
+	found.timer.stop()
+
+
+@when("le port de monitoring de l'antenne ne donne plus qu'un quart du son")
+def slow_port(interface: Context, trickle: Trickle) -> None:
+	"""La valve du signal « coupable » ne laisse passer qu'un tour sur quatre de 100 ms, comme un flux PipeWire qui
+	décroche (https://github.com/dascritch/machincast/issues/627)."""
+	monitor_ = home(interface).monitor
+	pipeline = monitor_._pipeline
+	assert pipeline is not None
+	tap = pipeline.get_by_name("robinet")
+	assert tap is not None
+	ticks = [0]
+
+	def turn() -> None:
+		ticks[0] += 1
+		tap.set_property("drop", ticks[0] % 4 != 0)
+
+	trickle.timer.setInterval(100)
+	trickle.timer.timeout.connect(turn)
+	trickle.timer.start()
+	trickle.pipeline = pipeline
+
+
+@then("le port de monitoring de l'antenne est bientôt rouvert, sans être dit indisponible")
+def reopened(interface: Context, qtbot: QtBot, trickle: Trickle) -> None:
+	monitor_ = home(interface).monitor
+	slowed = trickle.pipeline
+	limit = time.monotonic() + 8
+	while (monitor_._pipeline is None) or (monitor_._pipeline is slowed):
+		assert time.monotonic() < limit, "port jamais rouvert"
+		assert monitor_.unavailable is None, monitor_.unavailable
+		qtbot.wait(50)
 
 
 @then(parsers.parse("le VU-mètre de l'antenne reste disponible pendant {seconds:d} secondes"))
