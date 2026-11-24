@@ -2,7 +2,8 @@
 (https://github.com/dascritch/machincast/issues/43, point « interface.plugin_window »,
 https://github.com/dascritch/machincast/issues/587).
 
-La sonie visée, en LUFS, et le plafond de crête, en dBFS. « Enregistrer » les écrit dans la section
+La sonie visée, en LUFS, et le plafond de crête, en dBFS, chacun par un curseur, au demi-décibel. Une banque peut avoir
+les siens, dans sa fiche (machincast_loudness_normalization.bank_section). « Enregistrer » les écrit dans la section
 [plugins.loudness_normalization] du fichier de configuration, qui garde ses commentaires et ses autres sections : la
 fiche d'un sonore les prend aussitôt, Machin player et Machin indexer à leur prochain démarrage.
 """
@@ -11,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import tomlkit
-from PySide6.QtWidgets import QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFormLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from machincast.configuration import Configuration
 from machincast_loudness_normalization.rule import (
@@ -25,7 +26,11 @@ from machincast_loudness_normalization.rule import (
 	as_section,
 	read_settings,
 )
+from machincast_loudness_normalization.slider import LevelSlider
 from machincast_loudness_normalization.texts import t
+
+WIDTH = 60
+"""La largeur de la fenêtre, en caractères : ses textes s'y lisent sans se tasser."""
 
 
 def write_section(path: Path, section: dict[str, Any]) -> None:
@@ -57,8 +62,11 @@ class LevelSettings(QWidget):
 		)
 		self.message.setObjectName("message")
 		self.message.setWordWrap(True)
-		self.target = self._spin("target", LOWEST_TARGET, HIGHEST_TARGET, t(" LUFS"))
-		self.ceiling = self._spin("ceiling", LOWEST_CEILING, HIGHEST_CEILING, t(" dBFS"))
+		self.setMinimumWidth(self.fontMetrics().averageCharWidth() * WIDTH)
+		self.target = LevelSlider(LOWEST_TARGET, HIGHEST_TARGET, t(" LUFS"), self)
+		self.target.setObjectName("target")
+		self.ceiling = LevelSlider(LOWEST_CEILING, HIGHEST_CEILING, t(" dBFS"), self)
+		self.ceiling.setObjectName("ceiling")
 		settings = (current.settings) or (Settings())
 		self.target.setValue(settings.target)
 		self.ceiling.setValue(settings.ceiling)
@@ -75,15 +83,6 @@ class LevelSettings(QWidget):
 		end.addStretch()
 		end.addWidget(self.save_button)
 		layout.addLayout(end)
-
-	def _spin(self, name: str, lowest: float, highest: float, suffix: str) -> QDoubleSpinBox:
-		spin = QDoubleSpinBox(self)
-		spin.setObjectName(name)
-		spin.setDecimals(1)
-		spin.setSingleStep(0.5)
-		spin.setRange(lowest, highest)
-		spin.setSuffix(suffix)
-		return spin
 
 	def save(self) -> bool:
 		found = read_settings({"target": self.target.value(), "ceiling": self.ceiling.value()})

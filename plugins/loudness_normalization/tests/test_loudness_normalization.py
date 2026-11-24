@@ -12,6 +12,7 @@ import re
 import tomllib
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -19,10 +20,14 @@ from typing import Any
 import machincast_loudness_normalization
 import psycopg
 import pytest
+from machincast_loudness_normalization.bank_section import BankLevelSection
 from machincast_loudness_normalization.gain import sound_gain
 from machincast_loudness_normalization.rule import Current, Measure, Settings, applied, read_settings
-from machincast_loudness_normalization.section import LevelSection
+from machincast_loudness_normalization.section import GROUP, LevelSection
 from machincast_loudness_normalization.settings import LevelSettings
+from machincast_loudness_normalization.slider import LevelSlider
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtWidgets import QBoxLayout, QGroupBox, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 from tests.broadcast_steps import Bench, sound
@@ -30,7 +35,10 @@ from tests.database_fixtures import configuration_test, sample_database_paramete
 
 from conftest import PLUGIN
 from machincast import plugins
+from machincast.clock import FixedClock
 from machincast.database import Role, open_connection
+from machincast.interface import expandable
+from machincast.interface.sound_card import SoundCard
 from machincast.plugins.points import Points
 
 scenarios(str(PLUGIN / "tests" / "features" / "loudness_normalization.feature"))
@@ -57,6 +65,9 @@ class Context:
 	changes: list[None] = field(default_factory=list)
 	window: LevelSettings | None = None
 	path: Path | None = None
+	card: SoundCard | None = None
+	bank: int | None = None
+	bank_section: BankLevelSection | None = None
 
 
 @pytest.fixture
@@ -65,6 +76,8 @@ def context(qtbot: QtBot) -> Iterator[Context]:
 	yield found
 	if found.window is not None:
 		found.window.close()
+	if found.card is not None:
+		found.card.close()
 	if found.connection is not None:
 		found.connection.close()
 
@@ -140,6 +153,40 @@ def stored_sound(empty_database: Connection, context: Context, location: str, pr
 	context.location = location
 
 
+@given(parsers.parse("les propriétés de la banque « {name} » {properties}"))
+def bank_properties(empty_database: Connection, name: str, properties: str) -> None:
+	empty_database.execute("UPDATE banks SET properties = %s::jsonb WHERE internal_name = %s", (properties, name))
+
+
+@given(
+	parsers.re(
+		r"la banque « (?P<name>[^»]+) », de propriétés (?P<properties>\{.*\})(?P<holds>, qui contient ce sonore)?$"
+	)
+)
+def stored_bank(empty_database: Connection, context: Context, name: str, properties: str, holds: str | None) -> None:
+	line = empty_database.execute(
+		"INSERT INTO banks (internal_name, mode, properties) VALUES (%s, 'sequential', %s::jsonb) RETURNING id",
+		(name, properties),
+	).fetchone()
+	assert line is not None
+	context.bank = int(str(line[0]))
+	if holds is not None:
+		empty_database.execute(
+			"INSERT INTO bank_sounds (bank_id, sound_id, position) VALUES (%s, %s, 1)", (context.bank, context.sound)
+		)
+
+
+@given(parsers.parse("le stream « {name} »"))
+def stream(empty_database: Connection, context: Context, name: str) -> None:
+	line = empty_database.execute(
+		"INSERT INTO sounds (type, title, stream_url, state) VALUES ('stream', %s, 'https://flux.exemple/direct',"
+		" 'active') RETURNING id",
+		(name,),
+	).fetchone()
+	assert line is not None
+	context.sound = int(str(line[0]))
+
+
 @given("le plugin de la normalisation du niveau, chargé dans Machin player")
 def loaded_in_player(bench: Bench, context: Context) -> None:
 	if bench.points is None:
@@ -176,6 +223,52 @@ def detailed(empty_database: Connection, context: Context) -> None:
 	assert isinstance(line[0], dict)
 	data = {"sound": context.sound, "location": context.location, "audited": True, "loudness": line[0]["loudness"]}
 	plugins.active().points.collect("indexer.sound_detailed", data)
+
+
+@when("j'ouvre la fiche de ce sonore")
+def open_card(context: Context, qtbot: QtBot) -> None:
+	context.connection = open_connection(*sample_database_parameters(), Role.INTERFACE)
+	context.card = SoundCard(context.connection, context.sound, FixedClock(datetime(2026, 10, 14, 20, tzinfo=UTC)))
+	qtbot.addWidget(context.card)
+	context.card.load()
+	context.card.show()
+	qtbot.waitExposed(context.card)
+
+
+@when("la section « Niveau » de cette banque s'ouvre")
+def open_bank_section(context: Context, qtbot: QtBot) -> None:
+	found = read_settings(context.settings)
+	assert isinstance(found, Settings)
+	context.connection = open_connection(*sample_database_parameters(), Role.INTERFACE)
+	context.bank_section = BankLevelSection(context.connection, Current(found))
+	qtbot.addWidget(context.bank_section)
+	context.bank_section.changed.connect(lambda: context.changes.append(None))
+	with context.connection.transaction():
+		context.bank_section.read(context.bank)
+
+
+def _bank_section(context: Context) -> BankLevelSection:
+	assert context.bank_section is not None
+	return context.bank_section
+
+
+@when(parsers.re(r"je coche « Sonie visée propre à la banque » et règle son curseur à (?P<value>-?\d+) LUFS"))
+def tick_target(context: Context, value: str) -> None:
+	section = _bank_section(context)
+	section.has_target.setChecked(True)
+	section.target.setValue(float(value))
+
+
+@when("je décoche « Sonie visée propre à la banque »")
+def untick_target(context: Context) -> None:
+	_bank_section(context).has_target.setChecked(False)
+
+
+@when("la section de la banque s'enregistre")
+def write_bank_section(context: Context) -> None:
+	assert (context.connection is not None) and (context.bank is not None)
+	with context.connection.transaction():
+		_bank_section(context).write(context.bank)
 
 
 @when("la section « Niveau » de ce sonore s'ouvre")
@@ -316,7 +409,8 @@ def no_incident(empty_database: Connection) -> None:
 @then(parsers.parse("elle montre « {text} »"))
 def shows(context: Context, text: str) -> None:
 	section = _section(context)
-	assert text in (section.measure.text(), section.applied.text()), (section.measure.text(), section.applied.text())
+	lines = [section.measure.text(), *section.applied.text().split("\n")]
+	assert text in lines, lines
 
 
 @then(parsers.re(r"l'ajustement manuel vaut (?P<value>-?[\d,]+) dB, au plus (?P<highest>-?[\d,]+) dB"))
@@ -330,10 +424,78 @@ def modified(context: Context) -> None:
 	assert context.changes != []
 
 
-@then(parsers.re(r"la sonie visée vaut (?P<target>-?[\d,]+) LUFS et le plafond (?P<ceiling>-?[\d,]+) dBFS"))
+@then(
+	parsers.re(
+		r"la sonie visée et le plafond sont des curseurs, à (?P<target>-?[\d,]+) LUFS et (?P<ceiling>-?[\d,]+) dBFS"
+	)
+)
 def window_values(context: Context, target: str, ceiling: str) -> None:
 	window = _window(context)
+	assert isinstance(window.target, LevelSlider)
+	assert isinstance(window.ceiling, LevelSlider)
 	assert (window.target.value(), window.ceiling.value()) == (_decibels(target), _decibels(ceiling))
+
+
+@then("la fenêtre est assez large pour lire ses textes")
+def wide(context: Context) -> None:
+	window = _window(context)
+	assert window.minimumWidth() >= window.fontMetrics().averageCharWidth() * 60
+
+
+def _group(context: Context) -> QGroupBox:
+	assert context.card is not None
+	found = context.card.findChild(QGroupBox, GROUP)
+	assert isinstance(found, QGroupBox)
+	return found
+
+
+@then("l'encart « Niveau » est juste sous l'encart « Fichier », replié, et se déplie d'un clic sur son titre")
+def below_file(context: Context, qtbot: QtBot) -> None:
+	assert context.card is not None
+	group = _group(context)
+	file_group = context.card.ui.file_group
+	holder = file_group.parentWidget()
+	assert holder is not None
+	arrangement = holder.layout()
+	assert isinstance(arrangement, QBoxLayout)
+	assert arrangement.indexOf(group) == arrangement.indexOf(file_group) + 1
+	content = group.findChild(QWidget, expandable.CONTENT)
+	assert content is not None
+	assert not content.isVisible()
+	qtbot.mouseClick(group, Qt.MouseButton.LeftButton, pos=QPoint(12, 4))
+	assert content.isVisible()
+
+
+@then("la section du plugin est cachée")
+def section_hidden(context: Context) -> None:
+	assert context.card is not None
+	found = context.card.findChild(LevelSection, "loudness_normalization")
+	assert isinstance(found, LevelSection)
+	assert found.isHidden()
+
+
+@then("l'encart « Niveau » est caché")
+def group_hidden(context: Context) -> None:
+	assert _group(context).isHidden()
+
+
+@then(parsers.re(r"« (?P<label>[^»]+) » est décochée, son curseur grisé sur « (?P<shown>[^»]+) »"))
+def unticked(context: Context, label: str, shown: str) -> None:
+	section = _bank_section(context)
+	box, slider = section.has_target, section.target
+	if label == "Plafond de crête propre à la banque":
+		box, slider = section.has_ceiling, section.ceiling
+	assert box.text() == label
+	assert not box.isChecked()
+	assert not slider.isEnabled()
+	assert slider.value_label.text() == shown
+
+
+@then(parsers.parse("les propriétés de la banque sont {expected}"))
+def bank_stored(empty_database: Connection, context: Context, expected: str) -> None:
+	line = empty_database.execute("SELECT properties FROM banks WHERE id = %s", (context.bank,)).fetchone()
+	assert line is not None
+	assert line[0] == json.loads(expected)
 
 
 @then(parsers.parse("le message de la fenêtre dit « {text} »"))

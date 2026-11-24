@@ -410,6 +410,13 @@ def shows_window(opened: Opened, name: str, version: str, description: str, sett
 	assert found == [setting]
 
 
+@then(parsers.parse("elle a au moins la largeur de {count:d} caractères, pour que ses textes s'y lisent"))
+def window_width(opened: Opened, count: int) -> None:
+	window = opened.plugin_window
+	assert window is not None
+	assert window.minimumWidth() == window.fontMetrics().averageCharWidth() * count
+
+
 @then(
 	parsers.re(
 		r"elle montre « (?P<name>[^»]+) », « (?P<version>[^»]+) », « (?P<description>[^»]+) », "

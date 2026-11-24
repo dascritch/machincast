@@ -132,6 +132,7 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 		Alors le menu « Plugins » propose « horloge… »
 		Quand j'ouvre la fenêtre du plugin « horloge »
 		Alors elle montre « horloge », « 1.2.0 », « Dit l'heure » et le réglage « Sonner les heures »
+		Et elle a au moins la largeur de 70 caractères, pour que ses textes s'y lisent
 
 	Scénario: Un plugin sans réglages le dit dans sa fenêtre
 		Étant donné les plugins activés « horloge »
