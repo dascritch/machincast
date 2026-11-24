@@ -2376,3 +2376,13 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 	Ce qui n'est pas un emoji, copié hors d'un choix ou collé, est ignoré.
 - Un emoji sans nom laisse le nom interne vide, que la fiche refuse.
 - Ses textes ont leur propre traduction (`machincast_bank_as_an_emoji.texts`) ; ses scénarios, dans `plugins/bank_as_an_emoji/tests/`, reprennent les fixtures du cœur.
+
+### 14.12 Le station ID régulier
+
+([#460](https://github.com/dascritch/machincast/issues/460), `plugins/timely_station_id`, guide : [plugins/timely_station_id/doc/station-id.md](../../plugins/timely_station_id/doc/station-id.md))
+
+- Il s'accroche à `Machin_player` et à `Machin_interface`, sans table ni colonne : ses réglages sont la section `[plugins.timely_station_id]` de `machincast.toml`, `bank`, la banque des station ID, `watched`, les banques dont un passage compte comme un station ID, `minimum` et `maximum`, en minutes (12 et 18 par défaut), et `placement`, `before` (par défaut) ou `after` ; des réglages refusés sont consignés, et aucun station ID n'est inséré.
+- Au point « player.before_choice » ([#640](https://github.com/dascritch/machincast/issues/640)), dans un événement dont la colonne `properties` a `{"timely_station_id": true}`, il répond la banque des station ID quand le dernier passage de l'une des banques, prévus compris, date du maximum ou plus, ou, avec `before`, du minimum ou plus et que le candidat ferait dépasser le maximum ; sans passage connu, aussitôt.
+	Un candidat fourni par l'une de ces banques passe tel quel ; une banque introuvable est consignée une fois.
+- Au point « interface.event_card », la case « Station ID régulier » de la fiche d'un événement, une ligne du formulaire sous « Secours d'un stream tombé », la section elle-même cachée ; son infobulle dit la banque et l'écart réglés.
+- Ses textes ont leur propre traduction (`machincast_timely_station_id.texts`) ; ses scénarios, dans `plugins/timely_station_id/tests/`, reprennent les fixtures du cœur.
