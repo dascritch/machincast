@@ -1628,8 +1628,8 @@ msgstr[1] "{count} passages sur {total}"
 
 #: machincast/interface/airplay_tab.py
 #, python-brace-format
-msgid "Airplay from {since:%Y-%m-%dT%H:%M} to {until:%Y-%m-%dT%H:%M}"
-msgstr "Airplay du {since:%Y-%m-%dT%H:%M} au {until:%Y-%m-%dT%H:%M}"
+msgid "Airplay from {since:%Y-%m-%d %H:%M} to {until:%Y-%m-%d %H:%M}"
+msgstr "Airplay du {since:%Y-%m-%d %H:%M} au {until:%Y-%m-%d %H:%M}"
 
 #: machincast/interface/airplay_tab.py
 #, python-brace-format
