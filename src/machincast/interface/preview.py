@@ -53,10 +53,11 @@ from PySide6.QtGui import QCloseEvent, QShowEvent, QStandardItemModel  # noqa: E
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
+from machincast import service  # noqa: E402
 from machincast.audio import PLAYER, PREVIEW, create_output  # noqa: E402
 from machincast.configuration import Audio, AudioOutput, Crossfades  # noqa: E402
 from machincast.i18n import _, decimal  # noqa: E402
-from machincast.interface import display, preferences, states  # noqa: E402
+from machincast.interface import binding, display, preferences, states  # noqa: E402
 from machincast.interface.live_wave import LiveWave  # noqa: E402
 from machincast.interface.monitor import Unavailable, monitor_source, port_name  # noqa: E402
 from machincast.interface.queries import sounds as queries  # noqa: E402
@@ -166,6 +167,7 @@ class Player:
 		self._piloted: states.Pilot | None = None
 		"""Les changements d'état du pipeline, hors du fil de l'interface (https://github.com/dascritch/machincast/issues/259)."""
 		self._level: Gst.Element | None = None
+		self._links: list[binding.Pair] = []
 		"""Les liens de PipeWire qui copient l'antenne sur la pré-écoute, tant qu'elle joue."""
 		self.state = "stopped"
 		self.levels: list[float] = []
@@ -235,13 +237,23 @@ class Player:
 			self._started_at = self.clock()
 		if (plan is not None) and (since_start):
 			self.put_to(plan.start_marker())
+		on_air = self._on_air_by_pipewire(self.source.on_air)
+		if (on_air is not None) and (not self._links):
+			try:
+				self._links = binding.pairs(on_air, self.device)
+				binding.link(self._links)
+			except binding.ImpossibleBinding as error:
+				self.halt()
+				self.error = str(error)
 
 	def pause(self) -> None:
 		if self._piloted is not None:
 			self._piloted.to(Gst.State.PAUSED)
 			self.state = "paused"
+		self._unbind()
 
 	def halt(self) -> None:
+		self._unbind()
 		if self._piloted is not None:
 			self._piloted.switch_off()
 		self._pipeline, self._piloted, self._level = None, None, None
@@ -249,6 +261,20 @@ class Player:
 		self.levels = []
 		self._started_at = None
 		self._pending_seek = None
+
+	def _unbind(self) -> None:
+		binding.unbind(self._links)
+		self._links = []
+
+	def _on_air_by_pipewire(self, on_air: Audio | None) -> str | None:
+		"""Le périphérique de l'antenne, quand elle s'écoute par un lien de PipeWire : sur la sortie pipewire, qui est
+		aussi celle de la pré-écoute. Pas avec le service de diffusion, dont le PipeWire n'est pas celui de la session :
+		le pipeline relaie alors le son de l'un à l'autre (https://github.com/dascritch/machincast/issues/381)."""
+		if (on_air is None) or (on_air.monitored_on_air()[0] != "pipewire"):
+			return None
+		if service.pipewire_socket() is not None:
+			return None
+		return on_air.monitored_on_air()[1]
 
 	def put_to(self, position: float) -> None:
 		"""Va à cette position du fichier, en secondes ; écouté comme à l'antenne, dans sa partie jouée."""
@@ -437,13 +463,14 @@ class Player:
 		return player
 
 	def _build_listening(self, on_air: Audio) -> Gst.Element:
-		"""Le port de monitoring de l'antenne, joué sur la sortie de pré-écoute, sous PipeWire comme avec PulseAudio.
-		Sous PipeWire, un lien de pw-link de la carte de l'antenne à celle de la pré-écoute mettait les deux cartes sur
-		la même horloge, puis les en séparait : chaque écoute faisait décrocher le lecteur et le port du moniteur de
-		l'antenne, qui ne donnait plus ensuite qu'une part du son (https://github.com/dascritch/machincast/issues/627).
-		Le pipeline relaie le son d'une carte à l'autre, chacune à son horloge."""
+		"""Le port de monitoring de l'antenne, joué sur la sortie de pré-écoute. Sous PipeWire, le son passe par un
+		lien (machincast.interface.binding) : le pipeline ne fait que mesurer, pour le VU-mètre."""
 		pipeline = Gst.Pipeline.new("ecoute-antenne")
-		output = create_output(self.output, self.device, presentation=PREVIEW)
+		output = Gst.ElementFactory.make("fakesink", None)
+		assert output is not None
+		output.set_property("sync", False)
+		if self._on_air_by_pipewire(on_air) is None:
+			output = create_output(self.output, self.device, presentation=PREVIEW)
 		created_list = [
 			monitor_source(on_air),
 			Gst.ElementFactory.make("audioconvert", None),

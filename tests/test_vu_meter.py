@@ -11,6 +11,7 @@ import subprocess
 import threading
 import time
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QRectF, Qt, QTimer
@@ -21,7 +22,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.configuration import Audio
-from machincast.interface import icons, monitor, preview, screen_saver, states
+from machincast.interface import binding, icons, monitor, preview, screen_saver, states
 from machincast.interface.monitor import Monitor, monitor_source
 from machincast.interface.vu_meter import VuMeter
 from tests.interface_steps import Context, actions, window
@@ -541,7 +542,91 @@ def lying_scale(interface: Context) -> None:
 	assert every_one
 
 
-# ─── L'écoute de l'antenne ─────────────────────────────────
+# ─── PipeWire simulé ───────────────────────────────────────
+
+FAKE_LINK_PW = """#!/bin/bash
+# Le pw-link des scénarios : il note chaque appel, et liste les ports du scénario.
+dossier="${0%/*}"
+echo "$*" >> "${dossier}/journal"
+case "$1" in
+	-o) cat "${dossier}/sorties" ;;
+	-i) cat "${dossier}/entrees" ;;
+	-d) ;;
+	*)
+		if [[ -f "${dossier}/refus" ]]; then
+			cat "${dossier}/refus" >&2
+			exit 1
+		fi
+		;;
+esac
+"""
+
+
+def simulate_monitoring_port(monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Les ports de PipeWire n'existent pas en test : le VU-mètre et la pré-écoute écoutent le signal de test."""
+
+	def sample_signal(_audio: Audio) -> object:
+		return monitor_source(Audio("dummy", None, "casque"))  # type: ignore[arg-type]
+
+	monkeypatch.setattr(monitor, "monitor_source", sample_signal)
+	monkeypatch.setattr(preview, "monitor_source", sample_signal)
+
+
+@given(
+	parsers.re(r"PipeWire simulé, avec les ports de sortie « (?P<outputs>[^»]+) » et d'entrée « (?P<entries>[^»]+) »"),
+	target_fixture="pipewire",
+)
+def simulated_pipewire(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, outputs: str, entries: str) -> Path:
+	folder = tmp_path / "pipewire"
+	folder.mkdir()
+	command = folder / "pw-link"
+	command.write_text(FAKE_LINK_PW)
+	command.chmod(0o755)
+	(folder / "sorties").write_text("\n".join(outputs.split(", ")) + "\n")
+	(folder / "entrees").write_text("\n".join(entries.split(", ")) + "\n")
+	monkeypatch.setattr(binding, "COMMAND", str(command))
+	simulate_monitoring_port(monkeypatch)
+	return folder
+
+
+@given("PipeWire simulé, sans pw-link", target_fixture="pipewire")
+def pipewire_without_link_pw(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+	monkeypatch.setattr(binding, "COMMAND", str(tmp_path / "pw-link-absent"))
+	simulate_monitoring_port(monkeypatch)
+	return tmp_path
+
+
+def pipewire_links(pipewire: Path) -> set[tuple[str, str]]:
+	"""Les liens en place, d'après les appels notés : « sortie entrée » relie, « -d sortie entrée » délie."""
+	log = pipewire / "journal"
+	links: set[tuple[str, str]] = set()
+	if not log.exists():
+		return links
+	for line in log.read_text().splitlines():
+		arguments = line.split(" ")
+		if arguments[0] == "-d":
+			links.discard((arguments[1], arguments[2]))
+		else:
+			if (arguments[0] not in ("-o", "-i")) and (not (pipewire / "refus").exists()):
+				links.add((arguments[0], arguments[1]))
+	return links
+
+
+@then(parsers.re(r"PipeWire relie (?P<pairs>« .+)"))
+def links(pipewire: Path, pairs: str) -> None:
+	expected_list = set(re.findall(r"« ([^»]+) » à « ([^»]+) »", pairs))
+	assert expected_list
+	assert pipewire_links(pipewire) == expected_list
+
+
+@then("PipeWire ne relie plus rien")
+def linked_nothing(pipewire: Path) -> None:
+	assert pipewire_links(pipewire) == set()
+
+
+@given(parsers.parse("PipeWire simulé refuse de relier : « {message} »"))
+def refused_pipewire(pipewire: Path, message: str) -> None:
+	(pipewire / "refus").write_text(f"{message}\n")
 
 
 @when(
