@@ -65,6 +65,11 @@ class History(Protocol):
 		"""Passage le plus récent, tous événements confondus ; None si l'historique est vide."""
 		...
 
+	def last_play_of_banks(self, connection: Connection, banks: Collection[int]) -> datetime | None:
+		"""Début du dernier passage fourni par l'une de ces banques ; None si aucune n'a joué
+		(https://github.com/dascritch/machincast/issues/640)."""
+		...
+
 	def begin_play(
 		self,
 		connection: Connection,
@@ -117,6 +122,9 @@ class HistoryInPlayback:
 
 	def last_play(self, connection: Connection) -> LastPlay | None:
 		return self.source.last_play(connection)
+
+	def last_play_of_banks(self, connection: Connection, banks: Collection[int]) -> datetime | None:
+		return self.source.last_play_of_banks(connection, banks)
 
 	def begin_play(
 		self,
@@ -218,6 +226,12 @@ class PlannedHistory(HistoryInPlayback):
 		play = self.planned_list[-1]
 		return LastPlay(play.id, play.bank, play.start, play.event, play.item, play.item_sequence)
 
+	def last_play_of_banks(self, connection: Connection, banks: Collection[int]) -> datetime | None:
+		for play in reversed(self.planned_list):
+			if play.bank in banks:
+				return play.start
+		return self.source.last_play_of_banks(connection, banks)
+
 
 class HistoryInDatabase:
 	"""L'airplay et le log de la base, avec les droits de la lecture."""
@@ -263,6 +277,12 @@ class HistoryInDatabase:
 			integer_or_none(item),
 			integer_or_none(item_sequence),
 		)
+
+	def last_play_of_banks(self, connection: Connection, banks: Collection[int]) -> datetime | None:
+		line = queries.last_play_of_banks(connection, list(banks))
+		if (line is None) or (not isinstance(line[0], datetime)):
+			return None
+		return line[0]
 
 	def begin_play(
 		self,

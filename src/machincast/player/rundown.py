@@ -70,6 +70,12 @@ prévue : l'événement en dessous, le plus souvent le fil musical, y joue sa li
 Decision.lender). Ce prêt se déduit de la grille et des occurrences terminées (_lender) : il survit à une prévision et
 se retrouve après un redémarrage. Une coupure par le fil musical, par le secours ou par un feed y met fin.
 
+Avant le choix (https://github.com/dascritch/machincast/issues/640, BEFORE_CHOICE) : chaque sonore choisi dans la liste
+de l'événement actif est d'abord proposé aux plugins abonnés au point « player.before_choice », prévision comprise. Le
+premier qui répond une banque fait passer un de ses sonores jouables avant lui, comme un sonore inséré : la liste
+n'avance pas, et le candidat est choisi de nouveau au tour suivant. Ni la suite d'une séquence, ni un sonore inséré à la
+main, ni le stream d'un feed ne le demandent.
+
 Un sonore dont le fichier est introuvable au moment de le jouer est écarté (exclure) pendant
 NOT_FOUND_FILE_RETRY : il est traité comme non jouable, pour ne pas le réessayer à chaque tour de liste
 (https://github.com/dascritch/machincast/issues/88).
@@ -85,6 +91,7 @@ from datetime import datetime, timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast import plugins
 from machincast.conversion import integer_or_none
 from machincast.i18n import N_, _
 from machincast.player import queries
@@ -109,6 +116,8 @@ NOT_FOUND_FILE_RETRY = timedelta(hours=1)
 """Durée pendant laquelle un sonore au fichier introuvable n'est plus proposé."""
 OUTSIDE_LIST = 0
 """Identifiant de l'élément d'un passage qui ne vient d'aucune liste : le stream d'un feed qui coupe l'antenne."""
+BEFORE_CHOICE = "player.before_choice"
+"""Le point demandé avant chaque sonore choisi dans la liste de l'événement actif (machincast.plugins.points.CORE)."""
 INSERTED = -1
 """Identifiant de l'élément d'un passage inséré à la main après un sonore : une séquence, ou un sonore d'une banque
 (https://github.com/dascritch/machincast/issues/530). Son passage n'a pas d'élément d'événement dans l'airplay."""
@@ -901,17 +910,7 @@ class Scheduler:
 			if choice is None:
 				choice = self._remainder(instant, active, last, forbidden, skipped_list)
 			if (choice is None) and (active is not None):
-				excluded_list = self._excluded_list(instant)
-				choice = next_(
-					self.connection,
-					active,
-					instant,
-					self.randomness,
-					excluded_list,
-					self.history,
-					forbidden,
-					skipped_list,
-				)
+				choice = self._from_list(instant, active, forbidden, skipped_list)
 			if repetition is not None:
 				self._note_skips(repetition, skipped_list, instant)
 			if choice is not None:
@@ -946,6 +945,63 @@ class Scheduler:
 					bank=repetition.bank,
 					event=active.event.id,
 				)
+
+	def _from_list(
+		self, instant: datetime, active: Occurrence, forbidden: int | None, skipped_list: list[Skip]
+	) -> Choice | None:
+		"""Le prochain sonore de la liste de l'occurrence active, ou celui qu'un plugin fait passer avant lui."""
+		excluded_list = self._excluded_list(instant)
+		choice = next_(
+			self.connection,
+			active,
+			instant,
+			self.randomness,
+			excluded_list,
+			self.history,
+			forbidden,
+			skipped_list,
+		)
+		if choice is None:
+			return None
+		return self._before_choice(instant, choice, excluded_list)
+
+	def _before_choice(self, instant: datetime, choice: Choice, excluded_list: frozenset[int]) -> Choice:
+		"""Le sonore d'une banque qu'un plugin fait passer avant le candidat, sinon le candidat
+		(https://github.com/dascritch/machincast/issues/640)."""
+		points = plugins.active().points
+		if points.subscribers(BEFORE_CHOICE) == []:
+			return choice
+		occurrence = choice.occurrence
+		bank = choice.bank
+		sequence = choice.item.sequence
+		duration = None
+		line = queries.playing_parameters(self.connection, bank, choice.sound)
+		if (line is not None) and (isinstance(line[0], timedelta)):
+			duration = line[0]
+		history = self.history
+		connection = self.connection
+
+		def last_play(banks: Collection[int]) -> datetime | None:
+			return history.last_play_of_banks(connection, banks)
+
+		data = {
+			"instant": instant,
+			"connection": connection,
+			"event": occurrence.event.id,
+			"priority": str(occurrence.event.priority),
+			"sound": choice.sound,
+			"bank": bank,
+			"sequence": sequence,
+			"duration": duration,
+			"last_play": last_play,
+			"forecast": isinstance(history, PlannedHistory),
+		}
+		for _plugin, answer in points.collect(BEFORE_CHOICE, data):
+			if (isinstance(answer, int)) and (not isinstance(answer, bool)):
+				sound = _provide(connection, None, answer, instant, self.randomness, excluded_list, history)
+				if sound is not None:
+					return Choice(sound, Item(INSERTED, 0, None, answer), answer, occurrence)
+		return choice
 
 	def _remainder(
 		self,

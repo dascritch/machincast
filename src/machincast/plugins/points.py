@@ -57,6 +57,13 @@ CORE: dict[str, str] = {
 		"“identifiers” (the selection, or the clicked line), “clicked” and “parent”: the plugin adds its entries "
 		"to the menu (https://github.com/dascritch/machincast/issues/591)"
 	),
+	"player.before_choice": (
+		"asked by Machin player before each sound chosen in the list of the active event, forecast of the coming "
+		"sounds included, with “instant”, “connection”, “event”, “priority”, the candidate “sound”, its “bank”, "
+		"“sequence” and “duration”, “last_play”, a function giving the start of the last play of a collection of "
+		"banks, planned plays included, and “forecast”: the plugin answers the identifier of a bank, one of whose "
+		"playable sounds plays before the candidate, or None (https://github.com/dascritch/machincast/issues/640)"
+	),
 	"player.service_start": (
 		"notified by Machin player when its broadcast starts, with “instant” "
 		"(https://github.com/dascritch/machincast/issues/589)"

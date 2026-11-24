@@ -239,6 +239,12 @@ class SimulatedHistory:
 			return LastPlay(play.id, play.bank, play.start, play.event, play.item, play.item_sequence)
 		return IN_DATABASE.last_play(connection)
 
+	def last_play_of_banks(self, connection: Connection, banks: Collection[int]) -> datetime | None:
+		for simulated in reversed(self.simulated_plays):
+			if simulated.play.bank in banks:
+				return simulated.play.start
+		return IN_DATABASE.last_play_of_banks(connection, banks)
+
 	def begin_play(
 		self,
 		connection: Connection,

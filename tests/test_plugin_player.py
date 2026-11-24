@@ -26,6 +26,10 @@ from tests.plugin_steps import Recorder, core_points, subscribe_failing
 scenarios("plugin_player.feature")
 
 POINTS = core_points("player.")
+"""Les points notifiés de Machin player (https://github.com/dascritch/machincast/issues/589) ; « player.before_choice »,
+demandé à chaque choix, l'est aussi en simulation (tests/features/rundown.feature,
+https://github.com/dascritch/machincast/issues/640)."""
+POINTS.remove("player.before_choice")
 
 
 @pytest.fixture

@@ -277,6 +277,14 @@ def last_item(connection: Connection, event: int, since: datetime | None) -> Tup
 	).fetchone()
 
 
+def last_play_of_banks(connection: Connection, banks: list[int]) -> TupleRow | None:
+	"""Le début du dernier passage fourni par l'une de ces banques
+	(https://github.com/dascritch/machincast/issues/640)."""
+	return connection.execute(
+		"SELECT max(logged_at) FROM airplay WHERE line_type = 'start' AND bank_id = ANY(%s)", (banks,)
+	).fetchone()
+
+
 def last_play(connection: Connection) -> TupleRow | None:
 	"""Le passage le plus récent, tous événements confondus."""
 	return connection.execute(
