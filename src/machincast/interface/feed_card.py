@@ -12,7 +12,8 @@ Enregistrement, annulation et fermeture : machincast.interface.card.
   démarrage.
 - Le test du flux (machincast.interface.stream_trial) porte sur l'adresse saisie, même pas encore enregistrée ; il
   s'arrête à la fermeture de la fiche.
-- Un feed d'entrée audio (https://github.com/dascritch/machincast/issues/623) montre son périphérique, sans adresse,
+- Un feed d'entrée audio (https://github.com/dascritch/machincast/issues/623), d'adresse « input: » suivie du
+  périphérique, que seuls les Paramètres du service donnent, montre son périphérique, sans adresse,
   ni mémoire tampon, ni test du flux ; son nom se change dans les Paramètres du service
   (machincast.interface.input_feeds). Une entrée retirée de ces paramètres garde son feed, et la fiche le signale.
 - Les streams qui le suivent sont montrés ; ouvrir l'un d'eux ouvre sa fiche. Un feed qu'un stream suit ne se
@@ -25,6 +26,7 @@ from datetime import timedelta
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QListWidgetItem, QWidget
 
+from machincast.audio import INPUT_ADDRESS, input_device
 from machincast.clock import Clock
 from machincast.conformation import conform
 from machincast.i18n import _
@@ -39,6 +41,9 @@ SOUND = Qt.ItemDataRole.UserRole
 """Rôle qui porte l'identifiant d'un stream, dans la liste des streams."""
 INPUT_CAPTION = _("Audio input:")
 NAMED_IN_SETTINGS = _("The name of an audio input changes in File → Broadcast service settings…, Audio page.")
+RESERVED_ADDRESS = _(
+	"An address starting with “{prefix}” is reserved for the audio inputs of the broadcast service settings."
+)
 RETIRED = _("Audio input removed from the broadcast service settings: its streams no longer play anything.")
 
 
@@ -77,7 +82,7 @@ class FeedCard(Card):
 		self.trial.halt()
 
 	def _read(self) -> None:
-		marks: tuple[object, ...] = ("", "", timedelta(seconds=DEFAULT_BUFFER), None)
+		marks: tuple[object, ...] = ("", "", timedelta(seconds=DEFAULT_BUFFER))
 		streams: list[tuple[object, ...]] = []
 		with self.connection.transaction():
 			if self.identifier is not None:
@@ -85,11 +90,9 @@ class FeedCard(Card):
 				assert line is not None, f"feed {self.identifier} absent"
 				marks = line
 				streams = queries.streams(self.connection, self.identifier, str(marks[1]))
-		name, url, buffer, device = marks
+		name, url, buffer = marks
 		self._name = str(name)
-		self.device = None
-		if device is not None:
-			self.device = str(device)
+		self.device = input_device(url)
 		self.ui.name.setText(self._name)
 		self.ui.url.setText((self.device) or (str(url)))
 		self._show_kind()
@@ -145,6 +148,8 @@ class FeedCard(Card):
 			raise Refusal(_("Another feed is already called “{name}”.").format(name=name), self.ui.name)
 		if url == "":
 			raise Refusal(_("The address is required."), self.ui.url)
+		if input_device(url) is not None:
+			raise Refusal(RESERVED_ADDRESS.format(prefix=INPUT_ADDRESS), self.ui.url)
 		buffer = timedelta(seconds=self.ui.buffer.value())
 		if self.identifier is None:
 			return queries.insert(self.connection, name, url, buffer)

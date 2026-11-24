@@ -58,9 +58,9 @@ CAPTURES: dict[AudioOutput, Plugin] = {
 """La source qui capte une entrée audio, selon la sortie (https://github.com/dascritch/machincast/issues/623) ; la
 sortie factice capte un son de test, sans carte son."""
 INPUT_ADDRESS = "input:"
-"""Le début de l'adresse que jouent les streams d'un feed d'entrée audio, suivi de son périphérique
-(https://github.com/dascritch/machincast/issues/623) : les requêtes la composent ainsi, COALESCE(m.url, 'input:' ||
-m.device)."""
+"""Le début de l'adresse d'un feed d'entrée audio, feeds.url, suivi de son périphérique
+(https://github.com/dascritch/machincast/issues/623) : ses streams se jouent en captant l'entrée. Seuls les Paramètres
+du service donnent une telle adresse ; la fiche d'un feed la refuse."""
 
 
 def input_device(address: object) -> str | None:

@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from PySide6.QtWidgets import QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
+from pytestqt.qtbot import QtBot
 
 from machincast import audio, service
 from machincast.clock import FixedClock
@@ -27,7 +28,7 @@ from machincast.player import queries as player_queries
 from machincast.player.engine import AudioEngine, PlaybackTrack, Track
 from machincast.player.simulation import SimulatedEngine, SimulatedTrack
 from tests.database_fixtures import configuration_test
-from tests.interface_steps import Connection, Context, window
+from tests.interface_steps import Connection, Context, type_, window
 
 scenarios("audio_input_feeds.feature")
 
@@ -66,7 +67,7 @@ def service_not_installed(monkeypatch: pytest.MonkeyPatch) -> None:
 @given(parsers.parse("le feed d'entrée « {name} » sur « {device} », suivi de son stream"))
 def input_feed(empty_database: Connection, name: str, device: str) -> None:
 	created = empty_database.execute(
-		"INSERT INTO feeds (name, device) VALUES (%s, %s) RETURNING id", (name, device)
+		"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id", (name, f"input:{device}")
 	).fetchone()
 	assert created is not None
 	empty_database.execute(
@@ -93,6 +94,16 @@ def save_in_window(interface: Context, monkeypatch: pytest.MonkeyPatch, name: st
 
 	monkeypatch.setattr(dialogs, "set_preferences", answered)
 	window(interface)._preferences(SERVICE)
+
+
+@when(parsers.re(r"je saisis (?:le nom|(?P<address>l'adresse)) du feed « (?P<text>[^»]*) »"))
+def enter(interface: Context, qtbot: QtBot, address: str | None, text: str) -> None:
+	opened = window(interface).ui.tabs.currentWidget()
+	assert isinstance(opened, FeedCard), opened
+	field = opened.ui.name
+	if address is not None:
+		field = opened.ui.url
+	type_(qtbot, field, text)
 
 
 @when(parsers.parse("les Paramètres du service ont l'entrée « {name} » sur « {device} »"))
@@ -133,13 +144,13 @@ def simulate(playing: Playing, address: str) -> None:
 
 @then(parsers.parse("le feed « {name} » est en base, sur l'entrée « {device} »"))
 def feed_in_database(empty_database: Connection, name: str, device: str) -> None:
-	found = empty_database.execute("SELECT url, device FROM feeds WHERE name = %s", (name,)).fetchall()
-	assert found == [(None, device)], found
+	found = empty_database.execute("SELECT url FROM feeds WHERE name = %s", (name,)).fetchall()
+	assert found == [(f"input:{device}",)], found
 
 
 @then(parsers.parse("aucun feed n'est sur l'entrée « {device} »"))
 def no_feed(empty_database: Connection, device: str) -> None:
-	assert empty_database.execute("SELECT id FROM feeds WHERE device = %s", (device,)).fetchall() == []
+	assert empty_database.execute("SELECT id FROM feeds WHERE url = %s", (f"input:{device}",)).fetchall() == []
 
 
 @then(parsers.parse("la barre d'état dit, entre autres, « {text} »"))

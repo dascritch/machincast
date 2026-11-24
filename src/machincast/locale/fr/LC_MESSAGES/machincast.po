@@ -4046,6 +4046,15 @@ msgstr ""
 "page Audio."
 
 #: machincast/interface/feed_card.py
+#, python-brace-format
+msgid ""
+"An address starting with “{prefix}” is reserved for the audio inputs of the "
+"broadcast service settings."
+msgstr ""
+"Une adresse commençant par « {prefix} » est réservée aux entrées audio des "
+"paramètres du service."
+
+#: machincast/interface/feed_card.py
 msgid ""
 "Audio input removed from the broadcast service settings: its streams no "
 "longer play anything."

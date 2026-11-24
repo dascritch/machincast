@@ -16,7 +16,7 @@ RELATION_LISTS = {
 
 def feeds(connection: Connection) -> list[TupleRow]:
 	"""Les feeds, par nom : identifiant, nom, adresse."""
-	return connection.execute("SELECT id, name, COALESCE(url, 'input:' || device) FROM feeds ORDER BY name").fetchall()
+	return connection.execute("SELECT id, name, url FROM feeds ORDER BY name").fetchall()
 
 
 def fallback_events(connection: Connection) -> list[TupleRow]:
@@ -28,7 +28,7 @@ def fallback_events(connection: Connection) -> list[TupleRow]:
 
 def read_sound(connection: Connection, sound: int) -> TupleRow | None:
 	return connection.execute(
-		"SELECT s.type::text, s.location, s.stream_url, s.feed_id, COALESCE(m.url, 'input:' || m.device), s.fallback_event_id,"
+		"SELECT s.type::text, s.location, s.stream_url, s.feed_id, m.url, s.fallback_event_id,"
 		" s.artist, s.title, s.music_metadata, s.crossfade_start, s.crossfade_end, s.max_plays,"
 		" s.state::text, s.hide_metadata, s.duration, s.broadcast_start, s.broadcast_end, s.edited_fields,"
 		" s.mime_type, s.checked_at, s.silence_detection, s.detected_start, s.detected_end,"
@@ -169,7 +169,7 @@ def plan_row(connection: Connection, bank: int | None, sound: int) -> TupleRow |
 def preview_row(connection: Connection, sound: int) -> TupleRow | None:
 	"""Ce que la pré-écoute sait du sonore ; None s'il est absent."""
 	return connection.execute(
-		"SELECT s.type::text, s.location, coalesce(s.stream_url, COALESCE(m.url, 'input:' || m.device)), s.artist, s.title,"
+		"SELECT s.type::text, s.location, coalesce(s.stream_url, m.url), s.artist, s.title,"
 		" extract(epoch FROM s.duration), s.duration, s.detected_start, s.detected_end, s.silence_detection,"
 		" s.crossfade_start, s.crossfade_end, s.audited_at IS NOT NULL"
 		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",

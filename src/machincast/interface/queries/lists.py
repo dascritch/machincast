@@ -23,12 +23,12 @@ EVENT_CALLS_STREAM = (
 """L'événement e fait appel à un stream, directement, par une banque ou par une séquence."""
 SOUND_FIELDS = (
 	"s.id, s.artist, s.title, s.type::text, s.state::text, s.audit_requested, s.duration,"
-	" COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device))"
+	" COALESCE(s.location, s.stream_url, m.url)"
 )
 SOUND_TABLES = "FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.deleted_at IS NULL"
 SOUND_ORDER = "s.artist NULLS LAST, s.title, s.id"
 """L'ordre de la base, avant tout clic sur un titre de colonne."""
-SOUND_LOCATION = "COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device))"
+SOUND_LOCATION = "COALESCE(s.location, s.stream_url, m.url)"
 
 
 def streams_called(connection: Connection, sounds: list[int], banks: list[int], sequences: list[int]) -> bool:
@@ -104,7 +104,7 @@ def sequences(connection: Connection) -> list[TupleRow]:
 def feeds(connection: Connection) -> list[TupleRow]:
 	"""Les feeds, par nom, avec le nombre de streams qui suivent chacun."""
 	return connection.execute(
-		"SELECT m.id, m.name, COALESCE(m.url, 'input:' || m.device),"
+		"SELECT m.id, m.name, m.url,"
 		" (SELECT count(*) FROM sounds s WHERE s.feed_id = m.id AND s.deleted_at IS NULL)"
 		" FROM feeds m ORDER BY m.name, m.id"
 	).fetchall()
