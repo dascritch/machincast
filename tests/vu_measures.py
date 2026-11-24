@@ -8,7 +8,7 @@ Sur le poste, avec sa configuration, ce script ouvre le moniteur de l'antenne de
 	python -m tests.vu_measures                         # la configuration de machincast.toml
 	python -m tests.vu_measures --config <fichier> --ecoutes 3 --duree 5
 	python -m tests.vu_measures --temoin                # les mêmes phases, sans aucune écoute : le témoin
-	python -m tests.vu_measures --facon lien            # une seule part de l'écoute : voir plus bas
+	python -m tests.vu_measures --facon mesure          # la seule capture : voir plus bas
 
 Pour chaque phase, il donne :
 
@@ -23,14 +23,13 @@ Pour chaque phase, il donne :
 
 Avec --temoin, les phases d'écoute se passent sans écoute : un rythme qui baisse quand même vient du moniteur seul.
 
-Sous PipeWire, l'écoute de l'antenne fait deux choses ; --facon n'en fait qu'une, pour savoir laquelle fait décrocher
-le port du moniteur :
+Sous PipeWire, l'écoute de l'antenne reliait par pw-link la carte de l'antenne à celle de la pré-écoute, en plus de
+capter son port de monitoring. Sur le poste, la mesure de chaque part l'a montré : le lien seul faisait décrocher le
+lecteur et le port du moniteur (20, 12, 8,8, 6,7, 5,5 relevés par seconde), la capture seule non (20), le relais du
+pipeline non plus (20). L'écoute relaie désormais le son. --facon garde deux parts :
 
-- actuelle : les deux, comme la fenêtre de pré-écoute (par défaut) ;
-- lien : les liens de pw-link des ports de monitoring de l'antenne au périphérique de pré-écoute, seuls ;
-- mesure : une seconde capture du port de monitoring de l'antenne, pour le VU-mètre de la pré-écoute, seule ;
-- relais : sans lien, le pipeline capte le port de monitoring et le joue sur le périphérique de pré-écoute, comme
-  avec le service de diffusion ou PulseAudio.
+- actuelle : l'écoute de la fenêtre de pré-écoute, le relais (par défaut) ;
+- mesure : la seule capture du port de monitoring, pour le VU-mètre de la pré-écoute, jouée nulle part.
 
 La mesure laisse le port ralenti tel quel : le moniteur ne le rouvre pas (monitor.SLOW_REOPENINGS).
 
@@ -54,14 +53,13 @@ Gst.init(None)
 from PySide6.QtCore import QEventLoop, QTimer  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from machincast.audio import PREVIEW, create_output  # noqa: E402
 from machincast.configuration import Audio, load  # noqa: E402
-from machincast.interface import binding, states  # noqa: E402
 from machincast.interface import monitor as monitor_module  # noqa: E402
+from machincast.interface import states  # noqa: E402
 from machincast.interface.monitor import Monitor, monitor_source  # noqa: E402
 from machincast.interface.preview import Player, Source  # noqa: E402
 
-WAYS = ("actuelle", "lien", "mesure", "relais")
+WAYS = ("actuelle", "mesure")
 
 TICK = 50
 """Millisecondes du minuteur de Qt dont le retard est mesuré, comme celui du moniteur."""
@@ -160,17 +158,9 @@ def start_way(audio: Audio, way: str) -> object:
 		player.load(Source("Antenne", "Antenne", True, None, audio))
 		player.read()
 		return player
-	if way == "lien":
-		on_air = audio.monitored_on_air()[1]
-		assert (on_air is not None) and (audio.preview is not None)
-		links = binding.pairs(on_air, audio.preview)
-		binding.link(links)
-		return links
 	output = Gst.ElementFactory.make("fakesink", None)
 	assert output is not None
 	output.set_property("sync", False)
-	if way == "relais":
-		output = create_output(audio.output, audio.preview, presentation=PREVIEW)
 	pipeline = Gst.Pipeline.new(f"ecoute-{way}")
 	chain = [monitor_source(audio)]
 	for factory in ("audioconvert", "audioresample", "level"):
@@ -191,10 +181,8 @@ def stop_way(started: object) -> None:
 	if isinstance(started, Player):
 		started.halt()
 		return
-	if isinstance(started, states.Pilot):
-		started.switch_off()
-		return
-	binding.unbind(started)  # type: ignore[arg-type]
+	assert isinstance(started, states.Pilot)
+	started.switch_off()
 
 
 def listen(audio: Audio, monitor: Counted, listening: int, seconds: float, way: str) -> None:

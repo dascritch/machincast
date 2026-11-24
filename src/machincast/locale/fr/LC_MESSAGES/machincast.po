@@ -2110,27 +2110,6 @@ msgstr "Nouvelle banque, copie de {name}"
 msgid "Another bank is already called “{name}”."
 msgstr "Une autre banque s'appelle déjà « {name} »."
 
-#: machincast/interface/binding.py
-msgid "pw-link not found; install pipewire-bin."
-msgstr "pw-link introuvable ; installer pipewire-bin."
-
-#: machincast/interface/binding.py
-msgid "pw-link does not answer."
-msgstr "pw-link ne répond pas."
-
-#: machincast/interface/binding.py
-#, python-brace-format
-msgid "pw-link {list}: {stderr}"
-msgstr "pw-link {list} : {stderr}"
-
-#: machincast/interface/binding.py
-#, python-brace-format
-msgid ""
-"PipeWire has no monitoring port for {on_air}, or no input for {preview}."
-msgstr ""
-"PipeWire n'a pas de port de monitoring pour {on_air}, ou pas d'entrée pour "
-"{preview}."
-
 #: machincast/interface/broadcast_control.py
 msgid "Without a service: Machin player in a terminal window"
 msgstr "Sans service : Machin player dans une fenêtre de terminal"
