@@ -3,7 +3,7 @@
 from PySide6.QtGui import QAction
 from pytest_bdd import parsers, scenarios, then, when
 
-from tests.interface_steps import Context, named_menu, tab_title, window
+from tests.interface_steps import Context, named_menu, opened_card, tab_title, window
 
 scenarios("movable_tabs.feature")
 
@@ -61,3 +61,9 @@ def close_all_entry(interface: Context, state: str) -> None:
 @when("je ferme tous les onglets fermables par le menu « Onglets »")
 def close_all(interface: Context) -> None:
 	_close_all(interface).trigger()
+
+
+@when(parsers.parse("je renomme la fiche « {name} »"))
+def rename_card(interface: Context, name: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/632 : une fiche modifiée s'enregistre, puis se ferme."""
+	opened_card(interface).ui.internal_name.setText(name)  # type: ignore[attr-defined]

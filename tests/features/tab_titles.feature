@@ -53,6 +53,7 @@ Fonctionnalité: Titres des onglets et menu « Onglets »
 		Alors l'onglet ouvert affiche « Séquence : Une séquence au nom vraiment… »
 
 	Scénario: Un onglet fermé quitte le menu « Onglets »
+		# L'onglet d'où la fiche a été ouverte revient (https://github.com/dascritch/machincast/issues/632).
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de la séquence « Quarante caractères tout pile »
 		Et je ferme l'onglet « Séquence : Quarante caractères tout pile »
@@ -61,6 +62,6 @@ Fonctionnalité: Titres des onglets et menu « Onglets »
 			| Antenne    | Maj+F1    | non    |
 			| Calendrier | Maj+F2    | non    |
 			| Événements | Maj+F3    | non    |
-			| Séquences  | Maj+F4    | non    |
-			| Banques    | Maj+F5    | oui    |
+			| Séquences  | Maj+F4    | oui    |
+			| Banques    | Maj+F5    | non    |
 			| Incidents  | Maj+F6    | non    |

@@ -123,3 +123,38 @@ Fonctionnalité: Onglets déplaçables, ouverts à droite de leur onglet d'origi
 			| reponse    | onglets                                                                                                                  |
 			| Abandonner | « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Incidents »                                     |
 			| Annuler    | « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Banque : Jingles », « Sonores », « Incidents »    |
+
+	# ─── Retour à l'onglet où l'on était (https://github.com/dascritch/machincast/issues/632) ───
+
+	Scénario: Une fiche enregistrée, qui se ferme, ramène à l'onglet d'où elle a été ouverte
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Calendrier »
+		Et j'ouvre la fiche de la séquence « Un »
+		Et je renomme la fiche « Un bis »
+		Et j'enregistre la fiche
+		Alors l'onglet « Séquence : Un bis » est fermé
+		Et l'onglet ouvert est « Séquences »
+
+	Scénario: Fermer l'onglet ouvert ramène à l'onglet ouvert juste avant, même loin de lui
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Incidents »
+		Et j'ouvre l'onglet « Calendrier »
+		Et je choisis « Rechercher… » dans le menu « Affichage »
+		Et je ferme l'onglet « Recherche »
+		Alors l'onglet ouvert est « Calendrier »
+
+	Scénario: Un onglet fermé n'est plus celui où l'on revient : on remonte à celui d'avant
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Incidents »
+		Et je choisis « Rechercher… » dans le menu « Affichage »
+		Et je choisis « Ouvrir l'onglet Sonores » dans le menu « Affichage »
+		Et je ferme l'onglet « Recherche »
+		Et je ferme l'onglet « Sonores »
+		Alors l'onglet ouvert est « Incidents »
+
+	Scénario: Fermer un autre onglet que l'onglet ouvert ne change pas l'onglet ouvert
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de la séquence « Un »
+		Et j'ouvre l'onglet « Banques »
+		Et je ferme l'onglet « Séquence : Un »
+		Alors l'onglet ouvert est « Banques »

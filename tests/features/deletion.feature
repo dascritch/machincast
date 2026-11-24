@@ -328,7 +328,7 @@ Fonctionnalité: Suppression d'un élément, après confirmation qui rappelle o�
 		Quand j'ouvre la fiche du sonore « Isolé »
 		Et le sonore « Isolé » est effacé de la base
 		Et je supprime l'élément de la fiche, en répondant « ❌ Supprimer »
-		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Banques », « Sonores », « Incidents »
+		Alors la fenêtre a les onglets « Antenne », « Calendrier », « Événements », « Séquences », « Sonores », « Banques », « Incidents »
 		Et aucune question n'a été posée
 
 	Scénario: Une base injoignable empêche la suppression, et la fiche le dit
