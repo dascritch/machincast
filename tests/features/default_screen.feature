@@ -857,3 +857,33 @@ Fonctionnalité: Écran par défaut de l'interface
 			| séquence  | Pub         |
 			| banque    | Spots       |
 
+
+	# ─── L'entrée audio du sonore en cours ou du prochain (https://github.com/dascritch/machincast/issues/625) ───
+
+	Scénario: Le stream d'une entrée audio en cours montre le VU-mètre de l'entrée, à la place de la mémoire tampon
+		Étant donné l'onglet Antenne écoute la sortie « dummy », le poste voyant les entrées « alsa_input.usb-studio »
+		Et la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse l'entrée « Studio A » sur « alsa_input.usb-studio » dans « Direct », commencé à 20:00:00
+		Quand l'écran par défaut s'ouvre
+		Alors le sonore en cours est bientôt « Studio A »
+		Et le sonore en cours n'a pas de mémoire tampon
+		Et le VU-mètre de l'entrée du sonore en cours montre bientôt sa modulation, avec l'infobulle « Modulation de l'entrée audio alsa_input.usb-studio »
+		Et le prochain sonore n'a pas de VU-mètre d'entrée
+
+	Scénario: Le prochain sonore d'une entrée audio montre le VU-mètre de l'entrée, sans test du flux
+		Étant donné l'onglet Antenne écoute la sortie « dummy », le poste voyant les entrées « alsa_input.usb-studio »
+		Et la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse le stream « Direct studio » dans « Direct », commencé à 20:00:00, joué depuis 30 secondes
+		Et le prochain sonore est l'entrée « Studio A » sur « alsa_input.usb-studio » dans « Plateau »
+		Quand l'écran par défaut s'ouvre
+		Alors le prochain sonore est bientôt « Studio A »
+		Et le VU-mètre de l'entrée du prochain sonore montre bientôt sa modulation
+		Et le flux du prochain sonore ne se teste pas
+		Et le sonore en cours n'a pas de VU-mètre d'entrée
+
+	Scénario: Une entrée audio introuvable le dit à la place de son VU-mètre
+		Étant donné l'onglet Antenne écoute la sortie « pulseaudio », le poste voyant les entrées « alsa_input.pci.analog »
+		Et la socket d'état du binaire lecture ouverte
+		Et le prochain sonore est l'entrée « Studio mobile » sur « alsa_input.usb-mobile » dans « Plateau »
+		Quand l'écran par défaut s'ouvre
+		Alors à la place du VU-mètre de l'entrée du prochain sonore, l'onglet dit « Introuvable : le poste ne voit pas cette entrée audio. »

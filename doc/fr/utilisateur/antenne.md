@@ -131,6 +131,7 @@ Un **stream** relaie un flux audio par Internet, un direct extérieur par exempl
 - **Reconnexion** : tant que son événement est à l'antenne, la diffusion retente la connexion toutes les 5 secondes, sans rien faire entendre. Dès que le flux revient, le stream reprend l'antenne, et l'incident `reprise du flux` donne la durée de la panne.
 - **Fin de l'événement pendant la panne** : la reconnexion est abandonnée, et la diffusion continue normalement.
 - **Métadonnées** : l'historique note l'artiste et le titre du stream en base, jamais ceux qu'annonce le flux.
+- **Entrée audio** ([#623](https://github.com/dascritch/machincast/issues/623), [#625](https://github.com/dascritch/machincast/issues/625)) : le stream d'une entrée audio joue ce qui arrive sur l'entrée, un studio par exemple, jusqu'à la fin de son événement ; une entrée débranchée est un flux tombé. L'onglet Antenne montre son VU-mètre, en cours ou prochain.
 
 Un **événement de secours** est un événement de priorité `secours` : il n'a ni début, ni fin, ni jours, et ne passe à l'antenne qu'à la place d'un stream tombé, ou à la fin de la liste d'une émission qui y bascule ([Fiche d'un événement](grille.md#fiche-dun-événement), [#350](https://github.com/dascritch/machincast/issues/350)). Chaque stream désigne le sien dans [sa fiche](sonores.md#fiche-dun-sonore) ; l'événement qui joue le stream peut en choisir un autre, **Secours d'un stream tombé**, qui l'emporte.
 

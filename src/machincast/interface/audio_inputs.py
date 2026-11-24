@@ -316,7 +316,8 @@ class AudioInputs(QGroupBox):
 class InputLevel(QWidget):
 	"""Le VU-mètre d'une entrée, ou, à sa place, pourquoi elle ne s'écoute pas : une entrée introuvable."""
 
-	def __init__(self, listening: Audio, device: str, parent: QWidget | None = None) -> None:
+	def __init__(self, listening: Audio | None, device: str, parent: QWidget | None = None) -> None:
+		"""listening : la sortie où s'écoute l'entrée ; None, le VU-mètre est indisponible, comme celui de l'antenne."""
 		super().__init__(parent)
 		self.setObjectName("input_level")
 		self.meter = VuMeter(self)
