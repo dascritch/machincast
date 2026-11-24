@@ -146,9 +146,12 @@ def is_file(connection: Connection, sound: int) -> bool:
 def sounds_to_check(
 	connection: Connection, identifiers: Collection[int] | None, after: int, count: int
 ) -> list[TupleRow]:
-	"""Un lot de sonores à vérifier, d'identifiant plus grand que after : ce qui décide de leur examen."""
+	"""Un lot de sonores à vérifier, d'identifiant plus grand que after : ce qui décide de leur examen. Un fichier sain
+	sans mesure de son niveau compte comme jamais audité : l'audit complet suivant le mesure
+	(https://github.com/dascritch/machincast/issues/646)."""
 	return connection.execute(
-		"SELECT id, location, state::text, file_modified_at, file_size, audit_requested, audited_at,"
+		"SELECT id, location, state::text, file_modified_at, file_size, audit_requested,"
+		" CASE WHEN properties ? 'loudness' OR state IN ('corrupt', 'unsupported', 'missing') THEN audited_at END,"
 		" audit_threshold FROM sounds WHERE type = 'file' AND deleted_at IS NULL"
 		" AND (%s::bigint[] IS NULL OR id = ANY(%s)) AND id > %s ORDER BY id LIMIT %s",
 		(list_or_none(identifiers), list_or_none(identifiers), after, count),

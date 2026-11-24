@@ -130,3 +130,30 @@ Fonctionnalité: Analyse du prochain sonore au dernier moment
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 1 pas d'une seconde
 		Alors le sonore « f2 » a bientôt sa date de vérification complète, et sa date d'audit
+
+	# ─── Tous les sonores à jouer (https://github.com/dascritch/machincast/issues/646) ───
+
+	Scénario: Un sonore audité avant la mesure du niveau est analysé, pour être mesuré
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f1 » a été vérifié en entier
+		Et le sonore « f2 » a été vérifié en entier, avant la mesure du niveau
+		Et une commande d'analyse imitée
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 1 pas d'une seconde
+		Alors l'analyse est demandée bientôt pour le sonore « f2 », en audit complet
+
+	Scénario: Le premier sonore, qui démarre sans avoir été réservé, est analysé aussi
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et le sonore « f2 » a été vérifié en entier
+		Et une commande d'analyse imitée
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 1 pas d'une seconde
+		Alors l'analyse est demandée bientôt pour le sonore « f1 », en audit complet
+
+	Scénario: Les sonores à venir de l'airplay prévisionnel sont analysés aussi, deux à la fois au plus
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 », « f3 », « f4 »
+		Et le sonore « f1 » a été vérifié en entier
+		Et une commande d'analyse imitée, qui dure 3 secondes
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 1 pas d'une seconde
+		Alors les analyses sont demandées bientôt pour les sonores « f2 », « f3 », et pas encore pour « f4 »
