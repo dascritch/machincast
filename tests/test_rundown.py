@@ -9,13 +9,15 @@ import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
+from typing import Any
 
 import psycopg
 import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from machincast import plugins
 from machincast.database import Role, open_connection
-from machincast.player.rundown import Ongoing, Scheduler
+from machincast.player.rundown import BEFORE_CHOICE, INSERTED, OUTSIDE_LIST, Ongoing, Scheduler
 from machincast.player.saving import LEVELS
 from machincast.randomness import create_randomness
 from machincast.shared.no_repeat import ignored_calls
@@ -48,6 +50,8 @@ class Context:
 	log: list[Line] = field(default_factory=list)
 	scheduler: Scheduler | None = None
 	reported_list: list[int] = field(default_factory=list)
+	candidates: list[tuple[str, str, int | None]] = field(default_factory=list)
+	"""Ce que le plugin des scénarios a vu : le candidat, son événement, et ce qu'il a répondu."""
 
 
 @pytest.fixture
@@ -193,7 +197,34 @@ def events(empty_database: Connection, datatable: list[list[str]]) -> None:
 			)
 
 
+@given(
+	parsers.parse("un plugin qui fait passer la banque « {name} » quand elle n'a pas joué depuis {minutes:d} minutes")
+)
+def before_choice(context: Context, empty_database: Connection, name: str, minutes: int) -> None:
+	"""https://github.com/dascritch/machincast/issues/640"""
+	passing = bank(empty_database, name)
+
+	def answer(data: Any) -> int | None:
+		last = data["last_play"]([passing])
+		chosen = None
+		if (last is None) or (data["instant"] - last >= timedelta(minutes=minutes)):
+			chosen = passing
+		candidate = name_of(data["connection"], "sounds", "location", data["sound"])
+		event = name_of(data["connection"], "events", "internal_name", data["event"])
+		context.candidates.append((candidate, event, chosen))
+		return chosen
+
+	plugins.active().points.subscribe("scenario", BEFORE_CHOICE, answer)
+
+
 # ─── Quand ─────────────────────────────────────────────────
+
+
+def _item(identifier: int) -> int | None:
+	"""Un passage inséré, ou le stream d'un feed, n'a pas d'élément de liste."""
+	if identifier in (OUTSIDE_LIST, INSERTED):
+		return None
+	return identifier
 
 
 def unroll(context: Context, database: Connection, playback: Connection, start: datetime, end: datetime) -> None:
@@ -233,7 +264,7 @@ def unroll(context: Context, database: Connection, playback: Connection, start: 
 					choice.sound,
 					choice.bank,
 					choice.occurrence.event.id,
-					choice.item.id,
+					_item(choice.item.id),
 					line_sequence,
 					line_id,
 					event_id,
@@ -363,3 +394,10 @@ def reported_lines(context: Context, lines: str) -> None:
 		if number.strip():
 			expected_lines.append(int(number))
 	assert context.reported_list == expected_lines
+
+
+@then(parsers.parse("le plugin a vu le candidat « {candidate} » avant le premier « {sound_name} », dans « {event} »"))
+def seen(context: Context, candidate: str, sound_name: str, event: str) -> None:
+	assert context.candidates[0][:2] == (candidate, event), context.candidates
+	assert context.candidates[0][2] is not None
+	assert context.log[0].sound == sound_name

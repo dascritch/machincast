@@ -2311,7 +2311,10 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 - Les heures sont en ISO 8601, avec leur décalage ; les durées et positions en secondes.
 - Une fin redonne les données de son début, à l'instant de la fin.
 - Les données d'un point ne sont lues que si un plugin y est abonné.
-- En simulation, aucun point n'est appelé.
+- En simulation, aucun de ces points notifiés n'est appelé.
+- `player.before_choice` ([#640](https://github.com/dascritch/machincast/issues/640), `machincast.player.rundown`) est **demandé** avant chaque sonore choisi dans la liste de l'événement actif, prévision des sonores à venir et simulation comprises, avec l'instant, la connexion, l'événement, sa priorité, le candidat, sa banque, sa séquence, sa durée, et `last_play`, le début du dernier passage d'un ensemble de banques, passages prévus compris.
+	La première banque répondue qui fournit un sonore jouable le fait passer avant le candidat, comme un sonore inséré : la liste n'avance pas, et le candidat est choisi de nouveau au tour suivant.
+	Ni la suite d'une séquence, ni un sonore inséré à la main, ni le stream d'un feed qui coupe l'antenne ne le demandent.
 
 ### 14.7 Les points d'extension de Machin indexer
 

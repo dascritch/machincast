@@ -679,3 +679,54 @@ Fonctionnalité: Déroulé de la liste de lecture et transitions entre événeme
 			| 20:20 | d1     | Magazine  | entier |
 			| 20:30 | d2     | Magazine  | entier |
 			| 20:40 | f      | Continue  | entier |
+
+	# ─── Avant le choix, un plugin ─────────────────────────────
+
+	Scénario: Un plugin fait passer un sonore d'une banque avant le sonore choisi, sans faire avancer la liste
+		https://github.com/dascritch/machincast/issues/640 : le plugin des scénarios fait passer la banque quand elle n'a
+		pas joué depuis 20 minutes, avec le début de son dernier passage que lui donne le point.
+
+		Étant donné une banque séquentielle « Station » contenant « id1 », « id2 »
+		Et les événements :
+			| nom      | priorité               | début | fin | liste                                    |
+			| Continue | background_programming |       |     | sonore « a », sonore « b », sonore « c » |
+		Et un plugin qui fait passer la banque « Station » quand elle n'a pas joué depuis 20 minutes
+		Quand la diffusion se déroule de 20:00 à 21:00
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | id1    | Continue  | entier |
+			| 20:10 | a      | Continue  | entier |
+			| 20:20 | id2    | Continue  | entier |
+			| 20:30 | b      | Continue  | entier |
+			| 20:40 | id1    | Continue  | entier |
+			| 20:50 | c      | Continue  | entier |
+		Et le plugin a vu le candidat « a » avant le premier « id1 », dans « Continue »
+
+	Scénario: La suite d'une séquence ne demande pas le plugin : seul son premier sonore le demande
+		Étant donné une banque séquentielle « Station » contenant « id1 », « id2 »
+		Et une séquence « Pub » jouant sonore « p1 », sonore « p2 »
+		Et les événements :
+			| nom      | priorité               | début | fin | liste                          |
+			| Continue | background_programming |       |     | séquence « Pub », sonore « a » |
+		Et un plugin qui fait passer la banque « Station » quand elle n'a pas joué depuis 20 minutes
+		Quand la diffusion se déroule de 20:00 à 20:50
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | id1    | Continue  | entier |
+			| 20:10 | p1     | Continue  | entier |
+			| 20:20 | p2     | Continue  | entier |
+			| 20:30 | id2    | Continue  | entier |
+			| 20:40 | a      | Continue  | entier |
+
+	Scénario: Une banque sans sonore jouable laisse passer le sonore choisi
+		Étant donné une banque séquentielle « Vide » contenant « v1 »
+		Et le sonore « v1 » est à l'état « disabled »
+		Et les événements :
+			| nom      | priorité               | début | fin | liste                      |
+			| Continue | background_programming |       |     | sonore « a », sonore « b » |
+		Et un plugin qui fait passer la banque « Vide » quand elle n'a pas joué depuis 20 minutes
+		Quand la diffusion se déroule de 20:00 à 20:20
+		Alors la diffusion a été :
+			| heure | sonore | événement | issue  |
+			| 20:00 | a      | Continue  | entier |
+			| 20:10 | b      | Continue  | entier |

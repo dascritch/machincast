@@ -136,7 +136,41 @@ def register(plugin):
 | `player.sound_stop` | il finit | celles de son début, `instant`, `start`, `played`, `end_position`, `cut`, `error` |
 
 Les heures sont en ISO 8601, avec leur décalage ; les durées et les positions dans le fichier en secondes, `None` pour un stream.
-En simulation, aucun point n'est appelé.
+En simulation, aucun de ces points n'est appelé.
+
+## Faire passer un sonore avant le prochain
+
+([#640](https://github.com/dascritch/machincast/issues/640), `machincast.player.rundown`)
+
+Le point du cœur « player.before_choice » est demandé avant chaque sonore choisi dans la liste de l'événement actif, dans Machin player, dans la prévision des sonores à venir comme à l'antenne, et dans la simulation de Machin interface.
+Ni la suite d'une séquence, ni un sonore inséré à la main, ni le stream d'un feed qui coupe l'antenne ne le demandent.
+Ses données :
+
+- `instant`, le début prévu du candidat, et `forecast`, vrai pendant la prévision des sonores à venir ;
+- `connection`, la connexion de la diffusion, dans sa transaction : une lecture d'un plugin se fait dans un `with connection.transaction():`, pour qu'une erreur n'interrompe pas la diffusion ;
+- `event`, l'identifiant de l'événement actif, et `priority`, sa priorité ;
+- `sound`, le candidat, `bank`, la banque qui l'a fourni (ou `None`), `sequence`, sa séquence (ou `None`), et `duration`, sa durée (`timedelta`, ou `None`) ;
+- `last_play(banks)`, le début du dernier passage fourni par l'une de ces banques, passages prévus compris, ou `None`.
+
+Le plugin répond l'identifiant d'une banque : l'un de ses sonores jouables passe avant le candidat, comme un sonore inséré, sans faire avancer la liste ; le candidat est choisi de nouveau au tour suivant.
+`None`, ou une banque sans sonore jouable, laisse passer le candidat ; la première banque qui fournit un sonore l'emporte.
+
+```python
+STATION = 12
+"""L'identifiant de la banque des station ID."""
+
+
+def avant(data):
+	dernier_passage = data["last_play"]
+	dernier = dernier_passage((STATION,))
+	if (dernier is None) or (data["instant"] - dernier > timedelta(minutes=15)):
+		return STATION
+	return None
+
+
+def register(plugin):
+	plugin.on("player.before_choice", avant)
+```
 
 ## Être prévenu de ce que trouve Machin indexer
 
