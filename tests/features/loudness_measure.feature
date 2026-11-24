@@ -56,3 +56,14 @@ Fonctionnalité: La mesure du niveau d'un sonore à l'audit complet : crête abs
 		Et ses propriétés {"loudness": {"integrated": -14.2, "peak": -0.5}}
 		Quand l'indexeur fait une indexation rapide
 		Alors ses propriétés sont {"loudness": {"integrated": -14.2, "peak": -0.5}}
+
+	Scénario: Un sonore audité avant la mesure du niveau est réaudité par l'audit complet suivant, pour être mesuré
+		https://github.com/dascritch/machincast/issues/646 : sinon, l'audit complet le saute, son fichier inchangé.
+
+		Étant donné un fichier wav de 20 secondes, sinusoïde de 1 kHz à -23 dBFS, stéréo, à 48000 Hz
+		Et un sonore à l'état « active » pour ce fichier
+		Quand l'indexeur fait un audit complet
+		Et la mesure de son niveau est effacée, comme pour un audit d'avant elle
+		Et l'indexeur fait un audit complet
+		Alors ses propriétés sont {"loudness": {"integrated": -23.0, "peak": -23.0}}
+		Et le bilan ne le compte pas parmi les sonores déjà audités

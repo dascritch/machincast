@@ -698,11 +698,11 @@ Base injoignable, perdue, ou sortie audio impossible à créer : code de sortie 
 	Seul le sonore en cours compte : ni un sonore qui s'éteint, ni la simulation, qui n'a pas de son.
 	À ne pas confondre avec un silence, au début ou à la fin d'un fichier, ni avec l'alerte `blanc`, rien à diffuser.
 - S'il n'a aucun élément à lire dans le fil musical, il laisse un blanc et lève une alerte dans le log.
-- Analyse au dernier moment ([#181](https://github.com/dascritch/machincast/issues/181), `machincast.player.analysis`) : au début de chaque sonore, quand il réserve le suivant, le binaire regarde si ce prochain sonore est un fichier sans audit complet depuis la dernière modification de son fichier ([#401](https://github.com/dascritch/machincast/issues/401), `machincast.fingerprint.audited_since_modification`) : pas de date d'audit (`audited_at` vide, même vérifié par une indexation rapide), une date d'audit plus ancienne que la date de modification du fichier, ou un fichier changé depuis (date de modification ou taille).
+- Analyse au dernier moment ([#181](https://github.com/dascritch/machincast/issues/181), `machincast.player.analysis`) : au début de chaque sonore, quand il réserve le suivant et prévoit les sonores à venir, le binaire regarde si le prochain sonore, puis chacun des sonores à venir, et le sonore qui démarre sans avoir été réservé (le premier, ou après une coupure), est un fichier sans audit complet depuis la dernière modification de son fichier ([#401](https://github.com/dascritch/machincast/issues/401), [#646](https://github.com/dascritch/machincast/issues/646), `machincast.fingerprint.audited_since_modification`) : pas de date d'audit (`audited_at` vide, même vérifié par une indexation rapide), une date d'audit plus ancienne que la date de modification du fichier, un fichier changé depuis (date de modification ou taille), ou un fichier sain sans mesure de son niveau (`properties` → `loudness`, [#642](https://github.com/dascritch/machincast/issues/642)).
 	Si c'est le cas, il lance `Machin_indexer --full-audit --sound N`, par son propre Python et avec sa configuration, dans un processus détaché de sa session, sans fenêtre, et ne l'attend jamais : un indexeur qui plante, ou pas encore fini, ne retarde ni ne bloque la lecture.
 	Il le consigne (`info`, `analyse du prochain sonore`) ; une commande qui ne peut pas être lancée donne l'alerte `analyse impossible`.
 	Cet audit ne prend aucun verrou : il se fait même pendant une indexation rapide ou un audit complet de toute la base ([§ 6](#6-binaire-indexation)).
-	Un même sonore n'est pas redemandé avant une heure.
+	Un même sonore n'est pas redemandé avant une heure ; deux analyses tournent à la fois, au plus : un sonore de plus est redemandé au début du sonore suivant.
 	Un stream n'est jamais analysé.
 	La simulation ne lance aucune analyse.
 
@@ -936,6 +936,7 @@ Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 	Une sinusoïde de 1 kHz à −23 dBFS sur les deux canaux d'un stéréo, ou à −20 dBFS en mono, fait −23 LUFS (EBU Tech 3341).
 	Un fichier sain audité les range dans `properties` → `loudness`, au dixième près, sans toucher aux autres clés ; `integrated` est `null` pour un son plus court qu'un bloc ou qui n'atteint jamais la porte absolue, `peak` pour un silence numérique.
 	Un fichier défectueux, ou décodé par l'indexation rapide, garde sa mesure.
+	Un fichier sain audité sans mesure, par une version d'avant elle, compte comme jamais audité : l'audit complet suivant le décode et le mesure, son fichier inchangé ([#646](https://github.com/dascritch/machincast/issues/646)).
 - Fichier illisible ou endommagé : signalé sur STDERR, sonore `preview` ou `active` passé `corrupt`.
 - Fichier introuvable (supprimé ou déplacé) : signalé sur STDERR, sonore `preview`, `active` ou `corrupt` passé `missing`.
 	Un fichier déplacé sera réindexé comme nouveau sonore ; un fichier revenu sain rend son sonore `missing` actif, endommagé, `corrupt`.

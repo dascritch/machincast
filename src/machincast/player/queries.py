@@ -20,9 +20,12 @@ Connection = psycopg.Connection[TupleRow]
 
 
 def file_audit(connection: Connection, sound: int) -> TupleRow | None:
-	"""L'emplacement d'un sonore, son dernier audit complet, et la date et la taille de son fichier en base."""
+	"""L'emplacement d'un sonore, son dernier audit complet, et la date et la taille de son fichier en base. Un fichier
+	sain sans mesure de son niveau compte comme jamais audité (https://github.com/dascritch/machincast/issues/646)."""
 	return connection.execute(
-		"SELECT location, audited_at, file_modified_at, file_size FROM sounds WHERE id = %s", (sound,)
+		"SELECT location, CASE WHEN properties ? 'loudness' OR state IN ('corrupt', 'unsupported', 'missing')"
+		" THEN audited_at END, file_modified_at, file_size FROM sounds WHERE id = %s",
+		(sound,),
 	).fetchone()
 
 

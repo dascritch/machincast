@@ -60,7 +60,19 @@ def calls(log: Path) -> list[list[str]]:
 
 @given(parsers.parse("le sonore « {name} » a été vérifié en entier"))
 def checks(empty_database: Connection, name: str) -> None:
-	"""Un audit complet, après la dernière modification du fichier."""
+	"""Un audit complet, après la dernière modification du fichier, qui a mesuré son niveau
+	(https://github.com/dascritch/machincast/issues/642)."""
+	now = datetime.now(UTC)
+	empty_database.execute(
+		"UPDATE sounds SET checked_at = %s, audited_at = %s, audit_threshold = %s, properties = properties"
+		' || \'{"loudness": {"integrated": -20.0, "peak": -1.0}}\'::jsonb WHERE id = %s',
+		(now, now, SILENCE_THRESHOLD, sound(empty_database, name)),
+	)
+
+
+@given(parsers.parse("le sonore « {name} » a été vérifié en entier, avant la mesure du niveau"))
+def checks_unmeasured(empty_database: Connection, name: str) -> None:
+	"""Un audit complet d'avant la mesure du niveau (https://github.com/dascritch/machincast/issues/646)."""
 	now = datetime.now(UTC)
 	empty_database.execute(
 		"UPDATE sounds SET checked_at = %s, audited_at = %s, audit_threshold = %s WHERE id = %s",
@@ -106,6 +118,15 @@ def fake(bench: Bench, tmp_path: Path) -> Path:
 	return log
 
 
+@given(parsers.parse("une commande d'analyse imitée, qui dure {seconds:d} secondes"), target_fixture="analysis_log")
+def slow(bench: Bench, tmp_path: Path, seconds: int) -> Path:
+	"""Comme la commande imitée, qui note ses arguments, puis tourne encore : deux analyses à la fois, au plus."""
+	log = fake(bench, tmp_path)
+	script = tmp_path / "Machin_indexer"
+	script.write_text(IMITATION.replace("{journal}", str(log)) + f"sleep {seconds}\n", encoding="utf-8")
+	return log
+
+
 @given("une commande d'analyse introuvable")
 def not_found(bench: Bench, tmp_path: Path) -> None:
 	bench.analyser = Analyser([str(tmp_path / "absent" / "Machin_indexer"), "--sound"])
@@ -145,6 +166,22 @@ def requested(empty_database: Connection, analysis_log: Path, name: str) -> None
 	expected = ["--full-audit", "--sound", str(sound(empty_database, name))]
 	assert wait(lambda: calls(analysis_log) != []), "aucune analyse lancée"
 	assert calls(analysis_log) == [expected]
+
+
+@then(
+	parsers.re(
+		r"les analyses sont demandées bientôt pour les sonores « (?P<first>[^»]+) », « (?P<second>[^»]+) »,"
+		r" et pas encore pour « (?P<third>[^»]+) »"
+	)
+)
+def requested_two(empty_database: Connection, analysis_log: Path, first: str, second: str, third: str) -> None:
+	expected = []
+	for name in (first, second):
+		expected.append(["--full-audit", "--sound", str(sound(empty_database, name))])
+	assert wait(lambda: len(calls(analysis_log)) >= 2), calls(analysis_log)
+	assert sorted(calls(analysis_log)) == sorted(expected)
+	unexpected = ["--full-audit", "--sound", str(sound(empty_database, third))]
+	assert unexpected not in calls(analysis_log)
 
 
 @then("aucune analyse n'a été demandée")

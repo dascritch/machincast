@@ -14,7 +14,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.indexer.decoding import Check, check_file
-from tests.indexing_steps import Connection
+from tests.indexing_steps import Connection, Execution
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
@@ -105,6 +105,11 @@ def audited(file: Path) -> Check:
 	return check_file(file, silence_threshold=-60.0)
 
 
+@when("la mesure de son niveau est effacée, comme pour un audit d'avant elle")
+def unmeasured(empty_database: Connection, sound: int) -> None:
+	empty_database.execute("UPDATE sounds SET properties = properties - 'loudness' WHERE id = %s", (sound,))
+
+
 # ─── Alors ─────────────────────────────────────────────────
 
 
@@ -145,3 +150,8 @@ def stored(empty_database: Connection, sound: int, expected: str) -> None:
 	line = empty_database.execute("SELECT properties FROM sounds WHERE id = %s", (sound,)).fetchone()
 	assert line is not None
 	assert line[0] == json.loads(expected)
+
+
+@then("le bilan ne le compte pas parmi les sonores déjà audités")
+def not_skipped(execution: Execution, sound: int) -> None:
+	assert sound not in execution.report.already_audited
