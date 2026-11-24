@@ -39,6 +39,7 @@ from machincast.clock import FixedClock
 from machincast.database import Role, open_connection
 from machincast.interface.event_card import EventCard
 from machincast.player.rundown import INSERTED, OUTSIDE_LIST, Scheduler
+from machincast.player.simulation import simulate
 from machincast.randomness import create_randomness
 
 scenarios(str(PLUGIN / "tests" / "features" / "timely_station_id.feature"))
@@ -245,6 +246,23 @@ def unroll(context: Context, empty_database: Connection, minutes: int) -> None:
 			instant += line[1]
 
 
+@when(parsers.parse("Machin player simule la diffusion pendant {minutes:d} minutes"))
+def simulated(context: Context, empty_database: Connection, tmp_path: Path, minutes: int) -> None:
+	"""Comme Machin player --simulation, que lance l'onglet « Simulation » de Machin interface. Ses fichiers sont dans le
+	répertoire du scénario, vides : la simulation ne demande que leur présence."""
+	sounds = tmp_path / "sons"
+	sounds.mkdir()
+	for identifier, location in empty_database.execute("SELECT id, location FROM sounds").fetchall():
+		file = sounds / Path(str(location)).name
+		file.touch()
+		empty_database.execute("UPDATE sounds SET location = %s WHERE id = %s", (str(file), identifier))
+	with open_connection(*sample_database_parameters(), Role.PLAYBACK) as playback:
+		result = simulate(playback, tmp_path / "simulation", START, START + timedelta(minutes=minutes), seed=0)
+	assert result.plays != [], result.log
+	for line in result.plays:
+		context.played.append(Path(str(line.location)).stem)
+
+
 @when(parsers.parse("le plugin du station ID régulier s'enregistre dans « {executable} »"))
 def register(context: Context, executable: str) -> None:
 	machincast_timely_station_id.register(_Plugin(executable, context.settings, context.points))  # type: ignore[arg-type]
@@ -350,6 +368,11 @@ def refused(written: str, reason: str) -> None:
 	if written == "watched « Saison » sans liste":
 		section["watched"] = "Saison"
 	assert read_settings(section) == reason
+
+
+@then(parsers.parse("la simulation a joué {plays}"))
+def simulation_played(context: Context, plays: str) -> None:
+	assert context.played == NAME.findall(plays)
 
 
 @then(parsers.parse("la diffusion a été {plays}"))

@@ -5,7 +5,7 @@ https://github.com/dascritch/machincast/issues/587).
 La banque des station ID, choisie parmi les banques non supprimées ; les autres identifiants de la station, cochés ; l'écart minimal
 et maximal entre deux station ID, en minutes ; le placement. « Enregistrer » vérifie les réglages, puis les écrit dans
 la section [plugins.timely_station_id] du fichier de configuration, qui garde ses commentaires et ses autres sections :
-la simulation et la fiche d'un événement les prennent aussitôt, Machin player à son prochain démarrage.
+la prochaine simulation et la fiche d'un événement les prennent aussitôt, Machin player à son prochain démarrage.
 """
 
 from collections.abc import Callable

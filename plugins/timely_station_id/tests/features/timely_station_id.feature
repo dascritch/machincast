@@ -65,6 +65,13 @@ Fonctionnalité: Le station ID régulier : un station ID environ tous les quarts
 		Quand la diffusion se déroule pendant 31 minutes
 		Alors la diffusion a été « 0 id1 », « 1 a », « 6 noël », « 7 b », « 14 c », « 18 id2 », « 19 d »
 
+	Scénario: La simulation, que lance l'onglet « Simulation », insère aussi les station ID
+		Étant donné les réglages : minimum 12, maximum 18, placement « before »
+		Et le fil musical « Continue », coché, jouant « a », « b », « c », « d », « e »
+		Et le plugin du station ID régulier, chargé dans « Machin_player »
+		Quand Machin player simule la diffusion pendant 36 minutes
+		Alors la simulation a joué « id1 », « a », « b », « c », « id2 », « d », « e », « id1 », « a »
+
 	Scénario: Un événement qui n'est pas coché n'a aucun station ID inséré
 		Étant donné les réglages : minimum 12, maximum 18, placement « before »
 		Et le fil musical « Continue », pas coché, jouant « a », « b », « c »
@@ -90,7 +97,7 @@ Fonctionnalité: Le station ID régulier : un station ID environ tous les quarts
 		Exemples:
 			| binaire          | points                                                                       |
 			| Machin_player    | « player.before_choice »                                                     |
-			| Machin_interface | « player.before_choice », « interface.event_card », « interface.plugin_window » |
+			| Machin_interface | « interface.event_card », « interface.plugin_window »                          |
 
 	Scénario: Des réglages refusés sont consignés, et Machin player n'insère aucun station ID
 		Étant donné les réglages : minimum 20, maximum 15, placement « before »
