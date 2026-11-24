@@ -7,5 +7,6 @@ How to write one: [doc/fr/developpement/plugins.md](../doc/fr/developpement/plug
 ## Plugins
 
 - [alternation](alternation/README.md): the shows in alternation, which share the same slot, one per week of the month ([#609](https://github.com/dascritch/machincast/issues/609)).
+- [bank_as_an_emoji](bank_as_an_emoji/README.md): an emoji at the start of the internal name of a bank, chosen in its card ([#505](https://github.com/dascritch/machincast/issues/505)).
 - [cartwall](cartwall/README.md): the cartwall, touch buttons in Machin intranet that act on the antenna ([#512](https://github.com/dascritch/machincast/issues/512)).
 - [color_the_shows](color_the_shows/README.md): the colours of the shows by genre, or by priority, in the calendars and the airplay tables ([#628](https://github.com/dascritch/machincast/issues/628)).
