@@ -44,11 +44,16 @@ class DisplayedPlay:
 
 
 def read_airplay(
-	connection: psycopg.Connection[TupleRow], since: datetime | None = None, count: int | None = None
+	connection: psycopg.Connection[TupleRow],
+	since: datetime | None = None,
+	count: int | None = None,
+	until: datetime | None = None,
 ) -> list[DisplayedPlay]:
-	"""Passages commencés depuis cet instant, ou les derniers, du plus récent au plus ancien ; nombre au plus."""
+	"""Passages commencés depuis cet instant, et jusqu'à until s'il est donné
+	(https://github.com/dascritch/machincast/issues/629), ou les derniers, du plus récent au plus ancien ; nombre au
+	plus."""
 	with connection.transaction():
-		lines = queries.plays(connection, since, count)
+		lines = queries.plays(connection, since, count, until)
 	plays = []
 
 	def read_line(line: tuple[object, ...]) -> None:

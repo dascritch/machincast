@@ -8,8 +8,10 @@ from psycopg.rows import TupleRow
 Connection = psycopg.Connection[TupleRow]
 
 
-def plays(connection: Connection, since: datetime | None, count: int | None) -> list[TupleRow]:
-	"""Les passages commencés depuis cet instant, ou les derniers, du plus récent au plus ancien, count au plus, avec
+def plays(
+	connection: Connection, since: datetime | None, count: int | None, until: datetime | None = None
+) -> list[TupleRow]:
+	"""Les passages commencés depuis cet instant, et jusqu'à until s'il est donné, ou les derniers, du plus récent au plus ancien, count au plus, avec
 	leur événement, celui qui leur prête son nom s'il y en a un, leur séquence et leur banque."""
 	return connection.execute(
 		"SELECT d.logged_at, f.logged_at, f.played_duration, f.without_incident, d.artist, d.title,"
@@ -20,6 +22,7 @@ def plays(connection: Connection, since: datetime | None, count: int | None) -> 
 		" LEFT JOIN sequences q ON q.id = d.sequence_id"
 		" LEFT JOIN banks b ON b.id = d.bank_id"
 		" WHERE d.line_type = 'start' AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
+		" AND (%s::timestamptz IS NULL OR d.logged_at <= %s::timestamptz)"
 		" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
-		(since, since, count),
+		(since, since, until, until, count),
 	).fetchall()

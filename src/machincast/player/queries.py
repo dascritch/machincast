@@ -291,6 +291,7 @@ def plays(
 	play: uuid.UUID | None,
 	since: datetime | None,
 	lender: tuple[bool, int | None],
+	until: datetime | None = None,
 ) -> list[TupleRow]:
 	"""Les derniers passages, du plus récent au plus ancien, ou un seul, avec leur événement, leur séquence, leur banque
 	et le masquage de chaque niveau. lender : s'il faut prendre, pour un passage en cours, l'événement qui prête son nom
@@ -309,8 +310,9 @@ def plays(
 		" LEFT JOIN sounds s ON s.id = d.sound_id"
 		" WHERE d.line_type = 'start' AND (%s::uuid IS NULL OR d.play_id = %s::uuid)"
 		" AND (%s::timestamptz IS NULL OR d.logged_at >= %s::timestamptz)"
+		" AND (%s::timestamptz IS NULL OR d.logged_at <= %s::timestamptz)"
 		" ORDER BY d.logged_at DESC, d.id DESC LIMIT %s",
-		(override, event, play, play, since, since, count),
+		(override, event, play, play, since, since, until, until, count),
 	).fetchall()
 
 

@@ -859,18 +859,23 @@ def _show_location(field: QLineEdit, sound: DisplayedSound | None) -> None:
 	field.setToolTip((location) or (""))
 
 
-def play_cells(play: DisplayedPlay) -> list[str]:
-	"""Les cellules du tableau des passages : début, fin, durée, artiste, titre, événement, séquence, banque, emplacement et incident."""
+def play_cells(play: DisplayedPlay, *, dated: bool = False) -> list[str]:
+	"""Les cellules du tableau des passages : début, fin, durée, artiste, titre, événement, séquence, banque, emplacement et incident.
+	dated : le début et la fin en ISO 8601, date et heure, pour les archives de l'onglet Airplay
+	(https://github.com/dascritch/machincast/issues/629)."""
+	shown = display.hour
+	if dated:
+		shown = display.iso_moment
 	end = _("ongoing")
 	duration = ""
 	if play.end is not None:
-		end = display.hour(play.end)
+		end = shown(play.end)
 		duration = display.duration(play.duration)
 	incident = ""
 	if play.without_incident is False:
 		incident = INCIDENT
 	return [
-		display.hour(play.start),
+		shown(play.start),
 		end,
 		duration,
 		(play.artist) or (""),

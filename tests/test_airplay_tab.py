@@ -10,8 +10,8 @@ from pathlib import Path
 
 import psycopg
 import pytest
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import QDateTime, QPoint, Qt
+from PySide6.QtWidgets import QDateTimeEdit, QWidget
 from pytest_bdd import parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
@@ -284,3 +284,84 @@ def shown_titles(interface: Context, titles: str) -> None:
 @then(parsers.parse("le compte de l'onglet Airplay dit « {text} »"))
 def count_text(interface: Context, text: str) -> None:
 	assert screen(interface).count.text() == text
+
+
+# ─── Archives (https://github.com/dascritch/machincast/issues/629) ───
+
+
+def _moment(text: str) -> QDateTime:
+	return QDateTime.fromString(text, "yyyy-MM-dd'T'HH:mm")
+
+
+def _shown(edit: QDateTimeEdit) -> str:
+	return edit.dateTime().toString("yyyy-MM-dd'T'HH:mm")
+
+
+@when(parsers.re(r"je (?P<gesture>coche|décoche) « Aujourd'hui » dans l'onglet Airplay"))
+def tick_today(interface: Context, gesture: str) -> None:
+	box = screen(interface).today
+	assert box.isChecked() == (gesture == "décoche")
+	box.click()
+
+
+@when(parsers.parse("je règle l'onglet Airplay du « {since} » au « {until} »"))
+def set_moments(interface: Context, since: str, until: str) -> None:
+	opened = screen(interface)
+	opened.since.setDateTime(_moment(since))
+	opened.until.setDateTime(_moment(until))
+
+
+@then("« Aujourd'hui » est coché dans l'onglet Airplay, à gauche du nombre d'heures")
+def today_ticked(interface: Context) -> None:
+	opened = screen(interface)
+	assert opened.today.isChecked()
+	assert opened.today.text().replace("&", "") == "Aujourd'hui"
+	assert opened.today.geometry().right() < opened.hours.geometry().left()
+
+
+@then(
+	parsers.re(
+		r"l'onglet Airplay montre (?P<shown>le nombre d'heures, sans début ni fin|un début et une fin, sans le nombre"
+		r" d'heures)"
+	)
+)
+def shown_selectors(interface: Context, shown: str) -> None:
+	opened = screen(interface)
+	hours = shown.startswith("le nombre")
+	assert opened.hours.isVisibleTo(opened) == hours
+	assert opened.since.isVisibleTo(opened) == (not hours)
+	assert opened.until.isVisibleTo(opened) == (not hours)
+
+
+@then(
+	parsers.re(
+		r"(?P<which>le début|la fin) de l'onglet Airplay va du « (?P<minimum>[^»]+) » au « (?P<maximum>[^»]+) », et"
+		r" vaut « (?P<value>[^»]+) »"
+	)
+)
+def moment_bounds(interface: Context, which: str, minimum: str, maximum: str, value: str) -> None:
+	opened = screen(interface)
+	edit = opened.since
+	if which == "la fin":
+		edit = opened.until
+	found = (
+		edit.minimumDateTime().toString("yyyy-MM-dd'T'HH:mm"),
+		edit.maximumDateTime().toString("yyyy-MM-dd'T'HH:mm"),
+		_shown(edit),
+	)
+	assert found == (minimum, maximum, value), found
+
+
+@then(parsers.parse("la fin de l'onglet Airplay vaut « {value} »"))
+def until_value(interface: Context, value: str) -> None:
+	assert _shown(screen(interface).until) == value
+
+
+@then(parsers.re(r"l'export « (?P<name>[^»]+) » donne les titres (?P<titles>«.+)"))
+def csv_titles(interface: Context, name: str, titles: str) -> None:
+	header, *rows = list(csv.reader(read(interface, name).splitlines(), delimiter=";"))
+	column = header.index("title")
+	found = []
+	for row in rows:
+		found.append(row[column])
+	assert found == re.findall(r"« ([^»]+) »", titles), found

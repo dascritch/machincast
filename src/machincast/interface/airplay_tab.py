@@ -14,6 +14,12 @@ Le nom reçoit l'extension du format s'il ne l'a pas déjà : un export ne rempl
 (https://github.com/dascritch/machincast/issues/96, machincast.protection). La barre d'état de la fenêtre dit où
 l'export est enregistré (annonce).
 
+« Aujourd'hui », à gauche du nombre d'heures, coché au départ, montre les dernières heures ; décoché, il montre à la
+place du nombre d'heures deux moments du passé, un début, pas plus loin que la durée de péremption, au-delà de
+laquelle Machin purge efface l'airplay, et une fin, entre le début et maintenant ; la table et l'export montrent les
+passages commencés entre eux, le début et la fin de chaque passage en ISO 8601, date et heure
+(https://github.com/dascritch/machincast/issues/629).
+
 L'onglet se relit à son ouverture, à chaque réglage, et quand l'onglet Antenne voit un nouveau sonore (actualiser) :
 jamais en boucle.
 
@@ -24,14 +30,17 @@ gardent l'ordre de la base, le plus récent en tête (https://github.com/dascrit
 """
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import cast
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, Qt, Signal
+from PySide6.QtCore import QDate, QDateTime, QModelIndex, Qt, QTime, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
 	QAbstractItemView,
+	QCheckBox,
+	QDateTimeEdit,
 	QHBoxLayout,
 	QLabel,
 	QLineEdit,
@@ -46,7 +55,7 @@ from PySide6.QtWidgets import (
 from machincast.clock import Clock
 from machincast.configuration import Metadata
 from machincast.i18n import _, counted, ngettext
-from machincast.interface import columns, dialogs
+from machincast.interface import columns, dialogs, preferences
 from machincast.interface.airplay import HOURS, DisplayedPlay, read_airplay
 from machincast.interface.columns import Columns
 from machincast.interface.default_screen import (
@@ -71,6 +80,8 @@ HOURS_AT_MOST = 24 * 31
 HOUR_SETTING = "onglet-airplay/heures"
 """Dans les réglages des vues du compte : le nombre d'heures montré."""
 WITHOUT_METADATA = Metadata(hide=False, public_text="")
+MOMENT = "yyyy-MM-dd'T'HH:mm"
+"""L'affichage des deux moments des archives, ISO 8601 (https://github.com/dascritch/machincast/issues/629)."""
 
 
 def retained_hours() -> int:
@@ -126,6 +137,17 @@ class AirplayScreen(QWidget):
 		self.hours.setToolTip(_("The plays started within this number of hours; kept for the next openings"))
 		caption = QLabel(_("&Last hours"), self)
 		caption.setBuddy(self.hours)
+		self.hours_caption = caption
+		self.today = QCheckBox(_("&Today"), self)
+		self.today.setObjectName("today")
+		self.today.setChecked(True)
+		self.today.setToolTip(_("Ticked: the last hours; unticked: the plays started between two moments of the past"))
+		self.since = self._moment("since", _("The plays started from this moment, within the retention period"))
+		self.until = self._moment("until", _("The plays started until this moment, between the start and now"))
+		self.since_caption = QLabel(_("&From"), self)
+		self.since_caption.setBuddy(self.since)
+		self.until_caption = QLabel(_("t&o"), self)
+		self.until_caption.setBuddy(self.until)
 		self.export = QPushButton(_("&Export…"), self)
 		self.export.setToolTip(_("Save what the tab shows, as CSV, HTML or M3U"))
 		self.table = QTableView(self)
@@ -156,8 +178,13 @@ class AirplayScreen(QWidget):
 		self.filter_.setToolTip(_("The plays of which a column contains this text, whatever the case and the accents"))
 		self.count = QLabel(self)
 		top = QHBoxLayout()
+		top.addWidget(self.today)
 		top.addWidget(caption)
 		top.addWidget(self.hours)
+		top.addWidget(self.since_caption)
+		top.addWidget(self.since)
+		top.addWidget(self.until_caption)
+		top.addWidget(self.until)
 		top.addWidget(self.filter_, 1)
 		top.addWidget(self.count)
 		top.addWidget(self.export)
@@ -165,23 +192,68 @@ class AirplayScreen(QWidget):
 		arrangement.addLayout(top)
 		arrangement.addWidget(self.table, 1)
 		self.hours.valueChanged.connect(self._set)
+		self.today.toggled.connect(self._show_period)
+		self.since.dateTimeChanged.connect(self._bound_until)
+		self.until.dateTimeChanged.connect(self.refresh)
+		self._show_period(checked=True)
 		self.filter_.textChanged.connect(self._apply_filter)
 		self.export.clicked.connect(self._export)
 		self.table.activated.connect(self._open_cell)
 		self.columns.line_menu = lambda position: self.line_menu(self.table.indexAt(position))
 		self.refresh()
 
+	def _moment(self, name: str, tooltip: str) -> QDateTimeEdit:
+		field = QDateTimeEdit(self)
+		field.setObjectName(name)
+		field.setDisplayFormat(MOMENT)
+		field.setCalendarPopup(True)
+		field.setToolTip(tooltip)
+		return field
+
+	def _show_period(self, checked: bool) -> None:  # noqa: FBT001  # le booléen du signal
+		"""Coché, le nombre d'heures ; décoché, le début et la fin, d'abord les dernières heures, bornés par la durée de
+		péremption et maintenant (https://github.com/dascritch/machincast/issues/629)."""
+		hours: tuple[QWidget, ...] = (self.hours_caption, self.hours)
+		moments: tuple[QWidget, ...] = (self.since_caption, self.since, self.until_caption, self.until)
+		for widget in hours:
+			widget.setVisible(checked)
+		for widget in moments:
+			widget.setVisible(not checked)
+		if not checked:
+			now = self.clock.now().astimezone().replace(second=0, microsecond=0)
+			for field in (self.since, self.until):
+				field.blockSignals(True)
+			self.since.setDateTimeRange(_qt_moment(now - timedelta(days=preferences.retention())), _qt_moment(now))
+			self.since.setDateTime(_qt_moment(now - timedelta(hours=self.hours.value())))
+			self.until.setDateTimeRange(self.since.dateTime(), _qt_moment(now))
+			self.until.setDateTime(_qt_moment(now))
+			for field in (self.since, self.until):
+				field.blockSignals(False)
+		self.refresh()
+
+	def _bound_until(self) -> None:
+		"""La fin ne précède jamais le début : elle le suit au besoin."""
+		self.until.setMinimumDateTime(self.since.dateTime())
+		self.refresh()
+
+	def period(self) -> tuple[datetime, datetime | None]:
+		"""Le début et la fin des passages montrés : les dernières heures, sans fin, ou les deux moments choisis."""
+		if self.today.isChecked():
+			return self.clock.now() - timedelta(hours=self.hours.value()), None
+		return _python_moment(self.since), _python_moment(self.until)
+
 	def refresh(self) -> None:
 		"""Relit les passages ; une base injoignable laisse la table telle qu'elle était."""
+		since, until = self.period()
 		try:
-			plays = read_airplay(self.connection, self.clock.now() - timedelta(hours=self.hours.value()))
+			plays = read_airplay(self.connection, since, until=until)
 		except psycopg.Error as error:
 			log.error(_("unreadable airplay: {error}").format(error=error))
 			return
 		self.model.setRowCount(0)
 		for play in plays:
 			cells = []
-			for text, key in zip(play_cells(play), _sort_keys(play), strict=True):
+			for text, key in zip(play_cells(play, dated=until is not None), _sort_keys(play), strict=True):
 				cell = QStandardItem(text)
 				cell.setData(key, SORT)
 				cells.append(cell)
@@ -224,7 +296,16 @@ class AirplayScreen(QWidget):
 	def _export(self) -> None:
 		now = self.clock.now()
 		hours = self.hours.value()
+		since, until = self.period()
 		offers = f"airplay-{now.astimezone():%Y-%m-%d-%H%M}-{hours}h.csv"
+		title = _("Airplay of the last {hours} hours, at {now:%d/%m/%Y %H:%M}").format(
+			hours=hours, now=now.astimezone()
+		)
+		if until is not None:
+			offers = f"airplay-{since.astimezone():%Y-%m-%d-%H%M}-{until.astimezone():%Y-%m-%d-%H%M}.csv"
+			title = _("Airplay from {since:%Y-%m-%dT%H:%M} to {until:%Y-%m-%dT%H:%M}").format(
+				since=since.astimezone(), until=until.astimezone()
+			)
 		choice = dialogs.choose_export(self, offers, list(FORMATS), _("Export the airplay"))
 		if choice is None:
 			return
@@ -232,10 +313,7 @@ class AirplayScreen(QWidget):
 		extension = FORMATS[filter_]
 		destination = with_extension(path, extension)
 		try:
-			lines = read_plays(self.connection, None, since=now - timedelta(hours=hours))
-			title = _("Airplay of the last {hours} hours, at {now:%d/%m/%Y %H:%M}").format(
-				hours=hours, now=now.astimezone()
-			)
+			lines = read_plays(self.connection, None, since=since, until=until)
 			contents = {
 				".csv": lambda: in_csv(lines, self.metadata),
 				".html": lambda: in_html(lines, self.metadata, title, now),
@@ -252,3 +330,16 @@ class AirplayScreen(QWidget):
 			self.announces.emit(_("Export impossible: {error}").format(error=error))
 			return
 		self.announces.emit(_("Airplay exported to {destination}.").format(destination=destination))
+
+
+def _qt_moment(moment: datetime) -> QDateTime:
+	return QDateTime(QDate(moment.year, moment.month, moment.day), QTime(moment.hour, moment.minute))
+
+
+def _python_moment(field: QDateTimeEdit) -> datetime:
+	"""Le moment d'un champ, en heure du poste, avec son fuseau ; à la fin de sa minute pour la fin, au début pour le
+	début : un passage commencé à 19:00:30 est dans « jusqu'à 19:00 »."""
+	moment = cast(datetime, field.dateTime().toPython()).astimezone()
+	if field.objectName() == "until":
+		return moment + timedelta(seconds=59)
+	return moment
