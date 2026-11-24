@@ -35,6 +35,12 @@ CORE: dict[str, str] = {
 		"machincast.shared.grid.Substitution, the events that an event plays, off the grid, and the one that plays "
 		"each of its occurrences (https://github.com/dascritch/machincast/issues/608)"
 	),
+	"grid.event_colour": (
+		"asked when a binary colours an event, in the calendar of Machin interface and of Machin intranet and in the "
+		"airplay tables, with “event”, its identifier, or None for the colour of a priority, and “priority”, or None "
+		"when unknown: the plugin answers a colour “#rrggbb”, or None to keep that of MachinCast "
+		"(https://github.com/dascritch/machincast/issues/635)"
+	),
 	"interface.event_card": (
 		"asked by Machin interface when the card of an event opens, with “card”, “connection” and “parent”: the "
 		"plugin answers a machincast.interface.card.CardSection, its section of the card, saved with the event; "

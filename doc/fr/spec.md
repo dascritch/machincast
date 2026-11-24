@@ -2196,6 +2196,7 @@ Il donne aussi les occurrences qu'un événement de priorité plus haute couvre,
 
 - Chaque occurrence a `id`, `name`, `priority`, `start` et `end`, ses heures dessinées, et `on_air`, les moments où elle serait à l'antenne.
 - `covered` : couverte entièrement par d'autres, `on_air` vide ; `skipped` : une session sautée, qui ne joue rien ; `deleted` : d'un événement supprimé ; `defined` : à l'horaire défini, ni un fil musical permanent, ni une occurrence sans fin, ni un secours ([#599](https://github.com/dascritch/machincast/issues/599)).
+- `colour` : la couleur qu'un plugin donne à l'événement ou à sa priorité (`grid.event_colour`, [#635](https://github.com/dascritch/machincast/issues/635)), `#rrggbb`, ou `null` ; la grille la dessine par les attributs de ses blocs.
 - En HTML hCalendar, chaque occurrence est un `vevent` (et `h-event`) : son nom en `summary`, ses heures en `dtstart` et `dtend`, sa priorité en `category`.
 - La page `/calendar` montre une semaine en grille horaire, comme le calendrier de l'interface ([#580](https://github.com/dascritch/machincast/issues/580), `machincast.intranet.hour_grid`) : une colonne par jour, du lundi au dimanche, de 0 h à 24 h, les heures à gauche ; aujourd'hui en gras, l'heure actuelle d'un trait rouge.
   La grille montre 12 heures dans sa hauteur, défile, et s'ouvre à 07:00.

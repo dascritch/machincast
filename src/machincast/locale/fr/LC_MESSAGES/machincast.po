@@ -2446,6 +2446,11 @@ msgstr "Diffusé : {name}"
 
 #: machincast/interface/calendar.py
 #, python-brace-format
+msgid "Show or hide the {plurals}, in {tints}"
+msgstr "Montrer ou cacher les {plurals}, en {tints}"
+
+#: machincast/interface/calendar.py
+#, python-brace-format
 msgid ""
 "{count} sessions of “{name}” skipped, from {day_and_month} to "
 "{day_and_month2}."
@@ -2500,8 +2505,8 @@ msgstr "vue {hours}h"
 
 #: machincast/interface/calendar.py
 #, python-brace-format
-msgid "Show or hide the {plurals}, in {tints}"
-msgstr "Montrer ou cacher les {plurals}, en {tints}"
+msgid "Show or hide the {plurals}"
+msgstr "Montrer ou cacher les {plurals}"
 
 #: machincast/interface/calendar.py
 #, python-brace-format
