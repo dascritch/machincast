@@ -14,4 +14,6 @@ The numbers refer to the picture; **Help → Contextual help**, or <kbd>F1</kbd>
 7. **Cancel** (`cancel`) : goes back to what is in the database; <kbd>Ctrl</kbd>+<kbd>Esc</kbd> cancels and closes the tab.
 8. **Save** (`save`) : saves the card to the database, <kbd>Ctrl</kbd>+<kbd>S</kbd>; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> saves and closes the tab. A green outline marks it while the card has changes to save.
 
+The feed of an **audio input** of the broadcast service settings ([#623](https://github.com/dascritch/machincast/issues/623)) shows the input instead of the address, without buffer or test: its name changes in **File → Broadcast service settings…**, **Audio** page. An input removed from these settings keeps its feed, and the card says so at the top.
+
 To go further: [Feeds](../sonores.md#feeds) and [Streams](../antenne.md#streams).

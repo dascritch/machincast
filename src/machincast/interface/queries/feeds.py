@@ -9,8 +9,8 @@ Connection = psycopg.Connection[TupleRow]
 
 
 def read_feed(connection: Connection, feed: int) -> TupleRow | None:
-	"""Nom, adresse et mémoire tampon du feed ; None s'il est absent."""
-	return connection.execute("SELECT name, url, buffer_duration FROM feeds WHERE id = %s", (feed,)).fetchone()
+	"""Nom, adresse, mémoire tampon et périphérique d'entrée audio du feed ; None s'il est absent."""
+	return connection.execute("SELECT name, url, buffer_duration, device FROM feeds WHERE id = %s", (feed,)).fetchone()
 
 
 def streams(connection: Connection, feed: int, default_title: str) -> list[TupleRow]:
@@ -51,3 +51,28 @@ def active_stream(connection: Connection, feed: int) -> TupleRow | None:
 		" ORDER BY state = 'active' DESC, id LIMIT 1",
 		(feed,),
 	).fetchone()
+
+
+# ─── Les feeds d'entrée audio (https://github.com/dascritch/machincast/issues/623) ───
+
+
+def input_feeds(connection: Connection) -> list[TupleRow]:
+	"""Les feeds d'entrée audio : identifiant, nom et périphérique."""
+	return connection.execute("SELECT id, name, device FROM feeds WHERE device IS NOT NULL ORDER BY id").fetchall()
+
+
+def insert_input(connection: Connection, name: str, device: str) -> int:
+	"""Le feed d'une entrée audio, et un stream actif qui le suit, du nom de l'entrée."""
+	created = connection.execute(
+		"INSERT INTO feeds (name, device) VALUES (%s, %s) RETURNING id", (name, device)
+	).fetchone()
+	assert created is not None
+	feed = int(str(created[0]))
+	connection.execute(
+		"INSERT INTO sounds (type, feed_id, title, state) VALUES ('stream', %s, %s, 'active')", (feed, name)
+	)
+	return feed
+
+
+def rename(connection: Connection, identifier: int, name: str) -> None:
+	connection.execute("UPDATE feeds SET name = %s WHERE id = %s", (name, identifier))

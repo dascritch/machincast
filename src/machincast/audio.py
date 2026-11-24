@@ -49,6 +49,27 @@ PLUGINS: dict[AudioOutput, Plugin] = {
 }
 
 
+CAPTURES: dict[AudioOutput, Plugin] = {
+	"alsa": Plugin("alsasrc", "device", "gstreamer1.0-alsa"),
+	"pulseaudio": Plugin("pulsesrc", "device", "gstreamer1.0-pulseaudio"),
+	"pipewire": Plugin("pipewiresrc", "target-object", "gstreamer1.0-pipewire"),
+	"dummy": Plugin("audiotestsrc", None, "gstreamer1.0-plugins-base"),
+}
+"""La source qui capte une entrée audio, selon la sortie (https://github.com/dascritch/machincast/issues/623) ; la
+sortie factice capte un son de test, sans carte son."""
+INPUT_ADDRESS = "input:"
+"""Le début de l'adresse que jouent les streams d'un feed d'entrée audio, suivi de son périphérique
+(https://github.com/dascritch/machincast/issues/623) : les requêtes la composent ainsi, COALESCE(m.url, 'input:' ||
+m.device)."""
+
+
+def input_device(address: object) -> str | None:
+	"""Le périphérique d'une adresse d'entrée audio ; None pour une autre adresse, ou un fichier."""
+	if (not isinstance(address, str)) or (not address.startswith(INPUT_ADDRESS)):
+		return None
+	return address.removeprefix(INPUT_ADDRESS)
+
+
 APPLIANCE_TYPES: dict[AudioOutput, tuple[str, ...]] = {
 	"pipewire": ("GstPipeWireDevice",),
 	"pulseaudio": ("GstPulseDevice",),
@@ -259,6 +280,8 @@ ON_AIR = Presentation("MachinCast lecteur", _("On air"))
 PREVIEW = Presentation("MachinCast interface", _("Pre-listen"))
 TRIAL = Presentation("MachinCast installation", _("Test sound"))
 MONITORING = Presentation("MachinCast interface", _("On-air monitoring"))
+CAPTURE = Presentation("MachinCast lecteur", _("Audio input"))
+"""Une entrée audio captée pour l'antenne (https://github.com/dascritch/machincast/issues/623)."""
 """L'écoute de l'antenne, pour le vumètre de l'interface (https://github.com/dascritch/machincast/issues/343)."""
 
 
@@ -359,6 +382,29 @@ def create_output(
 		item.set_property(plugin.property_, device)
 	if presentation is not None:
 		present(item, presentation)
+	lock(item)
+	return item
+
+
+def create_capture(output: AudioOutput, device: str, plugins: dict[AudioOutput, Plugin] = CAPTURES) -> Gst.Element:
+	"""Crée la source qui capte l'entrée audio (https://github.com/dascritch/machincast/issues/623), présentée au
+	serveur audio, et, pour PipeWire, verrouillée sur son périphérique : une entrée qui manque n'est jamais remplacée
+	par le micro par défaut du poste."""
+	Gst.init(None)
+	plugin = plugins[output]
+	item = Gst.ElementFactory.make(plugin.factory, None)
+	if item is None:
+		raise UnavailableAudioOutput(
+			_(
+				"audio input unavailable on the “{output}” output: GStreamer element {factory} not found, install the "
+				"{package} package"
+			).format(output=output, factory=plugin.factory, package=plugin.package)
+		)
+	if plugin.property_ is not None:
+		item.set_property(plugin.property_, device)
+	if _has_property(item, "is-live"):
+		item.set_property("is-live", True)
+	present(item, CAPTURE)
 	lock(item)
 	return item
 

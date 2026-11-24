@@ -6,12 +6,12 @@ from psycopg.rows import TupleRow
 Connection = psycopg.Connection[TupleRow]
 
 FETCHED_SOUNDS = (
-	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, m.url),"
+	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device)),"
 	" s.state::text"
 	" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
 )
 PAGE = (
-	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, m.url),"
+	"SELECT s.id, s.artist, s.title, s.duration, s.location, COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device)),"
 	" s.state::text, bs.position"
 	" FROM bank_sounds bs JOIN sounds s ON s.id = bs.sound_id LEFT JOIN feeds m ON m.id = s.feed_id"
 	" WHERE bs.bank_id = %s AND bs.position > %s ORDER BY bs.position LIMIT %s"

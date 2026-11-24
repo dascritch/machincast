@@ -57,7 +57,15 @@ gi.require_version("Gst", "1.0")
 gi.require_version("GstController", "1.0")
 from gi.repository import Gst, GstController  # type: ignore[attr-defined]  # noqa: E402
 
-from machincast.audio import ON_AIR, PLAYER, UnavailableAudioOutput, create_output  # noqa: E402
+from machincast.audio import (  # noqa: E402
+	ON_AIR,
+	PLAYER,
+	UnavailableAudioOutput,
+	create_capture,
+	create_output,
+	input_device,
+	input_devices,
+)
 from machincast.configuration import Audio, DeadAirSettings  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.shared.fades import envelope  # noqa: E402
@@ -171,8 +179,12 @@ class Track:
 		real_time: bool = True,
 		clock: Callable[[], float] = time.monotonic,
 		dead_air: DeadAirSettings | None = None,
+		input_present: Callable[[str], bool] | None = None,
 	) -> None:
-		"""chemin : un fichier, ou l'adresse d'un stream. Muette, la voie joue à volume nul jusqu'à un fondu.
+		"""chemin : un fichier, ou l'adresse d'un stream ; celle d'une entrée audio (machincast.audio.INPUT_ADDRESS) se
+		joue en captant l'entrée, jusqu'à la coupure, comme un stream sans fin connue
+		(https://github.com/dascritch/machincast/issues/623). present_input dit si le poste voit l'entrée : une entrée
+		introuvable met la voie en erreur dès son démarrage, comme un stream qui ne répond pas. Muette, la voie joue à volume nul jusqu'à un fondu.
 
 		depart, arrivee : volumes au début et à la fin de la voie, quand ses fondus débordent du fichier
 		(https://github.com/dascritch/machincast/issues/234, machincast.shared.fades).
@@ -210,7 +222,14 @@ class Track:
 		self.planned_stop: timedelta | None = None
 		"""Position où la voie s'arrête d'elle-même, à la fin d'un fondu de sortie (eteindre)."""
 
-		player = Gst.ElementFactory.make(PLAYER, None)
+		self.capture = input_device(path)
+		"""Le périphérique de l'entrée audio captée ; None pour un fichier ou un stream."""
+		self._input_present = input_present
+		player: Gst.Element | None = None
+		if self.capture is None:
+			player = Gst.ElementFactory.make(PLAYER, None)
+		else:
+			player = Gst.Pipeline.new(None)
 		volume = Gst.ElementFactory.make("volume", None)
 		level = Gst.ElementFactory.make("level", None)
 		if (player is None) or (volume is None) or (level is None):
@@ -247,18 +266,21 @@ class Track:
 		"""Remplissage de la mémoire tampon, en pour cent, d'après le dernier message BUFFERING."""
 		self._prefilling = False
 		"""La voie attend que sa mémoire tampon soit pleine pour jouer."""
-		flags = ONLY_AUDIO_PLAYBACK
-		if (isinstance(path, str)) and (buffer is not None):
-			self.buffer = buffer
-			flags |= BUFFERING
-			player.set_property("buffer-duration", _nanoseconds(buffer))
-		player.set_property("flags", flags)
-		player.set_property("audio-sink", plugged)
-		address: Path | str | None = path
-		if not isinstance(path, str):
-			address = Gst.filename_to_uri(str(path.absolute()))
-		player.set_property("uri", address)
-		player.connect("source-setup", _set_source)
+		if self.capture is None:
+			flags = ONLY_AUDIO_PLAYBACK
+			if (isinstance(path, str)) and (buffer is not None):
+				self.buffer = buffer
+				flags |= BUFFERING
+				player.set_property("buffer-duration", _nanoseconds(buffer))
+			player.set_property("flags", flags)
+			player.set_property("audio-sink", plugged)
+			address: Path | str | None = path
+			if not isinstance(path, str):
+				address = Gst.filename_to_uri(str(path.absolute()))
+			player.set_property("uri", address)
+			player.connect("source-setup", _set_source)
+		else:
+			_capture(cast(Gst.Pipeline, player), audio, self.capture, plugged)
 
 		source = GstController.InterpolationControlSource()
 		source.set_property("mode", GstController.InterpolationMode.LINEAR)
@@ -339,6 +361,9 @@ class Track:
 		self.state = "playing"
 		self._started_to = self._clock()
 		self._advance_at = self._started_to
+		if (self.capture is not None) and (self._input_present is not None) and (not self._input_present(self.capture)):
+			self.state, self.error = "error", _("audio input {device} not found").format(device=self.capture)
+			return
 		if self._trimmed:
 			self._bound()
 		target = Gst.State.PLAYING
@@ -516,6 +541,35 @@ class Track:
 		self._player.set_state(Gst.State.NULL)
 
 
+def _capture(pipeline: Gst.Pipeline, audio: Audio, device: str, plugged: Gst.Element) -> None:
+	"""La source de l'entrée audio, convertie, puis le niveau, le volume et la sortie de l'antenne."""
+	source = create_capture(audio.output, device)
+	conversion = Gst.ElementFactory.make("audioconvert", None)
+	resampling = Gst.ElementFactory.make("audioresample", None)
+	if (conversion is None) or (resampling is None):
+		raise UnavailableAudioOutput(_("audioconvert or audioresample not found, install gstreamer1.0-plugins-base"))
+	for item in (source, conversion, resampling, plugged):
+		pipeline.add(item)
+	source.link(conversion)
+	conversion.link(resampling)
+	resampling.link(plugged)
+
+
+def present_input(audio: Audio) -> Callable[[str], bool]:
+	"""Ce que la voie demande pour savoir si le poste voit une entrée audio : toujours sur la sortie factice, qui capte
+	un son de test ; sinon, parmi les entrées du poste et du service (machincast.audio.input_devices)."""
+
+	def present(device: str) -> bool:
+		if audio.output == "dummy":
+			return True
+		for seen in input_devices(audio.output):
+			if seen.identifier == device:
+				return True
+		return False
+
+	return present
+
+
 def _set_source(player: Gst.Element, source: Gst.Element) -> None:
 	"""Source HTTP d'un stream : pas de nouvelle tentative de la source elle-même, et un délai de réponse borné."""
 	if hasattr(source.props, "retries"):
@@ -583,8 +637,11 @@ class AudioEngine:
 		real_time: bool = True,
 		clock: Callable[[], float] = time.monotonic,
 		dead_air: DeadAirSettings | None = None,
+		input_present: Callable[[str], bool] | None = None,
 	) -> None:
 		self.audio = audio
+		self.input_present = (input_present) or (present_input(audio))
+		"""Dit si le poste voit une entrée audio (https://github.com/dascritch/machincast/issues/623)."""
 		self.real_time = real_time
 		self.clock = clock
 		self.dead_air = (dead_air) or (DeadAirSettings())
@@ -603,6 +660,7 @@ class AudioEngine:
 			real_time=self.real_time,
 			clock=self.clock,
 			dead_air=self.dead_air,
+			input_present=self.input_present,
 		)
 		track.start()
 		self._tracks.append(track)

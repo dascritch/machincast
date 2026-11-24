@@ -47,6 +47,7 @@ barre d'état annonce l'un et l'autre.
 import contextlib
 import dataclasses
 import logging
+from collections.abc import Sequence
 from datetime import datetime, time
 from pathlib import Path
 
@@ -63,6 +64,7 @@ from machincast.configuration import (
 	RETENTION,
 	SESSION,
 	Audio,
+	AudioInput,
 	Configuration,
 	Crossfades,
 	DeadAirSettings,
@@ -84,6 +86,7 @@ from machincast.interface import (
 	icons,
 	indexer,
 	indexing_status,
+	input_feeds,
 	installation_notes,
 	interruption,
 	key_hints,
@@ -773,6 +776,13 @@ class MainWindow(QMainWindow):
 		card.finished.connect(lambda: self._remove(card))
 		card.requested_duplication.connect(self._duplicate)
 		card.requested_preview.connect(self._preview)
+		if isinstance(card, FeedCard):
+			# Une entrée retirée des Paramètres du service garde son feed, que la fiche signale
+			# (https://github.com/dascritch/machincast/issues/623).
+			devices = []
+			for audio_input in self.audio.inputs:
+				devices.append(audio_input.device)
+			card.show_inputs(devices)
 		if isinstance(card, SoundCard):
 			card.requested_check.connect(lambda sound, force, card=card: self._check_fully(card, sound, force=force))
 		if category == "event":
@@ -1315,6 +1325,7 @@ class MainWindow(QMainWindow):
 				installed, self.configuration, control.maintenance_backups(self.configuration)
 			)
 		if preferences.inputs_changed(shown_list, settings):
+			text = " ".join([text, *self._input_feeds(settings.inputs)]).strip()
 			self._reserve_inputs()
 		if preferences.intranet_changed(shown_list, settings):
 			# Le serveur intranet prend ses réglages (https://github.com/dascritch/machincast/issues/538).
@@ -1331,6 +1342,16 @@ class MainWindow(QMainWindow):
 			self.broadcast.control.control("restart")
 			return
 		self.statusBar().showMessage(text)
+
+	def _input_feeds(self, inputs: Sequence[AudioInput]) -> list[str]:
+		"""Chaque entrée nouvelle a son feed et son stream, une entrée renommée renomme son feed
+		(https://github.com/dascritch/machincast/issues/623) ; ce que la barre d'état en dira."""
+		try:
+			said = input_feeds.synchronise(self.connection, inputs)
+		except psycopg.Error as error:
+			return [_("Feeds of the audio inputs not saved: {error}").format(error=error)]
+		self.broadcast.modified_grid()
+		return said
 
 	def _reserve_inputs(self) -> None:
 		"""Le service installé, les entrées audio enregistrées se réservent aussitôt à son PipeWire ; la barre d'état dira
