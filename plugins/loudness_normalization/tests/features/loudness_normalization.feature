@@ -47,7 +47,7 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 			| binaire          | points                                             |
 			| Machin_player    | « player.sound_gain »                              |
 			| Machin_indexer   | « indexer.sound_detailed »                         |
-			| Machin_interface | « interface.sound_card », « interface.plugin_window » |
+			| Machin_interface | « interface.sound_card », « interface.bank_card », « interface.plugin_window » |
 			| Machin_intranet  | aucun point                                        |
 
 	# ─── À l'antenne ───────────────────────────────────────
@@ -69,6 +69,17 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 		Alors le journal dit « loudness_normalization : réglages refusés, aucun gain appliqué : target est une sonie en LUFS, de -40 à -5 »
 		Et le gain répondu pour un sonore de sonie -17 est nul
 
+	Scénario: Un sonore fourni par une banque prend la cible et le plafond propres à la banque
+		Étant donné l'horloge du binaire au « 2026-10-14 20:00:00 »
+		Et le fil musical permanent « Continue », avec la banque séquentielle « Pubs » des sonores « a »
+		Et les propriétés du sonore « a » {"loudness": {"integrated": -20.0, "peak": -10.0}}
+		Et les propriétés de la banque « Pubs » {"loudness_normalization": {"target": -16.0}}
+		Et les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et le plugin de la normalisation du niveau, chargé dans Machin player
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 1 pas d'une seconde
+		Alors la voie de « a » joue avec un gain de 4 dB
+
 	# ─── Machin indexer ────────────────────────────────────
 
 	Scénario: Après une mise à jour du fichier, un ajustement manuel qui ferait saturer est ramené, et le log le dit
@@ -86,6 +97,24 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 		Quand l'audit complet de Machin indexer le mesure
 		Alors ses propriétés sont {"loudness": {"integrated": -20.0, "peak": -10.0}, "loudness_normalization": {"gain": 4.0}}
 		Et le log n'a aucun incident
+
+	Scénario: Le plafond le plus bas, celui du plugin ou d'une banque qui contient le sonore, borne l'ajustement manuel
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et le sonore « nouveau.flac », de propriétés {"loudness": {"integrated": -20.0, "peak": -10.0}, "loudness_normalization": {"gain": 6.0}}
+		Et la banque « Pubs », de propriétés {"loudness_normalization": {"ceiling": -6.0}}, qui contient ce sonore
+		Et le plugin de la normalisation du niveau, chargé dans Machin indexer
+		Quand l'audit complet de Machin indexer le mesure
+		Alors ses propriétés sont {"loudness": {"integrated": -20.0, "peak": -10.0}, "loudness_normalization": {"gain": 6.0}}
+		Et le log n'a aucun incident
+
+	Scénario: Le plafond d'une banque fait ramener un ajustement qui ferait saturer
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et le sonore « nouveau.flac », de propriétés {"loudness": {"integrated": -20.0, "peak": -10.0}, "loudness_normalization": {"gain": 8.0}}
+		Et la banque « Pubs », de propriétés {"loudness_normalization": {"ceiling": -6.0}}, qui contient ce sonore
+		Et le plugin de la normalisation du niveau, chargé dans Machin indexer
+		Quand l'audit complet de Machin indexer le mesure
+		Alors ses propriétés sont {"loudness": {"integrated": -20.0, "peak": -10.0}, "loudness_normalization": {"gain": 7.0}}
+		Et le log a l'incident « niveau ajusté » : « « nouveau.flac » : sa crête de −10,0 dBFS dépasserait le plafond de −6,0 dBFS avec un gain de +5,0 dB : ajustement manuel ramené de +8,0 à +7,0 dB »
 
 	# ─── La fiche d'un sonore ──────────────────────────────
 
@@ -117,13 +146,59 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 		Et la section s'enregistre
 		Alors ses propriétés sont {"loudness": {"integrated": -20.0, "peak": -10.0}}
 
+	Scénario: Dans la fiche d'un sonore, l'encart « Niveau » est dépliable, sous l'encart « Fichier »
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et le sonore « a.flac », de propriétés {"loudness": {"integrated": -20.0, "peak": -2.0}}
+		Et le plugin de la normalisation du niveau, chargé dans Machin interface
+		Quand j'ouvre la fiche de ce sonore
+		Alors l'encart « Niveau » est juste sous l'encart « Fichier », replié, et se déplie d'un clic sur son titre
+		Et la section du plugin est cachée
+
+	Scénario: La fiche d'un stream n'a pas d'encart « Niveau », comme pas d'encart « Fichier »
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et le stream « Direct »
+		Et le plugin de la normalisation du niveau, chargé dans Machin interface
+		Quand j'ouvre la fiche de ce sonore
+		Alors l'encart « Niveau » est caché
+
+	Scénario: La fiche d'un sonore montre aussi le gain dans chaque banque qui a ses propres réglages
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et le sonore « a.flac », de propriétés {"loudness": {"integrated": -20.0, "peak": -10.0}}
+		Et la banque « Pubs », de propriétés {"loudness_normalization": {"target": -16.0, "ceiling": -6.0}}, qui contient ce sonore
+		Quand la section « Niveau » de ce sonore s'ouvre
+		Alors l'ajustement manuel vaut 0,0 dB, au plus 0,0 dB
+		Et elle montre « Gain appliqué : −3,0 dB (automatique −3,0 dB, cible −23,0 LUFS, plafond −1,0 dBFS) »
+		Et elle montre « Dans la banque « Pubs » : Gain appliqué : +4,0 dB (automatique +4,0 dB, cible −16,0 LUFS, plafond −6,0 dBFS) »
+
+	# ─── La fiche d'une banque ─────────────────────────────
+
+	Scénario: Une banque suit les réglages du plugin, que ses curseurs grisés montrent
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et la banque « Pubs », de propriétés {}
+		Quand la section « Niveau » de cette banque s'ouvre
+		Alors « Sonie visée propre à la banque » est décochée, son curseur grisé sur « −23,0 LUFS »
+		Et « Plafond de crête propre à la banque » est décochée, son curseur grisé sur « −1,0 dBFS »
+
+	Scénario: Cocher et régler une sonie visée propre à la banque l'enregistre dans ses propriétés ; décochée, elle en part
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et la banque « Pubs », de propriétés {}
+		Quand la section « Niveau » de cette banque s'ouvre
+		Et je coche « Sonie visée propre à la banque » et règle son curseur à -16 LUFS
+		Alors la fiche est modifiée
+		Quand la section de la banque s'enregistre
+		Alors les propriétés de la banque sont {"loudness_normalization": {"target": -16.0}}
+		Quand je décoche « Sonie visée propre à la banque »
+		Et la section de la banque s'enregistre
+		Alors les propriétés de la banque sont {}
+
 	# ─── La fenêtre du plugin ──────────────────────────────
 
 	Scénario: La fenêtre règle la cible et le plafond, et les écrit dans machincast.toml
 		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
 		Et le plugin de la normalisation du niveau, chargé dans Machin interface
 		Quand j'ouvre la fenêtre du plugin
-		Alors la sonie visée vaut -23,0 LUFS et le plafond -1,0 dBFS
+		Alors la sonie visée et le plafond sont des curseurs, à -23,0 LUFS et -1,0 dBFS
+		Et la fenêtre est assez large pour lire ses textes
 		Quand je règle la sonie visée à -16 LUFS et le plafond à -2 dBFS
 		Et j'enregistre les réglages du plugin
 		Alors le message de la fenêtre dit « Enregistré. Relancez la diffusion et l'indexation pour qu'elles prennent ces réglages. »

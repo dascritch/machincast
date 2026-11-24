@@ -40,6 +40,9 @@ from machincast.i18n import _
 from machincast.plugins.manifest import Manifest
 
 WINDOW_POINT = "interface.plugin_window"
+WINDOW_WIDTH = 70
+"""La largeur la plus petite de la fenêtre d'un plugin, en caractères : sa description et ses réglages s'y lisent sans
+se tasser (https://github.com/dascritch/machincast/issues/43)."""
 AVAILABLE = _("can be enabled")
 UNAVAILABLE = _("cannot be enabled")
 NOT_AVAILABLE = _("It cannot be enabled:")
@@ -289,6 +292,7 @@ class PluginWindow(QDialog):
 	) -> None:
 		super().__init__(parent)
 		self.setWindowTitle(plugin.label)
+		self.setMinimumWidth(self.fontMetrics().averageCharWidth() * WINDOW_WIDTH)
 		layout = QVBoxLayout(self)
 		for name, text in (("name", plugin.label), ("version", plugin.version), ("description", plugin.description)):
 			label = QLabel(text, self)

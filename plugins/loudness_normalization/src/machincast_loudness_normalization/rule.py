@@ -5,6 +5,9 @@ Les réglages sont la section [plugins.loudness_normalization] de machincast.tom
 - target : la sonie visée, en LUFS, −23 par défaut (EBU R128) ;
 - ceiling : le plafond de crête, en dBFS, −1 par défaut : la crête d'un sonore, gain compris, ne le dépasse jamais.
 
+Une banque peut avoir sa propre cible, ou son propre plafond, rangés dans sa colonne properties, sous la clé du plugin :
+ils remplacent ceux du plugin pour les sonores qu'elle fournit (overridden).
+
 Le gain d'un sonore est le gain automatique, la cible moins sa sonie intégrée mesurée par l'audit complet
 (https://github.com/dascritch/machincast/issues/642), plus son ajustement manuel, rangé dans sa colonne properties ;
 il est borné pour que sa crête mesurée, gain compris, reste sous le plafond. Sans sonie mesurée, seul l'ajustement
@@ -114,3 +117,38 @@ def tenth_below(value: float) -> float:
 	if tenths > value * 10:
 		tenths -= 1
 	return tenths / 10
+
+
+def bank_values(properties: dict[str, Any]) -> tuple[float | None, float | None]:
+	"""La cible et le plafond propres à une banque, dans ses properties ; None pour celui qu'elle n'a pas."""
+	found = properties.get(KEY)
+	if not isinstance(found, dict):
+		return None, None
+	target = _number(found.get("target"))
+	if (target is not None) and ((target < LOWEST_TARGET) or (target > HIGHEST_TARGET)):
+		target = None
+	ceiling = _number(found.get("ceiling"))
+	if (ceiling is not None) and ((ceiling < LOWEST_CEILING) or (ceiling > HIGHEST_CEILING)):
+		ceiling = None
+	return target, ceiling
+
+
+def overridden(settings: Settings, properties: dict[str, Any]) -> Settings:
+	"""Les réglages du plugin, avec la cible et le plafond propres à la banque, si elle en a."""
+	target, ceiling = bank_values(properties)
+	if target is None:
+		target = settings.target
+	if ceiling is None:
+		ceiling = settings.ceiling
+	return Settings(target, ceiling)
+
+
+def strictest(variants: list[Settings], measured: Measure) -> tuple[Settings, float] | None:
+	"""Parmi les réglages qui peuvent jouer un sonore, le plugin et chaque banque qui le contient, ceux qui laissent le
+	plus faible ajustement manuel, et cet ajustement ; None sans crête mesurée."""
+	found: tuple[Settings, float] | None = None
+	for settings in variants:
+		limit = headroom(settings, measured)
+		if (limit is not None) and ((found is None) or (limit < found[1])):
+			found = (settings, limit)
+	return found

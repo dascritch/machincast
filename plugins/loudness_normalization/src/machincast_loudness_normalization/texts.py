@@ -48,6 +48,12 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		" LUFS": " LUFS",
 		" dBFS": " dBFS",
 		"Save": "Enregistrer",
+		"In the bank “{name}”: {gain}": "Dans la banque « {name} » : {gain}",
+		"Target loudness of its own": "Sonie visée propre à la banque",
+		"Peak ceiling of its own": "Plafond de crête propre à la banque",
+		"Ticked, it replaces the setting of the plugin for the sounds that this bank provides": (
+			"Cochée, elle remplace le réglage du plugin pour les sonores que fournit cette banque"
+		),
 		"The settings cannot be saved: {error}": "Les réglages ne peuvent être enregistrés : {error}",
 		"Saved. Restart the broadcast and the indexing for them to take these settings.": (
 			"Enregistré. Relancez la diffusion et l'indexation pour qu'elles prennent ces réglages."

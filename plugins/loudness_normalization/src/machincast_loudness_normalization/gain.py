@@ -16,7 +16,17 @@ import psycopg
 
 from machincast.i18n import decimal
 from machincast_loudness_normalization import queries
-from machincast_loudness_normalization.rule import Current, applied, automatic, headroom, manual, measure, tenth_below
+from machincast_loudness_normalization.rule import (
+	Current,
+	Settings,
+	applied,
+	automatic,
+	manual,
+	measure,
+	overridden,
+	strictest,
+	tenth_below,
+)
 from machincast_loudness_normalization.texts import t
 
 log = logging.getLogger(__name__)
@@ -29,10 +39,16 @@ def signed(value: float) -> str:
 
 def sound_gain(current: Current) -> Callable[[Mapping[str, Any]], float | None]:
 	def answer(data: Mapping[str, Any]) -> float | None:
+		"""La cible et le plafond de la banque qui a fourni le sonore, s'ils lui sont propres, sinon ceux du plugin."""
 		settings = current.settings
 		properties = data.get("properties")
 		if (settings is None) or (not isinstance(properties, dict)):
 			return None
+		bank = data.get("bank")
+		connection = data.get("connection")
+		if (isinstance(bank, int)) and (connection is not None):
+			with connection.transaction():
+				settings = overridden(settings, queries.bank_properties(connection, bank))
 		return applied(settings, measure(properties), manual(properties))
 
 	return answer
@@ -52,9 +68,10 @@ def detailed(current: Current, connect: Callable[[], queries.Connection]) -> Cal
 				found = queries.properties(connection, sound)
 				adjustment = manual(found)
 				now = measure(found)
-				limit = headroom(settings, now)
-				if (adjustment == 0) or (limit is None) or (now.peak is None) or (adjustment <= limit):
+				bound = strictest(variants(connection, settings, sound), now)
+				if (adjustment == 0) or (bound is None) or (now.peak is None) or (adjustment <= bound[1]):
 					return
+				settings, limit = bound
 				lowered = tenth_below(limit)
 				queries.write_manual(connection, sound, lowered)
 				message = t(
@@ -73,3 +90,11 @@ def detailed(current: Current, connect: Callable[[], queries.Connection]) -> Cal
 			log.error(t("loudness_normalization: {error}").format(error=error))
 
 	return check
+
+
+def variants(connection: queries.Connection, settings: Settings, sound: int) -> list[Settings]:
+	"""Les réglages qui peuvent jouer le sonore : ceux du plugin, et ceux de chaque banque qui le contient."""
+	found = [settings]
+	for _name, properties in queries.banks_of_sound(connection, sound):
+		found.append(overridden(settings, properties))
+	return found

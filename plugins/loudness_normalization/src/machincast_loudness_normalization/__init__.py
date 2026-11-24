@@ -5,8 +5,9 @@ avec un ajustement manuel par sonore (https://github.com/dascritch/machincast/is
   https://github.com/dascritch/machincast/issues/643) ; sans le plugin, Machin player joue les sonores tels quels.
 - Dans Machin indexer, au point « indexer.sound_detailed » : un ajustement manuel qui ferait dépasser le plafond, après
   une mise à jour du fichier, est ramené, et le log le dit.
-- Dans Machin interface, le niveau d'un sonore dans sa fiche (machincast_loudness_normalization.section), et la
-  fenêtre du plugin, menu « Plugins », qui règle la cible et le plafond (machincast_loudness_normalization.settings).
+- Dans Machin interface, le niveau d'un sonore dans sa fiche (machincast_loudness_normalization.section), la cible et
+  le plafond propres à une banque dans la sienne (machincast_loudness_normalization.bank_section), et la fenêtre du
+  plugin, menu « Plugins », qui règle la cible et le plafond (machincast_loudness_normalization.settings).
 
 La mesure, crête et sonie, est celle de l'audit complet du cœur (https://github.com/dascritch/machincast/issues/642).
 """
@@ -43,13 +44,17 @@ def register(plugin: Plugin) -> None:
 
 		plugin.on("indexer.sound_detailed", gain.detailed(current, connect))
 	if executable == "Machin_interface":
-		from machincast_loudness_normalization import section, settings
+		from machincast_loudness_normalization import bank_section, section, settings
 
 		def card_section(data: Any) -> object:
-			return section.LevelSection(data["connection"], current, data["parent"])
+			return section.LevelSection(data["connection"], current, data["parent"], data.get("card"))
+
+		def bank_card_section(data: Any) -> object:
+			return bank_section.BankLevelSection(data["connection"], current, data["parent"])
 
 		def window(data: Any) -> object:
 			return settings.LevelSettings(configuration, current, data.get("parent"))
 
 		plugin.on("interface.sound_card", card_section)
+		plugin.on("interface.bank_card", bank_card_section)
 		plugin.on("interface.plugin_window", window)
