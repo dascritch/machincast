@@ -1,0 +1,13 @@
+{
+	"name": "bank_as_an_emoji",
+	"version": "0.1.0",
+	"description": "An emoji at the start of the internal name of a bank, chosen in its card, to read it at a glance in the tables",
+	"machincast": ">=0.9",
+	"binaries": ["Machin_interface"],
+	"l10n": {
+		"fr": {
+			"name": "Banque en emoji",
+			"description": "Un emoji au début du nom interne d'une banque, choisi dans sa fiche, pour la lire d'un coup d'œil dans les tableaux"
+		}
+	}
+}

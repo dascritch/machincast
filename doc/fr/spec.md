@@ -2360,3 +2360,13 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 - Au point « interface.event_card », sa section « Genre » de la fiche d'un événement : « aucun genre », puis les genres par nom, chacun avec un carré de sa couleur ; elle s'enregistre avec l'événement.
 - La fenêtre du plugin, menu « Plugins », règle les genres, leur nom et leur couleur, écrite ou choisie dans le sélecteur de couleur, et les couleurs des événements sans genre ; « Enregistrer » refuse un nom vide ou en double, sans tenir compte de la casse, et une couleur qui n'est pas `#rrggbb`, puis écrit tout dans une transaction : un genre retiré quitte les événements qui l'avaient.
 - Ses textes ont leur propre traduction (`machincast_color_the_shows.texts`) ; ses scénarios, dans `plugins/color_the_shows/tests/`, reprennent les fixtures du cœur, et appliquent ses migrations sur la base de test à chaque scénario qui les demande, pour repartir de ses valeurs par défaut.
+
+### 14.11 La banque en emoji
+
+([#505](https://github.com/dascritch/machincast/issues/505), `plugins/bank_as_an_emoji`, guide : [plugins/bank_as_an_emoji/doc/banque-emoji.md](../../plugins/bank_as_an_emoji/doc/banque-emoji.md))
+
+- Il s'accroche à `Machin_interface`, sans table ni colonne : l'emoji d'une banque est dans les premiers caractères de son nom interne, suivi d'une espace, « 🌟 Publicités » ; les tableaux d'airplay et des sonores à venir, qui montrent le nom interne, le montrent avec lui.
+- Un emoji est une suite de pictogrammes, avec leurs sélecteurs de variante, leurs teintes de peau, leurs liants et leurs étiquettes (`names.split`) ; un nom qui ne commence pas par un emoji suivi d'une espace n'en a pas.
+- Au point « interface.bank_card », sa section remplace, dans la ligne « Nom interne » de la fiche, le champ du nom interne par un sélecteur d'emoji, modifiable, suivi du nom sans son emoji ; le champ de la fiche, caché, garde le nom complet, que la fiche vérifie, copie et enregistre comme avant, et son libellé, son raccourci et ses signalements d'erreur passent au nom sans emoji.
+- Un emoji sans nom laisse le nom interne vide, que la fiche refuse ; un texte du sélecteur qui n'est pas un emoji refuse l'enregistrement : « « ab » n'est pas un emoji. ».
+- Ses textes ont leur propre traduction (`machincast_bank_as_an_emoji.texts`) ; ses scénarios, dans `plugins/bank_as_an_emoji/tests/`, reprennent les fixtures du cœur.
