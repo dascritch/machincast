@@ -64,7 +64,7 @@ Paquets installés par apt : uniquement ce que pip ne peut pas fournir. Toutes l
 | `gstreamer1.0-alsa` | Sortie audio `alsa`. |
 | `gstreamer1.0-pulseaudio` | Sortie audio `pulseaudio`. |
 | `gstreamer1.0-pipewire` | Sortie audio `pipewire`. |
-| `pipewire-bin` | `pw-link`, qui relie l'antenne à la pré-écoute pour l'écouter sous PipeWire ([#24](https://github.com/dascritch/machincast/issues/24)). Déjà présent avec PipeWire sur une Ubuntu de bureau. |
+| `pipewire-bin` | `pw-dump` et `pw-cli`, qui trouvent et règlent les cartes de PipeWire : la carte virtuelle de l'antenne, le volume de la carte du service. Déjà présent avec PipeWire sur une Ubuntu de bureau. |
 | `libmagic1t64` | Reconnaissance du type réel des fichiers sonores, sans se fier à leur extension ([#121](https://github.com/dascritch/machincast/issues/121)). |
 | `postgresql` | Serveur de base de données. |
 | `bash-completion` | Chargement de l'autocomplétion de `Machin`. Déjà présent sur une Ubuntu standard, absent d'une installation minimale. |
