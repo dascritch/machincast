@@ -149,6 +149,20 @@ Fonctionnalité: Fenêtres de dialogue des fiches
 			| tape Échap             | False   |
 			| tape Entrée            | True    |
 
+	Plan du scénario: Le choix d'un moment propose le début de la session ; Entrée donne le moment choisi, Échap aucun
+		# https://github.com/dascritch/machincast/issues/631 : pas avant le minimum, maintenant.
+		Quand le choix d'un moment proposant le « 2026-10-22 07:00 », à partir du « 2026-10-20 16:40 », s'ouvre, et que j'y <geste>
+		Alors le choix d'un moment a dit « Décaler la session de « Matinale » du jeudi 22 octobre à 07:00 au : »
+		Et la réponse est « <reponse> »
+
+		Exemples:
+			| geste                                              | reponse             |
+			| tape Entrée                                        | 2026-10-22 07:00:00 |
+			| choisis le « 2026-10-24 10:00 », puis tape Entrée  | 2026-10-24 10:00:00 |
+			| choisis le « 2026-10-24 10:00 », puis clique sur OK | 2026-10-24 10:00:00 |
+			| choisis le « 2026-10-19 10:00 », puis tape Entrée  | 2026-10-20 16:40:00 |
+			| choisis le « 2026-10-24 10:00 », puis tape Échap   | None                |
+
 	Plan du scénario: Le choix d'un répertoire donne le répertoire choisi, ou rien s'il est abandonné
 		Quand le sélecteur de répertoires du poste donne « <selecteur> »
 		Alors le répertoire choisi est <choisi>

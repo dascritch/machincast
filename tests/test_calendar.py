@@ -8,8 +8,10 @@ survolent.
 
 import re
 import uuid
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
+import pytest
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
 from PySide6.QtGui import QColor, QHelpEvent, QWheelEvent
 from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QMenu, QPushButton, QToolTip, QWidget
@@ -17,6 +19,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 
 from machincast.i18n import _
+from machincast.interface import dialogs
 from machincast.interface.calendar import Block, Calendar, Strip, day_label
 from machincast.interface.event_card import EventCard
 from tests.interface_steps import NAME, Connection, Context, identifier, window
@@ -167,6 +170,50 @@ def chosen_day(interface: Context, day: str) -> None:
 @given("j'annulerai le choix du jour jusqu'où sauter")
 def abandoned_day(interface: Context) -> None:
 	interface.chosen_days.append(None)
+
+
+@dataclass
+class Moments:
+	"""Le choix d'un moment (https://github.com/dascritch/machincast/issues/631) : ce qu'il donnera, dans l'ordre, et
+	ce qu'il a proposé, son texte, le moment proposé et le minimum."""
+
+	chosen: list[datetime | None] = field(default_factory=list)
+	shown: list[tuple[str, datetime, datetime]] = field(default_factory=list)
+
+
+@pytest.fixture
+def moments(monkeypatch: pytest.MonkeyPatch) -> Moments:
+	found = Moments()
+
+	def moment(_parent: QWidget, _title: str, text: str, proposed: datetime, minimum: datetime) -> datetime | None:
+		found.shown.append((text, proposed, minimum))
+		return found.chosen.pop(0)
+
+	monkeypatch.setattr(dialogs, "choose_moment", moment)
+	return found
+
+
+@given(parsers.parse("je choisirai le moment « {moment} » où décaler la session"))
+def chosen_moment(moments: Moments, moment: str) -> None:
+	moments.chosen.append(datetime.fromisoformat(moment))
+
+
+@given("j'annulerai le choix du moment où décaler la session")
+def abandoned_moment(moments: Moments) -> None:
+	moments.chosen.append(None)
+
+
+@given(parsers.parse("l'événement « {name} » joue la séquence « {sequence} »"))
+def event_with_sequence(empty_database: Connection, name: str, sequence: str) -> None:
+	created = empty_database.execute(
+		"INSERT INTO sequences (internal_name) VALUES (%s) RETURNING id", (sequence,)
+	).fetchone()
+	assert created is not None
+	empty_database.execute(
+		"INSERT INTO event_items (event_id, position, sequence_id)"
+		" SELECT id, 1, %s FROM events WHERE internal_name = %s",
+		(created[0], name),
+	)
 
 
 @given(parsers.parse("je répondrai « {response} » à la question de création"))
@@ -601,3 +648,45 @@ def shown_hours(interface: Context, hours: int, top: str) -> None:
 @then(parsers.parse("le zoom du calendrier est sur « {text} »"))
 def chosen_zoom(interface: Context, text: str) -> None:
 	assert calendar(interface).zoom.currentText() == text
+
+
+@then(parsers.parse("le choix du moment a proposé « {text} », à partir du « {moment} »"))
+def moment_choice(moments: Moments, text: str, moment: str) -> None:
+	"""Le moment proposé est le début de la session ; le minimum, maintenant."""
+	(shown,) = moments.shown
+	assert (shown[0], shown[1]) == (text, datetime.fromisoformat(moment)), shown
+	assert shown[2] == datetime(2026, 10, 20, 16, 40), shown
+
+
+@then(
+	parsers.parse(
+		"l'événement « {name} » joue du « {start} » au « {end} », sans jour de récurrence, avec le nom public, la"
+		" priorité et les éléments de « {original} »"
+	)
+)
+def moved_copy(empty_database: Connection, name: str, start: str, end: str, original: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/631"""
+	line = empty_database.execute(
+		"SELECT c.starts_at, c.ends_at, c.recurrence_days::text[], c.public_name = o.public_name,"
+		" c.priority = o.priority FROM events c, events o WHERE c.internal_name = %s AND o.internal_name = %s",
+		(name, original),
+	).fetchone()
+	assert line is not None, f"« {name} » absent de la base"
+	assert (line[0].astimezone().replace(tzinfo=None), line[1].astimezone().replace(tzinfo=None)) == (
+		datetime.fromisoformat(start),
+		datetime.fromisoformat(end),
+	)
+	assert (line[2], line[3], line[4]) == ([], True, True), line
+	items = empty_database.execute(
+		"SELECT e.internal_name, i.position, i.bank_id, i.sound_id, i.sequence_id FROM event_items i"
+		" JOIN events e ON e.id = i.event_id WHERE e.internal_name IN (%s, %s) ORDER BY e.internal_name, i.position",
+		(name, original),
+	).fetchall()
+	copied, kept = [], []
+	for owner, *rest in items:
+		if owner == name:
+			copied.append(rest)
+		else:
+			kept.append(rest)
+	assert kept
+	assert copied == kept

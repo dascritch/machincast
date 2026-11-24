@@ -508,7 +508,7 @@ Fonctionnalité: Calendrier de la grille
 	Scénario: Le clic droit propose de sauter une session à venir d'un événement récurrent, et rien d'autre
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
-		Alors le clic droit sur le bloc « Matinale » du mercredi 21 propose « Sauter cette session », « Sauter les sessions jusqu'au… »
+		Alors le clic droit sur le bloc « Matinale » du mercredi 21 propose « Sauter cette session », « Sauter les sessions jusqu'au… », « Décaler cette session… »
 		Et le clic droit sur le bloc « Matinale » du mardi 20 ne propose rien
 		Et le clic droit sur le bloc « Concert » du mercredi 21 ne propose rien
 		Et le clic droit sur le bloc « Continue » de la journée du mercredi 21 ne propose rien
@@ -569,6 +569,37 @@ Fonctionnalité: Calendrier de la grille
 		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
 		Et je choisis « Sauter les sessions jusqu'au… » au clic droit sur le bloc « Matinale » du jeudi 22
 		Alors aucune session de « Matinale » n'est sautée
+		Et la barre d'état n'a rien annoncé
+
+	# ─── Session décalée (https://github.com/dascritch/machincast/issues/631) ───
+
+	Scénario: Une session se décale au clic droit : sautée, elle joue au moment choisi, par une copie ponctuelle de son événement
+		Étant donné je choisirai le moment « 2026-10-24 10:00 » où décaler la session
+		Et l'événement « Matinale » joue la séquence « Habillage du matin »
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis « Décaler cette session… » au clic droit sur le bloc « Matinale » du jeudi 22
+		Alors le choix du moment a proposé « Décaler la session de « Matinale » du jeudi 22 octobre à 07:00 au : », à partir du « 2026-10-22 07:00 »
+		Et la barre d'état annonce « Session de « Matinale » du jeudi 22 octobre décalée au samedi 24 octobre à 10:00. »
+		Et les sessions sautées de « Matinale » sont « 2026-10-22 »
+		Et l'événement « Matinale (session décalée du jeudi 22 octobre) » joue du « 2026-10-24 10:00 » au « 2026-10-24 12:00 », sans jour de récurrence, avec le nom public, la priorité et les éléments de « Matinale »
+
+	Scénario: Une session décalée sur une autre session de même priorité ne bouge pas, et la barre d'état le dit
+		Étant donné je choisirai le moment « 2026-10-23 08:00 » où décaler la session
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis « Décaler cette session… » au clic droit sur le bloc « Matinale » du jeudi 22
+		Alors la barre d'état annonce « Session de « Matinale » du jeudi 22 octobre non décalée : elle chevaucherait « Matinale » le vendredi 23 octobre à 08:00. »
+		Et aucune session de « Matinale » n'est sautée
+		Et la base a toujours 11 événements
+
+	Scénario: Renoncer au choix du moment ne décale rien
+		Étant donné que j'annulerai le choix du moment où décaler la session
+		Quand la fenêtre de l'interface s'ouvre
+		Et je choisis « Ouvrir l'onglet Grille horaire » dans le menu « Affichage »
+		Et je choisis « Décaler cette session… » au clic droit sur le bloc « Matinale » du jeudi 22
+		Alors aucune session de « Matinale » n'est sautée
+		Et la base a toujours 11 événements
 		Et la barre d'état n'a rien annoncé
 
 	Scénario: Une session sautée se rétablit au clic droit

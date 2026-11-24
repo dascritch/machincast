@@ -72,7 +72,7 @@ from machincast.i18n import N_, _, ngettext, pgettext
 from machincast.interface import dialogs, preferences
 from machincast.interface.display import MONTH
 from machincast.interface.queries import calendar as queries
-from machincast.interface.sessions import Session, overlapped, reinstate
+from machincast.interface.sessions import Session, move, moved_name, moved_overlap, overlapped, reinstate
 from machincast.shared.grid import (
 	DAY_NAMES,
 	RANKS,
@@ -155,6 +155,8 @@ DELETED_REMAINDER = _("the rest is no longer planned")
 SKIP = _("Skip this session")
 SKIP_UNTIL = _("Skip the sessions until…")
 REINSTATE = _("Reinstate this session")
+MOVE = _("Move this session…")
+"""https://github.com/dascritch/machincast/issues/631"""
 SKIPPED = _("Skipped session")
 
 
@@ -764,6 +766,51 @@ class Calendar(QWidget):
 			)
 		)
 
+	def move_session(self, block: Block) -> None:
+		"""Décale la session du bloc à un moment choisi : elle est sautée, et une copie ponctuelle de son événement y
+		joue, de même durée, sauf si elle chevaucherait un événement de même priorité
+		(https://github.com/dascritch/machincast/issues/631)."""
+		occurrence = block.planned.occurrence
+		assert occurrence.start is not None
+		session = Session(occurrence.event, occurrence.start, occurrence.end)
+		name, day = session.event.name, session.start.date()
+		text = _("Move the session of “{name}” of {day_and_month} at {start:%H:%M} to:").format(
+			name=name, day_and_month=day_and_month(day), start=session.start
+		)
+		start = dialogs.choose_moment(self, _("Move a session"), text, session.start, self.now())
+		if (start is None) or (start == session.start):
+			return
+		with self.connection.transaction():
+			found = moved_overlap(self.connection, session, start, self.now())
+			if found is None:
+				copy_name = moved_name(
+					self.connection,
+					_("{name} (session moved from {day_and_month})").format(
+						name=name, day_and_month=day_and_month(day)
+					),
+				)
+				move(self.connection, session, start, copy_name)
+		if found is not None:
+			other, instant = found
+			self.announces.emit(
+				_(
+					"Session of “{name}” of {day_and_month} not moved: it would overlap “{name2}” on {day_and_month2} at "
+					"{instant:%H:%M}."
+				).format(
+					name=name,
+					day_and_month=day_and_month(day),
+					name2=other.name,
+					day_and_month2=day_and_month(instant.date()),
+					instant=instant,
+				)
+			)
+			return
+		self._changed_grid(
+			_("Session of “{name}” of {day_and_month} moved to {day_and_month2} at {start:%H:%M}.").format(
+				name=name, day_and_month=day_and_month(day), day_and_month2=day_and_month(start.date()), start=start
+			)
+		)
+
 	def _changed_grid(self, text: str) -> None:
 		self.refresh()
 		self.announces.emit(text)
@@ -1098,7 +1145,8 @@ def _upcoming(block: Block, now: datetime) -> bool:
 
 
 def _menu(calendar: "Calendar", block: Block | None, parent: QWidget) -> QMenu | None:
-	"""Le menu du clic droit sur un bloc : sauter une session à venir, ou la rétablir ; aucun pour un autre bloc."""
+	"""Le menu du clic droit sur un bloc : sauter une session à venir, la décaler, ou la rétablir ; aucun pour un autre
+	bloc."""
 	if (block is None) or (not _upcoming(block, calendar.now())):
 		return None
 	menu = QMenu(parent)
@@ -1107,6 +1155,7 @@ def _menu(calendar: "Calendar", block: Block | None, parent: QWidget) -> QMenu |
 		return menu
 	menu.addAction(SKIP).triggered.connect(lambda: calendar.skip(block))
 	menu.addAction(SKIP_UNTIL).triggered.connect(lambda: calendar.skip_until(block))
+	menu.addAction(MOVE).triggered.connect(lambda: calendar.move_session(block))
 	return menu
 
 
