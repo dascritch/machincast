@@ -4,6 +4,10 @@ ticket enfant de https://github.com/dascritch/machincast/issues/513).
 - AudioInputs : le bloc « Entrées audio » ; ajouter une entrée de carte son du poste (machincast.audio.input_devices),
   hors de l'antenne et de la pré-écoute, la nommer, la retirer. Un nom vide, ou pris par une autre entrée, empêche
   d'enregistrer, et le bloc dit pourquoi. Une entrée de la configuration que le poste ne voit plus reste, « introuvable ».
+- InputLevel, InputPreview (https://github.com/dascritch/machincast/issues/624) : chaque entrée a son VU-mètre, qui
+  montre sa modulation tant que le bloc est affiché (machincast.interface.monitor.InputMonitor) ; une entrée
+  introuvable le dit à sa place. « Pré-écoute » écoute l'entrée choisie sur la sortie de pré-écoute, jamais à
+  l'antenne. Service installé, l'un et l'autre l'écoutent par le PipeWire du service, comme le moniteur de l'antenne.
 - InputReservation : le service installé, des entrées changées se réservent aussitôt au PipeWire du service, sans
   relancer install.sh --service : pkexec lance python -m machincast.input_reservation, avec l'authentification d'un
   administrateur, qui réécrit le fragment WirePlumber des sessions du poste et relance le WirePlumber du service ;
@@ -15,8 +19,13 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QProcess, Qt, Signal
-from PySide6.QtWidgets import (
+import gi
+
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst  # noqa: E402
+from PySide6.QtCore import QObject, QProcess, Qt, QTimer, Signal  # noqa: E402
+from PySide6.QtGui import QHideEvent, QShowEvent  # noqa: E402
+from PySide6.QtWidgets import (  # noqa: E402
 	QAbstractItemView,
 	QComboBox,
 	QGroupBox,
@@ -29,11 +38,14 @@ from PySide6.QtWidgets import (
 	QVBoxLayout,
 	QWidget,
 )
+from shiboken6 import isValid  # noqa: E402
 
-from machincast import audio
-from machincast.configuration import AudioInput, AudioOutput
-from machincast.i18n import _
-from machincast.interface import intents
+from machincast import audio  # noqa: E402
+from machincast.configuration import DUMMY, Audio, AudioInput, AudioOutput  # noqa: E402
+from machincast.i18n import _  # noqa: E402
+from machincast.interface import intents, states  # noqa: E402
+from machincast.interface.monitor import InputMonitor, Unavailable, input_source  # noqa: E402
+from machincast.interface.vu_meter import VuMeter  # noqa: E402
 
 TITLE = _("Audio inputs")
 EXPLANATION = _(
@@ -43,6 +55,7 @@ EXPLANATION = _(
 )
 NAME = 0
 DEVICE = 1
+LEVEL = 2
 """Les colonnes du tableau des entrées."""
 DEVICE_ROLE = Qt.ItemDataRole.UserRole
 """Le rôle qui porte, sur la cellule du nom, le périphérique de l'entrée."""
@@ -50,6 +63,12 @@ NOT_FOUND = _("{device} (not found)")
 EMPTY_NAME = _("Each audio input needs a name.")
 SAME_NAME = _("Two audio inputs are named “{name}”.")
 NOTHING_TO_ADD = _("No other sound card input on this computer")
+PRE_LISTEN = _("🎧 Pre-listen")
+STOP_PRE_LISTEN = _("⏹ Stop the pre-listen")
+PRE_LISTEN_TIP = _("Listens to the chosen input on the pre-listen output, never on air.")
+WITHOUT_PRE_LISTEN = _("The pre-listen output is the dummy output: nothing to hear.")
+PRE_LISTEN_READING = 100
+"""Millisecondes entre deux relèves du bus de la pré-écoute."""
 
 RESERVED = _("Audio inputs reserved for the broadcast service.")
 REFUSED = _("Audio inputs not reserved: authentication refused.")
@@ -73,23 +92,31 @@ class AudioInputs(QGroupBox):
 		inputs: Sequence[AudioInput],
 		excluded: Sequence[str | None],
 		parent: QWidget | None = None,
+		*,
+		preview: str | None = None,
 	) -> None:
-		"""excluded : les périphériques de l'antenne et de la pré-écoute, qui ne sont pas des entrées."""
+		"""excluded : les périphériques de l'antenne et de la pré-écoute, qui ne sont pas des entrées ; preview : le
+		périphérique de pré-écoute, où s'écoute une entrée."""
 		super().__init__(TITLE, parent)
 		self.setObjectName("audio_inputs")
 		self.output = output
+		self.listening = Audio(output=output, device=None, preview=(preview) or (DUMMY))
+		"""Ce que le VU-mètre et la pré-écoute d'une entrée écoutent."""
+		self.preview_player = InputPreview(self.listening, self)
+		self.preview_player.stopped.connect(self._preview_stopped)
 		self.excluded = set()
 		for taken in excluded:
 			if taken is not None:
 				self.excluded.add(taken)
 		explanation = QLabel(EXPLANATION, self)
 		explanation.setWordWrap(True)
-		self.table = QTableWidget(0, 2, self)
+		self.table = QTableWidget(0, 3, self)
 		self.table.setObjectName("inputs_table")
-		self.table.setHorizontalHeaderLabels([_("Name"), _("Input")])
+		self.table.setHorizontalHeaderLabels([_("Name"), _("Input"), _("Level")])
 		self.table.verticalHeader().hide()
 		self.table.horizontalHeader().setSectionResizeMode(NAME, QHeaderView.ResizeMode.Stretch)
 		self.table.horizontalHeader().setSectionResizeMode(DEVICE, QHeaderView.ResizeMode.Stretch)
+		self.table.horizontalHeader().setSectionResizeMode(LEVEL, QHeaderView.ResizeMode.Stretch)
 		self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 		self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 		self.choice = QComboBox(self)
@@ -98,6 +125,10 @@ class AudioInputs(QGroupBox):
 		self.add.setObjectName("add_input")
 		self.remove = QPushButton(intents.label(intents.REMOVE, _("Remove the input")), self)
 		self.remove.setObjectName("remove_input")
+		self.pre_listen = QPushButton(PRE_LISTEN, self)
+		self.pre_listen.setObjectName("pre_listen_input")
+		self.pre_listen.setCheckable(True)
+		self.pre_listen.setToolTip(PRE_LISTEN_TIP)
 		self.error = QLabel(self)
 		self.error.setObjectName("inputs_error")
 		self.error.setWordWrap(True)
@@ -106,6 +137,7 @@ class AudioInputs(QGroupBox):
 		actions.addWidget(self.choice, 1)
 		actions.addWidget(self.add)
 		actions.addWidget(self.remove)
+		actions.addWidget(self.pre_listen)
 		arrangement = QVBoxLayout(self)
 		arrangement.addWidget(explanation)
 		arrangement.addWidget(self.table)
@@ -119,6 +151,7 @@ class AudioInputs(QGroupBox):
 			self._append(audio_input.device, audio_input.name)
 		self.add.clicked.connect(self._add)
 		self.remove.clicked.connect(self._remove)
+		self.pre_listen.toggled.connect(self._pre_listen)
 		self.table.itemChanged.connect(self._changed)
 		self.table.itemSelectionChanged.connect(self._offer)
 		self._offer()
@@ -136,6 +169,40 @@ class AudioInputs(QGroupBox):
 		self.table.setItem(row, NAME, named)
 		self.table.setItem(row, DEVICE, shown)
 		self.table.blockSignals(False)
+		level = InputLevel(self.listening, device, self.table)
+		self.table.setCellWidget(row, LEVEL, level)
+		if self.isVisible():
+			level.monitor.start()
+
+	def levels(self) -> list["InputLevel"]:
+		"""Les VU-mètres des entrées, dans l'ordre du tableau."""
+		found = []
+		for row in range(self.table.rowCount()):
+			level = self.table.cellWidget(row, LEVEL)
+			assert isinstance(level, InputLevel)
+			found.append(level)
+		return found
+
+	def showEvent(self, event: QShowEvent) -> None:
+		"""Les VU-mètres écoutent leur entrée tant que le bloc est affiché."""
+		super().showEvent(event)
+		for level in self.levels():
+			if not level.monitor.active():
+				level.monitor.start()
+
+	def hideEvent(self, event: QHideEvent) -> None:
+		super().hideEvent(event)
+		self.halt()
+
+	def halt(self) -> None:
+		"""Les VU-mètres et la pré-écoute s'arrêtent : la fenêtre se ferme. Le bloc peut se cacher en étant détruit,
+		son tableau déjà parti."""
+		if (not isValid(self.table)) or (not isValid(self.preview_player)):
+			return
+		self.preview_player.halt()
+		for level in self.levels():
+			level.monitor.halt()
+		self.pre_listen.setChecked(False)
 
 	def devices(self) -> list[str]:
 		"""Les périphériques des entrées, dans l'ordre du tableau."""
@@ -162,6 +229,11 @@ class AudioInputs(QGroupBox):
 			self.choice.setEnabled(True)
 			self.add.setEnabled(True)
 		self.remove.setEnabled(self.table.currentRow() >= 0)
+		heard = self.listening.preview != DUMMY
+		self.pre_listen.setEnabled(((self.table.currentRow() >= 0) and (heard)) or (self.pre_listen.isChecked()))
+		self.pre_listen.setToolTip(PRE_LISTEN_TIP)
+		if not heard:
+			self.pre_listen.setToolTip(WITHOUT_PRE_LISTEN)
 
 	def _add(self) -> None:
 		device = self.choice.currentData()
@@ -175,8 +247,38 @@ class AudioInputs(QGroupBox):
 		row = self.table.currentRow()
 		if row < 0:
 			return
+		level = self.table.cellWidget(row, LEVEL)
+		if isinstance(level, InputLevel):
+			level.monitor.halt()
 		self.table.removeRow(row)
 		self._changed()
+
+	def _pre_listen(self, chosen: bool) -> None:  # noqa: FBT001  # signal de Qt : le booléen arrive par sa position
+		"""L'entrée choisie, sur la sortie de pré-écoute ; décoché, la pré-écoute s'arrête."""
+		self.error.setVisible(False)
+		if not chosen:
+			self.preview_player.halt()
+			self.pre_listen.setText(PRE_LISTEN)
+			self._check()
+			return
+		devices = self.devices()
+		row = self.table.currentRow()
+		if (row < 0) or (row >= len(devices)):
+			self.pre_listen.setChecked(False)
+			return
+		problem = self.preview_player.play(devices[row])
+		if problem is not None:
+			self.pre_listen.setChecked(False)
+			self.error.setText(problem)
+			self.error.setVisible(True)
+			return
+		self.pre_listen.setText(STOP_PRE_LISTEN)
+
+	def _preview_stopped(self, problem: str) -> None:
+		self.pre_listen.setChecked(False)
+		if problem != "":
+			self.error.setText(problem)
+			self.error.setVisible(True)
 
 	def _changed(self) -> None:
 		self._offer()
@@ -209,6 +311,101 @@ class AudioInputs(QGroupBox):
 			assert cell is not None
 			found.append(AudioInput(device=str(cell.data(DEVICE_ROLE)), name=cell.text().strip()))
 		return tuple(found)
+
+
+class InputLevel(QWidget):
+	"""Le VU-mètre d'une entrée, ou, à sa place, pourquoi elle ne s'écoute pas : une entrée introuvable."""
+
+	def __init__(self, listening: Audio, device: str, parent: QWidget | None = None) -> None:
+		super().__init__(parent)
+		self.setObjectName("input_level")
+		self.meter = VuMeter(self)
+		self.meter.setMinimumHeight(28)
+		self.unavailable = QLabel(self)
+		self.unavailable.setObjectName("input_unavailable")
+		self.unavailable.setWordWrap(True)
+		self.unavailable.hide()
+		arrangement = QHBoxLayout(self)
+		arrangement.setContentsMargins(2, 2, 2, 2)
+		arrangement.addWidget(self.meter)
+		arrangement.addWidget(self.unavailable)
+		self.monitor = InputMonitor(listening, device, self)
+		self.monitor.changed.connect(self._show)
+
+	def _show(self) -> None:
+		problem = self.monitor.unavailable
+		self.unavailable.setText((problem) or (""))
+		self.unavailable.setVisible(problem is not None)
+		self.meter.setVisible(problem is None)
+		self.meter.display(self.monitor.levels, self.monitor.peaks)
+
+
+class InputPreview(QObject):
+	"""Une entrée écoutée sur la sortie de pré-écoute, jamais à l'antenne ; stopped dit pourquoi elle s'arrête, vide
+	pour un arrêt demandé."""
+
+	stopped = Signal(str)
+
+	def __init__(self, listening: Audio, parent: QObject | None = None) -> None:
+		super().__init__(parent)
+		self.listening = listening
+		self.device: str | None = None
+		self._pipeline: Gst.Pipeline | None = None
+		self._piloted: states.Pilot | None = None
+		self._reading = QTimer(self)
+		self._reading.setInterval(PRE_LISTEN_READING)
+		self._reading.timeout.connect(self._read_off)
+
+	def active(self) -> bool:
+		return self._pipeline is not None
+
+	def play(self, device: str) -> str | None:
+		"""L'entrée sur la sortie de pré-écoute ; ce qui l'empêche, None sinon."""
+		self.halt()
+		try:
+			source = input_source(self.listening, device)
+		except Unavailable as error:
+			return str(error)
+		try:
+			output = audio.create_output(self.listening.output, self.listening.preview, presentation=audio.PREVIEW)
+		except audio.UnavailableAudioOutput as error:
+			return str(error)
+		pipeline = Gst.Pipeline.new("pre-ecoute-entree")
+		conversion = Gst.ElementFactory.make("audioconvert", None)
+		resampling = Gst.ElementFactory.make("audioresample", None)
+		assert (conversion is not None) and (resampling is not None)
+		for item in (source, conversion, resampling, output):
+			pipeline.add(item)
+		source.link(conversion)
+		conversion.link(resampling)
+		resampling.link(output)
+		self.device, self._pipeline = device, pipeline
+		self._piloted = states.Pilot(pipeline)
+		self._piloted.to(Gst.State.PLAYING)
+		self._reading.start()
+		return None
+
+	def halt(self) -> None:
+		self._reading.stop()
+		if self._piloted is not None:
+			self._piloted.switch_off()
+		self._pipeline, self._piloted, self.device = None, None, None
+
+	def _read_off(self) -> None:
+		pipeline = self._pipeline
+		if pipeline is None:
+			return
+		bus = pipeline.get_bus()
+		assert bus is not None
+		message = bus.pop_filtered(Gst.MessageType.ERROR | Gst.MessageType.EOS)
+		if message is None:
+			return
+		problem = _("the input has closed.")
+		if message.type == Gst.MessageType.ERROR:
+			error, _detail = message.parse_error()
+			problem = str(error.message)
+		self.halt()
+		self.stopped.emit(_("Pre-listen stopped: {problem}").format(problem=problem))
 
 
 class InputReservation(QObject):
