@@ -1,7 +1,9 @@
 """Moteur audio GStreamer avec crossfade (https://github.com/dascritch/machincast/issues/15, spec § 5.1).
 
 Chaque sonore joue dans sa propre voie : un pipeline playbin3 (machincast.audio.PLAYER) qui sort sur l'élément de
-la sortie configurée (machincast.audio), précédé d'un élément volume. Deux voies se superposent pendant un crossfade ;
+la sortie configurée (machincast.audio), précédé d'un élément volume, et avant lui de l'élément « gain », le gain du
+sonore qu'un plugin a répondu (https://github.com/dascritch/machincast/issues/643). Deux voies se superposent pendant
+un crossfade ;
 la sortie mélange leurs sons (PipeWire et PulseAudio le font toujours ; en ALSA, il faut un périphérique qui le
 permet, comme « default » avec dmix).
 
@@ -164,6 +166,8 @@ class TrackOptions:
 	arrival: float = 0.0
 	"""Volume à la fin de la voie, quand son fondu de sortie déborde du fichier."""
 	buffer: timedelta | None = None
+	gain: float = 0.0
+	"""Le gain du sonore, en dB, avant son enveloppe de volume (https://github.com/dascritch/machincast/issues/643)."""
 
 
 class Track:
@@ -232,7 +236,8 @@ class Track:
 			player = Gst.Pipeline.new(None)
 		volume = Gst.ElementFactory.make("volume", None)
 		level = Gst.ElementFactory.make("level", None)
-		if (player is None) or (volume is None) or (level is None):
+		amplification = Gst.ElementFactory.make("volume", "gain")
+		if (player is None) or (volume is None) or (level is None) or (amplification is None):
 			raise UnavailableAudioOutput(
 				_(
 					"{player}, volume or level not found, install gstreamer1.0-plugins-base and "
@@ -249,12 +254,16 @@ class Track:
 		if factory is not None:
 			self.output_factory = factory.get_name()
 
-		# Le niveau se mesure avant le volume : les fondus ne sont pas des blancs.
+		# Le niveau se mesure avant le gain et le volume : les fondus ne sont pas des blancs, ni un gain un blanc.
+		amplification.set_property("volume", 10 ** (options.gain / 20))
+		self.gain = options.gain
 		plugged = Gst.Bin.new(None)
 		plugged.add(level)
+		plugged.add(amplification)
 		plugged.add(volume)
 		plugged.add(output)
-		level.link(volume)
+		level.link(amplification)
+		amplification.link(volume)
 		volume.link(output)
 		entry = level.get_static_pad("sink")
 		assert entry is not None

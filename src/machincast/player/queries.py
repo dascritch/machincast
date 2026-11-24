@@ -277,6 +277,11 @@ def last_item(connection: Connection, event: int, since: datetime | None) -> Tup
 	).fetchone()
 
 
+def sound_properties(connection: Connection, sound: int) -> TupleRow | None:
+	"""La colonne properties d'un sonore (https://github.com/dascritch/machincast/issues/643)."""
+	return connection.execute("SELECT properties FROM sounds WHERE id = %s", (sound,)).fetchone()
+
+
 def last_play_of_banks(connection: Connection, banks: list[int]) -> TupleRow | None:
 	"""Le début du dernier passage fourni par l'une de ces banques
 	(https://github.com/dascritch/machincast/issues/640)."""
