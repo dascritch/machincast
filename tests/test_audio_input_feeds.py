@@ -187,7 +187,7 @@ def captures(playing: Playing, factory: str) -> None:
 		if element_factory is not None:
 			factories.append(element_factory.get_name())
 
-	track._player.iterate_elements().foreach(note)  # noqa: SLF001
+	track._player.iterate_elements().foreach(note)
 	assert factory in factories, factories
 	assert track.position() > timedelta(0)
 
