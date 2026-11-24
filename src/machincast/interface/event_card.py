@@ -38,6 +38,7 @@ pour un nouvel événement. Enregistrement, annulation et fermeture : machincast
 
 import logging
 from datetime import date, datetime, timedelta
+from typing import cast
 
 from PySide6.QtCore import QDateTime, Signal
 from PySide6.QtWidgets import QBoxLayout, QDateTimeEdit, QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
@@ -442,9 +443,11 @@ class EventCard(Card):
 			day.setEnabled(with_start)
 
 	def _align_first_occurrence(self) -> None:
-		"""La première occurrence avance au premier jour de récurrence coché qui la suit, ou reste à son jour s'il l'est,
-		sa fin avec elle (https://github.com/dascritch/machincast/issues/606) : un événement créé un mardi depuis la
-		grille, puis coché le mercredi, commence le mercredi, et toutes ses sessions avec lui."""
+		"""La première occurrence va au premier jour coché de la semaine de son début, du lundi au dimanche, à l'heure du
+		début, s'il n'est pas encore passé ; sinon, au premier jour coché qui suit. La fin la suit
+		(https://github.com/dascritch/machincast/issues/606) : posé le jeudi 4 depuis la grille, un lundi 1, puis coché
+		le mercredi, l'événement commence le mercredi 3, et toutes ses sessions avec lui. Un début déjà passé, celui
+		d'un événement enregistré avant, va au premier jour coché de sa semaine, sans sauter au présent."""
 		ui = self.ui
 		ticked = set()
 		for index, day in enumerate(self.days):
@@ -452,15 +455,20 @@ class EventCard(Card):
 				ticked.add(index)
 		if (not ticked) or (not ui.has_start.isChecked()):
 			return
-		start = ui.start.dateTime()
-		# dayOfWeek de Qt : 1 pour lundi, comme DAYS commence par lundi.
-		weekday = start.date().dayOfWeek() - 1
-		shift = 0
-		while (weekday + shift) % len(self.days) not in ticked:
-			shift += 1
+		start = cast(datetime, ui.start.dateTime().toPython())
+		now = self.clock.now().astimezone().replace(tzinfo=None)
+		monday = start.date() - timedelta(days=start.weekday())
+		chosen = start.date()
+		for offset in range(2 * len(self.days)):
+			day = monday + timedelta(days=offset)
+			candidate = datetime.combine(day, start.time())
+			if (day.weekday() in ticked) and ((start < now) or (candidate > now)):
+				chosen = day
+				break
+		shift = (chosen - start.date()).days
 		if shift == 0:
 			return
-		ui.start.setDateTime(start.addDays(shift))
+		ui.start.setDateTime(ui.start.dateTime().addDays(shift))
 		ui.end.setDateTime(ui.end.dateTime().addDays(shift))
 
 	def _hour_only(self) -> None:

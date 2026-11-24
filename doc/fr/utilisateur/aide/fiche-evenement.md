@@ -13,7 +13,7 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 6. **Secours** (`end_fallback`) : le secours qui prend la suite, quand la fin de la liste passe à un secours.
 7. **Secours d'un stream tombé** (`stream_fallback`) : le secours qui joue quand un stream de la liste tombe ; **Celui de chaque stream** garde le secours de chaque stream.
 8. **Début** (`has_start`) : à cocher, le moment où l'événement commence ; de même pour **Fin**.
-9. **Jours** (`monday`) : les jours de la semaine où l'événement revient, du lundi au dimanche. Cocher un jour avance la première occurrence à ce jour, si elle n'y est pas déjà ([#606](https://github.com/dascritch/machincast/issues/606)).
+9. **Jours** (`monday`) : les jours de la semaine où l'événement revient, du lundi au dimanche. Cocher un jour place la première occurrence au premier jour coché de sa semaine, s'il n'est pas passé, sinon au suivant ([#606](https://github.com/dascritch/machincast/issues/606)).
 10. **Éléments** (`items`) : les sonores, banques, séquences et feeds joués, dans l'ordre ; glisser-déposer, couper, copier et coller les réordonnent.
 11. **➕ Ajouter des sonores…** (`add_sounds`) : ajoute des sonores ; les boutons voisins ajoutent des banques, des séquences et des feeds.
 12. **➖ Retirer l'élément** (`remove_item`) : retire les éléments choisis.

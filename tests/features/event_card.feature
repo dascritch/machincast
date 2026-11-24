@@ -752,19 +752,32 @@ Fonctionnalité: Fiche d'un événement
 		Quand je coche « samedi » dans la fiche de l'événement
 		Alors « Début » et « Fin » de la fiche de l'événement montrent « 07:00 » et « 09:00 »
 
-	Scénario: Un jour de récurrence coché avance la première occurrence à ce jour, sa fin avec elle
-		https://github.com/dascritch/machincast/issues/606 : un événement créé un mercredi depuis la grille, puis coché
-		le vendredi, commence le vendredi qui suit, et toutes ses sessions avec lui.
+	Plan du scénario: Un jour de récurrence coché place la première occurrence au premier jour coché de sa semaine, s'il n'est pas passé
+		https://github.com/dascritch/machincast/issues/606 : un événement posé depuis la grille le jeudi 22, coché le
+		mercredi, commence le mercredi 21, avant le créneau cliqué, s'il est encore à venir ; un jour coché déjà passé
+		renvoie à la semaine suivante. La fin suit le début, et toutes les sessions avec lui. Nous sommes le lundi 19 à
+		15:30.
 
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Journal »
-		Et je coche « vendredi » dans la fiche de l'événement
+		Et je saisis dans la fiche de l'événement :
+			| champ | valeur      |
+			| Début | <début>     |
+			| Fin   | <fin>       |
+		Et je coche « <jour> » dans la fiche de l'événement
 		Et j'enregistre la fiche
 		Alors l'événement « Journal » a en base :
-			| champ           | valeur                    |
-			| starts_at       | 2026-10-23 09:00:00+02:00 |
-			| ends_at         | 2026-10-23 09:30:00+02:00 |
-			| recurrence_days | ['friday']                |
+			| champ           | valeur        |
+			| starts_at       | <premier>     |
+			| ends_at         | <première fin> |
+			| recurrence_days | ['<day>']     |
+
+		Exemples:
+			| début            | fin              | jour     | day       | premier                   | première fin              |
+			| 21/10/2026 09:00 | 21/10/2026 09:30 | vendredi | friday    | 2026-10-23 09:00:00+02:00 | 2026-10-23 09:30:00+02:00 |
+			| 22/10/2026 09:00 | 22/10/2026 09:30 | mercredi | wednesday | 2026-10-21 09:00:00+02:00 | 2026-10-21 09:30:00+02:00 |
+			| 21/10/2026 09:00 | 21/10/2026 09:30 | lundi    | monday    | 2026-10-26 09:00:00+01:00 | 2026-10-26 09:30:00+01:00 |
+			| 21/10/2026 20:00 | 21/10/2026 21:00 | lundi    | monday    | 2026-10-19 20:00:00+02:00 | 2026-10-19 21:00:00+02:00 |
 
 	Scénario: Un jour de récurrence déjà celui de la première occurrence la laisse en place
 		Quand la fenêtre de l'interface s'ouvre
