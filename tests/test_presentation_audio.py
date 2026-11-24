@@ -95,9 +95,34 @@ def named(binary: str) -> list[str]:
 	return completed.stdout.splitlines()
 
 
+@when(parsers.parse("{first}, puis {second}, se nomment dans le même processus"), target_fixture="names")
+def named_twice(first: str, second: str, warnings: list[str]) -> list[str]:
+	"""Dans un processus à part ; ce que GLib avertit sort sur la sortie d'erreur."""
+	code = (
+		"from machincast import audio\n"
+		f"audio.identify(audio.{BINARIES[first]}, {first!r})\n"
+		f"audio.identify(audio.{BINARIES[second]}, {second!r})\n"
+		"print(audio.GLib.get_application_name())\n"
+		"print(audio.GLib.get_prgname())\n"
+	)
+	completed = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+	warnings.extend(completed.stderr.splitlines())
+	return completed.stdout.splitlines()
+
+
+@pytest.fixture
+def warnings() -> list[str]:
+	return []
+
+
 @then(parsers.parse("GLib le nomme « {name} », du programme « {binary} »"))
 def named_by_glib(names: list[str], name: str, binary: str) -> None:
 	assert names == [name, binary]
+
+
+@then("GLib n'a rien averti")
+def no_glib_warning(warnings: list[str]) -> None:
+	assert warnings == []
 
 
 @then("la fonction run de Machin_player et de Machin_interface commence par se nommer")

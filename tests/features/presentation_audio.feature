@@ -60,6 +60,14 @@ Fonctionnalité: Chaque programme de MachinCast se présente au serveur audio so
 			| Machin_player    | MachinCast lecteur   |
 			| Machin_interface | MachinCast interface |
 
+	Scénario: Un processus qui se nomme deux fois garde son premier nom d'application, sans avertissement de GLib
+		https://github.com/dascritch/machincast/issues/619 : GLib n'accepte qu'un nom d'application par processus, et
+		avertit à chaque nouvel essai ; les scénarios lancent plusieurs binaires dans le même processus.
+
+		Quand Machin_player, puis Machin_interface, se nomment dans le même processus
+		Alors GLib le nomme « MachinCast lecteur », du programme « Machin_interface »
+		Et GLib n'a rien averti
+
 	Scénario: Machin_player et Machin_interface se nomment dès leur lancement
 		Alors la fonction run de Machin_player et de Machin_interface commence par se nommer
 
