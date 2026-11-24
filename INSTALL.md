@@ -62,7 +62,7 @@ Packages installed by apt: only what pip cannot provide. All Python libraries co
 | `gstreamer1.0-alsa` | `alsa` audio output. |
 | `gstreamer1.0-pulseaudio` | `pulseaudio` audio output. |
 | `gstreamer1.0-pipewire` | `pipewire` audio output. |
-| `pipewire-bin` | `pw-dump` and `pw-cli`, which find and set the PipeWire cards: the virtual on-air card, the volume of the service card. Already present with PipeWire on a desktop Ubuntu. |
+| `pipewire-bin` | `pw-link`, which links the air to the pre-listen to listen to it under PipeWire ([#24](https://github.com/dascritch/machincast/issues/24)). Already present with PipeWire on a desktop Ubuntu. |
 | `libmagic1t64` | Recognising the real type of the sound files, without trusting their extension ([#121](https://github.com/dascritch/machincast/issues/121)). |
 | `postgresql` | Database server. |
 | `bash-completion` | Loading the completion of `Machin`. Already present on a standard Ubuntu, missing from a minimal installation. |
