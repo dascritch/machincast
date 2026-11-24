@@ -187,6 +187,8 @@ class EventCard(Card):
 			day.toggled.connect(self._modify)
 			day.toggled.connect(self._hour_only)
 			day.toggled.connect(self._tell_days)
+			# Un clic seulement : le chargement d'un événement coche ses jours sans déplacer ses dates.
+			day.clicked.connect(self._align_first_occurrence)
 		self.load()
 
 	def place_section(self, section: CardSection) -> None:
@@ -439,6 +441,28 @@ class EventCard(Card):
 		for day in self.days:
 			day.setEnabled(with_start)
 
+	def _align_first_occurrence(self) -> None:
+		"""La première occurrence avance au premier jour de récurrence coché qui la suit, ou reste à son jour s'il l'est,
+		sa fin avec elle (https://github.com/dascritch/machincast/issues/606) : un événement créé un mardi depuis la
+		grille, puis coché le mercredi, commence le mercredi, et toutes ses sessions avec lui."""
+		ui = self.ui
+		ticked = set()
+		for index, day in enumerate(self.days):
+			if day.isChecked():
+				ticked.add(index)
+		if (not ticked) or (not ui.has_start.isChecked()):
+			return
+		start = ui.start.dateTime()
+		# dayOfWeek de Qt : 1 pour lundi, comme DAYS commence par lundi.
+		weekday = start.date().dayOfWeek() - 1
+		shift = 0
+		while (weekday + shift) % len(self.days) not in ticked:
+			shift += 1
+		if shift == 0:
+			return
+		ui.start.setDateTime(start.addDays(shift))
+		ui.end.setDateTime(ui.end.dateTime().addDays(shift))
+
 	def _hour_only(self) -> None:
 		"""Un jour de récurrence coché : « Début » et « Fin » ne montrent que l'heure, celle de chaque occurrence
 		(https://github.com/dascritch/machincast/issues/535) ; sans jour, la date et l'heure de l'occurrence unique."""
@@ -549,6 +573,7 @@ class EventCard(Card):
 		if queries.name_taken(self.connection, name, self.identifier):
 			raise Refusal(_("Another event is already called “{name}”.").format(name=name), ui.internal_name)
 		priority = self._priority()
+		self._align_first_occurrence()
 		start, end = display.ticked_date(ui.has_start, ui.start), display.ticked_date(ui.has_end, ui.end)
 		if (priority in ENDLESS_DOES_NOT_LOOP) and (start is None):
 			raise Refusal(_("A show or a special has a start."), ui.priority, ui.has_start)
