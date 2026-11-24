@@ -1,6 +1,8 @@
 """Le curseur d'une sonie ou d'une crête, en décibels, par demi-décibel, sa valeur écrite à sa droite :
 « −23,0 LUFS » (https://github.com/dascritch/machincast/issues/43)."""
 
+import math
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSlider, QWidget
 
@@ -10,18 +12,24 @@ STEPS = 2
 """Pas du curseur par décibel : un demi-décibel."""
 
 
-def written(value: float, unit: str) -> str:
-	"""« −23,0 LUFS », au dixième, avec la virgule de la langue."""
-	return decimal(f"{value:.1f}").replace("-", "−") + unit
+def written(value: float, unit: str, *, sign: bool = False) -> str:
+	"""« −23,0 LUFS », au dixième, avec la virgule de la langue ; « +1,5 dB » avec le signe, pour un gain."""
+	shown = f"{value:.1f}"
+	if sign:
+		shown = f"{value:+.1f}"
+	return decimal(shown).replace("-", "−") + unit
 
 
 class LevelSlider(QWidget):
 	valueChanged = Signal(float)
 	"""La valeur, en décibels, à chaque mouvement du curseur."""
 
-	def __init__(self, lowest: float, highest: float, unit: str, parent: QWidget | None = None) -> None:
+	def __init__(
+		self, lowest: float, highest: float, unit: str, parent: QWidget | None = None, *, sign: bool = False
+	) -> None:
 		super().__init__(parent)
 		self.unit = unit
+		self.sign = sign
 		self.slider = QSlider(Qt.Orientation.Horizontal, self)
 		self.slider.setObjectName("slider")
 		self.slider.setRange(round(lowest * STEPS), round(highest * STEPS))
@@ -32,8 +40,8 @@ class LevelSlider(QWidget):
 		self.value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 		# La largeur de la plus longue valeur : le curseur ne bouge pas quand elle change.
 		width = max(
-			self.value_label.fontMetrics().horizontalAdvance(written(lowest, unit)),
-			self.value_label.fontMetrics().horizontalAdvance(written(highest, unit)),
+			self.value_label.fontMetrics().horizontalAdvance(written(lowest, unit, sign=sign)),
+			self.value_label.fontMetrics().horizontalAdvance(written(highest, unit, sign=sign)),
 		)
 		self.value_label.setMinimumWidth(width)
 		arrangement = QHBoxLayout(self)
@@ -44,7 +52,7 @@ class LevelSlider(QWidget):
 		self._moves(self.slider.value())
 
 	def _moves(self, position: int) -> None:
-		self.value_label.setText(written(position / STEPS, self.unit))
+		self.value_label.setText(written(position / STEPS, self.unit, sign=self.sign))
 		self.valueChanged.emit(position / STEPS)
 
 	def value(self) -> float:
@@ -59,3 +67,8 @@ class LevelSlider(QWidget):
 
 	def maximum(self) -> float:
 		return self.slider.maximum() / STEPS
+
+	def setMaximum(self, value: float) -> None:  # comme le champ de nombre qu'il remplace
+		"""Le plus haut, au demi-décibel ; jamais sous le plus bas."""
+		self.slider.setMaximum(max(self.slider.minimum(), math.floor(value * STEPS + 1e-9)))
+		self._moves(self.slider.value())

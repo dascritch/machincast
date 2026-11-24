@@ -2,7 +2,7 @@
 (https://github.com/dascritch/machincast/issues/43), par le point « interface.bank_card »
 (https://github.com/dascritch/machincast/issues/591).
 
-L'encart « Niveau » : « Sonie visée propre à la banque » et « Plafond de crête propre à la banque », chacun avec sa
+L'encart « Niveau », repliable, ouvert par défaut : « Sonie visée propre à la banque » et « Plafond de crête propre à la banque », chacun avec sa
 case et son curseur ; décochée, la banque suit le réglage du plugin, que son curseur montre, grisé. Cochés, ils
 remplacent ceux du plugin pour les sonores que la banque fournit, et s'enregistrent avec elle, dans sa colonne
 properties, sous la clé du plugin ; sans l'un ni l'autre, la clé en part.
@@ -10,6 +10,7 @@ properties, sous la clé du plugin ; sans l'un ni l'autre, la clé en part.
 
 from PySide6.QtWidgets import QCheckBox, QFormLayout, QGroupBox, QVBoxLayout, QWidget
 
+from machincast.interface import expandable
 from machincast.interface.card import CardSection
 from machincast_loudness_normalization import queries
 from machincast_loudness_normalization.rule import (
@@ -24,6 +25,10 @@ from machincast_loudness_normalization.rule import (
 from machincast_loudness_normalization.slider import LevelSlider
 from machincast_loudness_normalization.texts import t
 
+GROUP = "loudness_normalization_group"
+COLLAPSED_PANELS = "fiche-banque/encarts-replies"
+"""Les encarts de la fiche d'une banque qu'on a repliés, retenus pour le compte : celui-ci est ouvert par défaut."""
+
 
 class BankLevelSection(CardSection):
 	def __init__(self, connection: queries.Connection, current: Current, parent: QWidget | None = None) -> None:
@@ -33,7 +38,7 @@ class BankLevelSection(CardSection):
 		self.current = current
 		self._loading = False
 		group = QGroupBox(t("Level"), self)
-		group.setObjectName("loudness_normalization_group")
+		group.setObjectName(GROUP)
 		self.has_target = QCheckBox(t("Target loudness of its own"), group)
 		self.has_target.setObjectName("has_target")
 		self.target = LevelSlider(LOWEST_TARGET, HIGHEST_TARGET, t(" LUFS"), group)
@@ -50,6 +55,13 @@ class BankLevelSection(CardSection):
 		layout = QVBoxLayout(self)
 		layout.setContentsMargins(0, 0, 0, 0)
 		layout.addWidget(group)
+		# Repliable, ouvert par défaut : la fiche retient seulement qu'on l'a replié.
+		expandable.make_expandable(
+			group,
+			expanded=GROUP not in expandable.retained(COLLAPSED_PANELS),
+			retain=expandable.retain_in(COLLAPSED_PANELS, expanded_list=False),
+		)
+		self.group = group
 		for box, slider in ((self.has_target, self.target), (self.has_ceiling, self.ceiling)):
 			box.toggled.connect(slider.setEnabled)
 			box.toggled.connect(self._changed)

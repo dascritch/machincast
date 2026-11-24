@@ -9,7 +9,7 @@ contient ; le gain que Machin player appliquera, et celui des banques qui ont le
 plugin, la fiche n'en montre rien, et Machin player joue le sonore tel quel.
 """
 
-from PySide6.QtWidgets import QBoxLayout, QDoubleSpinBox, QFormLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QBoxLayout, QCheckBox, QFormLayout, QGroupBox, QLabel, QVBoxLayout, QWidget
 
 from machincast.interface import expandable
 from machincast.interface.card import CardSection
@@ -24,15 +24,15 @@ from machincast_loudness_normalization.rule import (
 	applied,
 	automatic,
 	bank_values,
+	half_below,
 	manual,
 	measure,
 	overridden,
 	strictest,
-	tenth_below,
 )
+from machincast_loudness_normalization.slider import LevelSlider
 from machincast_loudness_normalization.texts import t
 
-STEP = 0.5
 GROUP = "loudness_normalization_group"
 """Le nom de l'encart « Niveau » : la fiche retient s'il est déplié, comme ses autres encarts."""
 
@@ -58,24 +58,23 @@ class LevelSection(CardSection):
 		self.measure = QLabel(self.group)
 		self.measure.setObjectName("measure")
 		self.measure.setWordWrap(True)
-		self.adjustment = QDoubleSpinBox(self.group)
+		self.has_adjustment = QCheckBox(t("Manual adjustment"), self.group)
+		self.has_adjustment.setObjectName("has_manual_adjustment")
+		self.adjustment = LevelSlider(-MANUAL, MANUAL, t(" dB"), self.group, sign=True)
 		self.adjustment.setObjectName("manual_adjustment")
-		self.adjustment.setDecimals(1)
-		self.adjustment.setSingleStep(STEP)
-		self.adjustment.setRange(-MANUAL, MANUAL)
-		self.adjustment.setSuffix(t(" dB"))
-		self.adjustment.setToolTip(
-			t(
-				"Added to the automatic gain, which brings the loudness to the target; bounded so that the peak never"
-				" exceeds the ceiling."
+		for widget in (self.has_adjustment, self.adjustment):
+			widget.setToolTip(
+				t(
+					"Added to the automatic gain, which brings the loudness to the target; bounded so that the peak"
+					" never exceeds the ceiling."
+				)
 			)
-		)
 		self.applied = QLabel(self.group)
 		self.applied.setObjectName("applied_gain")
 		self.applied.setWordWrap(True)
 		form = QFormLayout(self.group)
 		form.addRow(self.measure)
-		form.addRow(t("Manual adjustment"), self.adjustment)
+		form.addRow(self.has_adjustment, self.adjustment)
 		form.addRow(self.applied)
 		self.in_card = card is not None
 		if card is None:
@@ -91,6 +90,8 @@ class LevelSection(CardSection):
 				retain=expandable.retain_in(EXPANDED_PANELS),
 			)
 		self.adjustment.valueChanged.connect(self._changed)
+		self.has_adjustment.toggled.connect(self.adjustment.setEnabled)
+		self.has_adjustment.toggled.connect(self._changed)
 
 	def _changed(self) -> None:
 		self._show_applied()
@@ -113,7 +114,10 @@ class LevelSection(CardSection):
 		self.measured = measure(found)
 		self._show_measure()
 		self._bound()
-		self.adjustment.setValue(manual(found))
+		adjustment = manual(found)
+		self.has_adjustment.setChecked(adjustment != 0)
+		self.adjustment.setEnabled(adjustment != 0)
+		self.adjustment.setValue(adjustment)
 		self._show_applied()
 		self._loading = False
 
@@ -137,25 +141,29 @@ class LevelSection(CardSection):
 				variants.append(own)
 			bound = strictest(variants, self.measured)
 			if bound is not None:
-				highest = max(-MANUAL, min(MANUAL, tenth_below(bound[1])))
+				highest = max(-MANUAL, min(MANUAL, half_below(bound[1])))
 		self.adjustment.setMaximum(highest)
+
+	def chosen(self) -> float:
+		"""L'ajustement manuel, en dB ; 0 décoché."""
+		if not self.has_adjustment.isChecked():
+			return 0.0
+		return self.adjustment.value()
 
 	def _show_applied(self) -> None:
 		settings = self.current.settings
 		if settings is None:
 			self.applied.setText(t("The loudness normalisation is not set: its settings are refused."))
 			return
-		lines = [_gain_line(settings, self.measured, self.adjustment.value())]
+		lines = [_gain_line(settings, self.measured, self.chosen())]
 		for name, own in self.banks:
 			lines.append(
-				t("In the bank “{name}”: {gain}").format(
-					name=name, gain=_gain_line(own, self.measured, self.adjustment.value())
-				)
+				t("In the bank “{name}”: {gain}").format(name=name, gain=_gain_line(own, self.measured, self.chosen()))
 			)
 		self.applied.setText("\n".join(lines))
 
 	def write(self, identifier: int) -> None:
-		queries.write_manual(self.connection, identifier, round(self.adjustment.value(), 1))
+		queries.write_manual(self.connection, identifier, round(self.chosen(), 1))
 
 
 def _below_file(card: SoundCard, group: QGroupBox) -> None:
