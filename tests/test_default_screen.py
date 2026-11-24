@@ -18,7 +18,7 @@ from typing import Any
 import psycopg
 import pytest
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QGuiApplication, QStandardItemModel
+from PySide6.QtGui import QGuiApplication, QImage, QStandardItemModel
 from PySide6.QtWidgets import QGroupBox, QLabel, QMenu, QWidget
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -750,11 +750,11 @@ def erase_sound(empty_database: Connection, title: str) -> None:
 @when(parsers.parse("j'ouvre dans l'airplay la cellule de la colonne « {column} »"))
 def open_column(context: Context, qtbot: QtBot, column: str) -> None:
 	"""Double-clic sur la première ligne de l'airplay, dans cette colonne, même vide."""
-	table_airplay = screen(context).ui.table_airplay
+	table_airplay = screen(context).ui.sounds_table
 	titles = []
 	for _name, title in screen(context).AIRPLAY_COLUMNS:
 		titles.append(title)
-	index = table_airplay.model().index(0, titles.index(column))
+	index = table_airplay.model().index(_rows(context, AIRPLAY)[0], titles.index(column))
 	table_airplay.scrollTo(index)
 	position = table_airplay.visualRect(index).center()
 	qtbot.mouseClick(table_airplay.viewport(), Qt.MouseButton.LeftButton, pos=position)
@@ -768,7 +768,7 @@ def no_card(context: Context) -> None:
 
 @when(parsers.parse("j'ouvre dans l'airplay la cellule « {text} »"))
 def open_cell(context: Context, qtbot: QtBot, text: str) -> None:
-	open_in(qtbot, screen(context).ui.table_airplay, text)
+	open_in(qtbot, screen(context).ui.sounds_table, text)
 
 
 @then("l'onglet Antenne a demandé les fiches de l'airplay :")
@@ -849,28 +849,44 @@ def progress(context: Context, qtbot: QtBot, soon: str | None, text: str, value:
 		assert opened.ongoing_progress == int(value), opened.ongoing_progress
 
 
-def table(context: Context) -> list[dict[str, str]]:
-	model = screen(context).airplay_model
-	columns = screen(context).AIRPLAY_COLUMNS
-	table = []
+AIRPLAY = (screen_module.ON_AIR, screen_module.PLAYED)
+"""Les lignes du tableau des sonores qui viennent de l'airplay : à l'antenne, puis passées."""
+COMING = (screen_module.COMING,)
+LINES = {screen_module.COMING: "à venir", screen_module.ON_AIR: "à l'antenne", screen_module.PLAYED: "passé"}
+
+
+def _rows(context: Context, kinds: tuple[str, ...]) -> list[int]:
+	"""Les lignes du tableau des sonores de ces sortes, de haut en bas."""
+	model = screen(context).sounds_model
+	rows = []
 	for row in range(model.rowCount()):
+		if model.index(row, 0).data(screen_module.KIND) in kinds:
+			rows.append(row)
+	return rows
+
+
+def _lines(context: Context, kinds: tuple[str, ...], *, kind_column: bool = False) -> list[dict[str, str]]:
+	model = screen(context).sounds_model
+	columns = screen(context).AIRPLAY_COLUMNS
+	lines = []
+	for row in _rows(context, kinds):
 		item_dict = {}
+		if kind_column:
+			item_dict["ligne"] = LINES[str(model.index(row, 0).data(screen_module.KIND))]
 		for column, (key, _) in enumerate(columns):
 			item_dict[KEYS.get(key, key)] = model.item(row, column).text()
-		table.append(item_dict)
-	return table
+		lines.append(item_dict)
+	return lines
+
+
+def table(context: Context) -> list[dict[str, str]]:
+	"""Les lignes de l'airplay du tableau des sonores : à l'antenne, puis passées."""
+	return _lines(context, AIRPLAY)
 
 
 def upcoming_table(context: Context) -> list[dict[str, str]]:
-	model = screen(context).upcoming_model
-	columns = screen(context).AIRPLAY_COLUMNS
-	upcoming_table = []
-	for row in range(model.rowCount()):
-		item_dict = {}
-		for column, (key, _) in enumerate(columns):
-			item_dict[KEYS.get(key, key)] = model.item(row, column).text()
-		upcoming_table.append(item_dict)
-	return upcoming_table
+	"""Les lignes des sonores à venir du tableau des sonores."""
+	return _lines(context, COMING)
 
 
 @then("la table des sonores à venir montre :")
@@ -889,41 +905,91 @@ def upcoming_expected_table(context: Context, qtbot: QtBot, datatable: list[list
 @then(parsers.re(r"la table des sonores à venir a bientôt (?P<count>\d+) lignes?"))
 @when(parsers.re(r"la table des sonores à venir a bientôt (?P<count>\d+) lignes?"))
 def upcoming_lines(context: Context, qtbot: QtBot, count: str) -> None:
-	wait(qtbot, lambda: screen(context).upcoming_model.rowCount() == int(count))
+	wait(qtbot, lambda: len(_rows(context, COMING)) == int(count))
 
 
-@then("la table des sonores à venir a les colonnes de l'airplay, dans le même ordre")
-def upcoming_columns(context: Context) -> None:
+@then("le tableau des sonores de l'onglet Antenne montre :")
+def sounds_expected(context: Context, qtbot: QtBot, datatable: list[list[str]]) -> None:
+	headers, *lines = datatable
+	expected_list = []
+	for values in lines:
+		cells = []
+		for value in values:
+			cells.append(value.strip())
+		expected_list.append(dict(zip(headers, cells, strict=True)))
+	everything = (*COMING, *AIRPLAY)
+	wait(qtbot, lambda: len(_lines(context, everything)) == len(expected_list))
+	assert _lines(context, everything, kind_column=True) == expected_list, _lines(context, everything, kind_column=True)
+
+
+@then("le tableau des sonores de l'onglet Antenne ne se trie pas")
+def not_sorted(context: Context) -> None:
+	table_view = screen(context).ui.sounds_table
+	assert not table_view.isSortingEnabled()
+	assert not table_view.horizontalHeader().isSortIndicatorShown()
+
+
+def _red(image: QImage, x: int, y: int) -> bool:
+	color = image.pixelColor(x, y)
+	return (color.red() > 180) and (color.green() < 90) and (color.blue() < 90)
+
+
+def _outlined(context: Context, qtbot: QtBot, titles: set[str]) -> None:
+	"""Les lignes de ces titres, à la suite, sont entourées d'un seul liseré rouge : en haut de la première, en bas de
+	la dernière, à gauche ; ni entre elles, ni au milieu d'une ligne, ni autour des autres lignes."""
 	opened = screen(context)
-
-	def headers(model: QStandardItemModel) -> list[str]:
-		headers = []
-		for column in range(model.columnCount()):
-			headers.append(str(model.headerData(column, Qt.Orientation.Horizontal)))
-		return headers
-
-	assert headers(opened.upcoming_model) == headers(opened.airplay_model), headers(opened.upcoming_model)
-
-
-@then("la table des sonores à venir est au-dessus de celle de l'airplay")
-def upcoming_to_above(context: Context, qtbot: QtBot) -> None:
-	ui = screen(context).ui
-	screen(context).show()
+	opened.resize(1400, 900)
+	opened.show()
 	settle(qtbot)
-	airplay_top = ui.table_airplay.mapTo(screen(context), ui.table_airplay.rect().topLeft()).y()
-	upcoming_bottom = ui.upcoming_table.mapTo(screen(context), ui.upcoming_table.rect().bottomLeft()).y()
-	assert upcoming_bottom < airplay_top, (upcoming_bottom, airplay_top)
+	table_view = opened.ui.sounds_table
+	model = opened.sounds_model
+	image = table_view.viewport().grab().toImage()
+	ratio = image.devicePixelRatio()
+	ringed = []
+	for row in range(model.rowCount()):
+		ringed.append(model.index(row, 4).data() in titles)
+	assert sum(ringed) == len(titles), ringed
+	for row in range(model.rowCount()):
+		first = table_view.visualRect(model.index(row, 0))
+		middle = round(first.center().x() * ratio)
+		top = round(first.top() * ratio)
+		bottom = round(first.bottom() * ratio)
+		centre = round(first.center().y() * ratio)
+		above = (row > 0) and (ringed[row - 1])
+		below = (row < model.rowCount() - 1) and (ringed[row + 1])
+		assert _red(image, middle, top) == ((ringed[row]) and (not above)), (row, "haut")
+		assert _red(image, middle, top + round(1 * ratio)) == ((ringed[row]) and (not above)), (row, "haut, 2 px")
+		assert _red(image, middle, bottom) == ((ringed[row]) and (not below)), (row, "bas")
+		assert _red(image, middle, bottom - round(1 * ratio)) == ((ringed[row]) and (not below)), (row, "bas, 2 px")
+		assert _red(image, round(first.left() * ratio), centre) == ringed[row], (row, "gauche")
+		assert not _red(image, middle, top + round(3 * ratio)), (row, "dedans")
+		assert not _red(image, middle, bottom - round(3 * ratio)), (row, "dedans, en bas")
+		assert not _red(image, middle, centre), (row, "milieu")
+
+
+@then(parsers.parse("seule la ligne « {title} » du tableau des sonores est entourée d'un liseré rouge de 2 px"))
+def outlined(context: Context, qtbot: QtBot, title: str) -> None:
+	_outlined(context, qtbot, {title})
+
+
+@then(
+	parsers.parse(
+		"les lignes « {first} » et « {second} » du tableau des sonores sont entourées d'un même liseré rouge de 2 px"
+	)
+)
+def outlined_together(context: Context, qtbot: QtBot, first: str, second: str) -> None:
+	_outlined(context, qtbot, {first, second})
 
 
 @when(parsers.parse("j'ouvre dans les sonores à venir la cellule « {text} »"))
 def open_upcoming(context: Context, qtbot: QtBot, text: str) -> None:
-	open_in(qtbot, screen(context).ui.upcoming_table, text)
+	open_in(qtbot, screen(context).ui.sounds_table, text)
 
 
 @when(parsers.parse("je choisis « {entry} » au clic droit sur la ligne « {title} » des sonores à venir"))
 def upcoming_menu(context: Context, opened_folders: list[Path], entry: str, title: str) -> None:
 	opened = screen(context)
-	model = opened.upcoming_model
+	model = opened.sounds_model
 	row_list = []
 	for candidate_row in range(model.rowCount()):
 		found = False
@@ -934,7 +1000,7 @@ def upcoming_menu(context: Context, opened_folders: list[Path], entry: str, titl
 		if found:
 			row_list.append(candidate_row)
 	(row,) = row_list
-	menu = opened.upcoming_sound_menu(model.index(row, 0))
+	menu = opened.sounds_menu(model.index(row, 0))
 	assert menu is not None
 	action_list = []
 	for candidate in menu.actions():
@@ -1003,22 +1069,16 @@ def airplay_lines(context: Context, count: int, first: str, last: str) -> None:
 
 def panel(context: Context, title: str) -> QGroupBox:
 	group_list = []
-	for candidate in (screen(context).ui.upcoming_frame, screen(context).ui.airplay_frame):
+	for candidate in (screen(context).ui.sounds_frame,):
 		if candidate.property(expandable.TITLE) == title:
 			group_list.append(candidate)
 	(group,) = group_list
 	return group
 
 
-@then(parsers.parse("l'encart de l'airplay de l'onglet Antenne s'intitule « {title} »"))
-def airplay_title(context: Context, title: str) -> None:
-	assert screen(context).ui.airplay_frame.property(expandable.TITLE) == title
-
-
-@then(parsers.parse("les encarts « {first} » et « {second} » de l'onglet Antenne sont dépliés"))
-def expanded_panel_two(context: Context, first: str, second: str) -> None:
-	assert not expandable.is_collapsed(panel(context, first))
-	assert not expandable.is_collapsed(panel(context, second))
+@then(parsers.parse("l'encart des sonores de l'onglet Antenne s'intitule « {title} »"))
+def sounds_title(context: Context, title: str) -> None:
+	assert screen(context).ui.sounds_frame.property(expandable.TITLE) == title
 
 
 @then(parsers.re(r"l'encart « (?P<title>[^»]+) » de l'onglet Antenne est (?P<state>déplié|replié)"))
@@ -1483,9 +1543,7 @@ def _row(model: QStandardItemModel, title: str) -> int:
 
 def _table_menu(context: Context, table: str, title: str) -> QMenu | None:
 	opened = screen(context)
-	if table == "des sonores à venir":
-		return opened.upcoming_sound_menu(opened.upcoming_model.index(_row(opened.upcoming_model, title), 0))
-	return opened.airplay_menu(opened.airplay_model.index(_row(opened.airplay_model, title), 0))
+	return opened.sounds_menu(opened.sounds_model.index(_row(opened.sounds_model, title), 0))
 
 
 def _choose(menu: QMenu | None, entry: str) -> None:

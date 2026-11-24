@@ -2,10 +2,11 @@
 
 En un coup d'œil : l'heure, le texte public du sonore en cours entre guillemets, l'état du binaire lecture, l'événement
 à l'antenne et ses heures, le sonore en cours et le temps qui lui reste, le prochain sonore, chacun avec son événement,
-sa séquence, sa banque et son horaire sur une ligne, les sonores à venir après le prochain, le plus lointain en haut
-(https://github.com/dascritch/machincast/issues/228), et l'airplay des 12 dernières heures
-(https://github.com/dascritch/machincast/issues/144). Les boutons de chaque sonore, et un double-clic dans les sonores
-à venir ou l'airplay, demandent la fiche du sonore, de l'événement, de la séquence ou de la banque (ouverte). Le sonore
+sa séquence, sa banque et son horaire sur une ligne, puis un seul tableau des sonores, dans l'ordre du temps : les 5
+prochains, le plus lointain en haut (https://github.com/dascritch/machincast/issues/228), ceux à l'antenne, entourés de
+rouge, et les 10 derniers passés de l'airplay (https://github.com/dascritch/machincast/issues/144,
+https://github.com/dascritch/machincast/issues/617). Les boutons de chaque sonore, et un double-clic dans le tableau,
+demandent la fiche du sonore, de l'événement, de la séquence ou de la banque (ouverte). Le sonore
 en cours, le prochain et les sonores à venir viennent de la socket d'état du binaire lecture (StateClient). L'airplay se
 lit en base à l'ouverture, puis à chaque changement de sonore annoncé par la socket : jamais en boucle. La disposition
 est dessinée dans ui/default_screen.ui (CONTRIBUTING.md).
@@ -19,9 +20,20 @@ from pathlib import Path
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QModelIndex, QPoint, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import QLabel, QLineEdit, QMenu, QProgressBar, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QRect, Qt, QTimer, Signal
+from PySide6.QtGui import QCloseEvent, QColor, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import (
+	QLabel,
+	QLineEdit,
+	QMenu,
+	QProgressBar,
+	QSizePolicy,
+	QStyledItemDelegate,
+	QStyleOptionViewItem,
+	QTableView,
+	QVBoxLayout,
+	QWidget,
+)
 
 from machincast.clock import Clock
 from machincast.configuration import Audio
@@ -45,11 +57,21 @@ SHAPE_READING = 100
 """Millisecondes entre deux relèves des formes d'onde en cours de calcul (https://github.com/dascritch/machincast/issues/230)."""
 STATES = {"playing": _("Broadcasting"), "dead_air": _("Dead air on air"), "stopped": _("Stopped")}
 UPCOMING = 5
-"""Lignes que montre la table des sonores à venir, autant que Machin player en prévoit."""
+"""Les sonores à venir du tableau des sonores : le prochain, puis ceux que Machin player prévoit après lui."""
+ON_AIR_AT_MOST = 5
+"""Les passages en cours que lit le tableau, en plus des LAST_LIST derniers : un fondu en a deux."""
+KIND = Qt.ItemDataRole.UserRole + 2
+"""Rôle qui porte, sur chaque cellule du tableau des sonores, ce qu'est sa ligne : COMING, ON_AIR ou PLAYED."""
+COMING = "coming"
+ON_AIR = "on_air"
+PLAYED = "played"
+ON_AIR_OUTLINE = "#d32f2f"
+ON_AIR_WIDTH = 2
+"""Le liseré rouge, en pixels, des sonores à l'antenne (https://github.com/dascritch/machincast/issues/617)."""
 COLLAPSED_PANELS = "accueil/encarts-replies"
 """Dans les réglages des vues du compte : les encarts de l'onglet Antenne repliés, dépliés sinon."""
 UPCOMING_LINES_AT_LEAST = 2
-"""Lignes de la table des sonores à venir sur un écran trop petit pour les 5."""
+"""Lignes du tableau des sonores, au moins, sur un écran trop petit."""
 ONGOING_TRIAL = _("Stream test running…")
 NOT_HEALTHY = _("not healthy")
 INCIDENT = _("yes")
@@ -122,51 +144,39 @@ class DefaultScreen(QWidget):
 		self.clock = clock
 		self.ui = Ui_DefaultScreen()
 		self.ui.setupUi(self)
-		self.airplay_model = QStandardItemModel(0, len(self.AIRPLAY_COLUMNS), self)
-		item_list = []
+		# Un seul tableau, dans l'ordre du temps : les sonores à venir, ceux à l'antenne, puis les derniers passés
+		# (https://github.com/dascritch/machincast/issues/617). Il ne se trie pas.
+		self.sounds_model = QStandardItemModel(0, len(self.AIRPLAY_COLUMNS), self)
+		titles = []
 		for _key, title in self.AIRPLAY_COLUMNS:
-			item_list.append(title)
-		self.airplay_model.setHorizontalHeaderLabels(item_list)
-		self.ui.table_airplay.setModel(self.airplay_model)
-		self.airplay_columns = Columns(self.ui.table_airplay, "accueil-airplay")
-		self.ui.table_airplay.activated.connect(self._open_cell)
-		self.airplay_columns.line_menu = lambda position: self.airplay_menu(self.ui.table_airplay.indexAt(position))
-		# Les sonores à venir, avec les colonnes de l'airplay (https://github.com/dascritch/machincast/issues/228).
-		self.upcoming_model = QStandardItemModel(0, len(self.AIRPLAY_COLUMNS), self)
-		upcoming_titles = []
-		for _upcoming_key, title in self.AIRPLAY_COLUMNS:
-			upcoming_titles.append(title)
-		self.upcoming_model.setHorizontalHeaderLabels(upcoming_titles)
-		upcoming_table = self.ui.upcoming_table
-		upcoming_table.setModel(self.upcoming_model)
-		self.upcoming_columns = Columns(upcoming_table, "accueil-a-venir")
-		upcoming_table.activated.connect(self._open_cell)
-		self.upcoming_columns.line_menu = lambda position: self.upcoming_sound_menu(
-			self.ui.upcoming_table.indexAt(position)
-		)
-		# Les 5 sonores à venir quand la place le permet ; sur un petit écran, la table se tasse jusqu'à 2 lignes, et
-		# l'airplay jusqu'à une : la fenêtre garde une hauteur raisonnable.
-		line = upcoming_table.verticalHeader().defaultSectionSize()
-		header = upcoming_table.horizontalHeader().sizeHint().height() + 2 * upcoming_table.frameWidth()
-		upcoming_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-		upcoming_table.setMaximumHeight(header + UPCOMING * line)
-		upcoming_table.setMinimumHeight(header + UPCOMING_LINES_AT_LEAST * line)
-		upcoming_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-		self.ui.table_airplay.setMinimumHeight(header + line)
-		# L'airplay ne prend que la place que les sonores à venir lui laissent.
-		self.ui.table_airplay.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
+			titles.append(title)
+		self.sounds_model.setHorizontalHeaderLabels(titles)
+		table = self.ui.sounds_table
+		table.setModel(self.sounds_model)
+		table.setSortingEnabled(False)
+		table.setItemDelegate(OnAirOutline(table))
+		self.sounds_columns = Columns(table, "accueil-sonores")
+		table.activated.connect(self._open_cell)
+		self.sounds_columns.line_menu = lambda position: self.sounds_menu(self.ui.sounds_table.indexAt(position))
+		line = table.verticalHeader().defaultSectionSize()
+		header = table.horizontalHeader().sizeHint().height() + 2 * table.frameWidth()
+		table.setMinimumHeight(header + UPCOMING_LINES_AT_LEAST * line)
+		table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
 		screen_layout = self.layout()
 		assert isinstance(screen_layout, QVBoxLayout)
-		screen_layout.setStretchFactor(self.ui.airplay_frame, 1)
-		# Les deux encarts se replient d'un clic sur leur titre ; un encart replié le reste pour le compte
+		screen_layout.setStretchFactor(self.ui.sounds_frame, 1)
+		# L'encart se replie d'un clic sur son titre ; replié, il le reste pour le compte
 		# (https://github.com/dascritch/machincast/issues/244).
 		collapsed_list = expandable.retained(COLLAPSED_PANELS)
-		for group in (self.ui.upcoming_frame, self.ui.airplay_frame):
-			expandable.make_expandable(
-				group,
-				expanded=group.objectName() not in collapsed_list,
-				retain=expandable.retain_in(COLLAPSED_PANELS, expanded_list=False),
-			)
+		expandable.make_expandable(
+			self.ui.sounds_frame,
+			expanded=self.ui.sounds_frame.objectName() not in collapsed_list,
+			retain=expandable.retain_in(COLLAPSED_PANELS, expanded_list=False),
+		)
+		self._coming: tuple[DisplayedSound, ...] = ()
+		"""Les sonores à venir, du prochain au plus lointain, que publie Machin player."""
+		self._plays: list[DisplayedPlay] = []
+		"""Les derniers passages de l'airplay, du plus récent au plus ancien, ceux en cours compris."""
 		self._ongoing: DisplayedSound | None = None
 		self._next: DisplayedSound | None = None
 		self._tested_stream: int | None = None
@@ -331,7 +341,7 @@ class DefaultScreen(QWidget):
 		self._show_timeline(self.next_timeline, state.next_)
 		self._forget_shapes()
 		self._show_on_air(state.ongoing)
-		self._show_upcoming(state.upcoming)
+		self._show_upcoming(state.next_, state.upcoming)
 		next_ = state.next_
 		self.ui.next_healthy.setText(display.EMPTY)
 		if next_ is not None:
@@ -512,18 +522,11 @@ class DefaultScreen(QWidget):
 			category, identifier, name = item
 			self.opened.emit(category, identifier, name)
 
-	def airplay_menu(self, index: QModelIndex) -> QMenu | None:
-		"""Le menu du clic droit sur une ligne de l'airplay : « Pré-écoute… » de son sonore ; aucun hors d'une ligne,
-		ou pour un sonore supprimé depuis (https://github.com/dascritch/machincast/issues/226)."""
-		return self._line_menu(self.airplay_model, index)
-
-	def upcoming_sound_menu(self, index: QModelIndex) -> QMenu | None:
-		"""Le menu du clic droit sur une ligne des sonores à venir : « Pré-écoute… » de son sonore
-		(https://github.com/dascritch/machincast/issues/228)."""
-		return self._line_menu(self.upcoming_model, index)
-
-	def _line_menu(self, model: QStandardItemModel, index: QModelIndex) -> QMenu | None:
-		return line_menu(self, model, index, self.requested_preview.emit)
+	def sounds_menu(self, index: QModelIndex) -> QMenu | None:
+		"""Le menu du clic droit sur une ligne du tableau des sonores : « Pré-écoute… » de son sonore, puis son
+		emplacement ; aucun hors d'une ligne, ou pour un sonore supprimé depuis sans emplacement
+		(https://github.com/dascritch/machincast/issues/226, https://github.com/dascritch/machincast/issues/617)."""
+		return line_menu(self, self.sounds_model, index, self.requested_preview.emit)
 
 	def next_menu(self) -> QMenu:
 		"""Le menu du clic droit sur le prochain sonore : sa pré-écoute, y sauter aussitôt, et avancer l'événement
@@ -637,39 +640,106 @@ class DefaultScreen(QWidget):
 
 	# ─── Sonores à venir ───────────────────────────────────
 
-	def _show_upcoming(self, sounds: tuple[DisplayedSound, ...]) -> None:
-		"""Les sonores à venir, le plus lointain en haut : le plus proche est juste au-dessus de l'airplay."""
-		self.upcoming_model.setRowCount(0)
-		for sound in reversed(sounds):
-			cells = []
-			for text in _upcoming_cells(sound):
-				cells.append(QStandardItem(text))
-			for column, item in _upcoming_items(sound).items():
-				cells[column].setData(item, ITEM)
-			cells[0].setData((sound.location, sound.stream), LOCATION)
-			self.upcoming_model.appendRow(cells)
+	def _show_upcoming(self, next_: DisplayedSound | None, sounds: tuple[DisplayedSound, ...]) -> None:
+		"""Les 5 prochains sonores, le prochain annoncé compris, en tête du tableau des sonores."""
+		coming = list(sounds)
+		if next_ is not None:
+			coming.insert(0, next_)
+		self._coming = tuple(coming[:UPCOMING])
+		self._fill_sounds()
 
 	# ─── Airplay ───────────────────────────────────────────
 
 	def refresh_airplay(self) -> list[DisplayedPlay]:
-		"""Relit les DERNIERS passages de l'airplay (https://github.com/dascritch/machincast/issues/244) ; une base
-		injoignable laisse la table telle qu'elle était. reread_airplay le dit, pour l'onglet Airplay."""
+		"""Relit les derniers passages de l'airplay, ceux en cours et les LAST_LIST précédents
+		(https://github.com/dascritch/machincast/issues/244) ; une base injoignable laisse le tableau tel qu'il était.
+		reread_airplay le dit, pour l'onglet Airplay."""
 		try:
-			plays = read_airplay(self.connection, count=LAST_LIST)
+			plays = read_airplay(self.connection, count=LAST_LIST + ON_AIR_AT_MOST)
 		except psycopg.Error as error:
 			log.error(_("unreadable airplay: {error}").format(error=error))
 			return []
-		self.airplay_model.setRowCount(0)
-		for play in plays:
-			cells = []
-			for text in play_cells(play):
-				cells.append(QStandardItem(text))
-			for column, item in play_items(play).items():
-				cells[column].setData(item, ITEM)
-			cells[0].setData(play_location(play), LOCATION)
-			self.airplay_model.appendRow(cells)
+		self._plays = plays
+		self._fill_sounds()
 		self.reread_airplay.emit()
 		return plays
+
+	# ─── Le tableau des sonores ────────────────────────────
+
+	def _fill_sounds(self) -> None:
+		"""Dans l'ordre du temps, le plus vieux en bas : les sonores à venir, le plus lointain en haut, ceux à
+		l'antenne, entourés de rouge, puis les LAST_LIST derniers passés, du plus récent au plus ancien
+		(https://github.com/dascritch/machincast/issues/617)."""
+		self.sounds_model.setRowCount(0)
+		for sound in reversed(self._coming):
+			self._add_row(_upcoming_cells(sound), _upcoming_items(sound), (sound.location, sound.stream), COMING)
+		past = 0
+		for play in self._plays:
+			if play.end is None:
+				self._add_row(play_cells(play), play_items(play), play_location(play), ON_AIR)
+			else:
+				if past < LAST_LIST:
+					past += 1
+					self._add_row(play_cells(play), play_items(play), play_location(play), PLAYED)
+
+	def _add_row(
+		self, texts: list[str], items: dict[int, tuple[str, int, str]], location: tuple[str | None, bool], kind: str
+	) -> None:
+		cells = []
+		for text in texts:
+			cell = QStandardItem(text)
+			cell.setData(kind, KIND)
+			cells.append(cell)
+		for column, item in items.items():
+			cells[column].setData(item, ITEM)
+		cells[0].setData(location, LOCATION)
+		self.sounds_model.appendRow(cells)
+
+
+class OnAirOutline(QStyledItemDelegate):
+	"""Le liseré rouge de 2 px autour des lignes des sonores à l'antenne : en haut de la première, en bas de la
+	dernière, à gauche de la première colonne montrée, à droite de la dernière, quel que soit l'ordre des colonnes
+	(https://github.com/dascritch/machincast/issues/617)."""
+
+	def __init__(self, view: QTableView) -> None:
+		super().__init__(view)
+		self.view = view
+
+	def paint(
+		self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex
+	) -> None:
+		super().paint(painter, option, index)
+		if index.data(KIND) != ON_AIR:
+			return
+		model = index.model()
+		rect = QRect(option.rect)
+		color = QColor(ON_AIR_OUTLINE)
+		width = ON_AIR_WIDTH
+		painter.save()
+		row = index.row()
+		if (row == 0) or (model.index(row - 1, 0).data(KIND) != ON_AIR):
+			painter.fillRect(QRect(rect.left(), rect.top(), rect.width(), width), color)
+		if (row == model.rowCount() - 1) or (model.index(row + 1, 0).data(KIND) != ON_AIR):
+			painter.fillRect(QRect(rect.left(), rect.bottom() - width + 1, rect.width(), width), color)
+		first, last = _shown_columns(self.view)
+		if index.column() == first:
+			painter.fillRect(QRect(rect.left(), rect.top(), width, rect.height()), color)
+		if index.column() == last:
+			painter.fillRect(QRect(rect.right() - width + 1, rect.top(), width, rect.height()), color)
+		painter.restore()
+
+
+def _shown_columns(view: QTableView) -> tuple[int, int]:
+	"""La première et la dernière colonne montrées, dans l'ordre où elles apparaissent."""
+	header = view.horizontalHeader()
+	shown = []
+	for visual in range(header.count()):
+		logical = header.logicalIndex(visual)
+		if not header.isSectionHidden(logical):
+			shown.append(logical)
+	if not shown:
+		return -1, -1
+	return shown[0], shown[-1]
 
 
 def _show_buffer(bar: QProgressBar, heading: QLabel, sound: DisplayedSound | None) -> None:

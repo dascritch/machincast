@@ -15,7 +15,6 @@ The numbers refer to the picture; **Help → Contextual help**, or <kbd>F1</kbd>
 8. **VU meter** (`vu_meter`) : the real level on air, channel by channel, with its **Clipping** and **Dead air** lights; a click opens the on-air monitor.
 9. **Next sound** (`next_frame`) : the one that will play next, even drawn at random, and **Healthy** if it is ready; the right-click offers its pre-listen, to jump to it at once, or to bring the next event forward.
 10. **Pre-listen of the next sound** (`preview_next`) : listening on headphones, without touching the air.
-11. **Coming after the next sound** (`upcoming_frame`) : the 5 following sounds, the closest at the bottom; a click on the title folds the box.
-12. **Airplay** (`airplay_frame`) : the last 10 plays, from the most recent to the oldest; double-click towards the cards, right-click for the pre-listen and the location.
+11. **Sounds** (`sounds_frame`) : a single table, in the order of time, the oldest at the bottom: the next 5 sounds, the furthest at the top, those on air, outlined in red, then the last 10 played; double-click towards the cards, right-click for the pre-listen and the location; a click on the title folds the box.
 
 To go further: [On air](../prise-en-main.md#on-air), [Controlling the broadcast](../antenne.md#controlling-the-broadcast) and [Interrupting the air](../antenne.md#interrupting-the-air).

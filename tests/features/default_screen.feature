@@ -502,10 +502,15 @@ Fonctionnalité: Écran par défaut de l'interface
 		Quand je clique sur le bouton « test_next_stream » de l'onglet Antenne
 		Alors le test du flux du prochain sonore dit bientôt « Le flux répond : du son arrive, en MPEG-1 Layer 3 (MP3) à 224 kbit/s. »
 
-	# ─── Sonores à venir (https://github.com/dascritch/machincast/issues/228) ─────
+	# ─── Le tableau des sonores (https://github.com/dascritch/machincast/issues/228, https://github.com/dascritch/machincast/issues/617) ───
 
-	Scénario: Au-dessus de l'airplay, les sonores à venir après le prochain, le plus lointain en haut
-		Étant donné la socket d'état du binaire lecture ouverte
+	Scénario: Un seul tableau, dans l'ordre du temps : les sonores à venir, le plus lointain en haut, ceux à l'antenne, puis les derniers passés
+		Étant donné les passages dans l'airplay :
+			| starts_at           | ends_at             | artist      | title         | event       | sequence | bank   | without_incident |
+			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot d'hier   | Fil de jour | Pub      | Spots  | non              |
+			| 2026-10-16 19:56:00 | 2026-10-16 20:00:00 | Radio       | Le titre      | Fil de jour |          |        | oui              |
+			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres |                  |
+		Et la socket d'état du binaire lecture ouverte
 		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
 		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
 		Et les sonores à venir après le prochain sont :
@@ -515,13 +520,47 @@ Fonctionnalité: Écran par défaut de l'interface
 			| 20:07:08 | 20:30:00 | 1800  |             | Le journal | Journal     |          |        | oui  |
 		Quand l'écran par défaut s'ouvre
 		Et le sonore en cours est bientôt « Les Gaufres – Café à minuit »
+		Alors l'encart des sonores de l'onglet Antenne s'intitule « Sonores : les 5 prochains, à l'antenne, et les 10 derniers »
+		Et le tableau des sonores de l'onglet Antenne montre :
+			| ligne       | debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | incident |
+			| à venir     | 20:07:08 | 20:30:00 | 30:00 |             | Le journal    | Journal     |          |        |          |
+			| à venir     | 20:06:38 | 20:07:08 | 0:30  |             | Spot          | Fil de jour | Pub      | Spots  | pas sain |
+			| à venir     | 20:03:38 | 20:06:38 | 3:00  | Les Gaufres | Le matin      | Fil de jour |          | Titres |          |
+			| à venir     | 20:03:30 | 20:03:38 | 0:08  |             | Jingle        | Fil de jour |          |        |          |
+			| à l'antenne | 20:00:00 | en cours |       | Les Gaufres | Café à minuit | Fil de jour |          | Titres |          |
+			| passé       | 19:56:00 | 20:00:00 | 4:00  | Radio       | Le titre      | Fil de jour |          |        |          |
+			| passé       | 19:50:00 | 19:51:00 | 1:00  |             | Spot d'hier   | Fil de jour | Pub      | Spots  | oui      |
+		Et le tableau des sonores de l'onglet Antenne ne se trie pas
+		Et seule la ligne « Café à minuit » du tableau des sonores est entourée d'un liseré rouge de 2 px
+
+	Scénario: Le tableau ne montre que les 5 prochains sonores, le prochain annoncé compris
+		Étant donné la socket d'état du binaire lecture ouverte
+		Et le binaire lecture diffuse « Café à minuit » de « Les Gaufres » dans « Fil de jour », commencé à 20:00:00, de 214,5 secondes, joué depuis 30 secondes
+		Et le prochain sonore est « Jingle » dans « Fil de jour », estimé de 20:03:30 à 20:03:38, de 8 secondes, sain : oui
+		Et les sonores à venir après le prochain sont :
+			| start    | end      | duration | artist | title    | event       | sequence | bank | healthy |
+			| 20:03:38 | 20:04:38 | 60       |        | Un       | Fil de jour |          |      | oui     |
+			| 20:04:38 | 20:05:38 | 60       |        | Deux     | Fil de jour |          |      | oui     |
+			| 20:05:38 | 20:06:38 | 60       |        | Trois    | Fil de jour |          |      | oui     |
+			| 20:06:38 | 20:07:38 | 60       |        | Quatre   | Fil de jour |          |      | oui     |
+			| 20:07:38 | 20:08:38 | 60       |        | Cinq     | Fil de jour |          |      | oui     |
+		Quand l'écran par défaut s'ouvre
 		Alors la table des sonores à venir montre :
-			| debut    | fin      | duree | artiste     | titre      | evenement   | sequence | banque | incident |
-			| 20:07:08 | 20:30:00 | 30:00 |             | Le journal | Journal     |          |        |          |
-			| 20:06:38 | 20:07:08 | 0:30  |             | Spot       | Fil de jour | Pub      | Spots  | pas sain |
-			| 20:03:38 | 20:06:38 | 3:00  | Les Gaufres | Le matin   | Fil de jour |          | Titres |          |
-		Et la table des sonores à venir a les colonnes de l'airplay, dans le même ordre
-		Et la table des sonores à venir est au-dessus de celle de l'airplay
+			| debut    | fin      | duree | artiste | titre  | evenement   | sequence | banque | incident |
+			| 20:06:38 | 20:07:38 | 1:00  |         | Quatre | Fil de jour |          |        |          |
+			| 20:05:38 | 20:06:38 | 1:00  |         | Trois  | Fil de jour |          |        |          |
+			| 20:04:38 | 20:05:38 | 1:00  |         | Deux   | Fil de jour |          |        |          |
+			| 20:03:38 | 20:04:38 | 1:00  |         | Un     | Fil de jour |          |        |          |
+			| 20:03:30 | 20:03:38 | 0:08  |         | Jingle | Fil de jour |          |        |          |
+
+	Scénario: Deux sonores à l'antenne, pendant un fondu, sont entourés d'un même liseré rouge
+		Étant donné les passages dans l'airplay :
+			| starts_at           | ends_at             | artist | title    | event       | sequence | bank | without_incident |
+			| 2026-10-16 19:56:00 | 2026-10-16 19:59:00 | Radio  | Avant    | Fil de jour |          |      | oui              |
+			| 2026-10-16 19:59:00 |                     | Radio  | Sortant  | Fil de jour |          |      |                  |
+			| 2026-10-16 20:00:00 |                     | Radio  | Entrant  | Fil de jour |          |      |                  |
+		Quand l'écran par défaut s'ouvre
+		Alors les lignes « Entrant » et « Sortant » du tableau des sonores sont entourées d'un même liseré rouge de 2 px
 
 	Scénario: Les sonores à venir suivent les états publiés, et disparaissent à l'arrêt
 		Étant donné la socket d'état du binaire lecture ouverte
@@ -677,7 +716,7 @@ Fonctionnalité: Écran par défaut de l'interface
 
 	# ─── Airplay des derniers sonores (https://github.com/dascritch/machincast/issues/244) ───
 
-	Scénario: L'airplay de l'onglet Antenne montre les derniers passages, du plus récent au plus ancien, même anciens
+	Scénario: Le tableau de l'onglet Antenne montre les derniers passages, du plus récent au plus ancien, même anciens
 		Étant donné les passages dans l'airplay :
 			| starts_at           | ends_at             | artist      | title         | event       | sequence | bank   | without_incident |
 			| 2026-10-14 08:00:00 | 2026-10-14 08:03:00 | Ancien      | Avant-hier    | Fil de nuit |          |        | oui              |
@@ -686,8 +725,7 @@ Fonctionnalité: Écran par défaut de l'interface
 			| 2026-10-16 19:50:00 | 2026-10-16 19:51:00 |             | Spot          | Fil de jour | Pub      | Spots  | non              |
 			| 2026-10-16 20:00:00 |                     | Les Gaufres | Café à minuit | Fil de jour |          | Titres |                  |
 		Quand l'écran par défaut s'ouvre
-		Alors l'encart de l'airplay de l'onglet Antenne s'intitule « Airplay : les 10 derniers sonores »
-		Et la table de l'airplay montre :
+		Alors la table de l'airplay montre :
 			| debut    | fin      | duree | artiste     | titre         | evenement   | sequence | banque | incident |
 			| 20:00:00 | en cours |       | Les Gaufres | Café à minuit | Fil de jour |          | Titres |  |
 			| 19:50:00 | 19:51:00 | 1:00  |             | Spot          | Fil de jour | Pub      | Spots  | oui |
@@ -695,20 +733,19 @@ Fonctionnalité: Écran par défaut de l'interface
 			| 08:01:00 | 08:04:00 | 3:00  | Les Gaufres | Le matin      | Fil de jour |          | Titres |  |
 			| 08:00:00 | 08:03:00 | 3:00  | Ancien      | Avant-hier    | Fil de nuit |          |        |  |
 
-	Scénario: L'airplay de l'onglet Antenne s'arrête aux 10 derniers sonores
+	Scénario: Le tableau de l'onglet Antenne montre le passage en cours, puis s'arrête aux 10 derniers sonores
 		Étant donné 12 passages d'une minute dans l'airplay, « Passage 1 » à 19:48:00, le dernier en cours
 		Quand l'écran par défaut s'ouvre
-		Alors la table de l'airplay a 10 lignes, de « Passage 12 » à « Passage 3 »
+		Alors la table de l'airplay a 11 lignes, de « Passage 12 » à « Passage 2 »
 
-	Scénario: Les sonores à venir et l'airplay de l'onglet Antenne se replient, et leur repli est retenu pour le compte
+	Scénario: Le tableau des sonores de l'onglet Antenne se replie, et son repli est retenu pour le compte
 		Étant donné la socket d'état du binaire lecture ouverte
 		Quand l'écran par défaut s'ouvre
-		Alors les encarts « À venir après le prochain sonore » et « Airplay : les 10 derniers sonores » de l'onglet Antenne sont dépliés
-		Quand je clique sur le titre de l'encart « Airplay : les 10 derniers sonores » de l'onglet Antenne
-		Alors l'encart « Airplay : les 10 derniers sonores » de l'onglet Antenne est replié
+		Alors l'encart « Sonores : les 5 prochains, à l'antenne, et les 10 derniers » de l'onglet Antenne est déplié
+		Quand je clique sur le titre de l'encart « Sonores : les 5 prochains, à l'antenne, et les 10 derniers » de l'onglet Antenne
+		Alors l'encart « Sonores : les 5 prochains, à l'antenne, et les 10 derniers » de l'onglet Antenne est replié
 		Quand l'écran par défaut se ferme, puis s'ouvre de nouveau
-		Alors l'encart « Airplay : les 10 derniers sonores » de l'onglet Antenne est replié
-		Et l'encart « À venir après le prochain sonore » de l'onglet Antenne est déplié
+		Alors l'encart « Sonores : les 5 prochains, à l'antenne, et les 10 derniers » de l'onglet Antenne est replié
 
 	Scénario: L'interface est privée : l'airplay montre l'artiste et le titre, même masqués
 		Étant donné les passages dans l'airplay :
