@@ -235,9 +235,17 @@ MONITORING = Presentation("MachinCast interface", _("On-air monitoring"))
 def identify(presentation: Presentation, binary: str) -> None:
 	"""Nomme le processus auprès de GLib : le nom de l'application, et le binaire comme nom du programme
 	(https://github.com/dascritch/machincast/issues/343). Un client du serveur audio que MachinCast ne présente pas
-	lui-même, comme celui qui liste les périphériques, prend ce nom plutôt que celui de l'interpréteur, « python3.14 »."""
+	lui-même, comme celui qui liste les périphériques, prend ce nom plutôt que celui de l'interpréteur, « python3.14 ».
+	GLib n'accepte qu'un nom d'application par processus, et avertit à chaque nouvel essai : le premier reste, sans
+	avertissement (https://github.com/dascritch/machincast/issues/619)."""
 	GLib.set_prgname(binary)
-	GLib.set_application_name(presentation.program)
+	if not _named:
+		GLib.set_application_name(presentation.program)
+		_named.append(presentation.program)
+
+
+_named: list[str] = []
+"""Le nom d'application que ce processus a donné à GLib, une fois."""
 
 
 def _has_property(item: Gst.Element, name: str) -> bool:
