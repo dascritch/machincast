@@ -3,7 +3,9 @@
 (https://github.com/dascritch/machincast/issues/611).
 
 Une liste de choix : aucun genre, ou l'un des genres réglés dans la fenêtre du plugin, chacun avec un carré de sa
-couleur. Le genre s'enregistre avec l'événement, dans sa colonne properties, sous la clé du plugin ; sans genre, la clé
+couleur. Dans la fiche, elle est la ligne « Genre » du formulaire, sous « Secours d'un stream tombé » : la section
+elle-même, cachée, ne prend pas de place à gauche de la liste de lecture, qui reste alignée comme dans les autres
+fiches. Le genre s'enregistre avec l'événement, dans sa colonne properties, sous la clé du plugin ; sans genre, la clé
 en part.
 """
 
@@ -11,9 +13,10 @@ from collections.abc import Callable
 from typing import Any
 
 from PySide6.QtGui import QColor, QIcon, QPixmap
-from PySide6.QtWidgets import QComboBox, QFormLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QFormLayout, QLabel, QWidget
 
 from machincast.interface.card import CardSection
+from machincast.interface.event_card import EventCard
 from machincast_color_the_shows import queries
 from machincast_color_the_shows.texts import t
 
@@ -28,14 +31,25 @@ def swatch(colour: str) -> QIcon:
 	return QIcon(picture)
 
 
+def field_row(form: QFormLayout, widget: QWidget) -> int:
+	"""La ligne du formulaire dont ce widget est le champ."""
+	for row in range(form.rowCount()):
+		item = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
+		if (item is not None) and (item.widget() is widget):
+			return row
+	raise LookupError(widget.objectName())
+
+
 class GenreSection(CardSection):
 	def __init__(
 		self,
 		connection: queries.Connection,
 		parent: QWidget | None = None,
 		written: Callable[[], Any] | None = None,
+		card: EventCard | None = None,
 	) -> None:
-		"""written est appelé après l'écriture du genre : la palette relit la base au prochain dessin."""
+		"""written est appelé après l'écriture du genre : la palette relit la base au prochain dessin. card, la fiche
+		qui reçoit la ligne « Genre » ; sans elle, la section la garde."""
 		super().__init__(parent)
 		self.setObjectName("color_the_shows")
 		self.connection = connection
@@ -49,9 +63,17 @@ class GenreSection(CardSection):
 				" priority."
 			)
 		)
-		form = QFormLayout(self)
-		form.setContentsMargins(0, 0, 0, 0)
-		form.addRow(t("Genre"), self.genre)
+		self.caption = QLabel(t("&Genre"), self)
+		self.caption.setObjectName("genre_caption")
+		self.caption.setBuddy(self.genre)
+		if card is None:
+			form = QFormLayout(self)
+			form.setContentsMargins(0, 0, 0, 0)
+			form.addRow(self.caption, self.genre)
+		else:
+			self.hide()
+			card_form = card.ui.form
+			card_form.insertRow(field_row(card_form, card.ui.stream_fallback) + 1, self.caption, self.genre)
 		self.genre.currentIndexChanged.connect(self._changed)
 
 	def _changed(self) -> None:

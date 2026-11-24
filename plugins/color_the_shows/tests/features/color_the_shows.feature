@@ -110,6 +110,16 @@ Fonctionnalité: Les couleurs des émissions, par genre, dans les calendriers et
 		Et la section s'enregistre
 		Alors la couleur de « Le débat » est « #5b8def »
 
+	Scénario: Dans la fiche de l'événement, le genre est la ligne sous « Secours d'un stream tombé », sans décaler la liste
+		Étant donné le plugin des couleurs des émissions, chargé dans « Machin_interface »
+		Quand j'ouvre la fiche de l'événement « Jazz à FIP »
+		Alors la ligne sous « Secours d'un stream tombé » est « Genre », qui montre « aucun genre »
+		Et la section du plugin est cachée : la liste de lecture n'est pas décalée
+		Quand je choisis le genre « jazz » dans la fiche
+		Alors la fiche de l'événement est modifiée
+		Quand j'enregistre la fiche de l'événement
+		Alors la couleur de « Jazz à FIP » est « #5b8def »
+
 	# ─── La fenêtre du plugin ──────────────────────────────
 
 	Scénario: La fenêtre montre les genres et les couleurs des priorités

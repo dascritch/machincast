@@ -8,6 +8,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 	"fr": {
 		"Show colours": "Couleurs des émissions",
 		"Genre": "Genre",
+		"&Genre": "&Genre",
 		"no genre": "aucun genre",
 		"The colour of the event in the calendars and the tables of airplay; without genre, the colour of its priority.": (
 			"La couleur de l'événement dans les calendriers et les tableaux d'airplay ; sans genre, la couleur de sa"
