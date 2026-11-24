@@ -1,0 +1,13 @@
+{
+	"name": "timely_station_id",
+	"version": "0.1.0",
+	"description": "A station ID about every quarter of an hour, whatever the length of the songs, in the chosen events",
+	"machincast": ">=0.9",
+	"binaries": ["Machin_player", "Machin_interface"],
+	"l10n": {
+		"fr": {
+			"name": "Station ID régulier",
+			"description": "Un station ID environ tous les quarts d'heure, quelle que soit la durée des morceaux, dans les événements choisis"
+		}
+	}
+}
