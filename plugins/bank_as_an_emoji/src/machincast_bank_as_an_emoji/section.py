@@ -2,20 +2,21 @@
 par le point « interface.bank_card » (https://github.com/dascritch/machincast/issues/591).
 
 La section n'a rien à montrer sous la fiche : elle remplace, dans la ligne « Nom interne » du formulaire, le champ du
-nom interne par le sélecteur d'emoji, suivi du nom sans son emoji. Le champ de la fiche, caché, garde le nom complet,
+nom interne par le bouton de l'emoji, qui ouvre le sélecteur d'emojis de KDE, ou une grille d'emojis
+(machincast_bank_as_an_emoji.picker), celui qui retire l'emoji, puis le nom sans son emoji. Le champ de la fiche, caché, garde le nom complet,
 « 🌟 Publicités », que la fiche vérifie et enregistre comme avant : son libellé, son raccourci et ses signalements
 d'erreur passent au nom sans emoji.
 """
 
-from PySide6.QtWidgets import QComboBox, QFormLayout, QHBoxLayout, QLineEdit, QWidget
+from PySide6.QtWidgets import QFormLayout, QHBoxLayout, QLineEdit, QToolButton, QWidget
 
 from machincast.interface.bank_card import BankCard
-from machincast.interface.card import CardSection, Refusal
-from machincast_bank_as_an_emoji.names import PALETTE, is_emoji, joined, split
+from machincast.interface.card import CardSection
+from machincast_bank_as_an_emoji.names import is_emoji, joined, split
+from machincast_bank_as_an_emoji.picker import EmojiGrid, KdePicker, emojier
 from machincast_bank_as_an_emoji.texts import t
 
-EMOJI_WIDTH = 4
-"""La largeur du sélecteur, en caractères : assez pour un emoji et sa flèche."""
+CLEAR = "✕"
 
 
 def field_row(form: QFormLayout, widget: QWidget) -> int:
@@ -42,38 +43,68 @@ class EmojiSection(CardSection):
 		self.field.setObjectName("bank_as_an_emoji_field")
 		line = QHBoxLayout(self.field)
 		line.setContentsMargins(0, 0, 0, 0)
-		self.emoji = QComboBox(self.field)
+		self._emoji = ""
+		self.emoji = QToolButton(self.field)
 		self.emoji.setObjectName("emoji")
-		self.emoji.setEditable(True)
-		self.emoji.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-		self.emoji.setMinimumContentsLength(EMOJI_WIDTH)
-		self.emoji.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
 		self.emoji.setAccessibleName(t("Emoji of the bank"))
 		self.emoji.setToolTip(
 			t(
-				"The emoji at the start of the internal name, shown in the tables of airplay and of the coming sounds;"
-				" choose one, write or paste another, or leave it empty."
+				"The emoji at the start of the internal name, shown in the tables of airplay and of the coming sounds:"
+				" choose it in the emoji selector, which copies it"
 			)
 		)
-		self.emoji.addItem("")
-		for emoji in PALETTE:
-			self.emoji.addItem(emoji)
+		self.clear = QToolButton(self.field)
+		self.clear.setObjectName("clear_emoji")
+		self.clear.setText(CLEAR)
+		self.clear.setAccessibleName(t("Remove the emoji"))
+		self.clear.setToolTip(t("Remove the emoji"))
+		self.kde: KdePicker | None = None
+		program = emojier()
+		if program is not None:
+			self.kde = KdePicker(program, self)
+			self.kde.picked.connect(self.set_emoji)
+		self.grid = EmojiGrid(self.field)
+		self.grid.picked.connect(self.set_emoji)
 		self.name = QLineEdit(self.field)
 		self.name.setObjectName("internal_name_without_emoji")
 		self.name.setPlaceholderText(self.full.placeholderText())
 		self.name.setAccessibleName(t("Internal name, without its emoji"))
 		self.name.setMaxLength(self.full.maxLength())
 		line.addWidget(self.emoji)
+		line.addWidget(self.clear)
 		line.addWidget(self.name, 1)
 		line.addWidget(self.full)
 		self.full.hide()
 		self.full.setFocusProxy(self.name)
 		form.setWidget(row, QFormLayout.ItemRole.FieldRole, self.field)
 		self.name.textChanged.connect(self._compose)
-		self.emoji.currentTextChanged.connect(self._compose)
+		self.emoji.clicked.connect(self.choose)
+		self.clear.clicked.connect(lambda: self.set_emoji(""))
+		self._show_emoji()
 
 	def chosen(self) -> str:
-		return self.emoji.currentText().strip()
+		return self._emoji
+
+	def choose(self) -> None:
+		"""Le sélecteur d'emojis de KDE, sinon la grille, sous le bouton."""
+		if (self.kde is not None) and (self.kde.open()):
+			return
+		self.grid.popup(self.emoji.mapToGlobal(self.emoji.rect().bottomLeft()))
+
+	def set_emoji(self, emoji: str) -> None:
+		"""L'emoji choisi, ou aucun : la fiche est modifiée."""
+		if (emoji != "") and (not is_emoji(emoji)):
+			return
+		self._emoji = emoji
+		self._show_emoji()
+		self._compose()
+
+	def _show_emoji(self) -> None:
+		text = self._emoji
+		if text == "":
+			text = t("Emoji…")
+		self.emoji.setText(text)
+		self.clear.setEnabled(self._emoji != "")
 
 	def _compose(self) -> None:
 		"""Le nom complet, dans le champ caché de la fiche, qui la rend modifiée."""
@@ -92,17 +123,8 @@ class EmojiSection(CardSection):
 		"""Le nom interne que la fiche vient de lire, ou de copier, séparé de son emoji."""
 		self._loading = True
 		emoji, name = split(self.full.text())
-		index = self.emoji.findText(emoji)
-		if index < 0:
-			self.emoji.setEditText(emoji)
-		else:
-			self.emoji.setCurrentIndex(index)
+		self._emoji = emoji
+		self._show_emoji()
 		self.name.setText(name)
 		self._loading = False
 		self._limit()
-
-	def write(self, identifier: int) -> None:
-		"""La fiche a écrit le nom complet ; un emoji qui n'en est pas un la refuse."""
-		emoji = self.chosen()
-		if (emoji != "") and (not is_emoji(emoji)):
-			raise Refusal(t("“{emoji}” is not an emoji.").format(emoji=emoji), self.full)

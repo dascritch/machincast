@@ -25,7 +25,8 @@ enabled = ["bank_as_an_emoji"]
 | Chemin | Rôle |
 | --- | --- |
 | `manifest.json` | S'accroche à `Machin_interface`. |
-| `src/machincast_bank_as_an_emoji/section.py` | Par le point « interface.bank_card » ([#591](https://github.com/dascritch/machincast/issues/591)), le sélecteur d'emoji et le nom sans emoji, à la place du champ du nom interne de la fiche, caché, qui garde le nom complet. |
+| `src/machincast_bank_as_an_emoji/section.py` | Par le point « interface.bank_card » ([#591](https://github.com/dascritch/machincast/issues/591)), le bouton de l'emoji, celui qui le retire, et le nom sans emoji, à la place du champ du nom interne de la fiche, caché, qui garde le nom complet. |
+| `src/machincast_bank_as_an_emoji/picker.py` | Le choix d'un emoji : le sélecteur d'emojis de KDE, `plasma-emojier`, et l'emoji qu'il copie dans le presse-papiers ; sans lui, une grille d'emojis. |
 | `src/machincast_bank_as_an_emoji/names.py` | L'emoji au début d'un nom interne, et les emojis proposés. |
 | `src/machincast_bank_as_an_emoji/texts.py` | Ses textes, et leur traduction. |
 | `tests/` | Ses scénarios, lancés par `bin/Machin dev-test`, après ceux du cœur. |
