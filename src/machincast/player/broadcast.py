@@ -1074,6 +1074,9 @@ class Broadcast:
 			track.take_air()
 			track.fade(1.0, rise)
 		else:
+			gain = 0.0
+			if not parameters.stream:
+				gain = plugin_points.sound_gain(self.connection, self.points, following)
 			track = self.engine.play(
 				path,
 				parameters.duration,
@@ -1084,6 +1087,7 @@ class Broadcast:
 					departure=parameters.departure_volume,
 					arrival=parameters.arrival_volume,
 					buffer=parameters.buffer,
+					gain=gain,
 				),
 			)
 		play = self._begin(following, instant, parameters)

@@ -14,8 +14,13 @@ identifiants en entiers.
 - SEQUENCE_START, SEQUENCE_STOP : la séquence qui commence ou finit (sequence_data).
 - SOUND_START, SOUND_STOP : le passage d'un sonore (sound_data, stopped_sound), avec ses positions réelles dans le
   fichier.
+
+SOUND_GAIN est demandé, lui (https://github.com/dascritch/machincast/issues/643) : avant de jouer un fichier, la
+diffusion demande aux plugins son gain, en dB (sound_gain) ; sans plugin, ou sans réponse, il joue tel quel. Un gain
+est borné à MAXIMUM_GAIN, ce que l'élément volume de GStreamer permet.
 """
 
+import math
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -24,7 +29,9 @@ from psycopg.rows import TupleRow
 
 from machincast.player import queries
 from machincast.player.broadcast_types import Parameters
+from machincast.player.rundown import Choice
 from machincast.player.saving import Play
+from machincast.plugins.points import Points
 from machincast.shared.grid import Occurrence
 
 SERVICE_START = "player.service_start"
@@ -35,6 +42,9 @@ SEQUENCE_START = "player.sequence_start"
 SEQUENCE_STOP = "player.sequence_stop"
 SOUND_START = "player.sound_start"
 SOUND_STOP = "player.sound_stop"
+SOUND_GAIN = "player.sound_gain"
+MAXIMUM_GAIN = 20.0
+"""Le plus grand gain, en dB : un volume de 10, le maximum de l'élément volume de GStreamer."""
 
 Connection = psycopg.Connection[TupleRow]
 
@@ -135,3 +145,27 @@ def stopped_sound(
 		"cut": cut,
 		"error": error,
 	}
+
+
+def sound_gain(connection: Connection, points: Points | None, choice: Choice) -> float:
+	"""Le gain du fichier choisi, en dB, que répond le premier plugin abonné à SOUND_GAIN ; 0 sans réponse. Le plugin
+	reçoit la connexion de la diffusion, le sonore, sa banque, son événement et ses properties, la mesure de son niveau
+	comprise (https://github.com/dascritch/machincast/issues/642)."""
+	if (points is None) or (points.subscribers(SOUND_GAIN) == []):
+		return 0.0
+	with connection.transaction():
+		line = queries.sound_properties(connection, choice.sound)
+	properties: dict[str, Any] = {}
+	if (line is not None) and (isinstance(line[0], dict)):
+		properties = line[0]
+	data = {
+		"connection": connection,
+		"sound": choice.sound,
+		"bank": choice.bank,
+		"event": choice.occurrence.event.id,
+		"properties": properties,
+	}
+	for _plugin, answer in points.collect(SOUND_GAIN, data):
+		if (isinstance(answer, (int, float))) and (not isinstance(answer, bool)) and (math.isfinite(answer)):
+			return min(float(answer), MAXIMUM_GAIN)
+	return 0.0

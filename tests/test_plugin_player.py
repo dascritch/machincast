@@ -30,6 +30,9 @@ POINTS = core_points("player.")
 demandé à chaque choix, l'est aussi en simulation (tests/features/rundown.feature,
 https://github.com/dascritch/machincast/issues/640)."""
 POINTS.remove("player.before_choice")
+# « player.sound_gain » est demandé avant chaque fichier joué (tests/features/sound_gain.feature,
+# https://github.com/dascritch/machincast/issues/643).
+POINTS.remove("player.sound_gain")
 
 
 @pytest.fixture

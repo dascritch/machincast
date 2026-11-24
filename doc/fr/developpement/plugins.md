@@ -138,6 +138,31 @@ def register(plugin):
 Les heures sont en ISO 8601, avec leur décalage ; les durées et les positions dans le fichier en secondes, `None` pour un stream.
 En simulation, aucun de ces points n'est appelé.
 
+## Régler le gain d'un sonore
+
+([#643](https://github.com/dascritch/machincast/issues/643), `machincast.player.plugin_points.sound_gain`)
+
+Le point du cœur « player.sound_gain » est demandé par Machin player avant de jouer un fichier, jamais un stream ; la simulation ne le demande pas.
+Ses données : `connection`, la connexion de la diffusion, `sound`, `bank` (ou `None`), `event`, et `properties`, celles du sonore, dont `loudness`, la sonie intégrée et la crête mesurées par l'audit complet ([#642](https://github.com/dascritch/machincast/issues/642)).
+Le plugin répond un gain en dB : il s'applique à la voie du sonore, après la mesure des blancs et avant son enveloppe de volume (ses fondus) ; le premier nombre répondu l'emporte, borné à +20 dB.
+Sans plugin, sans réponse, ou une réponse qui n'est pas un nombre : le sonore joue tel quel.
+
+```python
+CIBLE = -23.0
+
+
+def gain(data):
+	mesure = data["properties"].get("loudness") or {}
+	sonie = mesure.get("integrated")
+	if sonie is None:
+		return None
+	return CIBLE - sonie
+
+
+def register(plugin):
+	plugin.on("player.sound_gain", gain)
+```
+
 ## Faire passer un sonore avant le prochain
 
 ([#640](https://github.com/dascritch/machincast/issues/640), `machincast.player.rundown`)

@@ -64,6 +64,12 @@ CORE: dict[str, str] = {
 		"banks, planned plays included, and “forecast”: the plugin answers the identifier of a bank, one of whose "
 		"playable sounds plays before the candidate, or None (https://github.com/dascritch/machincast/issues/640)"
 	),
+	"player.sound_gain": (
+		"asked by Machin player before it plays a file, with “connection”, “sound”, “bank”, “event” and "
+		"“properties”, those of the sound, its measured “loudness” included: the plugin answers a gain in dB, at most "
+		"+20, applied before the volume envelope of the sound; without answer, the sound plays as it is "
+		"(https://github.com/dascritch/machincast/issues/643)"
+	),
 	"player.service_start": (
 		"notified by Machin player when its broadcast starts, with “instant” "
 		"(https://github.com/dascritch/machincast/issues/589)"
