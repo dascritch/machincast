@@ -2348,3 +2348,15 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 	Une liste sans autre action propose ce menu dès qu'un plugin y est abonné.
 - Une réponse d'un autre type est consignée, et laissée.
 - À la création de chaque plugin, la liste des points d'entrée qu'il propose est revue ([Les points d'entrée d'un nouveau plugin](developpement/plugins.md#les-points-dentrée-dun-nouveau-plugin)).
+
+### 14.10 Les couleurs des émissions
+
+([#628](https://github.com/dascritch/machincast/issues/628), `plugins/color_the_shows`, guide : [plugins/color_the_shows/doc/couleurs.md](../../plugins/color_the_shows/doc/couleurs.md))
+
+- Il s'accroche à `Machin_interface` et `Machin_intranet`, et sa migration crée, à son installation, la table `color_the_shows__genres`, chaque genre avec son nom unique (64 caractères au plus) et sa couleur `#rrggbb`, d'abord « talk », « jazz », « metal » et « reggae », et la table `color_the_shows__priorities`, la couleur du fil antenne (gris), des émissions (vert) et des spéciales (rouge).
+- Le genre d'un événement, un au plus, est dans sa colonne `properties`, sous la clé `color_the_shows` : `{"color_the_shows": {"genre": <identifiant>}}` ; sans genre, la clé en est retirée.
+- Au point « grid.event_colour » ([#635](https://github.com/dascritch/machincast/issues/635)), il répond la couleur du genre de l'événement, sinon celle de sa priorité ; rien pour un imprévu ou un secours, ni pour un événement sans genre dans un tableau d'airplay, qui ne donne pas sa priorité.
+	Il répond de mémoire (`machincast_color_the_shows.palette`), et relit la base au plus toutes les 30 secondes, ou aussitôt après l'écriture du genre d'un événement par sa section, ou de ses réglages ; une base injoignable lui laisse sa palette.
+- Au point « interface.event_card », sa section « Genre » de la fiche d'un événement : « aucun genre », puis les genres par nom, chacun avec un carré de sa couleur ; elle s'enregistre avec l'événement.
+- La fenêtre du plugin, menu « Plugins », règle les genres, leur nom et leur couleur, écrite ou choisie dans le sélecteur de couleur, et les couleurs des événements sans genre ; « Enregistrer » refuse un nom vide ou en double, sans tenir compte de la casse, et une couleur qui n'est pas `#rrggbb`, puis écrit tout dans une transaction : un genre retiré quitte les événements qui l'avaient.
+- Ses textes ont leur propre traduction (`machincast_color_the_shows.texts`) ; ses scénarios, dans `plugins/color_the_shows/tests/`, reprennent les fixtures du cœur, et appliquent ses migrations sur la base de test à chaque scénario qui les demande, pour repartir de ses valeurs par défaut.
