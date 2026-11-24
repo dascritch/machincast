@@ -29,8 +29,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 			"Un station ID à intervalles réguliers, dans les événements dont la case « Station ID régulier » est"
 			" cochée. Machin player prend ces réglages à son prochain démarrage."
 		),
-		"A play of one of these banks counts as a station ID, for instance a seasonal jingle": (
-			"Un passage de l'une de ces banques compte comme un station ID, par exemple un jingle saisonnier"
+		"These banks also say the name of the radio, for instance a seasonal jingle: a play of one of them counts as a"
+		" station ID": (
+			"Ces banques disent aussi le nom de la radio, par exemple un jingle saisonnier : un passage de l'une d'elles"
+			" compte comme un station ID"
 		),
 		"Before the song that would exceed the maximum, once the minimum is past": (
 			"Avant le morceau qui ferait dépasser le maximum, une fois le minimum passé"
@@ -39,7 +41,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"Save": "Enregistrer",
 		" min": " min",
 		"Bank of the station IDs": "Banque des station ID",
-		"Watched banks": "Banques surveillées",
+		"Banks that also announce the station": "Banques qui annoncent aussi la station",
 		"Minimum between two station IDs": "Minimum entre deux station ID",
 		"Maximum between two station IDs": "Maximum entre deux station ID",
 		"Placement": "Placement",

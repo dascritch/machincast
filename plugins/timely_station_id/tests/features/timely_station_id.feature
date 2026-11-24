@@ -58,8 +58,8 @@ Fonctionnalité: Le station ID régulier : un station ID environ tous les quarts
 		Quand la diffusion se déroule pendant 35 minutes
 		Alors la diffusion a été « 0 id1 », « 1 a », « 6 b », « 13 c », « 17 d », « 30 id2 », « 31 e », « 34 a »
 
-	Scénario: Le passage d'une banque surveillée compte comme un station ID
-		Étant donné les réglages : minimum 12, maximum 18, placement « before », banques surveillées « Saison »
+	Scénario: Le passage d'une banque qui annonce aussi la station compte comme un station ID
+		Étant donné les réglages : minimum 12, maximum 18, placement « before », banques qui annoncent aussi la station « Saison »
 		Et le fil musical « Continue », coché, jouant « a », « noël », « b », « c », « d »
 		Et le plugin du station ID régulier, chargé dans « Machin_player »
 		Quand la diffusion se déroule pendant 31 minutes
@@ -125,11 +125,12 @@ Fonctionnalité: Le station ID régulier : un station ID environ tous les quarts
 	# ─── La fenêtre du plugin ──────────────────────────────
 
 	Scénario: La fenêtre montre les banques, et les réglages en vigueur
-		Étant donné les réglages : minimum 12, maximum 18, placement « after », banques surveillées « Saison »
+		Étant donné les réglages : minimum 12, maximum 18, placement « after », banques qui annoncent aussi la station « Saison »
 		Et le plugin du station ID régulier, chargé dans « Machin_interface »
 		Quand j'ouvre la fenêtre du plugin
 		Alors la banque des station ID est « Station ID », parmi « — choisir une banque — », « Saison », « Station ID »
-		Et les banques surveillées cochées sont « Saison »
+		Et les banques qui annoncent aussi la station cochées sont « Saison »
+		Et elles s'intitulent « Banques qui annoncent aussi la station »
 		Et l'écart va de 12 à 18 minutes, placement « Après le maximum, sans avancer aucun morceau »
 
 	Scénario: Sans réglages, la fenêtre propose ceux par défaut, et demande la banque
@@ -146,7 +147,7 @@ Fonctionnalité: Le station ID régulier : un station ID environ tous les quarts
 		Étant donné aucun réglage
 		Et le plugin du station ID régulier, chargé dans « Machin_interface »
 		Quand j'ouvre la fenêtre du plugin
-		Et je choisis la banque « Station ID », surveille « Saison », de 10 à 20 minutes, placement « Après le maximum, sans avancer aucun morceau »
+		Et je choisis la banque « Station ID », coche « Saison » parmi celles qui annoncent aussi la station, de 10 à 20 minutes, placement « Après le maximum, sans avancer aucun morceau »
 		Et j'enregistre les réglages du plugin
 		Alors le message de la fenêtre dit « Enregistré. Relancez la diffusion pour que Machin player les prenne. »
 		Et le fichier de configuration a gardé son commentaire et ses autres sections
