@@ -1,7 +1,7 @@
 # Le station ID régulier
 
 La station doit dire son nom régulièrement, environ tous les quarts d'heure ; mais les morceaux durent de 2 à 13 minutes, et un station ID placé dans la liste du fil musical passe tantôt après 12 minutes, tantôt après 22 ([#460](https://github.com/dascritch/machincast/issues/460)).
-Le plugin « Station ID régulier » fait passer un station ID au bon moment, entre deux morceaux, à l'antenne comme dans les sonores à venir de l'onglet Antenne et dans la simulation.
+Le plugin « Station ID régulier » fait passer un station ID au bon moment, entre deux morceaux, à l'antenne comme dans les sonores à venir de l'onglet Antenne et dans l'onglet « Simulation ».
 
 ## Le régler
 
@@ -14,7 +14,7 @@ Menu **Plugins**, **Station ID régulier** :
 - **Enregistrer** les écrit dans `machincast.toml`, section `[plugins.timely_station_id]`, que le [README du plugin](../README.md) détaille.
 
 Un minimum au-dessus du maximum, ou sans banque choisie, est refusé, et rien n'est écrit.
-L'interface prend aussitôt les réglages enregistrés, pour la simulation et la fiche ; relancer la diffusion pour que Machin player les prenne.
+La prochaine simulation prend aussitôt les réglages enregistrés ; relancer la diffusion pour que Machin player les prenne.
 
 - Un passage d'un autre identifiant de la station, par exemple un jingle saisonnier qui dit le nom de la radio, compte comme un station ID.
 - Placement `before` : le station ID passe avant le morceau qui ferait dépasser le maximum, dès que le minimum est passé.

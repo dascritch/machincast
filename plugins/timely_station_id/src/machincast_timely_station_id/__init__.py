@@ -1,9 +1,10 @@
 """Le station ID régulier : un station ID environ tous les quarts d'heure, quelle que soit la durée des morceaux, dans
 les événements choisis (https://github.com/dascritch/machincast/issues/460).
 
-- Dans Machin player, et dans la simulation de Machin interface, la réponse au point « player.before_choice »
-  (machincast_timely_station_id.station, https://github.com/dascritch/machincast/issues/640) : le station ID passe
-  avant un sonore choisi, à l'antenne comme dans les sonores à venir.
+- Dans Machin player, la réponse au point « player.before_choice » (machincast_timely_station_id.station,
+  https://github.com/dascritch/machincast/issues/640) : le station ID passe avant un sonore choisi, à l'antenne, dans
+  les sonores à venir, et dans la simulation, que l'onglet « Simulation » de Machin interface lance par
+  Machin player --simulation, avec les réglages du moment.
 - Dans Machin interface, la case « Station ID régulier » de la fiche d'un événement
   (machincast_timely_station_id.section), et la fenêtre du plugin, menu « Plugins », qui règle la banque, les autres
   identifiants de la station, l'écart et le placement (machincast_timely_station_id.settings).
@@ -46,7 +47,5 @@ def register(plugin: Plugin) -> None:
 		def window(data: Any) -> object:
 			return settings.StationSettings(configuration, current, data.get("parent"))
 
-		# Dans la simulation de l'interface, les réglages enregistrés dans la fenêtre valent aussitôt.
-		plugin.on("player.before_choice", Station(current).answer)
 		plugin.on("interface.event_card", card_section)
 		plugin.on("interface.plugin_window", window)

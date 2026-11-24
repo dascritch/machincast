@@ -79,8 +79,9 @@ def due(settings: Settings, elapsed: timedelta | None, duration: timedelta | Non
 
 @dataclass
 class Current:
-	"""Les réglages en vigueur dans le binaire, ou None s'ils sont refusés : la fenêtre du plugin les remplace à
-	l'enregistrement, pour la simulation et la fiche ; Machin player les relit à son démarrage."""
+	"""Les réglages en vigueur dans le binaire, ou None s'ils sont refusés : dans Machin interface, la fenêtre du
+	plugin les remplace à l'enregistrement, pour l'infobulle de la fiche ; Machin player les relit à son démarrage, et
+	chaque simulation à son lancement."""
 
 	settings: Settings | None = None
 
