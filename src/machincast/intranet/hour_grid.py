@@ -26,6 +26,7 @@ from typing import Any
 
 from machincast.i18n import _
 from machincast.intranet.calendar import ONE_DAY, PRIORITIES, WEEK, day_title, end_hour, hour, midnight, remark
+from machincast.shared.colours import BLACK, WHITE, mixed, readable_text
 from machincast.shared.grid import DAY_NAMES, RANKS, Priority
 from machincast.shared.side_by_side import columns
 
@@ -65,6 +66,12 @@ class Block:
 	def faded(self) -> bool:
 		"""Rien n'en joue ce jour-là : un autre événement la couvre."""
 		return (self.plays == ()) and (not self.skipped)
+
+
+FOND_SHARE = 0.3
+"""La part de la couleur dans le fond estompé d'un bloc, comme color-mix(… 30%, #ffffff) de la feuille de style."""
+FRAME_SHARE = 0.7
+"""La part de la couleur dans son cadre, plus sombre, comme color-mix(…, #000000 30%)."""
 
 
 def _plays(entry: dict[str, Any], start: datetime, end: datetime) -> tuple[tuple[datetime, datetime], ...]:
@@ -170,23 +177,40 @@ def _block(block: Block, place: tuple[str, str, str, str], pattern: str) -> str:
 	"""Un bloc à sa place (x, y, largeur, hauteur) : estompé, plein à ses moments à l'antenne, de haut en bas dans les
 	heures, de gauche à droite dans la bande, hachuré s'il est sauté, puis son cadre et son texte."""
 	x, y, width, height = place
+	# La couleur d'un plugin passe par les attributs du SVG, que la feuille de style ne remplace pas : l'intranet
+	# n'écrit aucun style dans la page (https://github.com/dascritch/machincast/issues/635).
+	colour = block.entry.get("colour")
+	classes = ["bloc", block.entry["priority"]]
+	fond = fill = stroke = ""
+	if colour is not None:
+		background = mixed(colour, FOND_SHARE)
+		classes.append("colore")
+		if readable_text(background) == WHITE:
+			classes.append("texte-clair")
+		fond = f' fill="{background}"'
+		fill = f' fill="{colour}"'
+		stroke = f' stroke="{mixed(colour, FRAME_SHARE, BLACK)}"'
 	parts = [
-		f'<svg class="bloc {block.entry["priority"]}" x="{x}" y="{y}" width="{width}" height="{height}">',
-		'<rect class="fond" width="100%" height="100%"/>',
+		f'<svg class="{" ".join(classes)}" x="{x}" y="{y}" width="{width}" height="{height}">',
+		f'<rect class="fond" width="100%" height="100%"{fond}/>',
 	]
 	for start, end in block.plays:
 		if block.whole_day:
 			left, right = _minutes(block.day, start) / MINUTES, _minutes(block.day, end) / MINUTES
-			parts.append(f'<rect class="antenne" x="{_percent(left)}" width="{_percent(right - left)}" height="100%"/>')
+			parts.append(
+				f'<rect class="antenne" x="{_percent(left)}" width="{_percent(right - left)}" height="100%"{fill}/>'
+			)
 		else:
 			length = (block.end - block.start).total_seconds()
 			top = (start - block.start).total_seconds() / length
 			bottom = (end - block.start).total_seconds() / length
-			parts.append(f'<rect class="antenne" y="{_percent(top)}" height="{_percent(bottom - top)}" width="100%"/>')
+			parts.append(
+				f'<rect class="antenne" y="{_percent(top)}" height="{_percent(bottom - top)}" width="100%"{fill}/>'
+			)
 	if block.skipped:
 		parts.append(f'<rect class="hachures" width="100%" height="100%" fill="url(#{pattern})"/>')
 	parts += [
-		'<rect class="cadre" width="100%" height="100%"/>',
+		f'<rect class="cadre" width="100%" height="100%"{stroke}/>',
 		f'<foreignObject width="100%" height="100%">{_vevent(block)}</foreignObject>',
 		"</svg>",
 	]

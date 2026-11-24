@@ -62,6 +62,7 @@ from machincast.interface.default_screen import (
 	ITEM,
 	LOCATION,
 	DefaultScreen,
+	EventStripe,
 	line_menu,
 	play_cells,
 	play_items,
@@ -167,6 +168,8 @@ class AirplayScreen(QWidget):
 		self.proxy.setSourceModel(self.model)
 		self.proxy.setSortRole(SORT)
 		self.table.setModel(self.proxy)
+		# La couleur d'un événement, d'un plugin, par un trait dans sa cellule (https://github.com/dascritch/machincast/issues/635).
+		self.table.setItemDelegate(EventStripe(self.table))
 		self.columns = Columns(self.table, "onglet-airplay")
 		# Un clic sur un titre de colonne trie les passages ; avant, ils gardent l'ordre de la base.
 		self.table.setSortingEnabled(True)

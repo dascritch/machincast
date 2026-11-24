@@ -110,9 +110,13 @@ main:has(.calendrier) { max-width: 90rem; }
 .bloc.background_programming { --bloc: #8fd19e; }
 .bloc.fallback { --bloc: #e8b45c; }
 /* Estompé : une teinte claire, opaque, sur laquelle le texte sombre se lit aussi en thème sombre. */
-.bloc .fond { fill: color-mix(in srgb, var(--bloc) 30%, #ffffff); }
-.bloc .antenne { fill: var(--bloc); }
-.bloc .cadre { fill: none; stroke: color-mix(in srgb, var(--bloc), #000000 30%); stroke-width: 2; }
+.bloc:not(.colore) .fond { fill: color-mix(in srgb, var(--bloc) 30%, #ffffff); }
+.bloc:not(.colore) .antenne { fill: var(--bloc); }
+.bloc .cadre { fill: none; stroke-width: 2; }
+.bloc:not(.colore) .cadre { stroke: color-mix(in srgb, var(--bloc), #000000 30%); }
+/* Un bloc coloré par un plugin a ses couleurs dans ses attributs, le texte blanc sur un fond trop sombre (#635). */
+.bloc.texte-clair .vevent { color: #ffffff; }
+.bloc.texte-clair .vevent .category, .bloc.texte-clair .vevent .remarque { color: #e0e0e0; }
 .bloc .vevent {
 	height: 100%;
 	padding: 1px 4px;

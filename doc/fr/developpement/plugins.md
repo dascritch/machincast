@@ -185,6 +185,25 @@ def register(plugin):
 L'un et l'autre lisent l'événement, ses `properties` comprises : c'est là qu'un plugin range ses choix.
 Appelés à chaque lecture de la grille, ils ne lisent pas la base.
 
+## Colorer un événement
+
+([#635](https://github.com/dascritch/machincast/issues/635), `machincast.shared.colours`)
+
+Le point du cœur « grid.event_colour » est demandé quand un binaire colore un événement : le calendrier de Machin interface (ses blocs, et les cases de ses priorités), celui de Machin intranet (sa grille et son JSON) et les tableaux d'airplay, de l'onglet Antenne et de l'onglet Airplay.
+Ses données : `event`, l'identifiant de l'événement, ou `None` pour la couleur d'une priorité, et `priority`, sa priorité, ou `None` quand l'appelant ne la connaît pas, dans un tableau d'airplay.
+Le plugin répond une couleur `#rrggbb`, ou `None` pour laisser celle du cœur ; la première couleur valide l'emporte, une autre réponse est ignorée.
+
+```python
+def register(plugin):
+	plugin.on("grid.event_colour", lambda data: {"show": "#8fd19e"}.get(data["priority"]))
+```
+
+- Dans le calendrier de l'interface, le nom d'un bloc s'écrit en noir ou en blanc, le plus contrasté sur ce qu'il y a sous lui (`readable_text`, contraste de WCAG 2) ; une case de priorité colorée par un plugin perd le nom de sa couleur dans son infobulle.
+- Dans l'intranet, la couleur passe par les attributs du SVG (`fill`, `stroke`) et la classe `colore`, sans style écrit dans la page ; `texte-clair` met le texte en blanc sur un fond trop sombre ; le JSON du calendrier la donne en `colour`.
+- Dans un tableau d'airplay, la couleur d'un événement est un trait épais à gauche de sa cellule (`EventStripe`) ; seul l'événement y est connu, sans sa priorité.
+
+Le point est demandé à chaque dessin : le plugin répond de mémoire, sans lire la base à chaque fois.
+
 ## Sa section dans une fiche
 
 ([#611](https://github.com/dascritch/machincast/issues/611), [#591](https://github.com/dascritch/machincast/issues/591))

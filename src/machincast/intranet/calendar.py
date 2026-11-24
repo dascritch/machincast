@@ -20,6 +20,7 @@ from urllib.parse import parse_qs
 
 from machincast.i18n import _
 from machincast.intranet.queries import Connection
+from machincast.shared.colours import event_colour
 from machincast.shared.grid import DAY_NAMES, Planned, Priority, plan, read_grid
 
 ONE_DAY = timedelta(days=1)
@@ -101,6 +102,9 @@ def _entry(planned: Planned) -> dict[str, Any]:
 		"id": event.id,
 		"name": event.name,
 		"priority": str(event.priority),
+		# La couleur qu'un plugin donne à l'événement, ou à sa priorité ; None sans plugin
+		# (https://github.com/dascritch/machincast/issues/635).
+		"colour": event_colour(event.id, str(event.priority)),
 		"start": planned.start.astimezone(),
 		"end": planned.end.astimezone(),
 		"on_air": on_air,

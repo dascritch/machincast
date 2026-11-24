@@ -52,6 +52,7 @@ from machincast.interface.stream_trial import StreamTrial, trial_result
 from machincast.interface.timeline import Plan, Timeline, WaveShape, read_plan
 from machincast.interface.ui.default_screen import Ui_DefaultScreen
 from machincast.interface.vu_meter import VuMeter
+from machincast.shared.colours import event_colour
 
 log = logging.getLogger(__name__)
 
@@ -750,7 +751,46 @@ class DefaultScreen(QWidget):
 		self.sounds_model.appendRow(cells)
 
 
-class OnAirOutline(QStyledItemDelegate):
+EVENT_COLUMN = 5
+"""La colonne de l'événement, dans les tableaux d'airplay (AIRPLAY_COLUMNS)."""
+STRIPE = 4
+"""La largeur, en pixels, du trait de la couleur d'un événement dans sa cellule
+(https://github.com/dascritch/machincast/issues/635)."""
+
+
+def stripe_colour(index: QModelIndex | QPersistentModelIndex) -> QColor | None:
+	"""La couleur qu'un plugin donne à l'événement de la cellule, s'il en est un ; None sinon."""
+	if index.column() != EVENT_COLUMN:
+		return None
+	item = index.data(ITEM)
+	if (item is None) or (item[0] != "event"):
+		return None
+	found = event_colour(int(item[1]), None)
+	if found is None:
+		return None
+	return QColor(found)
+
+
+class EventStripe(QStyledItemDelegate):
+	"""La couleur d'un événement, par un trait épais à gauche, à l'intérieur de sa cellule, le texte décalé d'autant
+	(https://github.com/dascritch/machincast/issues/635)."""
+
+	def paint(
+		self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex
+	) -> None:
+		"""La cellule, puis, pour un événement coloré, son trait."""
+		colour = stripe_colour(index)
+		if colour is None:
+			super().paint(painter, option, index)
+			return
+		shifted = QStyleOptionViewItem(option)
+		shifted.rect = QRect(option.rect).adjusted(STRIPE + 2, 0, 0, 0)
+		super().paint(painter, shifted, index)
+		rect = QRect(option.rect)
+		painter.fillRect(QRect(rect.left() + 1, rect.top() + 2, STRIPE, rect.height() - 4), colour)
+
+
+class OnAirOutline(EventStripe):
 	"""Le liseré rouge de 2 px autour des lignes des sonores à l'antenne : en haut de la première, en bas de la
 	dernière, à gauche de la première colonne montrée, à droite de la dernière, quel que soit l'ordre des colonnes
 	(https://github.com/dascritch/machincast/issues/617)."""
@@ -762,7 +802,7 @@ class OnAirOutline(QStyledItemDelegate):
 	def paint(
 		self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex
 	) -> None:
-		"""La cellule, puis, pour un sonore à l'antenne, son morceau du liseré rouge."""
+		"""La cellule, son trait d'événement coloré, puis, pour un sonore à l'antenne, son morceau du liseré rouge."""
 		super().paint(painter, option, index)
 		if index.data(KIND) != ON_AIR:
 			return

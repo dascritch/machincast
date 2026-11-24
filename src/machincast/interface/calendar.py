@@ -73,6 +73,7 @@ from machincast.interface import dialogs, preferences
 from machincast.interface.display import MONTH
 from machincast.interface.queries import calendar as queries
 from machincast.interface.sessions import Session, move, moved_name, moved_overlap, overlapped, reinstate
+from machincast.shared.colours import event_colour, mixed, readable_text
 from machincast.shared.grid import (
 	DAY_NAMES,
 	RANKS,
@@ -117,7 +118,6 @@ SQUARE_SIZE = 14
 """Côté, en pixels, du carré de couleur devant le nom de la case d'une priorité."""
 DELETED = QColor("#b0b0b0")
 """La couleur de l'airplay d'un événement supprimé."""
-TEXT = QColor(0x20, 0x20, 0x20)
 FADE = 70
 """Opacité, sur 255, de ce qu'un autre événement masque."""
 SCOPE = timedelta(days=28)
@@ -507,10 +507,14 @@ class Calendar(QWidget):
 		for priority, name in PRIORITIES:
 			ticked = QCheckBox(name)
 			# La couleur de ses blocs, devant son nom (https://github.com/dascritch/machincast/issues/293).
-			ticked.setIcon(colour_square(COLOURS[priority]))
-			ticked.setToolTip(
-				_("Show or hide the {plurals}, in {tints}").format(plurals=PLURALS[priority], tints=TINTS[priority])
+			ticked.setIcon(colour_square(priority_colour(priority)))
+			tooltip = _("Show or hide the {plurals}, in {tints}").format(
+				plurals=PLURALS[priority], tints=TINTS[priority]
 			)
+			if event_colour(None, str(priority)) is not None:
+				# Une couleur d'un plugin n'a pas de nom : la case la montre (https://github.com/dascritch/machincast/issues/635).
+				tooltip = _("Show or hide the {plurals}").format(plurals=PLURALS[priority])
+			ticked.setToolTip(tooltip)
 			ticked.setChecked(True)
 			ticked.toggled.connect(self._apply_filter)
 			self.boxes[priority] = ticked
@@ -1101,20 +1105,52 @@ Part = Callable[[QRectF, Block, datetime, datetime], QRectF]
 """Le rectangle d'un bloc qui va d'un moment à un autre."""
 
 
+def priority_colour(priority: Priority) -> QColor:
+	"""La couleur d'une priorité : celle d'un plugin (machincast.shared.colours), sinon COLOURS."""
+	found = event_colour(None, str(priority))
+	if found is None:
+		return COLOURS[priority]
+	return QColor(found)
+
+
+def block_colour(event: Event) -> QColor:
+	"""La couleur d'un bloc : celle qu'un plugin donne à son événement, sinon celle de sa priorité
+	(https://github.com/dascritch/machincast/issues/635)."""
+	found = event_colour(event.id, str(event.priority))
+	if found is None:
+		return priority_colour(event.priority)
+	return QColor(found)
+
+
+def name_colour(colour: QColor, *, on_air: bool) -> QColor:
+	"""Le nom d'un bloc, en noir ou en blanc, selon ce qu'il y a sous lui : sa couleur pleine, à l'antenne, sinon
+	l'estompée, sur le fond blanc (https://github.com/dascritch/machincast/issues/635)."""
+	under = mixed(colour.name(), FADE / 255)
+	if on_air:
+		under = colour.name()
+	return QColor(readable_text(under))
+
+
 def _paint_block(painter: QPainter, frame: QRectF, block: Block, share: Part) -> None:
-	"""Estompé là où il ne joue pas, plein là où il joue, avec son nom ; hachuré pour une session sautée."""
-	colour = COLOURS[block.event.priority]
+	"""Estompé là où il ne joue pas, plein là où il joue, avec son nom, en noir ou en blanc selon sa couleur ; hachuré
+	pour une session sautée."""
+	colour = block_colour(block.event)
 	faded = QColor(colour)
 	faded.setAlpha(FADE)
 	painter.fillRect(frame, faded)
 	if block.skipped:
 		painter.fillRect(frame, QBrush(colour.darker(140), Qt.BrushStyle.BDiagPattern))
+	text_spot = frame.topLeft() + QPointF(3, 1 + painter.fontMetrics().height() / 2)
+	on_air = False
 	for start, end in block.plays:
-		painter.fillRect(share(frame, block, start, end), colour)
+		played = share(frame, block, start, end)
+		painter.fillRect(played, colour)
+		if played.contains(text_spot):
+			on_air = True
 	painter.setPen(QPen(colour.darker(140)))
 	painter.setBrush(QBrush())
 	painter.drawRect(frame)
-	painter.setPen(TEXT)
+	painter.setPen(name_colour(colour, on_air=on_air))
 	painter.drawText(
 		frame.adjusted(3, 1, -2, -1), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop, block.event.name
 	)
