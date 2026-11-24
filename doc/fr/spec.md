@@ -165,7 +165,8 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 
 | Champ | Description |
 | --- | --- |
-| `id`, `name`, `url` | Une URL de stream réutilisable, souvent fonctionnelle par intermittence. |
+| `id`, `name`, `url` | Une URL de stream réutilisable, souvent fonctionnelle par intermittence ; vide pour un feed d'entrée audio. |
+| `device` | Feed d'entrée audio ([#623](https://github.com/dascritch/machincast/issues/623), `0013.audio-input-feeds`) : le périphérique d'une entrée de `audio.inputs`, unique, à la place de l'adresse ; un feed a l'un ou l'autre, jamais les deux (`feeds_url_or_device`). Ses streams jouent l'adresse `input:` suivie du périphérique (`audio.INPUT_ADDRESS`), que les requêtes composent par `COALESCE(m.url, 'input:' \|\| m.device)` ; annuler la migration la donne à `url`. |
 | `buffer_duration` | Mémoire tampon de ses streams, de 2 à 10 secondes, 2 par défaut ([#351](https://github.com/dascritch/machincast/issues/351), `feeds_buffer_duration`) : le stream attend qu'elle soit pleine pour jouer ([§ 4.7](#47-streams)). |
 
 #### `banks`
@@ -524,7 +525,7 @@ Un stream n'est pas testé automatiquement ; l'interface permet de le tester à 
 
 Décidé avec le ticket [#16](https://github.com/dascritch/machincast/issues/16) (`machincast.player.broadcast`, `machincast.player.rundown`) :
 
-- Adresse : `stream_url`, ou l'`url` du feed.
+- Adresse : `stream_url`, ou l'`url` du feed, ou, pour un feed d'entrée audio, `input:` suivi de son périphérique.
 	L'airplay recopie cette adresse dans `location`.
 - **Mémoire tampon** ([#351](https://github.com/dascritch/machincast/issues/351)) : le stream d'un feed joue avec la mémoire tampon du feed (`feeds.buffer_duration`, `Parameters.buffer`, `Track`) : playbin3 la tient (`buffer-duration`, drapeau `BUFFERING`) et en publie le remplissage (messages `BUFFERING`, en pour cent).
 	La voie démarre en pause, et ne joue qu'une fois la mémoire tampon pleine, ou, un flux plus lent que le temps réel ne la remplissant jamais, au bout de sa durée fois 1,5 (`PREFILL_MARGIN`) ; le délai de garde d'une voie bloquée ou gelée s'allonge de sa durée jusqu'au premier son.
@@ -533,6 +534,10 @@ Décidé avec le ticket [#16](https://github.com/dascritch/machincast/issues/16)
 	**Préchargement** : 30 secondes avant son début estimé (`broadcast.PRELOAD`), le prochain stream d'un feed, prochain sonore ou l'un des sonores à venir, s'ouvre muet (`Broadcast._preload`, `Preload`) : sa mémoire tampon est pleine quand il prend l'antenne, sans blanc ; il la prend sur cette voie (`Track.take_air`, sa position repart de zéro, puis le fondu de son crossfade de début), sans nouvelle connexion.
 	Une coupure nette de l'antenne l'épargne.
 	Une voie préchargée qui tombe, ou dont le stream n'est plus prévu, est abandonnée : le stream démarrera comme un autre, après sa mémoire tampon.
+- **Entrée audio** ([#623](https://github.com/dascritch/machincast/issues/623), ticket enfant de [#513](https://github.com/dascritch/machincast/issues/513)) : le stream d'un feed d'entrée audio se joue en captant l'entrée (`Track.capture`), par `pipewiresrc`, `pulsesrc` ou `alsasrc` selon `audio.output`, réglé sur son périphérique (`audio.CAPTURES`, `audio.create_capture`) ; la sortie factice capte un son de test (`audiotestsrc`).
+	La voie est un pipeline, source, `audioconvert` et `audioresample`, puis le niveau, le volume et la sortie de l'antenne, au lieu de playbin3 ; sans mémoire tampon, sans préchargement, elle joue jusqu'à la fin de son événement, ou jusqu'à une coupure, comme un stream sans fin connue.
+	Sous PipeWire, la capture est verrouillée sur son entrée (`node.dont-fallback`, `node.linger`, `node.dont-move`) : une entrée qui manque n'est jamais remplacée par le micro par défaut ; elle se présente comme le flux « Entrée audio » de « MachinCast lecteur ».
+	Une entrée que le poste ne voit pas (`engine.present_input`, d'après `audio.input_devices`) met la voie en erreur dès son démarrage, « entrée audio … introuvable » : c'est un flux tombé, qui passe au secours, puis se retente comme un stream.
 	Un stream à l'adresse directe joue dès son premier son, sans mémoire tampon réglée, comme avant.
 - Début d'un événement de priorité égale ou supérieure : coupure nette, comme pour un fichier.
 - Fin de l'événement du stream : le stream s'éteint pendant son `crossfade_end`, et s'arrête à la fin du fondu (aussitôt si `crossfade_end` vaut 0).
@@ -862,7 +867,7 @@ Mise en œuvre ([#21](https://github.com/dascritch/machincast/issues/21), `machi
 - **Aucune sortie sonore** : `SimulatedEngine` ne crée aucun pipeline GStreamer.
 	La diffusion (`Diffusion`, la même qu'à l'antenne) avance d'échéance en échéance : fin prévue d'une voie, début du crossfade de fin du sonore en cours, prochain début ou fin d'une occurrence (`grid.next_change`), fin de la période ; pendant un blanc, toutes les minutes.
 - **Durées** : celles de la base.
-	Un stream n'est pas contacté et tient jusqu'à la fin de son événement ou jusqu'à une coupure.
+	Un stream n'est pas contacté et tient jusqu'à la fin de son événement ou jusqu'à une coupure ; une entrée audio, non captée, de même ([#623](https://github.com/dascritch/machincast/issues/623)).
 - **Sorties** : `<nom>.csv`, `<nom>.pls` et `<nom>.html` dans le répertoire de `outputs.csv`, ou dans celui de `--directory` ([#37](https://github.com/dascritch/machincast/issues/37)).
 	Le nom par défaut est `simulation-AAAA-MM-JJTHHMM-AAAA-MM-JJTHHMM`.
 	Ce sont trois fichiers pour toute la période.
@@ -1825,6 +1830,9 @@ Mise en œuvre ([#34](https://github.com/dascritch/machincast/issues/34), `machi
 - **Test du flux** : `StreamTrial`, comme pour un stream ([§ 8.3](#83-écran-de-détails-dun-sonore)), arrêté à la fermeture de la fiche.
 - **Clic droit sur un feed** ([#323](https://github.com/dascritch/machincast/issues/323), `List.item_menu`, `interruption.fill_feed`) : « Pré-écoute… » du stream qui suit le feed (un actif d'abord, le plus ancien), s'il y en a un ; puis « Couper l'événement par ce feed », ou, quand le fil musical est à l'antenne, « Couper le fil musical par ce feed », inactive sans rien à l'antenne ou sans stream actif qui suive le feed ; choisie, elle envoie aussitôt la demande `cut_by_feed` ([§ 4.9](#49-interruption-manuelle)), et la barre d'état l'annonce (« Coupure par le feed « Studio mobile » demandée. »).
 - **Streams qui le suivent** : par titre, ou par l'adresse pour un stream sans titre ; ouvrir l'un d'eux ouvre sa fiche.
+- **Feed d'entrée audio** ([#623](https://github.com/dascritch/machincast/issues/623), `machincast.interface.input_feeds`) : enregistrer les Paramètres du service avec des entrées changées ([§ 8.11](#811-menu)) donne à chaque entrée nouvelle son feed, et un stream actif qui le suit, du nom de l'entrée ; une entrée renommée renomme son feed ; un nom pris par un autre feed laisse l'entrée sans feed, ou son feed sous son ancien nom, et la barre d'état dit « L'entrée audio « … » n'a pas de feed : un autre feed porte déjà ce nom. ».
+	Une entrée retirée garde son feed et son stream : sa fiche avertit en haut « Entrée audio retirée des paramètres du service : ses streams ne jouent plus rien. ».
+	La fiche d'un feed d'entrée montre « Entrée audio : » et son périphérique, en lecture seule, sans mémoire tampon ni test du flux ; son nom ne s'y change pas, son infobulle dit où ; la liste montre son adresse, `input:` suivi du périphérique.
 - **Suppression** : `deletion.question` lève `Prevented` pour un feed qu'un stream suit (la clé étrangère est `ON DELETE RESTRICT`) : la fiche nomme les streams, sans poser de question.
 	Sinon, la confirmation habituelle ([§ 8.9](#89-suppression)).
 

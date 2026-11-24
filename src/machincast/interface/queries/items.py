@@ -11,7 +11,7 @@ Connection = psycopg.Connection[TupleRow]
 TABLES = {"sound": "sounds", "bank": "banks", "sequence": "sequences"}
 PLAYS = {
 	"sound": (
-		"SELECT s.id, s.artist, s.title, s.location, COALESCE(s.location, s.stream_url, m.url)"
+		"SELECT s.id, s.artist, s.title, s.location, COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device))"
 		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = ANY(%s)"
 	),
 	"bank": "SELECT b.id, b.internal_name, b.mode::text, b.no_repeat FROM banks b WHERE b.id = ANY(%s)",
@@ -114,7 +114,9 @@ def create_feed_stream(connection: Connection, feed: int, name: str) -> int:
 
 def feed_marks(connection: Connection, feed: int) -> TupleRow | None:
 	"""Le nom et l'adresse du feed ; None s'il est absent."""
-	return connection.execute("SELECT name, url FROM feeds WHERE id = %s", (feed,)).fetchone()
+	return connection.execute(
+		"SELECT name, COALESCE(url, 'input:' || device) FROM feeds WHERE id = %s", (feed,)
+	).fetchone()
 
 
 def no_repeat_banks(connection: Connection) -> dict[int, str]:

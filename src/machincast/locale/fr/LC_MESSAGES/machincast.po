@@ -122,6 +122,10 @@ msgid "On-air monitoring"
 msgstr "Écoute de l'antenne"
 
 #: machincast/audio.py
+msgid "Audio input"
+msgstr "Entrée audio"
+
+#: machincast/audio.py
 msgid ""
 "audiotestsrc or audioconvert not found, install gstreamer1.0-plugins-base"
 msgstr ""
@@ -136,6 +140,15 @@ msgid ""
 msgstr ""
 "sortie audio « {output} » indisponible : élément GStreamer {factory} "
 "introuvable, installer le paquet {package}"
+
+#: machincast/audio.py
+#, python-brace-format
+msgid ""
+"audio input unavailable on the “{output}” output: GStreamer element "
+"{factory} not found, install the {package} package"
+msgstr ""
+"entrée audio indisponible sur la sortie « {output} » : élément GStreamer "
+"{factory} introuvable, installer le paquet {package}"
 
 #: machincast/audio.py
 #, python-brace-format
@@ -1877,6 +1890,11 @@ msgstr "Nom"
 #: machincast/interface/audio_inputs.py
 msgid "Input"
 msgstr "Entrée"
+
+#: machincast/interface/audio_inputs.py
+#: machincast/interface/incidents.py
+msgid "Level"
+msgstr "Niveau"
 
 #: machincast/interface/audio_inputs.py
 msgid "Add this input"
@@ -3980,6 +3998,26 @@ msgid "# public text: {public_text}"
 msgstr "# texte public : {public_text}"
 
 #: machincast/interface/feed_card.py
+msgid "Audio input:"
+msgstr "Entrée audio :"
+
+#: machincast/interface/feed_card.py
+msgid ""
+"The name of an audio input changes in File → Broadcast service settings…, "
+"Audio page."
+msgstr ""
+"Le nom d'une entrée audio se change dans Fichier → Paramètres du service…, "
+"page Audio."
+
+#: machincast/interface/feed_card.py
+msgid ""
+"Audio input removed from the broadcast service settings: its streams no "
+"longer play anything."
+msgstr ""
+"Entrée audio retirée des paramètres du service : ses streams ne jouent plus "
+"rien."
+
+#: machincast/interface/feed_card.py
 #: machincast/interface/lists.py
 msgid "New feed"
 msgstr "Nouveau feed"
@@ -4212,10 +4250,6 @@ msgid "Time"
 msgstr "Horaire"
 
 #: machincast/interface/incidents.py
-msgid "Level"
-msgstr "Niveau"
-
-#: machincast/interface/incidents.py
 msgid "Kind"
 msgstr "Nature"
 
@@ -4371,6 +4405,13 @@ msgstr ""
 #, python-brace-format
 msgid "Status unreadable: {error}"
 msgstr "Statut illisible : {error}"
+
+#: machincast/interface/input_feeds.py
+#, python-brace-format
+msgid ""
+"Audio input “{name}” has no feed: another feed already has this name."
+msgstr ""
+"L'entrée audio « {name} » n'a pas de feed : un autre feed porte déjà ce nom."
 
 #: machincast/interface/installation_notes.py
 msgid "Your installation…"
@@ -6944,6 +6985,11 @@ msgstr "Préférences non enregistrées dans {configuration} : {error}"
 
 #: machincast/interface/window.py
 #, python-brace-format
+msgid "Feeds of the audio inputs not saved: {error}"
+msgstr "Feeds des entrées audio non enregistrés : {error}"
+
+#: machincast/interface/window.py
+#, python-brace-format
 msgid "Settings not saved in {configuration}: {error}"
 msgstr "Réglages non enregistrés dans {configuration} : {error}"
 
@@ -7854,6 +7900,13 @@ msgid "Next {rank}"
 msgstr "Suivant {rank}"
 
 #: machincast/player/engine.py
+msgid ""
+"audioconvert or audioresample not found, install gstreamer1.0-plugins-base"
+msgstr ""
+"audioconvert ou audioresample introuvable, installer "
+"gstreamer1.0-plugins-base"
+
+#: machincast/player/engine.py
 msgid "the stream did not start after its buffer"
 msgstr "le stream n'a pas démarré après sa mémoire tampon"
 
@@ -7865,6 +7918,11 @@ msgid ""
 msgstr ""
 "{player}, volume ou level introuvable, installer gstreamer1.0-plugins-base "
 "et gstreamer1.0-plugins-good"
+
+#: machincast/player/engine.py
+#, python-brace-format
+msgid "audio input {device} not found"
+msgstr "entrée audio {device} introuvable"
 
 #: machincast/player/expiry.py
 msgid "expired sound"

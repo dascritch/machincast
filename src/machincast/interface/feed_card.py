@@ -12,10 +12,14 @@ Enregistrement, annulation et fermeture : machincast.interface.card.
   démarrage.
 - Le test du flux (machincast.interface.stream_trial) porte sur l'adresse saisie, même pas encore enregistrée ; il
   s'arrête à la fermeture de la fiche.
+- Un feed d'entrée audio (https://github.com/dascritch/machincast/issues/623) montre son périphérique, sans adresse,
+  ni mémoire tampon, ni test du flux ; son nom se change dans les Paramètres du service
+  (machincast.interface.input_feeds). Une entrée retirée de ces paramètres garde son feed, et la fiche le signale.
 - Les streams qui le suivent sont montrés ; ouvrir l'un d'eux ouvre sa fiche. Un feed qu'un stream suit ne se
   supprime pas (machincast.interface.deletion) : la base le refuserait aussi.
 """
 
+from collections.abc import Sequence
 from datetime import timedelta
 
 from PySide6.QtCore import Qt
@@ -33,6 +37,9 @@ DEFAULT_BUFFER = 2
 """Secondes de mémoire tampon d'un nouveau feed, comme la valeur par défaut de feeds.buffer_duration."""
 SOUND = Qt.ItemDataRole.UserRole
 """Rôle qui porte l'identifiant d'un stream, dans la liste des streams."""
+INPUT_CAPTION = _("Audio input:")
+NAMED_IN_SETTINGS = _("The name of an audio input changes in File → Broadcast service settings…, Audio page.")
+RETIRED = _("Audio input removed from the broadcast service settings: its streams no longer play anything.")
 
 
 class FeedCard(Card):
@@ -47,6 +54,10 @@ class FeedCard(Card):
 		self.ui.setupUi(self)
 		self.plug(self.ui.save, self.ui.cancel, self.ui.delete, self.ui.message)
 		self._name = ""
+		self.device: str | None = None
+		"""Le périphérique d'un feed d'entrée audio ; None pour un feed d'adresse."""
+		self.configured: tuple[str, ...] | None = None
+		"""Les périphériques des entrées des Paramètres du service, quand la fenêtre les donne (show_inputs)."""
 		self.trial = StreamTrial(self)
 		self.trial.finished.connect(self._finished_trial)
 		self.ui.name.textChanged.connect(self._modify)
@@ -66,7 +77,7 @@ class FeedCard(Card):
 		self.trial.halt()
 
 	def _read(self) -> None:
-		marks: tuple[object, ...] = ("", "", timedelta(seconds=DEFAULT_BUFFER))
+		marks: tuple[object, ...] = ("", "", timedelta(seconds=DEFAULT_BUFFER), None)
 		streams: list[tuple[object, ...]] = []
 		with self.connection.transaction():
 			if self.identifier is not None:
@@ -74,10 +85,14 @@ class FeedCard(Card):
 				assert line is not None, f"feed {self.identifier} absent"
 				marks = line
 				streams = queries.streams(self.connection, self.identifier, str(marks[1]))
-		name, url, buffer = marks
+		name, url, buffer, device = marks
 		self._name = str(name)
+		self.device = None
+		if device is not None:
+			self.device = str(device)
 		self.ui.name.setText(self._name)
-		self.ui.url.setText(str(url))
+		self.ui.url.setText((self.device) or (str(url)))
+		self._show_kind()
 		if isinstance(buffer, timedelta):
 			self.ui.buffer.setValue(round(buffer.total_seconds()))
 		self._show_buffer()
@@ -87,7 +102,41 @@ class FeedCard(Card):
 			item.setData(SOUND, int(str(identifier)))
 			self.ui.streams.addItem(item)
 
+	def _show_kind(self) -> None:
+		"""Un feed d'entrée audio : son périphérique à la place de l'adresse, sans mémoire tampon ni test."""
+		of_input = self.device is not None
+		for widget in (
+			self.ui.buffer_caption,
+			self.ui.buffer,
+			self.ui.buffer_value,
+			self.ui.buffer_explanation,
+			self.ui.test,
+			self.ui.trial_result,
+		):
+			widget.setVisible(not of_input)
+		self.ui.name.setReadOnly(of_input)
+		self.ui.url.setReadOnly(of_input)
+		if of_input:
+			self.ui.url_caption.setText(INPUT_CAPTION)
+			self.ui.name.setToolTip(NAMED_IN_SETTINGS)
+		self._show_retirement()
+
+	def show_inputs(self, devices: Sequence[str]) -> None:
+		"""Les périphériques des entrées des Paramètres du service : une entrée qui n'y est plus est signalée."""
+		self.configured = tuple(devices)
+		self._show_retirement()
+
+	def _show_retirement(self) -> None:
+		retired = (self.device is not None) and (self.configured is not None) and (self.device not in self.configured)
+		if retired:
+			self.warn(RETIRED)
+		else:
+			self.warn("")
+
 	def _write(self) -> int:
+		if (self.device is not None) and (self.identifier is not None):
+			# Son nom se change dans les Paramètres du service ; rien d'autre ne s'y règle.
+			return self.identifier
 		name = conform(self.ui.name.text())
 		url = self.ui.url.text().strip()
 		if name == "":

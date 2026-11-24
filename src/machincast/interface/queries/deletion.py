@@ -64,7 +64,7 @@ def secured_streams(connection: Connection, event: int) -> list[TupleRow]:
 def following_streams(connection: Connection, feed: int) -> list[TupleRow]:
 	"""Le nom des streams qui suivent le feed."""
 	return connection.execute(
-		"SELECT COALESCE(s.title, m.url) FROM sounds s JOIN feeds m ON m.id = s.feed_id WHERE m.id = %s ORDER BY 1",
+		"SELECT COALESCE(s.title, COALESCE(m.url, 'input:' || m.device)) FROM sounds s JOIN feeds m ON m.id = s.feed_id WHERE m.id = %s ORDER BY 1",
 		(feed,),
 	).fetchall()
 

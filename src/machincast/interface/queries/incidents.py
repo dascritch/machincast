@@ -11,7 +11,7 @@ def log_lines(connection: Connection, levels: list[str], limit: int) -> list[Tup
 	transaction."""
 	return connection.execute(
 		"SELECT l.logged_at, l.level::text, l.kind, l.message, s.id, s.artist, s.title, s.location,"
-		" COALESCE(s.stream_url, m.url), b.id, b.internal_name, e.id, e.internal_name FROM log l"
+		" COALESCE(s.stream_url, COALESCE(m.url, 'input:' || m.device)), b.id, b.internal_name, e.id, e.internal_name FROM log l"
 		" LEFT JOIN sounds s ON s.id = l.sound_id"
 		" LEFT JOIN feeds m ON m.id = s.feed_id"
 		" LEFT JOIN banks b ON b.id = l.bank_id LEFT JOIN events e ON e.id = l.event_id"

@@ -62,22 +62,22 @@ Fonctionnalité: Schéma de la base de données
 		(https://github.com/dascritch/machincast/issues/392).
 		Quand j'annule toutes les migrations
 		Et j'applique les migrations
-		Alors 12 migrations ont été appliquées
-		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin, 0010.api-sessions-without-code, 0011.api-second-factor, 0012.properties »
+		Alors 13 migrations ont été appliquées
+		Et les migrations appliquées à la base de test sont « 0001.initial-schema, 0002.bank-directories-scanned-at, 0003.bank-filename-modes, 0004.bank-table-ascending, 0005.api-users, 0006.api-sessions, 0007.intranet-reading, 0008.api-sessions-acceptance, 0009.log-request-origin, 0010.api-sessions-without-code, 0011.api-second-factor, 0012.properties, 0013.audio-input-feeds »
 
 	Scénario: Annuler les modes dans l'ordre du nom de fichier ramène ces banques au mode séquentiel
 		https://github.com/dascritch/machincast/issues/454
 		Quand j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Rappels', mode = 'filename_descending'
 		Et j'enregistre dans "banks" : internal_name = 'Tubes', mode = 'random'
-		Et j'annule les 10 dernières migrations
+		Et j'annule les 11 dernières migrations
 		Alors les banques « Chroniques », « Rappels », « Tubes » sont en modes « sequential », « sequential », « random »
 
 	Scénario: Annuler l'ordre ascendant du tableau ramène ces banques à l'ordre descendant, le mode séquentiel
 		https://github.com/dascritch/machincast/issues/535
 		Quand j'enregistre dans "banks" : internal_name = 'Jingles', mode = 'sequential_ascending'
 		Et j'enregistre dans "banks" : internal_name = 'Chroniques', mode = 'filename_ascending'
-		Et j'annule les 9 dernières migrations
+		Et j'annule les 10 dernières migrations
 		Alors les banques « Jingles », « Chroniques » sont en modes « sequential », « filename_ascending »
 
 	# ─── Connexions (https://github.com/dascritch/machincast/issues/78) ───
@@ -197,7 +197,7 @@ Fonctionnalité: Schéma de la base de données
 		Étant donné les éléments de référence en base
 		Quand j'enregistre dans "api_users" : name = 'regie', password_hash = 'scrypt$1'
 		Et j'enregistre dans "api_sessions" : user_id = 1, token_hash = repeat('b', 64), validate_before = now()
-		Et j'annule les 3 dernières migrations
+		Et j'annule les 4 dernières migrations
 		Alors la session de l'intranet sans code est invalide
 
 	Plan du scénario: La clé de l'application d'authentification d'un compte est en base32, de 32 caractères
@@ -458,8 +458,34 @@ Fonctionnalité: Schéma de la base de données
 		Étant donné les éléments de référence en base
 		Et un événement de secours en base
 		Et une émission dont le secours de fin de liste est cet événement
-		Quand j'annule la dernière migration
+		Quand j'annule les 2 dernières migrations
 		Alors l'émission a, en colonne end_fallback_event_id, l'événement de secours
+
+	# ─── Les feeds d'entrée audio (https://github.com/dascritch/machincast/issues/623) ───
+
+	Plan du scénario: Un feed a une adresse, ou le périphérique d'une entrée audio, jamais les deux
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "feeds" : <valeurs>
+		Alors la base <verdict> l'enregistrement
+
+		Exemples:
+			| valeurs                                                                  | verdict |
+			| name = 'Studio A', device = 'alsa_input.usb-studio'                      | accepte |
+			| name = 'Studio A', url = 'https://flux.exemple/a', device = 'alsa_input.usb-studio' | refuse  |
+			| name = 'Studio A'                                                        | refuse  |
+			| name = 'Studio A', device = ''                                           | refuse  |
+
+	Scénario: Deux feeds ne portent pas la même entrée audio
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "feeds" : name = 'Studio A', device = 'alsa_input.usb-studio'
+		Et j'enregistre dans "feeds" : name = 'Studio B', device = 'alsa_input.usb-studio'
+		Alors la base refuse l'enregistrement
+
+	Scénario: Annuler les feeds d'entrée audio leur donne l'adresse que jouent leurs streams
+		Étant donné les éléments de référence en base
+		Quand j'enregistre dans "feeds" : name = 'Studio A', device = 'alsa_input.usb-studio'
+		Et j'annule la dernière migration
+		Alors le feed « Studio A » a l'adresse « input:alsa_input.usb-studio »
 
 	Plan du scénario: La mémoire tampon d'un feed va de 2 à 10 secondes, 2 par défaut
 		https://github.com/dascritch/machincast/issues/351

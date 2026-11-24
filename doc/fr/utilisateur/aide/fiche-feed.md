@@ -14,4 +14,6 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 7. **Annuler** (`cancel`) : revient à ce qui est en base ; <kbd>Ctrl</kbd>+<kbd>Échap</kbd> annule et ferme l'onglet.
 8. **Enregistrer** (`save`) : enregistre la fiche en base, <kbd>Ctrl</kbd>+<kbd>S</kbd> ; <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> enregistre et ferme l'onglet. Un liseré vert le signale tant que la fiche a des modifications à enregistrer.
 
+Le feed d'une **entrée audio** des Paramètres du service ([#623](https://github.com/dascritch/machincast/issues/623)) montre l'entrée à la place de l'adresse, sans mémoire tampon ni test : son nom se change dans **Fichier → Paramètres du service…**, page **Audio**. Une entrée retirée de ces paramètres garde son feed, et la fiche le signale en haut.
+
 Pour aller plus loin : [Feeds](../sonores.md#feeds) et [Streams](../antenne.md#streams).
