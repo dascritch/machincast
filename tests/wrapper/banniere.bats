@@ -10,6 +10,10 @@ setup() {
 	printf '[project]\nname = "machincast"\nversion = "1.2.3"\n' >"${PROJET}/pyproject.toml"
 	# Ni service ni systemd : le bouchon de systemctl ne connaît pas l'unité.
 	ecrire_systemctl absent
+	# Ni le Machin status du poste, s'il y est installé : sans celui du venv du projet, la bannière en cherche un dans
+	# le PATH, où ce bouchon passe avant, et ne répond rien (https://github.com/dascritch/machincast/issues/620).
+	printf '#!/bin/bash\nexit 1\n' >"${BOUCHONS}/Machin_status"
+	chmod +x "${BOUCHONS}/Machin_status"
 }
 
 # Un bouchon de systemctl : « show » dit si l'unité est chargée, « is-active » si elle tourne.
@@ -63,6 +67,17 @@ ecrire_systemctl() {
 	run "${MACHIN}" banner
 	[ "${status}" -eq 0 ]
 	[ "${lines[5]}" = 'Machin player : arrêté' ]
+}
+
+@test "Machin banner ne lit pas le Machin status du poste, même installé" {
+	mkdir -p "${BATS_TEST_TMPDIR}/poste"
+	printf '#!/bin/bash\nprintf "server\\tposte\\nradio\\tRadio du poste\\nplayer\\trunning\\n"\n' \
+		>"${BATS_TEST_TMPDIR}/poste/Machin_status"
+	chmod +x "${BATS_TEST_TMPDIR}/poste/Machin_status"
+	PATH="${PATH}:${BATS_TEST_TMPDIR}/poste" run "${MACHIN}" banner
+	[ "${status}" -eq 0 ]
+	[ "${#lines[@]}" -eq 5 ]
+	[[ "${output}" != *"Radio du poste"* ]]
 }
 
 @test "Machin banner ne prend pas d'argument" {
