@@ -75,3 +75,30 @@ def due(settings: Settings, elapsed: timedelta | None, duration: timedelta | Non
 	if (settings.placement == AFTER) or (duration is None) or (elapsed < settings.minimum):
 		return False
 	return elapsed + duration > settings.maximum
+
+
+@dataclass
+class Current:
+	"""Les réglages en vigueur dans le binaire, ou None s'ils sont refusés : la fenêtre du plugin les remplace à
+	l'enregistrement, pour la simulation et la fiche ; Machin player les relit à son démarrage."""
+
+	settings: Settings | None = None
+
+
+def as_section(settings: Settings) -> dict[str, Any]:
+	"""La section [plugins.timely_station_id] des réglages."""
+	section: dict[str, Any] = {"bank": settings.bank}
+	if settings.watched != ():
+		section["watched"] = list(settings.watched)
+	section["minimum"] = _number(settings.minimum)
+	section["maximum"] = _number(settings.maximum)
+	section["placement"] = settings.placement
+	return section
+
+
+def _number(duration: timedelta) -> int | float:
+	"""Des minutes entières sans décimale."""
+	minutes = duration.total_seconds() / 60
+	if minutes == int(minutes):
+		return int(minutes)
+	return minutes

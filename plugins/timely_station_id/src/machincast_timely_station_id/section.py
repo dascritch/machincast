@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QCheckBox, QFormLayout, QVBoxLayout, QWidget
 from machincast.interface.card import CardSection
 from machincast.interface.event_card import EventCard
 from machincast_timely_station_id import queries
-from machincast_timely_station_id.rule import Settings
+from machincast_timely_station_id.rule import Current, Settings
 from machincast_timely_station_id.texts import t
 
 
@@ -41,7 +41,7 @@ class RegularSection(CardSection):
 	def __init__(
 		self,
 		connection: queries.Connection,
-		settings: Settings | None,
+		current: Current,
 		parent: QWidget | None = None,
 		card: EventCard | None = None,
 	) -> None:
@@ -51,7 +51,7 @@ class RegularSection(CardSection):
 		self._loading = False
 		self.regular = QCheckBox(t("Regular station ID"), self)
 		self.regular.setObjectName("regular_station_id")
-		self.regular.setToolTip(explanation(settings))
+		self.regular.setToolTip(explanation(current.settings))
 		if card is None:
 			layout = QVBoxLayout(self)
 			layout.setContentsMargins(0, 0, 0, 0)

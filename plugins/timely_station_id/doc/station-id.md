@@ -5,7 +5,16 @@ Le plugin « Station ID régulier » fait passer un station ID au bon moment, en
 
 ## Le régler
 
-Ses réglages sont dans `machincast.toml`, section `[plugins.timely_station_id]` : la banque des station ID à jouer, les banques à surveiller, l'écart minimal et maximal entre deux station ID, en minutes, et le placement ; le [README du plugin](../README.md) les détaille.
+Menu **Plugins**, **Station ID régulier** :
+
+- **Banque des station ID** : celle dont un sonore passe ;
+- **Banques surveillées** : celles dont un passage compte aussi comme un station ID ;
+- **Minimum** et **Maximum entre deux station ID**, en minutes ;
+- **Placement** : avant le morceau qui ferait dépasser le maximum, ou après le maximum ;
+- **Enregistrer** les écrit dans `machincast.toml`, section `[plugins.timely_station_id]`, que le [README du plugin](../README.md) détaille.
+
+Un minimum au-dessus du maximum, ou sans banque choisie, est refusé, et rien n'est écrit.
+L'interface prend aussitôt les réglages enregistrés, pour la simulation et la fiche ; relancer la diffusion pour que Machin player les prenne.
 
 - Un passage d'une banque surveillée, par exemple un jingle saisonnier qui dit le nom de la station, compte comme un station ID.
 - Placement `before` : le station ID passe avant le morceau qui ferait dépasser le maximum, dès que le minimum est passé.

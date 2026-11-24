@@ -38,3 +38,13 @@ def banks(connection: Connection, names: tuple[str, ...]) -> dict[str, int]:
 	).fetchall():
 		found[str(name)] = int(identifier)
 	return found
+
+
+def bank_names(connection: Connection) -> list[str]:
+	"""Les noms internes des banques non supprimées, par nom."""
+	found = []
+	for (name,) in connection.execute(
+		"SELECT internal_name FROM banks WHERE deleted_at IS NULL ORDER BY lower(internal_name), id"
+	).fetchall():
+		found.append(str(name))
+	return found

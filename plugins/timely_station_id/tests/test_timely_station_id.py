@@ -6,13 +6,16 @@ binaire (machincast.plugins.active), que tests/conftest.py remet à vide après 
 s'ouvre seule, au rôle machincast_interface.
 """
 
+import dataclasses
 import json
 import logging
 import re
+import tomllib
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -20,8 +23,11 @@ from zoneinfo import ZoneInfo
 import machincast_timely_station_id
 import psycopg
 import pytest
+from machincast_timely_station_id import settings as settings_window
 from machincast_timely_station_id.rule import Settings, due, read_settings
 from machincast_timely_station_id.section import RegularSection, field_row
+from machincast_timely_station_id.settings import StationSettings
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -50,6 +56,8 @@ class Context:
 	points: list[str] = field(default_factory=list)
 	connection: Connection | None = None
 	card: EventCard | None = None
+	window: StationSettings | None = None
+	path: Path | None = None
 
 
 @pytest.fixture
@@ -58,15 +66,45 @@ def context(qtbot: QtBot) -> Iterator[Context]:
 	yield found
 	if found.card is not None:
 		found.card.close()
+	if found.window is not None:
+		found.window.close()
 	if found.connection is not None:
 		found.connection.close()
+
+
+CONFIGURATION = """# Le poste de l'antenne
+[plugins]
+enabled = ["timely_station_id"]
+
+[dead_air]
+duration = 10
+"""
+"""Le fichier de configuration des scénarios : sa section du plugin s'y écrit, le reste doit y rester."""
+
+
+@pytest.fixture
+def configuration_file(context: Context, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""Un fichier de configuration à part, jamais celui du dépôt ; la fenêtre lit les banques de la base de test."""
+	context.path = tmp_path / "machincast.toml"
+	context.path.write_text(CONFIGURATION, encoding="utf-8")
+
+	def opened(_socket: object, _database: object, role: Role) -> Connection:
+		return open_connection(*sample_database_parameters(), role)
+
+	monkeypatch.setattr(settings_window, "open_connection", opened)
+	return context.path
 
 
 class _Plugin:
 	"""Un plugin chargé, abonné aux points du binaire, ou qui note seulement ses abonnements."""
 
-	def __init__(self, executable: str, settings: dict[str, Any], noted: list[str] | None = None) -> None:
-		self.context = SimpleNamespace(executable=executable, settings=settings, configuration=configuration_test())
+	def __init__(
+		self, executable: str, settings: dict[str, Any], noted: list[str] | None = None, path: Path | None = None
+	) -> None:
+		configuration = configuration_test()
+		if path is not None:
+			configuration = dataclasses.replace(configuration, path=path)
+		self.context = SimpleNamespace(executable=executable, settings=settings, configuration=configuration)
 		self.noted = noted
 
 	def on(self, point: str, function: Any) -> None:
@@ -164,9 +202,15 @@ def background(empty_database: Connection, name: str, state: str, sounds: str) -
 		)
 
 
+@given("aucun réglage")
+def no_settings(context: Context) -> None:
+	context.settings = {}
+
+
 @given(parsers.parse("le plugin du station ID régulier, chargé dans « {executable} »"))
-def loaded(context: Context, executable: str) -> None:
-	machincast_timely_station_id.register(_Plugin(executable, context.settings))  # type: ignore[arg-type]
+def loaded(context: Context, configuration_file: Path, executable: str) -> None:
+	plugin = _Plugin(executable, context.settings, path=configuration_file)
+	machincast_timely_station_id.register(plugin)  # type: ignore[arg-type]
 
 
 # ─── Quand ─────────────────────────────────────────────────
@@ -219,6 +263,50 @@ def open_card(empty_database: Connection, context: Context, qtbot: QtBot, name: 
 @when(parsers.re(r"je (?P<action>coche|décoche) « Station ID régulier »"))
 def tick(context: Context, action: str) -> None:
 	_section(context).regular.setChecked(action == "coche")
+
+
+def _window(context: Context) -> StationSettings:
+	assert context.window is not None
+	return context.window
+
+
+@when("j'ouvre la fenêtre du plugin")
+def open_window(context: Context, qtbot: QtBot) -> None:
+	answers = plugins.active().points.collect_from("timely_station_id", "interface.plugin_window", {"parent": None})
+	assert len(answers) == 1, answers
+	window = answers[0]
+	assert isinstance(window, StationSettings), window
+	context.window = window
+	qtbot.addWidget(window)
+
+
+@when(
+	parsers.re(
+		r"je choisis la banque « (?P<bank>[^»]+) », surveille « (?P<watched>[^»]+) », de (?P<minimum>\d+) à"
+		r" (?P<maximum>\d+) minutes, placement « (?P<placement>[^»]+) »$"
+	)
+)
+def choose(context: Context, bank: str, watched: str, minimum: str, maximum: str, placement: str) -> None:
+	window = _window(context)
+	window.bank.setCurrentIndex(window.bank.findText(bank))
+	for row in range(window.watched.count()):
+		item = window.watched.item(row)
+		if item.text() == watched:
+			item.setCheckState(Qt.CheckState.Checked)
+	gap(context, minimum, maximum)
+	window.placement.setCurrentIndex(window.placement.findText(placement))
+
+
+@when(parsers.parse("je règle l'écart de {minimum} à {maximum} minutes"))
+def gap(context: Context, minimum: str, maximum: str) -> None:
+	window = _window(context)
+	window.minimum.setValue(int(minimum))
+	window.maximum.setValue(int(maximum))
+
+
+@when("j'enregistre les réglages du plugin")
+def save_window(context: Context) -> None:
+	_window(context).save_button.click()
 
 
 @when("j'enregistre la fiche de l'événement")
@@ -279,6 +367,88 @@ def journal(caplog: pytest.LogCaptureFixture, once: str | None, text: str) -> No
 		assert found != [], caplog.records
 	else:
 		assert len(found) == 1, caplog.records
+
+
+@then("il ne s'abonne à aucun point")
+def nothing(context: Context) -> None:
+	assert context.points == []
+
+
+@then(parsers.parse("la banque des station ID est « {bank} », parmi {banks}"))
+def bank_shown(context: Context, bank: str, banks: str) -> None:
+	window = _window(context)
+	found = []
+	for index in range(window.bank.count()):
+		found.append(window.bank.itemText(index))
+	assert (window.bank.currentText(), found) == (bank, NAME.findall(banks))
+
+
+@then(parsers.parse("les banques surveillées cochées sont {banks}"))
+def watched_shown(context: Context, banks: str) -> None:
+	window = _window(context)
+	found = []
+	for row in range(window.watched.count()):
+		item = window.watched.item(row)
+		if item.checkState() == Qt.CheckState.Checked:
+			found.append(item.text())
+	assert found == NAME.findall(banks)
+
+
+@then(parsers.parse("l'écart va de {minimum:d} à {maximum:d} minutes, placement « {placement} »"))
+def gap_shown(context: Context, minimum: int, maximum: int, placement: str) -> None:
+	window = _window(context)
+	assert (window.minimum.value(), window.maximum.value()) == (minimum, maximum)
+	assert window.placement.currentText() == placement
+
+
+@then(parsers.parse("le message de la fenêtre dit « {text} »"))
+def window_message(context: Context, text: str) -> None:
+	assert _window(context).message.text() == text
+
+
+@then("le fichier de configuration est inchangé")
+def unchanged(context: Context) -> None:
+	assert context.path is not None
+	assert context.path.read_text(encoding="utf-8") == CONFIGURATION
+
+
+@then("le fichier de configuration a gardé son commentaire et ses autres sections")
+def kept(context: Context) -> None:
+	assert context.path is not None
+	written = context.path.read_text(encoding="utf-8")
+	assert written.startswith('# Le poste de l\'antenne\n[plugins]\nenabled = ["timely_station_id"]\n'), written
+	assert "[dead_air]\nduration = 10\n" in written, written
+
+
+@then(
+	parsers.re(
+		r"sa section \[plugins.timely_station_id\] est bank « (?P<bank>[^»]+) », watched « (?P<watched>[^»]+) »,"
+		r" minimum (?P<minimum>\d+), maximum (?P<maximum>\d+), placement « (?P<placement>[^»]+) »$"
+	)
+)
+def section_written(context: Context, bank: str, watched: str, minimum: str, maximum: str, placement: str) -> None:
+	assert context.path is not None
+	written = tomllib.loads(context.path.read_text(encoding="utf-8"))
+	assert written["plugins"]["timely_station_id"] == {
+		"bank": bank,
+		"watched": [watched],
+		"minimum": int(minimum),
+		"maximum": int(maximum),
+		"placement": placement,
+	}
+
+
+@then(parsers.parse("l'infobulle de la case de la fiche dit aussitôt « {text} »"))
+def tooltip_now(context: Context, empty_database: Connection, qtbot: QtBot, text: str) -> None:
+	context.connection = open_connection(*sample_database_parameters(), Role.INTERFACE)
+	answers = plugins.active().points.collect(
+		"interface.event_card", {"connection": context.connection, "parent": None}
+	)
+	assert len(answers) == 1, answers
+	section = answers[0][1]
+	assert isinstance(section, RegularSection)
+	qtbot.addWidget(section)
+	assert section.regular.toolTip() == text
 
 
 @then(parsers.parse("il s'abonne seulement à {points}"))
