@@ -157,3 +157,22 @@ Fonctionnalité: Analyse du prochain sonore au dernier moment
 		Quand la diffusion démarre au plus vite
 		Et la diffusion tourne 1 pas d'une seconde
 		Alors les analyses sont demandées bientôt pour les sonores « f2 », « f3 », et pas encore pour « f4 »
+
+	Scénario: Le fichier d'une émission des heures suivantes est analysé en avance, après les sonores à venir
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Magazine » de 23:00 à 23:59, avec le sonore « long »
+		Et le sonore « f1 » a été vérifié en entier
+		Et une commande d'analyse imitée
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 3 pas d'une seconde
+		Alors les analyses sont demandées, dans l'ordre, pour les sonores « f2 », « long »
+
+	Scénario: Une émission au-delà de six heures n'est pas encore analysée
+		Étant donné le fil musical permanent « Continue », avec les sonores « f1 », « f2 »
+		Et l'émission « Matinale » de 06:00 à 07:00, le lendemain, avec le sonore « matin »
+		Et le sonore « f1 » a été vérifié en entier
+		Et le sonore « f2 » a été vérifié en entier
+		Et une commande d'analyse imitée
+		Quand la diffusion démarre au plus vite
+		Et la diffusion tourne 3 pas d'une seconde
+		Alors aucune analyse n'a été demandée

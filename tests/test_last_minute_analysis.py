@@ -5,6 +5,7 @@ note ses arguments un par ligne, ou plante ; le dernier scénario lance le vrai,
 """
 
 import os
+import re
 import sys
 import time
 from datetime import UTC, datetime, timedelta
@@ -15,7 +16,7 @@ from pytest_bdd import given, parsers, scenarios, then
 
 from machincast.configuration import SILENCE_THRESHOLD
 from machincast.player.analysis import Analyser, analysis_command
-from tests.broadcast_steps import Bench, sound
+from tests.broadcast_steps import Bench, event, hour, sound
 from tests.database_fixtures import configuration_test
 
 scenarios("last_minute_analysis.feature")
@@ -127,6 +128,27 @@ def slow(bench: Bench, tmp_path: Path, seconds: int) -> Path:
 	return log
 
 
+@given(
+	parsers.re(
+		r"l'émission « (?P<name>[^»]+) » de (?P<start>[\d:]+) à (?P<end>[\d:]+), le lendemain, avec le sonore"
+		r" « (?P<sound_name>[^»]+) »"
+	)
+)
+def next_day_show(
+	bench: Bench, empty_database: Connection, tmp_path: Path, name: str, start: str, end: str, sound_name: str
+) -> None:
+	event(
+		bench,
+		empty_database,
+		tmp_path,
+		name,
+		"show",
+		hour(f"2026-10-15 {start}"),
+		hour(f"2026-10-15 {end}"),
+		[sound_name],
+	)
+
+
 @given("une commande d'analyse introuvable")
 def not_found(bench: Bench, tmp_path: Path) -> None:
 	bench.analyser = Analyser([str(tmp_path / "absent" / "Machin_indexer"), "--sound"])
@@ -182,6 +204,15 @@ def requested_two(empty_database: Connection, analysis_log: Path, first: str, se
 	assert sorted(calls(analysis_log)) == sorted(expected)
 	unexpected = ["--full-audit", "--sound", str(sound(empty_database, third))]
 	assert unexpected not in calls(analysis_log)
+
+
+@then(parsers.parse("les analyses sont demandées, dans l'ordre, pour les sonores {names}"))
+def requested_in_order(empty_database: Connection, analysis_log: Path, names: str) -> None:
+	expected = []
+	for name in re.findall(r"« ([^»]+) »", names):
+		expected.append(["--full-audit", "--sound", str(sound(empty_database, name))])
+	assert wait(lambda: len(calls(analysis_log)) >= len(expected)), calls(analysis_log)
+	assert calls(analysis_log) == expected
 
 
 @then("aucune analyse n'a été demandée")

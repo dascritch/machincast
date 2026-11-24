@@ -89,7 +89,7 @@ from machincast.clock import Clock
 from machincast.configuration import Crossfades, DeadAirSettings, Metadata
 from machincast.i18n import N_, _
 from machincast.player import plugin_points, queries
-from machincast.player.analysis import Analyser, to_analyse
+from machincast.player.analysis import PER_STEP, Analyser, files_ahead, to_analyse
 from machincast.player.broadcast_plan import (
 	_buffer,
 	_continues_sequence,
@@ -316,6 +316,7 @@ class Broadcast:
 		self._discard_blocked_playback(instant)
 		self._discard_frozen_stream(instant)
 		self._handle_dead_air(instant)
+		self._pump_analyses(instant)
 		if self.state is not None:
 			for asks in self.state.requests():
 				self.interruptions.asked = asks
@@ -687,13 +688,8 @@ class Broadcast:
 		else:
 			self.upcoming = []
 			self.reserve = self._choose_reserve(cutoff, instant)
-		if self.reserve is not None:
-			self._analyse(self.reserve.choice.sound, self.reserve.parameters.location, instant)
 		self._extend(instant)
-		# Les sonores à venir aussi, pour que leur audit ait le temps de finir
-		# (https://github.com/dascritch/machincast/issues/646).
-		for planned in self.upcoming:
-			self._analyse(planned.choice.sound, planned.parameters.location, instant)
+		self._plan_analyses(instant)
 		# Les sonores prévus ont pu changer : la voie préchargée d'un stream qui n'y est plus ne sert plus.
 		preload = self.preload
 		if (preload is not None) and (preload.sound not in self._planned_sounds()):
@@ -856,13 +852,36 @@ class Broadcast:
 			return None
 		return end + BLANK
 
-	def _analyse(self, sound: int, location: str | None, instant: datetime) -> None:
-		"""Fait analyser un sonore à jouer s'il n'a pas été vérifié en entier, ou pas mesuré, sans attendre l'analyse :
-		le prochain, ceux à venir, et celui qui démarre sans avoir été réservé
-		(https://github.com/dascritch/machincast/issues/181, https://github.com/dascritch/machincast/issues/646). Quand
-		trop d'analyses tournent déjà, il sera redemandé au début du sonore suivant."""
+	def _plan_analyses(self, instant: datetime) -> None:
+		"""Les sonores à faire analyser, dans l'ordre où ils joueront : le prochain, ceux à venir, puis les fichiers des
+		événements des heures suivantes (https://github.com/dascritch/machincast/issues/646)."""
 		analyser = self.analyser
-		if (analyser is None) or (not analyser.to_ask(sound, instant)) or (analyser.busy()):
+		if analyser is None:
+			return
+		ordered: list[tuple[int, str | None]] = []
+		if self.reserve is not None:
+			ordered.append((self.reserve.choice.sound, self.reserve.parameters.location))
+		for planned in self.upcoming:
+			ordered.append((planned.choice.sound, planned.parameters.location))
+		with self.connection.transaction():
+			ordered.extend(files_ahead(self.connection, instant))
+		analyser.plan(ordered)
+		self._pump_analyses(instant)
+
+	def _pump_analyses(self, instant: datetime) -> None:
+		"""Lance les analyses suivantes, tant qu'il en tourne moins que le maximum ; à chaque pas de la diffusion."""
+		analyser = self.analyser
+		examined = 0
+		while (analyser is not None) and (analyser.queue != []) and (examined < PER_STEP) and (not analyser.busy()):
+			sound, location = analyser.queue.pop(0)
+			examined += 1
+			self._analyse(sound, location, instant)
+
+	def _analyse(self, sound: int, location: str | None, instant: datetime) -> None:
+		"""Fait analyser un sonore à jouer s'il n'a pas été vérifié en entier, ou pas mesuré, sans attendre l'analyse
+		(https://github.com/dascritch/machincast/issues/181, https://github.com/dascritch/machincast/issues/646)."""
+		analyser = self.analyser
+		if (analyser is None) or (not analyser.to_ask(sound, instant)):
 			return
 		with self.connection.transaction():
 			if not to_analyse(self.connection, sound):
@@ -1063,9 +1082,10 @@ class Broadcast:
 			tried.add(following.sound)
 			self.scheduler.exclude(following.sound, instant)
 			following = self._decide(instant, None).play
-		if (following is not None) and (path is not None) and (not parameters.stream):
+		if (following is not None) and (path is not None) and (not parameters.stream) and (self.analyser is not None):
 			# Un sonore qui démarre sans avoir été réservé, au démarrage ou après une coupure, n'a pas été analysé.
-			self._analyse(following.sound, parameters.location, instant)
+			self.analyser.first(following.sound, parameters.location)
+			self._pump_analyses(instant)
 		if (following is None) or (path is None):
 			return
 		# Un sonore réservé commence sans nouvelle décision : le prêt de nom se relit à son début.
