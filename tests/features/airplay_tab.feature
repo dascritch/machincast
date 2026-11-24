@@ -175,18 +175,18 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Et l'onglet Airplay montre le nombre d'heures, sans début ni fin
 		Quand je décoche « Aujourd'hui » dans l'onglet Airplay
 		Alors l'onglet Airplay montre un début et une fin, sans le nombre d'heures
-		Et le début de l'onglet Airplay va du « 2026-08-17T20:01 » au « 2026-10-16T20:01 », et vaut « 2026-10-16T08:01 »
-		Et la fin de l'onglet Airplay va du « 2026-10-16T08:01 » au « 2026-10-16T20:01 », et vaut « 2026-10-16T20:01 »
+		Et le début de l'onglet Airplay va du « 2026-08-17 20:01 » au « 2026-10-16 20:01 », et vaut « 2026-10-16 08:01 »
+		Et la fin de l'onglet Airplay va du « 2026-10-16 08:01 » au « 2026-10-16 20:01 », et vaut « 2026-10-16 20:01 »
 
 	Scénario: Entre deux moments du passé, la table montre les passages commencés entre eux, le début et la fin en ISO 8601
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et je décoche « Aujourd'hui » dans l'onglet Airplay
-		Et je règle l'onglet Airplay du « 2026-10-15T19:00 » au « 2026-10-16T19:00 »
+		Et je règle l'onglet Airplay du « 2026-10-15 19:00 » au « 2026-10-16 19:00 »
 		Alors la table de l'onglet Airplay montre :
 			| debut               | fin                 | duree   | artiste | titre      | evenement   | sequence | banque | incident |
-			| 2026-10-16T18:00:00 | 2026-10-16T19:02:05 | 1:02:05 |         | Le journal | Journal     |          |        |          |
-			| 2026-10-15T20:00:00 | 2026-10-15T20:03:00 | 3:00    | Ancien  | Hier       | Fil de jour |          |        |          |
+			| 2026-10-16 18:00:00 | 2026-10-16 19:02:05 | 1:02:05 |         | Le journal | Journal     |          |        |          |
+			| 2026-10-15 20:00:00 | 2026-10-15 20:03:00 | 3:00    | Ancien  | Hier       | Fil de jour |          |        |          |
 		Quand je coche « Aujourd'hui » dans l'onglet Airplay
 		Alors la table de l'onglet Airplay a 3 lignes
 
@@ -194,14 +194,14 @@ Fonctionnalité: Onglet Airplay, réglable et exportable
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et je décoche « Aujourd'hui » dans l'onglet Airplay
-		Et je règle l'onglet Airplay du « 2026-10-16T10:00 » au « 2026-10-16T09:00 »
-		Alors la fin de l'onglet Airplay vaut « 2026-10-16T10:00 »
+		Et je règle l'onglet Airplay du « 2026-10-16 10:00 » au « 2026-10-16 09:00 »
+		Alors la fin de l'onglet Airplay vaut « 2026-10-16 10:00 »
 
 	Scénario: L'export entre deux moments du passé donne leurs passages, sous un nom qui les dit
 		Quand la fenêtre de l'interface s'ouvre
 		Et je choisis « Ouvrir l'onglet Airplay » dans le menu « Affichage »
 		Et je décoche « Aujourd'hui » dans l'onglet Airplay
-		Et je règle l'onglet Airplay du « 2026-10-15T19:00 » au « 2026-10-16T19:00 »
+		Et je règle l'onglet Airplay du « 2026-10-15 19:00 » au « 2026-10-16 19:00 »
 		Et j'exporte l'onglet Airplay sous « archives.csv », avec le filtre « Tableur CSV (*.csv) »
 		Alors l'export proposait le nom « airplay-2026-10-15-1900-2026-10-16-1900.csv »
 		Et l'export « archives.csv » a 2 passages

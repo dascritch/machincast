@@ -81,7 +81,7 @@ HOURS_AT_MOST = 24 * 31
 HOUR_SETTING = "onglet-airplay/heures"
 """Dans les réglages des vues du compte : le nombre d'heures montré."""
 WITHOUT_METADATA = Metadata(hide=False, public_text="")
-MOMENT = "yyyy-MM-dd'T'HH:mm"
+MOMENT = "yyyy-MM-dd HH:mm"
 """L'affichage des deux moments des archives, ISO 8601 (https://github.com/dascritch/machincast/issues/629)."""
 
 
@@ -306,7 +306,7 @@ class AirplayScreen(QWidget):
 		)
 		if until is not None:
 			offers = f"airplay-{since.astimezone():%Y-%m-%d-%H%M}-{until.astimezone():%Y-%m-%d-%H%M}.csv"
-			title = _("Airplay from {since:%Y-%m-%dT%H:%M} to {until:%Y-%m-%dT%H:%M}").format(
+			title = _("Airplay from {since:%Y-%m-%d %H:%M} to {until:%Y-%m-%d %H:%M}").format(
 				since=since.astimezone(), until=until.astimezone()
 			)
 		choice = dialogs.choose_export(self, offers, list(FORMATS), _("Export the airplay"))

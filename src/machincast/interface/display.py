@@ -43,14 +43,14 @@ EMPTY = "—"
 """Ce que montre un champ sans valeur : aucun sonore, par exemple."""
 
 
-def iso_moment(instant: datetime | None, unknown: str | None = None) -> str:
-	"""« 2026-10-16T20:03:34 », ISO 8601, date et heure du poste, à la seconde près ; inconnu sans instant
-	(https://github.com/dascritch/machincast/issues/629)."""
+def dated_hour(instant: datetime | None, unknown: str | None = None) -> str:
+	"""« 2026-10-16 20:03:34 », date et heure du poste, à la seconde près, séparées d'une espace comme partout dans
+	l'interface ; inconnu sans instant (https://github.com/dascritch/machincast/issues/629)."""
 	if instant is None:
 		if unknown is None:
 			return _("unknown")
 		return unknown
-	return f"{instant.astimezone():%Y-%m-%dT%H:%M:%S}"
+	return f"{instant.astimezone():%Y-%m-%d %H:%M:%S}"
 
 
 def hour(instant: datetime | None, unknown: str | None = None) -> str:

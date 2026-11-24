@@ -290,11 +290,11 @@ def count_text(interface: Context, text: str) -> None:
 
 
 def _moment(text: str) -> QDateTime:
-	return QDateTime.fromString(text, "yyyy-MM-dd'T'HH:mm")
+	return QDateTime.fromString(text, "yyyy-MM-dd HH:mm")
 
 
 def _shown(edit: QDateTimeEdit) -> str:
-	return edit.dateTime().toString("yyyy-MM-dd'T'HH:mm")
+	return edit.dateTime().toString("yyyy-MM-dd HH:mm")
 
 
 @when(parsers.re(r"je (?P<gesture>coche|décoche) « Aujourd'hui » dans l'onglet Airplay"))
@@ -345,8 +345,8 @@ def moment_bounds(interface: Context, which: str, minimum: str, maximum: str, va
 	if which == "la fin":
 		edit = opened.until
 	found = (
-		edit.minimumDateTime().toString("yyyy-MM-dd'T'HH:mm"),
-		edit.maximumDateTime().toString("yyyy-MM-dd'T'HH:mm"),
+		edit.minimumDateTime().toString("yyyy-MM-dd HH:mm"),
+		edit.maximumDateTime().toString("yyyy-MM-dd HH:mm"),
 		_shown(edit),
 	)
 	assert found == (minimum, maximum, value), found

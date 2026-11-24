@@ -905,7 +905,7 @@ def play_cells(play: DisplayedPlay, *, dated: bool = False) -> list[str]:
 	(https://github.com/dascritch/machincast/issues/629)."""
 	shown = display.hour
 	if dated:
-		shown = display.iso_moment
+		shown = display.dated_hour
 	end = _("ongoing")
 	duration = ""
 	if play.end is not None:
