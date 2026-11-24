@@ -12,7 +12,10 @@ moindre erreur, en donnant un son plus court ou parasité. Le décodage examine 
 
 Pendant l'audit complet, le décodage mesure aussi les silences au début et à la fin du fichier
 (https://github.com/dascritch/machincast/issues/146) : un élément level relève le niveau crête de chaque tranche de
-SILENCE_INTERVAL, et le silence s'arrête à la première tranche dont le canal le plus fort atteint le seuil.
+SILENCE_INTERVAL, et le silence s'arrête à la première tranche dont le canal le plus fort atteint le seuil. Il mesure
+enfin la crête absolue et la sonie EBU R128 du son (machincast.indexer.loudness,
+https://github.com/dascritch/machincast/issues/642) : le son passe alors, à 48 kHz en flottants, par level puis par la
+pondération K.
 
 Limites, propres aux formats : un WAV ou un AIFF n'a ni somme de contrôle ni structure en trames,
 des octets altérés y passent inaperçus ; un WAV, un Ogg ou un MP3 sans en-tête de durée tronqué se
@@ -32,6 +35,7 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
 from machincast.i18n import N_, _, decimal  # noqa: E402
+from machincast.indexer import loudness as measures  # noqa: E402
 from machincast.indexer.tags import Tags, extract  # noqa: E402
 
 DELAY_WITHOUT_PROGRESS = timedelta(seconds=30)
@@ -104,10 +108,21 @@ class Check:
 	"""Silences mesurés pendant le décodage d'un fichier sain ; None s'ils n'ont pas été mesurés, sans seuil."""
 	detail: str | None = None
 	"""Le problème seul, sans l'état qui le précède : pour le document d'audit."""
+	loudness: measures.Loudness | None = None
+	"""La crête et la sonie mesurées pendant le décodage d'un fichier sain ; None sans mesure, hors audit complet
+	(https://github.com/dascritch/machincast/issues/642)."""
 
 	@classmethod
-	def healthy(cls, duration: timedelta, tags: Tags | None = None, silences: Silences | None = None) -> "Check":
-		return cls(FileState.HEALTHY, duration, tags=(tags) or (Tags(None, None, {})), silences=silences)
+	def healthy(
+		cls,
+		duration: timedelta,
+		tags: Tags | None = None,
+		silences: Silences | None = None,
+		measured: measures.Loudness | None = None,
+	) -> "Check":
+		return cls(
+			FileState.HEALTHY, duration, tags=(tags) or (Tags(None, None, {})), silences=silences, loudness=measured
+		)
 
 	@classmethod
 	def defective(cls, state: FileState, detail: str, duration: timedelta | None = None) -> "Check":
@@ -193,16 +208,25 @@ class _Decoding:
 	"""Un pipeline filesrc ! decodebin ! audioconvert ! fakesink, aussi rapide que le disque le permet.
 
 	Avec un seuil de silence, un élément level, entre audioconvert et fakesink, mesure le niveau crête de chaque
-	tranche (https://github.com/dascritch/machincast/issues/146)."""
+	tranche (https://github.com/dascritch/machincast/issues/146) ; le son y arrive rééchantillonné à 48 kHz en
+	flottants, et repart vers la pondération K, pour la mesure de sa crête et de sa sonie
+	(https://github.com/dascritch/machincast/issues/642)."""
 
 	def __init__(self, path: Path, silence_threshold: float | None = None) -> None:
 		self.pipeline = Gst.Pipeline.new("verification")
 		names = ["filesrc", "decodebin", "audioconvert", "fakesink"]
 		if silence_threshold is not None:
-			names.insert(3, "level")
-		items = []
+			names[3:3] = ["audioresample", "capsfilter", "level"]
+		items: list[Gst.Element | None] = []
 		for name in names:
 			items.append(Gst.ElementFactory.make(name, None))
+		self.meter: measures.Meter | None = None
+		if silence_threshold is not None:
+			filters = measures.k_filters()
+			if filters is None:
+				items.append(None)
+			else:
+				items[-1:-1] = filters
 		found = False
 		for item in items:
 			if item is None:
@@ -229,8 +253,13 @@ class _Decoding:
 		self.levels: _Levels | None = None
 		self.measure: Gst.Element | None = None
 		if silence_threshold is not None:
+			found_list[4].set_property("caps", Gst.Caps.from_string(measures.CAPS))
 			self.levels = _Levels(silence_threshold)
-			self.measure = found_list[3]
+			self.measure = found_list[5]
+			self.meter = measures.Meter()
+			before = found_list[6].get_static_pad("sink")
+			assert before is not None
+			before.add_probe(Gst.PadProbeType.BUFFER, measures.peak_probe(self.meter))
 			self.measure.set_property("interval", round(SILENCE_INTERVAL.total_seconds() * Gst.SECOND))
 			self.measure.set_property("post-messages", True)
 		self.decoder = decoder
@@ -242,6 +271,8 @@ class _Decoding:
 		entry = sink.get_static_pad("sink")
 		assert entry is not None
 		entry.add_probe(Gst.PadProbeType.BUFFER, _probe(self.tracking))
+		if self.meter is not None:
+			entry.add_probe(Gst.PadProbeType.BUFFER, measures.weighted_probe(self.meter))
 		bus = self.pipeline.get_bus()
 		assert bus is not None
 		self.bus = bus
@@ -434,4 +465,7 @@ def _attempt(
 				).format(in_seconds=_in_seconds(duration), in_seconds2=_in_seconds(announced_duration)),
 				duration,
 			)
-	return Check.healthy(duration, extract(decoding.tags), decoding.silences())
+	measured = None
+	if decoding.meter is not None:
+		measured = decoding.meter.result()
+	return Check.healthy(duration, extract(decoding.tags), decoding.silences(), measured)

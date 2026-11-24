@@ -33,7 +33,7 @@ def spotted(sound: int, location: str, bank: int, bank_name: str) -> None:
 
 def detailed(sound: int, location: str, details: dict[str, Any]) -> None:
 	"""Le sonore examiné : son état avant et après, et ses champs, tels qu'écrits en base. details donne previous_state,
-	state, duration, artist, title, metadata, file_type, detected_start, detected_end, audited et problem."""
+	state, duration, artist, title, metadata, file_type, detected_start, detected_end, audited, problem et loudness."""
 	data = {"sound": sound, "location": location, **details}
 	for key in ("duration", "detected_start", "detected_end"):
 		data[key] = _seconds(data.get(key))

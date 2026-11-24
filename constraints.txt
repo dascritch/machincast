@@ -25,6 +25,7 @@ Mako==1.4.3
 MarkupSafe==3.0.4
 mypy==2.4.1
 mypy_extensions==1.2.0
+numpy==2.5.5
 packaging==26.3
 parse==1.22.4
 parse_type==0.6.6

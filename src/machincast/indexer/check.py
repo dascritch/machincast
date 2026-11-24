@@ -416,9 +416,17 @@ def _write_check(
 				audited=(audited) and (found),
 				silence_threshold=silence_threshold,
 				missing=after is SoundState.DELETED,
+				loudness=_measured(result),
 			),
 		)
 	return _Written(before, after, merged)
+
+
+def _measured(result: Check) -> dict[str, Any] | None:
+	"""La crête et la sonie d'un fichier sain mesurées à l'audit complet (https://github.com/dascritch/machincast/issues/642)."""
+	if (result.state is not FileState.HEALTHY) or (result.loudness is None):
+		return None
+	return result.loudness.properties()
 
 
 def _count_change(report: Report, before: SoundState, after: SoundState) -> None:
@@ -528,6 +536,7 @@ def _check_sound(
 			"detected_end": merged.detected_end,
 			"audited": audited,
 			"problem": result.problem,
+			"loudness": _measured(result),
 		},
 	)
 	_count_change(report, written.before, written.after)

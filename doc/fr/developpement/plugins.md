@@ -179,7 +179,7 @@ def register(plugin):
 | Point | Quand | Données |
 | --- | --- | --- |
 | `indexer.sound_spotted` | le parcours enregistre un nouveau fichier, en aperçu | `sound`, `location`, `bank`, `bank_name` |
-| `indexer.sound_detailed` | la vérification a écrit ce qu'elle a trouvé d'un sonore | `sound`, `location`, `previous_state`, `state`, `duration`, `artist`, `title`, `metadata`, `file_type`, `detected_start`, `detected_end`, `audited`, `problem` |
+| `indexer.sound_detailed` | la vérification a écrit ce qu'elle a trouvé d'un sonore | `sound`, `location`, `previous_state`, `state`, `duration`, `artist`, `title`, `metadata`, `file_type`, `detected_start`, `detected_end`, `audited`, `problem`, `loudness` (`integrated` et `peak`, ou `None` sans mesure, [#642](https://github.com/dascritch/machincast/issues/642)) |
 
 Ils sont notifiés : l'erreur d'un plugin est consignée, et n'arrête ni le parcours ni la vérification.
 Pour compléter le sonore, le plugin ouvre sa propre connexion : celle de l'indexation ne quitte pas son fil.
