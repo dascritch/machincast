@@ -110,7 +110,8 @@ The **Calendar**, second tab, always open right after the On air tab, without a 
 For holidays, a bank holiday or an exceptional show, a session of a recurring event is skipped, without touching the event ([#273](https://github.com/dascritch/machincast/issues/273)). **Right-click** on the block of an upcoming session:
 
 - **Skip this session**: it does not go on air;
-- **Skip the sessions until…**: a calendar has the last day chosen, and all the sessions of the event until that day, included, are skipped. **OK** or <kbd>Enter</kbd> validates, **Cancel** or <kbd>Escape</kbd> skips nothing.
+- **Skip the sessions until…**: a calendar has the last day chosen, and all the sessions of the event until that day, included, are skipped. **OK** or <kbd>Enter</kbd> validates, **Cancel** or <kbd>Escape</kbd> skips nothing;
+- **Move this session…** ([#631](https://github.com/dascritch/machincast/issues/631)): choose the new start, date and time, from now on; the session is skipped, and a copy of the event, as a single occurrence, plays it at the new moment, with the same duration, elements and settings. It is called « {event} (session moved from {day}) », and is changed or deleted from its card. A session moved onto that of another event of the same priority does not move: the status bar says which one it would overlap. Reinstating the original session leaves the copy: delete it, not to play twice.
 
 A skipped session stays in the calendar, **hatched**: in its place, the air plays what would play without it, generally the background programming. To replace it with another show, **click** its slot, as on a free hour: the new show can take it. The broadcast takes it into account at once, and the On air tab shows the new upcoming sounds. The status bar says what was skipped.
 

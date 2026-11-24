@@ -8,15 +8,16 @@ sélecteur de répertoires et le navigateur de fichiers du poste sont remplacés
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QDate, Qt, QUrl
+from PySide6.QtCore import QDate, QDateTime, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
 	QApplication,
 	QCalendarWidget,
+	QDateTimeEdit,
 	QDialogButtonBox,
 	QFileDialog,
 	QLabel,
@@ -217,6 +218,46 @@ def day_choice(dialog: Dialog, qtbot: QtBot, minimum: str, gesture: str) -> None
 		date.fromisoformat(minimum),
 	)
 	dialog.response = str(day)
+
+
+@when(
+	parsers.parse(
+		"le choix d'un moment proposant le « {proposed} », à partir du « {minimum} », s'ouvre, et que j'y {gesture}"
+	)
+)
+def moment_choice(dialog: Dialog, qtbot: QtBot, proposed: str, minimum: str, gesture: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/631"""
+
+	def make(modal: QWidget) -> None:
+		(field,) = modal.findChildren(QDateTimeEdit)
+		(text,) = modal.findChildren(QLabel)
+		dialog.text = text.text()
+		chosen = re.search(r"choisis le « ([^»]+) »", gesture)
+		if chosen is not None:
+			field.setDateTime(QDateTime.fromString(chosen.group(1), "yyyy-MM-dd HH:mm"))
+		if gesture.endswith("clique sur OK"):
+			(buttons,) = modal.findChildren(QDialogButtonBox)
+			buttons.button(QDialogButtonBox.StandardButton.Ok).click()
+			return
+		key = Qt.Key.Key_Return
+		if gesture.endswith("tape Échap"):
+			key = Qt.Key.Key_Escape
+		qtbot.keyClick((QApplication.focusWidget()) or (modal), key)
+
+	when_modal(make)
+	moment = dialogs.choose_moment(
+		dialog.parent,
+		"Décaler une session",
+		"Décaler la session de « Matinale » du jeudi 22 octobre à 07:00 au :",
+		datetime.fromisoformat(proposed),
+		datetime.fromisoformat(minimum),
+	)
+	dialog.response = str(moment)
+
+
+@then(parsers.parse("le choix d'un moment a dit « {text} »"))
+def moment_says(dialog: Dialog, text: str) -> None:
+	assert dialog.text == text
 
 
 @then(parsers.parse("le choix d'un jour a dit « {text} »"))

@@ -35,3 +35,36 @@ def skip_session(connection: Connection, event: int, day: date) -> None:
 def reinstate_session(connection: Connection, event: int, day: date) -> None:
 	"""La session de ce jour de l'événement joue de nouveau (machincast.interface.sessions)."""
 	connection.execute("DELETE FROM event_skips WHERE event_id = %s AND day = %s", (event, day))
+
+
+# ─── Session décalée (https://github.com/dascritch/machincast/issues/631) ───
+
+MOVED = (
+	"INSERT INTO events (internal_name, public_name, priority, starts_at, ends_at, hide_metadata, end_of_list,"
+	" properties)"
+	" SELECT %s, public_name, priority, %s, %s, hide_metadata, end_of_list, properties"
+	" FROM events WHERE id = %s RETURNING id"
+)
+
+
+def name_taken(connection: Connection, name: str) -> bool:
+	"""Un événement, non supprimé, porte ce nom interne."""
+	found = connection.execute(
+		"SELECT 1 FROM events WHERE internal_name = %s AND deleted_at IS NULL", (name,)
+	).fetchone()
+	return found is not None
+
+
+def copy_event(connection: Connection, event: int, name: str, start: datetime, end: datetime | None) -> int:
+	"""Une copie ponctuelle de l'événement, sans jour de récurrence, de ce début et de cette fin : même nom public,
+	priorité, masquage, fin de liste et propriétés (secours, plugins), mêmes éléments dans le même ordre. Son
+	identifiant."""
+	found = connection.execute(MOVED, (name, start, end, event)).fetchone()
+	assert found is not None
+	copy = int(str(found[0]))
+	connection.execute(
+		"INSERT INTO event_items (event_id, position, bank_id, sound_id, sequence_id)"
+		" SELECT %s, position, bank_id, sound_id, sequence_id FROM event_items WHERE event_id = %s ORDER BY position",
+		(copy, event),
+	)
+	return copy

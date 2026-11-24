@@ -112,7 +112,8 @@ Le **Calendrier**, deuxième onglet, toujours ouvert juste après l'onglet Anten
 Pour des vacances, un jour férié ou une émission exceptionnelle, une session d'un événement récurrent se saute, sans toucher à l'événement ([#273](https://github.com/dascritch/machincast/issues/273)). **Clic droit** sur le bloc d'une session à venir :
 
 - **Sauter cette session** : elle ne passe pas à l'antenne ;
-- **Sauter les sessions jusqu'au…** : un calendrier fait choisir le dernier jour, et toutes les sessions de l'événement jusqu'à ce jour, compris, sont sautées. **OK** ou <kbd>Entrée</kbd> valide, **Annuler** ou <kbd>Échap</kbd> ne saute rien.
+- **Sauter les sessions jusqu'au…** : un calendrier fait choisir le dernier jour, et toutes les sessions de l'événement jusqu'à ce jour, compris, sont sautées. **OK** ou <kbd>Entrée</kbd> valide, **Annuler** ou <kbd>Échap</kbd> ne saute rien ;
+- **Décaler cette session…** ([#631](https://github.com/dascritch/machincast/issues/631)) : choisir le nouveau début, date et heure, à partir de maintenant ; la session est sautée, et une copie de l'événement, en occurrence unique, la joue au nouveau moment, de même durée, avec les mêmes éléments et réglages. Elle s'appelle « {événement} (session décalée du {jour}) », et se modifie ou se supprime depuis sa fiche. Une session décalée sur celle d'un autre événement de même priorité ne bouge pas : la barre d'état dit laquelle elle chevaucherait. Rétablir la session d'origine laisse la copie : la supprimer, pour ne pas jouer deux fois.
 
 Une session sautée reste dans le calendrier, **hachurée** : à sa place, l'antenne joue ce qui jouerait sans elle, en général le fil musical. Pour la remplacer par une autre émission, **cliquer** sur son créneau, comme sur une heure libre : la nouvelle émission peut l'occuper. La diffusion en tient compte aussitôt, et l'onglet Antenne montre les nouveaux sonores à venir. La barre d'état dit ce qui a été sauté.
 

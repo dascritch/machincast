@@ -2211,6 +2211,10 @@ msgid "Reinstate this session"
 msgstr "Rétablir cette session"
 
 #: machincast/interface/calendar.py
+msgid "Move this session…"
+msgstr "Décaler cette session…"
+
+#: machincast/interface/calendar.py
 #: machincast/interface/event_card.py
 #: machincast/intranet/hour_grid.py
 msgid "Skipped session"
@@ -2327,6 +2331,10 @@ msgid "Skip sessions"
 msgstr "Sauter des sessions"
 
 #: machincast/interface/calendar.py
+msgid "Move a session"
+msgstr "Décaler une session"
+
+#: machincast/interface/calendar.py
 msgid "Previous day"
 msgstr "Jour précédent"
 
@@ -2361,6 +2369,12 @@ msgstr ""
 #, python-brace-format
 msgid "Session of “{name}” of {day_and_month} at {first:%H:%M} skipped."
 msgstr "Session de « {name} » du {day_and_month} à {first:%H:%M} sautée."
+
+#: machincast/interface/calendar.py
+#, python-brace-format
+msgid "Move the session of “{name}” of {day_and_month} at {start:%H:%M} to:"
+msgstr ""
+"Décaler la session de « {name} » du {day_and_month} à {start:%H:%M} au :"
 
 #: machincast/interface/calendar.py
 #: machincast/intranet/templates/calendar.html.jinja
@@ -2412,6 +2426,15 @@ msgstr "Session de « {name} » du {day_and_month} à {start:%H:%M} rétablie."
 
 #: machincast/interface/calendar.py
 #, python-brace-format
+msgid ""
+"Session of “{name}” of {day_and_month} moved to {day_and_month2} at "
+"{start:%H:%M}."
+msgstr ""
+"Session de « {name} » du {day_and_month} décalée au {day_and_month2} à "
+"{start:%H:%M}."
+
+#: machincast/interface/calendar.py
+#, python-brace-format
 msgid "Comes back on {days}"
 msgstr "Revient le {days}"
 
@@ -2453,6 +2476,20 @@ msgid ""
 msgstr ""
 "Session de « {name} » du {day_and_month} non rétablie : elle chevaucherait "
 "« {name2} » à {instant:%H:%M}."
+
+#: machincast/interface/calendar.py
+#, python-brace-format
+msgid ""
+"Session of “{name}” of {day_and_month} not moved: it would overlap "
+"“{name2}” on {day_and_month2} at {instant:%H:%M}."
+msgstr ""
+"Session de « {name} » du {day_and_month} non décalée : elle chevaucherait « "
+"{name2} » le {day_and_month2} à {instant:%H:%M}."
+
+#: machincast/interface/calendar.py
+#, python-brace-format
+msgid "{name} (session moved from {day_and_month})"
+msgstr "{name} (session décalée du {day_and_month})"
 
 #: machincast/interface/card.py
 msgid "Restore"

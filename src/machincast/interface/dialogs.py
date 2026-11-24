@@ -6,16 +6,18 @@ la remplacent par la réponse attendue, et aucune fenêtre modale n'attend un cl
 
 import dataclasses
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 from pathlib import Path
+from typing import cast
 
 import psycopg
 from psycopg.rows import TupleRow
-from PySide6.QtCore import QDate, Qt, QUrl
+from PySide6.QtCore import QDate, QDateTime, Qt, QTime, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
 	QCalendarWidget,
+	QDateTimeEdit,
 	QDialog,
 	QDialogButtonBox,
 	QFileDialog,
@@ -162,6 +164,39 @@ def choose_day(parent: QWidget, title: str, text: str, minimum: date) -> date | 
 		return None
 	chosen = calendar.selectedDate()
 	return date(chosen.year(), chosen.month(), chosen.day())
+
+
+MOMENT = "dd/MM/yyyy HH:mm"
+"""L'affichage d'un moment choisi (https://github.com/dascritch/machincast/issues/631)."""
+
+
+def choose_moment(parent: QWidget, title: str, text: str, proposed: datetime, minimum: datetime) -> datetime | None:
+	"""Un moment, date et heure, proposé d'abord, à partir du minimum (https://github.com/dascritch/machincast/issues/631) :
+	Entrée valide, Échap abandonne ; None pour un choix abandonné. En heure murale du poste, sans fuseau."""
+	window = QDialog(parent)
+	window.setWindowTitle(title)
+	arrangement = QVBoxLayout(window)
+	arrangement.addWidget(QLabel(text))
+	field = QDateTimeEdit()
+	field.setObjectName("moment")
+	field.setDisplayFormat(MOMENT)
+	field.setCalendarPopup(True)
+	field.setMinimumDateTime(_qt_moment(minimum))
+	field.setDateTime(_qt_moment(proposed))
+	arrangement.addWidget(field)
+	buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+	buttons.accepted.connect(window.accept)
+	buttons.rejected.connect(window.reject)
+	arrangement.addWidget(buttons)
+	field.setFocus()
+	if window.exec() != QDialog.DialogCode.Accepted:
+		return None
+	chosen = cast(datetime, field.dateTime().toPython())
+	return chosen.replace(second=0, microsecond=0)
+
+
+def _qt_moment(moment: datetime) -> QDateTime:
+	return QDateTime(QDate(moment.year, moment.month, moment.day), QTime(moment.hour, moment.minute))
 
 
 def confirm_deletion(parent: QWidget, title: str, text: str) -> bool:
