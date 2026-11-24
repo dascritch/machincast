@@ -201,6 +201,18 @@ class TabManager:
 		RECENTLY_CLOSED, et jamais un onglet ouvert."""
 		self.reopen_action: QAction | None = None
 		self.closed_menu: QMenu | None = None
+		self.visited: list[QWidget] = []
+		"""Les onglets ouverts, du plus ancien au plus récent montré : fermer l'onglet ouvert ramène au plus récent qui
+		reste (https://github.com/dascritch/machincast/issues/632)."""
+		tabs.currentChanged.connect(self._visit)
+
+	def _visit(self, index: int) -> None:
+		screen = self.tabs.widget(index)
+		if screen is None:
+			return
+		if screen in self.visited:
+			self.visited.remove(screen)
+		self.visited.append(screen)
 
 	def tab_key(self, screen: QWidget | None) -> str | None:
 		"""Ce qui désigne un onglet d'un lancement à l'autre : « antenne », « liste:Feeds », « fiche:banque:12 »… ;
@@ -426,7 +438,18 @@ class TabManager:
 			if screen not in (origin, last):
 				last_dict[origin] = last
 		self.last_opened = last_dict
+		# L'onglet ouvert qui se ferme ramène à celui qu'on a montré juste avant lui, plutôt qu'à son voisin de droite,
+		# que choisirait Qt (https://github.com/dascritch/machincast/issues/632).
+		returning: QWidget | None = None
+		if screen is self.tabs.currentWidget():
+			for visited in self.visited:
+				if (visited is not screen) and (self.tabs.indexOf(visited) >= 0):
+					returning = visited
+		if screen in self.visited:
+			self.visited.remove(screen)
 		self.tabs.removeTab(index)
+		if returning is not None:
+			self.tabs.setCurrentWidget(returning)
 		self._number_tabs()
 
 	def create_shortcuts(self) -> None:
