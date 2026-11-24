@@ -49,7 +49,7 @@ from psycopg.rows import TupleRow
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 from PySide6.QtCore import Qt, QTimer, Signal  # noqa: E402
-from PySide6.QtGui import QCloseEvent, QStandardItemModel  # noqa: E402
+from PySide6.QtGui import QCloseEvent, QShowEvent, QStandardItemModel  # noqa: E402
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
@@ -678,10 +678,20 @@ class PreviewWindow(QWidget):
 		self.shape = None
 
 	def closeEvent(self, event: QCloseEvent) -> None:
+		"""Fermée, la fenêtre arrête sa lecture, puis sa relève : cachée, elle occupait sinon l'interface toutes les
+		READING millisecondes, au détriment du VU-mètre de l'onglet Antenne
+		(https://github.com/dascritch/machincast/issues/627)."""
 		self._halt_shape()
 		self.player.halt()
 		self._refresh()
+		self._reading.stop()
 		super().closeEvent(event)
+
+	def showEvent(self, event: QShowEvent) -> None:
+		"""Rouverte, elle relève de nouveau son lecteur."""
+		super().showEvent(event)
+		if not self._reading.isActive():
+			self._reading.start()
 
 	def _fill_outputs(self) -> None:
 		"""Le périphérique configuré d'abord, puis les autres du poste, dans leur ordre. Celui de la diffusion y est,
