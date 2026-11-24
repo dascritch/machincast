@@ -280,6 +280,19 @@ def last_item(connection: Connection, event: int, since: datetime | None) -> Tup
 	).fetchone()
 
 
+def listed_files(connection: Connection, events: list[int]) -> list[TupleRow]:
+	"""Les fichiers placés dans la liste de ces événements, ou dans leurs séquences, avec leur emplacement, par
+	événement et dans l'ordre de leur liste (https://github.com/dascritch/machincast/issues/646)."""
+	return connection.execute(
+		"SELECT ei.event_id, s.id, s.location FROM event_items ei"
+		" LEFT JOIN sequence_items si ON si.sequence_id = ei.sequence_id"
+		" JOIN sounds s ON s.id = COALESCE(ei.sound_id, si.sound_id)"
+		" WHERE ei.event_id = ANY(%s) AND s.type = 'file' AND s.deleted_at IS NULL"
+		" ORDER BY ei.event_id, ei.position, si.position",
+		(events,),
+	).fetchall()
+
+
 def sound_properties(connection: Connection, sound: int) -> TupleRow | None:
 	"""La colonne properties d'un sonore (https://github.com/dascritch/machincast/issues/643)."""
 	return connection.execute("SELECT properties FROM sounds WHERE id = %s", (sound,)).fetchone()

@@ -9,8 +9,11 @@ https://github.com/dascritch/machincast/issues/401), même s'il a été vérifi�
 sain sans mesure de son niveau (https://github.com/dascritch/machincast/issues/642), la diffusion lance
 « Machin indexer --full-audit --sound N »
 dans un processus à part, sans fenêtre, et ne l'attend jamais : que l'indexeur plante ou n'ait pas fini, le sonore
-est joué à son heure. Au plus RUNNING analyses tournent à la fois : un sonore de plus est redemandé au début du sonore
-suivant. Ses lignes vont dans le journal de Machin player. Machin indexer --sound ne prend aucun verrou : l'audit se fait même pendant
+est joué à son heure. Les sonores s'analysent dans l'ordre où ils joueront (Analyser.plan) : le prochain, ceux à venir,
+puis, de plus en plus en avance, les fichiers placés dans la liste des événements qui commencent dans les LOOKAHEAD
+heures (files_ahead), une émission d'une heure par exemple, pour que son audit ait fini à son heure même derrière des
+sonores de moins de trois minutes. Au plus RUNNING analyses tournent à la fois : la suivante part dès qu'une finit,
+à un pas de la diffusion. Ses lignes vont dans le journal de Machin player. Machin indexer --sound ne prend aucun verrou : l'audit se fait même pendant
 une indexation rapide ou un audit complet de toute la base. Un même sonore n'est pas redemandé avant RESTARTED. Un stream n'est jamais analysé, comme l'indexeur ne vérifie jamais les streams.
 """
 
@@ -24,9 +27,14 @@ from psycopg.rows import TupleRow
 
 from machincast.fingerprint import audited_since_modification
 from machincast.player import queries
+from machincast.shared.grid import plan, read_grid, wall_hour
 
 RUNNING = 2
 """Les analyses qui tournent à la fois, au plus : au démarrage, la playlist immédiate n'en lance pas une par sonore."""
+LOOKAHEAD = timedelta(hours=6)
+"""Jusqu'où les fichiers des événements à venir sont analysés en avance."""
+PER_STEP = 10
+"""Les sonores examinés au plus à chaque pas de la diffusion, pour qu'un pas reste bref."""
 RESTARTED = timedelta(hours=1)
 """Délai avant de redemander l'analyse d'un même sonore : celle d'avant a peut-être échoué, ou le fichier changé."""
 
@@ -43,6 +51,27 @@ def analysis_command(configuration: Path) -> list[str]:
 		"--full-audit",
 		"--sound",
 	]
+
+
+def files_ahead(connection: psycopg.Connection[TupleRow], instant: datetime) -> list[tuple[int, str | None]]:
+	"""Les fichiers placés dans la liste des événements, ou dans leurs séquences, dont une occurrence commence dans les
+	LOOKAHEAD heures, dans l'ordre de leurs occurrences puis de leur liste ; une banque ne dit pas d'avance ce qu'elle
+	jouera. À appeler dans une transaction."""
+	ordered: list[int] = []
+	now, until = wall_hour(instant), wall_hour(instant + LOOKAHEAD)
+	for planned in plan(read_grid(connection), instant, instant + LOOKAHEAD):
+		event = planned.occurrence.event.id
+		# Le plan compte en jours : une occurrence du lendemain y est, au-delà de l'horizon.
+		touches = (planned.end > now) and (planned.start < until)
+		if (not planned.skipped) and (touches) and (event not in ordered):
+			ordered.append(event)
+	by_event: dict[int, list[tuple[int, str | None]]] = {}
+	for event, sound, location in queries.listed_files(connection, ordered):
+		by_event.setdefault(int(str(event)), []).append((int(str(sound)), str(location)))
+	found = []
+	for event in ordered:
+		found.extend(by_event.get(event, []))
+	return found
 
 
 def to_analyse(connection: psycopg.Connection[TupleRow], sound: int) -> bool:
@@ -62,6 +91,8 @@ class Analyser:
 		self.command = command
 		self.restarted = restarted
 		self.running = running
+		self.queue: list[tuple[int, str | None]] = []
+		"""Les sonores à examiner, dans l'ordre où ils joueront : leur emplacement suit, pour le log."""
 		self._requests: dict[int, datetime] = {}
 		self._process: list[subprocess.Popen[bytes]] = []
 
@@ -69,6 +100,19 @@ class Analyser:
 		"""Pas demandé depuis RELANCE."""
 		last = self._requests.get(sound)
 		return (last is None) or (instant - last >= self.restarted)
+
+	def plan(self, ordered: list[tuple[int, str | None]]) -> None:
+		"""Les sonores à examiner, dans l'ordre où ils joueront ; chacun une fois."""
+		self.queue = []
+		seen: set[int] = set()
+		for sound, location in ordered:
+			if sound not in seen:
+				seen.add(sound)
+				self.queue.append((sound, location))
+
+	def first(self, sound: int, location: str | None) -> None:
+		"""Un sonore à examiner avant tous les autres : celui qui démarre sans avoir été réservé."""
+		self.plan([(sound, location), *self.queue])
 
 	def busy(self) -> bool:
 		"""Assez d'analyses tournent déjà ; les finies sont relevées."""

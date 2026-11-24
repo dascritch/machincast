@@ -702,7 +702,8 @@ Base injoignable, perdue, ou sortie audio impossible à créer : code de sortie 
 	Si c'est le cas, il lance `Machin_indexer --full-audit --sound N`, par son propre Python et avec sa configuration, dans un processus détaché de sa session, sans fenêtre, et ne l'attend jamais : un indexeur qui plante, ou pas encore fini, ne retarde ni ne bloque la lecture.
 	Il le consigne (`info`, `analyse du prochain sonore`) ; une commande qui ne peut pas être lancée donne l'alerte `analyse impossible`.
 	Cet audit ne prend aucun verrou : il se fait même pendant une indexation rapide ou un audit complet de toute la base ([§ 6](#6-binaire-indexation)).
-	Un même sonore n'est pas redemandé avant une heure ; deux analyses tournent à la fois, au plus : un sonore de plus est redemandé au début du sonore suivant.
+	Les sonores s'analysent dans l'ordre où ils joueront : le prochain, ceux à venir, puis, de plus en plus en avance, les fichiers placés dans la liste des événements dont une occurrence touche les six heures suivantes, ou dans leurs séquences (`analysis.files_ahead`), par exemple une émission d'une heure derrière des sonores de moins de trois minutes ; une banque ne dit pas d'avance ce qu'elle jouera.
+	Un même sonore n'est pas redemandé avant une heure ; deux analyses tournent à la fois, au plus : la suivante part dès qu'une finit, au pas suivant de la diffusion, qui examine au plus dix sonores par pas.
 	Un stream n'est jamais analysé.
 	La simulation ne lance aucune analyse.
 
