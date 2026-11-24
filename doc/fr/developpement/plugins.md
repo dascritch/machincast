@@ -251,6 +251,8 @@ Le plugin y répond une `machincast.interface.card.CardSection`, un `QWidget`, m
 - dans la fiche d'un événement seulement, `replaces_items(True)` cache la liste de lecture, qu'elle remplace, `replaces_items(False)` la rend, `grid_widget()` rend ce qu'elle place sous les jours de la récurrence, au-dessus de l'explication des dates, par exemple la case qui la montre ; `None` par défaut ; `grid_replacement()` rend ce qui peut prendre la place de l'encadré de la grille, que `replaces_grid(True)` cache, et `replaces_grid(False)` rend ; `days_changed(jours)` reçoit les jours de la récurrence cochés, de 0 (lundi) à 6, à chaque changement ([#609](https://github.com/dascritch/machincast/issues/609)).
 - dans toutes les fiches, son signal `opens(genre, identifiant, nom)` ouvre la fiche d'un élément.
 
+Une section qui n'a rien à montrer à côté de la liste de lecture d'un événement se cache (`hide()`), pour ne pas la décaler par rapport au formulaire et aux autres fiches : celle des émissions en alternance ne se montre que cochée, quand elle remplace la liste ; celles de « Genre » et de « Station ID régulier » placent leur champ dans le formulaire de la fiche, sous « Secours d'un stream tombé », et restent cachées.
+
 ## Suivre et vérifier les fiches
 
 ([#591](https://github.com/dascritch/machincast/issues/591))

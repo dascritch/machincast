@@ -17,7 +17,7 @@ import psycopg
 import pytest
 from machincast_alternation import rotation
 from machincast_alternation.section import AlternationSection
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtWidgets import QComboBox, QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
@@ -639,6 +639,31 @@ def card_grid_replaced(interface: InterfaceContext, context: Context, title: str
 	assert section.shared_text.text() == text
 	top = card.ui.top
 	assert top.indexOf(section.shared_box) == top.indexOf(card.ui.grid_group) + 1
+
+
+@then("la section des émissions en alternance est cachée, et la liste de lecture alignée sur le formulaire")
+def section_hidden(interface: InterfaceContext, context: Context) -> None:
+	card = opened_card(interface)
+	assert isinstance(card, EventCard)
+	section = _card_section(interface, context)
+	assert section.isHidden()
+	assert card.ui.item_group.isVisible()
+	group = card.ui.item_group.mapTo(card, QPoint(0, 0)).x()
+	caption = card.ui.internal_name_caption.mapTo(card, QPoint(0, 0)).x()
+	assert group == caption, (group, caption)
+
+
+@when("je coche « Émissions en alternance » dans la fiche")
+def card_ticks(interface: InterfaceContext, context: Context) -> None:
+	_card_section(interface, context).enabled.setChecked(True)
+
+
+@then("la section des émissions en alternance remplace la liste de lecture")
+def section_shown(interface: InterfaceContext, context: Context) -> None:
+	card = opened_card(interface)
+	assert isinstance(card, EventCard)
+	assert _card_section(interface, context).isVisible()
+	assert card.ui.item_group.isHidden()
 
 
 @then("la fiche montre l'encadré de la grille")
