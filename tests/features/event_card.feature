@@ -752,6 +752,36 @@ Fonctionnalité: Fiche d'un événement
 		Quand je coche « samedi » dans la fiche de l'événement
 		Alors « Début » et « Fin » de la fiche de l'événement montrent « 07:00 » et « 09:00 »
 
+	Scénario: Un jour de récurrence coché avance la première occurrence à ce jour, sa fin avec elle
+		https://github.com/dascritch/machincast/issues/606 : un événement créé un mercredi depuis la grille, puis coché
+		le vendredi, commence le vendredi qui suit, et toutes ses sessions avec lui.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et je coche « vendredi » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors l'événement « Journal » a en base :
+			| champ           | valeur                    |
+			| starts_at       | 2026-10-23 09:00:00+02:00 |
+			| ends_at         | 2026-10-23 09:30:00+02:00 |
+			| recurrence_days | ['friday']                |
+
+	Scénario: Un jour de récurrence déjà celui de la première occurrence la laisse en place
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Journal »
+		Et je coche « mercredi » dans la fiche de l'événement
+		Et je coche « vendredi » dans la fiche de l'événement
+		Et j'enregistre la fiche
+		Alors l'événement « Journal » a en base :
+			| champ           | valeur                    |
+			| starts_at       | 2026-10-21 09:00:00+02:00 |
+			| recurrence_days | ['wednesday', 'friday']   |
+
+	Scénario: Un événement qui revient ne bouge pas à son ouverture
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Alors les boutons « Enregistrer » et « Annuler » de la fiche sont inactifs
+
 	Scénario: Une occurrence unique montre la date et l'heure de son début et de sa fin
 		Quand la fenêtre de l'interface s'ouvre
 		Et j'ouvre la fiche de l'événement « Journal »

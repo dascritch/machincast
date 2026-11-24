@@ -1538,7 +1538,9 @@ Mise en œuvre ([#32](https://github.com/dascritch/machincast/issues/32), `machi
 - **Onglet** : « Événement : <nom interne> », depuis la liste des événements ; « Nouvel événement » ouvre une fiche vide, de priorité `show`, au masquage hérité.
 - **Champs** : noms enregistrés sans les espaces qui les entourent, un nom public vide comme NULL, un nom interne unique ; priorité ; masquage « Selon la séquence, la banque ou le sonore » (NULL), « Masqués » (vrai), « Affichés » (faux).
 - **Grille** : début et fin de la première occurrence, chacun à cocher, et sept cases de jours.
-	Un jour coché, « Début » et « Fin » ne montrent que l'heure de chaque occurrence ([#535](https://github.com/dascritch/machincast/issues/535), `EventCard._hour_only`) ; leur date reste en base, inchangée.
+	Un jour coché, « Début » et « Fin » ne montrent que l'heure de chaque occurrence ([#535](https://github.com/dascritch/machincast/issues/535), `EventCard._hour_only`) ; leur date reste en base, celle de la première occurrence.
+	Cocher un jour avance la première occurrence, début et fin ensemble, au premier jour coché qui la suit, ou la laisse à son jour s'il est coché ([#606](https://github.com/dascritch/machincast/issues/606), `EventCard._align_first_occurrence`) : un événement créé un mardi depuis la grille, puis coché le mercredi, commence le mercredi, et toutes ses sessions avec lui ; l'enregistrement fait de même, pour un événement enregistré avant.
+	Le chargement d'une fiche ne déplace rien.
 	Un début coché part de l'heure de l'horloge, à la minute ; une fin cochée qui ne suit pas le début, d'une heure après lui.
 	Sans début, la fin et les jours se décochent et ne se saisissent pas ; la priorité `fallback` décoche le début.
 	Refusés : une émission ou un spécial sans début, une fin qui ne suit pas le début, un chevauchement ([§ 4.1](#41-choix-de-lévénement-actif)), nommé avec le premier instant commun, et un changement de priorité d'un événement de secours qu'un stream désigne, que la base refuserait aussi.
