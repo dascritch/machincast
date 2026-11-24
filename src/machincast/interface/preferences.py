@@ -52,6 +52,7 @@ from machincast.configuration import (
 	RETENTION,
 	SILENCE_THRESHOLD,
 	TABLE_ROWS,
+	AudioInput,
 	AudioOutput,
 	Crossfades,
 	DeadAirSettings,
@@ -65,6 +66,7 @@ from machincast.configuration import (
 from machincast.i18n import _, pgettext
 from machincast.interface import intranet_switch
 from machincast.interface.application import ICON, readable
+from machincast.interface.audio_inputs import AudioInputs
 from machincast.interface.plugins_page import Offered, PluginsPage
 from machincast.interface.power_save_switch import PowerSaveSwitch
 from machincast.interface.sound_cards import SoundCards
@@ -164,6 +166,8 @@ class Settings:
 	(https://github.com/dascritch/machincast/issues/538)."""
 	plugins: tuple[str, ...] = ()
 	"""plugins.enabled : les plugins activés, dans l'ordre (https://github.com/dascritch/machincast/issues/587)."""
+	inputs: tuple[AudioInput, ...] = ()
+	"""audio.inputs : les entrées audio, dans l'ordre (https://github.com/dascritch/machincast/issues/622)."""
 	"""backup.directory : où l'export et la maintenance écrivent leur sauvegarde
 	(https://github.com/dascritch/machincast/issues/347)."""
 
@@ -458,6 +462,7 @@ def write(path: Path, settings: Settings) -> None:
 	section["fade_in_position"] = crossfades.entry
 	section["fade_out_position"] = crossfades.output
 	write_audio(document, settings.output, settings.on_air, settings.preview)
+	write_inputs(document, settings.inputs)
 
 	def write_duration(duration: timedelta | None, key: str) -> None:
 		if duration is None:
@@ -499,6 +504,29 @@ def write_audio(
 		audio["preview"] = preview
 
 
+def write_inputs(document: tomlkit.TOMLDocument, inputs: Sequence[AudioInput]) -> None:
+	"""audio.inputs, une table en ligne par entrée ; aucune entrée, la clé disparaît
+	(https://github.com/dascritch/machincast/issues/622)."""
+	audio = document["audio"]
+	assert isinstance(audio, tomlkit.items.Table)
+	if not inputs:
+		if "inputs" in audio:
+			del audio["inputs"]
+		return
+	entries = tomlkit.array()
+	for audio_input in inputs:
+		entry = tomlkit.inline_table()
+		entry.update({"device": audio_input.device, "name": audio_input.name})
+		entries.append(entry)
+	audio["inputs"] = entries
+
+
+def inputs_changed(before: Settings, after: Settings) -> bool:
+	"""Les entrées audio ont changé : le service installé, elles se réservent aussitôt
+	(https://github.com/dascritch/machincast/issues/622)."""
+	return before.inputs != after.inputs
+
+
 class PreferencesWindow(QDialog):
 	"""La fenêtre des préférences de l'interface, ou celle des paramètres du service, selon kind : les mêmes pages,
 	chacune réduite à ce que règle sa fenêtre."""
@@ -522,6 +550,8 @@ class PreferencesWindow(QDialog):
 		self.kind = kind
 		ui = self.ui
 		settings = all_.crossfades
+		self.inputs: AudioInputs | None = None
+		self.given_inputs = all_.inputs
 		self.cards = SoundCards(output, all_.on_air, all_.preview, service, ui.device_group)
 		ui.device_layout.addWidget(self.cards)
 		self.cards.changed.connect(self._exclude)
@@ -601,6 +631,11 @@ class PreferencesWindow(QDialog):
 		self.power_save: PowerSaveSwitch | None = None
 		if kind == SERVICE:
 			self._offer_power_save()
+		# Les entrées audio, dans les paramètres du service seulement (https://github.com/dascritch/machincast/issues/622).
+		if kind == SERVICE:
+			self.inputs = AudioInputs(output, all_.inputs, (all_.on_air, all_.preview), ui.page_audio)
+			ui.audio_layout.insertWidget(ui.audio_layout.indexOf(ui.device_group) + 1, self.inputs)
+			self.inputs.changed.connect(self._exclude)
 		self._keep_only(kind)
 		self.read_only_banner: QLabel | None = None
 		if read_only:
@@ -862,7 +897,8 @@ class PreferencesWindow(QDialog):
 		link = self.ui.team_link.text().strip()
 		link_valid = (link == "") or (link.startswith(("http://", "https://")))
 		ok = self.ui.buttons.button(QDialogButtonBox.StandardButton.Ok)
-		ok.setEnabled((self.cards.valid()) and (link_valid))
+		inputs_valid = (self.inputs is None) or (self.inputs.valid())
+		ok.setEnabled((self.cards.valid()) and (link_valid) and (inputs_valid))
 		self.ui.team_link.setToolTip("")
 		if not link_valid:
 			self.ui.team_link.setToolTip(_("A web address, starting with http:// or https://"))
@@ -909,7 +945,13 @@ class PreferencesWindow(QDialog):
 				second_factor=self._second_factor(),
 			),
 			self._plugins(),
+			self._inputs(),
 		)
+
+	def _inputs(self) -> tuple[AudioInput, ...]:
+		if self.inputs is None:
+			return self.given_inputs
+		return self.inputs.chosen()
 
 	def _plugins(self) -> tuple[str, ...]:
 		if self.plugins_page is None:

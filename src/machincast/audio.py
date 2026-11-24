@@ -56,6 +56,10 @@ APPLIANCE_TYPES: dict[AudioOutput, tuple[str, ...]] = {
 }
 """Le type GStreamer des périphériques de chaque sortie ; la sortie factice n'en a pas."""
 OUTPUT_CLASS = "Audio/Sink"
+INPUT_CLASS = "Audio/Source"
+"""Les entrées de carte son (https://github.com/dascritch/machincast/issues/622)."""
+MONITOR_SUFFIX = ".monitor"
+"""Le nom d'une source PulseAudio qui écoute une sortie : pas une entrée de carte son."""
 MONITOR_STARTUP = 5.0
 """Secondes laissées au moniteur de périphériques pour démarrer ses fournisseurs
 (https://github.com/dascritch/machincast/issues/289)."""
@@ -97,6 +101,7 @@ def appliances() -> list[Gst.Device]:
 	if _monitor is None:
 		monitor = Gst.DeviceMonitor.new()
 		monitor.add_filter(OUTPUT_CLASS, None)
+		monitor.add_filter(INPUT_CLASS, None)
 		if not monitor.start():
 			return []
 		if not _wait_startup(monitor):
@@ -144,14 +149,39 @@ def devices(output: AudioOutput) -> list[Device]:
 	return _devices(output, appliances())
 
 
-def _devices(output: AudioOutput, appliance_list: list[Gst.Device]) -> list[Device]:
+def _devices(output: AudioOutput, appliance_list: list[Gst.Device], kind: str = OUTPUT_CLASS) -> list[Device]:
 	types = APPLIANCE_TYPES.get(output, ())
 	found_list = []
 	for appliance in appliance_list:
 		name = identifier(appliance)
-		if (appliance_type(appliance) in types) and (name is not None):
+		if (
+			(appliance_type(appliance) in types)
+			and (name is not None)
+			and (appliance.has_classes(kind))
+			and (not name.endswith(MONITOR_SUFFIX))
+		):
 			found_list.append(Device(name, appliance.get_display_name()))
 	return found_list
+
+
+def input_devices(output: AudioOutput) -> list[Device]:
+	"""Les entrées de carte son du poste pour cette sortie (https://github.com/dascritch/machincast/issues/622) : sur la
+	sortie PipeWire, celles du PipeWire du service quand il tourne, puis celles de la session qu'il n'a pas (une entrée
+	réservée au service est cachée aux sessions du poste) ; aucune pour la sortie factice."""
+	found = _devices(output, appliances(), INPUT_CLASS)
+	if output != "pipewire":
+		return found
+	served = service_appliances(INPUT_CLASS)
+	if served is None:
+		return found
+	merged = _devices(output, served, INPUT_CLASS)
+	known = set()
+	for device in merged:
+		known.add(device.identifier)
+	for device in found:
+		if device.identifier not in known:
+			merged.append(device)
+	return merged
 
 
 PIPEWIRE_PROVIDER = "pipewiredeviceprovider"
@@ -160,7 +190,7 @@ _service_provider: tuple[Gst.DeviceProvider, socket.socket] | None = None
 arrêté, comme le moniteur du processus (https://github.com/dascritch/machincast/issues/305)."""
 
 
-def service_appliances() -> list[Gst.Device] | None:
+def service_appliances(kind: str = OUTPUT_CLASS) -> list[Gst.Device] | None:
 	"""Les périphériques de sortie du PipeWire du service de diffusion (https://github.com/dascritch/machincast/issues/381),
 	où joue l'antenne : un fournisseur PipeWire à lui, joint par sa socket, distinct de celui du moniteur du processus,
 	qui suit le PipeWire de la session. None sans PipeWire du service joignable."""
@@ -190,7 +220,7 @@ def service_appliances() -> list[Gst.Device] | None:
 		_service_provider = (provider, connection)
 	found_list = []
 	for appliance in _service_provider[0].get_devices():
-		if appliance.has_classes(OUTPUT_CLASS):
+		if appliance.has_classes(kind):
 			found_list.append(appliance)
 	return found_list
 

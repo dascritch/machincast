@@ -36,6 +36,11 @@ output = "pipewire"
 # Preview device of the interface. Required, and different from the on-air device. "dummy", the dummy output entry,
 # disables the preview.
 preview = "alsa_output.usb-casque.analog-stereo"
+# Audio inputs that MachinCast can put on air, like a stream (https://github.com/dascritch/machincast/issues/513): a
+# production studio on a sound card input. Each has its device, a source of the output (PipeWire node, PulseAudio
+# source or ALSA device), and its name, that of its feed. They are chosen in Machin interface, Fichier → Paramètres
+# du service…, Audio page, which writes them here; with the service, they are reserved for its PipeWire.
+# inputs = [{ device = "alsa_input.usb-studio.analog-stereo", name = "Studio A" }]
 
 [outputs]
 # Airplay as CSV (private output: every sound), one file per day: the day's date in ISO 8601 format is added to the

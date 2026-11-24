@@ -249,17 +249,28 @@ def launch_without_database(tmp_path: Path, action: str) -> subprocess.Completed
 	parsers.re(
 		r"je lance « python -m machincast.installation (?P<action>[a-z-]+) » avec une configuration sur la sortie"
 		r" « (?P<output>[^»]+) », l'antenne (?:« (?P<on_air>[^»]+) »|non renseignée)"
+		r"(?:, et les entrées (?P<inputs>«.+»))?$"
 	),
 	target_fixture="command",
 )
-def launch_on_on_air(tmp_path: Path, action: str, output: str, on_air: str | None) -> subprocess.CompletedProcess[str]:
-	"""https://github.com/dascritch/machincast/issues/339"""
+def launch_on_on_air(
+	tmp_path: Path, action: str, output: str, on_air: str | None, inputs: str | None
+) -> subprocess.CompletedProcess[str]:
+	"""https://github.com/dascritch/machincast/issues/339 ; les entrées audio,
+	https://github.com/dascritch/machincast/issues/622."""
 	document = tomlkit.parse(sample_configuration_path().read_text(encoding="utf-8"))
 	audio = document["audio"]
 	assert isinstance(audio, tomlkit.items.Table)
 	audio["output"] = output
 	if on_air is not None:
 		audio["device"] = on_air
+	if inputs is not None:
+		entries = tomlkit.array()
+		for index, device in enumerate(re.findall(r"« ([^»]+) »", inputs)):
+			entry = tomlkit.inline_table()
+			entry.update({"device": device, "name": f"Entrée {index + 1}"})
+			entries.append(entry)
+		audio["inputs"] = entries
 	configuration = tmp_path / "antenne.toml"
 	configuration.write_text(tomlkit.dumps(document), encoding="utf-8")
 	return launch(action, configuration)
@@ -615,15 +626,16 @@ def lines_without_comments(command: subprocess.CompletedProcess[str], datatable:
 	assert found == expected, command.stdout
 
 
-@then(parsers.re(r"le fragment WirePlumber désactive (?:le nœud « (?P<node>[^»]+) »|aucun nœud)"))
-def disabled_nodes(command: subprocess.CompletedProcess[str], node: str | None) -> None:
-	"""https://github.com/dascritch/machincast/issues/381"""
+@then(parsers.re(r"le fragment WirePlumber désactive (?:(?:le nœud|les nœuds) (?P<nodes>«.+»)|aucun nœud)$"))
+def disabled_nodes(command: subprocess.CompletedProcess[str], nodes: str | None) -> None:
+	"""https://github.com/dascritch/machincast/issues/381 ; les entrées audio,
+	https://github.com/dascritch/machincast/issues/622."""
 	names = re.findall(r'node\.name = "([^"]*)"', command.stdout)
 	expected = []
-	if node is not None:
-		expected.append(node)
+	if nodes is not None:
+		expected = re.findall(r"« ([^»]+) »", nodes)
 	assert names == expected, command.stdout
-	assert ("node.disabled = true" in command.stdout) == (node is not None), command.stdout
+	assert ("node.disabled = true" in command.stdout) == (nodes is not None), command.stdout
 
 
 def _function(text: str, name: str) -> str:

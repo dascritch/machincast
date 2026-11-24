@@ -146,6 +146,38 @@ Fonctionnalité: Fichier de configuration
 		Quand je charge la configuration
 		Alors le chargement échoue avec un message qui mentionne "audio.preview"
 
+	# ─── Entrées audio (https://github.com/dascritch/machincast/issues/622) ─────────────────────────
+
+	Scénario: Sans clé audio.inputs, aucune entrée audio
+		Étant donné une configuration valide où la clé "audio.inputs" est absente
+		Quand je charge la configuration
+		Alors la configuration est chargée sans erreur
+		Et elle n'a aucune entrée audio
+
+	Scénario: La clé audio.inputs donne les entrées audio, chacune son périphérique et son nom
+		Étant donné une configuration valide où la clé "audio.inputs" vaut [{device = "alsa_input.studio", name = "Studio A"}, {device = "alsa_input.mobile", name = " Studio mobile "}]
+		Quand je charge la configuration
+		Alors la configuration est chargée sans erreur
+		Et ses entrées audio sont « Studio A » sur « alsa_input.studio », « Studio mobile » sur « alsa_input.mobile »
+
+	Plan du scénario: Une entrée audio invalide est refusée
+		Étant donné une configuration valide où la clé "audio.inputs" vaut <entrees>
+		Quand je charge la configuration
+		Alors le chargement échoue avec un message qui mentionne "audio.inputs"
+		Et le message mentionne "<raison>"
+
+		Exemples:
+			| entrees                                                                                     | raison               |
+			| "alsa_input.studio"                                                                         | une liste d'entrées  |
+			| [{device = "alsa_input.studio"}]                                                            | name                 |
+			| [{device = "alsa_input.studio", name = " "}]                                                | name                 |
+			| [{device = "", name = "Studio A"}]                                                          | device               |
+			| [{device = "alsa_input.studio", name = "Studio A", volume = 3}]                             | volume               |
+			| [{device = "alsa_input.a", name = "Studio"}, {device = "alsa_input.b", name = "Studio"}]    | « Studio »           |
+			| [{device = "alsa_input.a", name = "A"}, {device = "alsa_input.a", name = "B"}]              | « alsa_input.a »     |
+			| [{device = "casque", name = "Casque"}]                                                      | pré-écoute           |
+			| [{device = "antenne", name = "Antenne"}]                                                    | antenne              |
+
 	# ─── Crossfades (https://github.com/dascritch/machincast/issues/145) ─────────────────────────
 
 	Scénario: Sans section [crossfades], les crossfades se règlent au dixième de seconde, jusqu'à 10 secondes, sans défaut

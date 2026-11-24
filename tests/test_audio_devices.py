@@ -30,8 +30,9 @@ class Properties:
 class FakeAppliance:
 	"""Ce qu'une imitation de Gst.Device doit répondre."""
 
-	def __init__(self, type_gstreamer: str, name: str, node: str, internal: str) -> None:
+	def __init__(self, type_gstreamer: str, name: str, node: str, internal: str, kind: str = "Audio/Sink") -> None:
 		self.__gtype__ = SimpleNamespace(name=type_gstreamer)
+		self.kind = kind
 		self.name = name
 		properties = {}
 		if node:
@@ -41,6 +42,9 @@ class FakeAppliance:
 
 	def get_display_name(self) -> str:
 		return self.name
+
+	def has_classes(self, kind: str) -> bool:
+		return self.kind == kind
 
 	def get_properties(self) -> Properties:
 		return self.properties
@@ -58,6 +62,7 @@ def context() -> SimpleNamespace:
 
 
 @given("les périphériques vus par GStreamer :")
+@given("les entrées et les sorties vues par GStreamer :")
 def seen_list(monkeypatch: pytest.MonkeyPatch, datatable: list[list[str]]) -> None:
 	appliances = []
 	for row in datatable[1:]:
@@ -98,3 +103,15 @@ def found_list(output: str, list_: str) -> None:
 @then("la liste est :")
 def list_(context: SimpleNamespace, docstring: str) -> None:
 	assert context.list_ == f"{docstring}\n"
+
+
+@then(parsers.re(r"les entrées de la sortie « (?P<output>[^»]+) » sont (?P<list_>aucune|«.+)"))
+def found_inputs(monkeypatch: pytest.MonkeyPatch, output: str, list_: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/622 ; sans PipeWire du service joignable."""
+	monkeypatch.setattr(audio, "service_appliances", lambda _kind=audio.OUTPUT_CLASS: None)
+	names = NAME.findall(list_)
+	expected_list = list(zip(names[::2], names[1::2], strict=True))
+	fetched_list = []
+	for device in audio.input_devices(output):
+		fetched_list.append((device.identifier, device.name))
+	assert fetched_list == expected_list

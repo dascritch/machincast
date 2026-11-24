@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -14,7 +15,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from machincast import configuration as module_configuration
 from machincast.cli import INVALID_CONFIGURATION_CODE
 from machincast.cli import launch as launch_binary
-from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
+from machincast.configuration import AudioInput, Configuration, InvalidConfiguration, default_file, load
 from machincast.shared.fades import LABELS
 
 scenarios("configuration.feature")
@@ -506,3 +507,18 @@ def interface_notes(context: Context, notes: str | None, link: str | None) -> No
 def without_notes(context: Context) -> None:
 	assert context.configuration is not None, context.error
 	assert (context.configuration.interface.notes, context.configuration.interface.team_link) == (None, None)
+
+
+@then("elle n'a aucune entrée audio")
+def no_input(context: Context) -> None:
+	assert context.configuration is not None
+	assert context.configuration.audio.inputs == ()
+
+
+@then(parsers.re(r"ses entrées audio sont (?P<inputs>.+)"))
+def inputs(context: Context, inputs: str) -> None:
+	assert context.configuration is not None
+	expected = []
+	for name, device in re.findall(r"« ([^»]+) » sur « ([^»]+) »", inputs):
+		expected.append(AudioInput(device=device, name=name))
+	assert context.configuration.audio.inputs == tuple(expected)

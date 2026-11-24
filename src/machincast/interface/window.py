@@ -100,6 +100,7 @@ from machincast.interface.administrator import Administrator
 from machincast.interface.airplay_tab import WITHOUT_METADATA, AirplayScreen
 from machincast.interface.api_tab import ISSUER, ApiScreen
 from machincast.interface.application import identify
+from machincast.interface.audio_inputs import InputReservation
 from machincast.interface.background_programming import guarantee
 from machincast.interface.bank_card import BankCard
 from machincast.interface.broadcast_control import (
@@ -280,6 +281,9 @@ class MainWindow(QMainWindow):
 			lambda allowed: self._preferences(preferences.SERVICE, read_only=not allowed)
 		)
 		self.intranet_switch.announced.connect(self.ui.state_bar.showMessage)
+		# Les entrées audio réservées au service (https://github.com/dascritch/machincast/issues/622).
+		self.input_reservation = InputReservation(self)
+		self.input_reservation.announced.connect(self.ui.state_bar.showMessage)
 		self.intranet_switch.alerted.connect(lambda text: dialogs.warn_intranet(self, text))
 		# Les connexions à distance à valider au pupitre (https://github.com/dascritch/machincast/issues/539).
 		self.remote_connections = RemoteConnections(connection, self)
@@ -1272,6 +1276,7 @@ class MainWindow(QMainWindow):
 			team_link=installation_notes.settings(self.configuration).team_link,
 			intranet=preferences.intranet(self.configuration),
 			plugins=preferences.plugins_enabled(self.configuration),
+			inputs=audio.inputs,
 		)
 		# Les plugins proposés, dans les paramètres du service (https://github.com/dascritch/machincast/issues/587).
 		offered: list[plugins_page.Offered] = []
@@ -1309,6 +1314,8 @@ class MainWindow(QMainWindow):
 			text = self.plugin_installer.start(
 				installed, self.configuration, control.maintenance_backups(self.configuration)
 			)
+		if preferences.inputs_changed(shown_list, settings):
+			self._reserve_inputs()
 		if preferences.intranet_changed(shown_list, settings):
 			# Le serveur intranet prend ses réglages (https://github.com/dascritch/machincast/issues/538).
 			chosen = settings.intranet
@@ -1324,6 +1331,15 @@ class MainWindow(QMainWindow):
 			self.broadcast.control.control("restart")
 			return
 		self.statusBar().showMessage(text)
+
+	def _reserve_inputs(self) -> None:
+		"""Le service installé, les entrées audio enregistrées se réservent aussitôt à son PipeWire ; la barre d'état dira
+		ce qu'il en est (https://github.com/dascritch/machincast/issues/622). Sans service, elles restent dans la
+		session."""
+		assert self.configuration is not None
+		self.broadcast.reread_service()
+		if self.broadcast.service.installed:
+			self.input_reservation.start(self.configuration)
 
 	def _plugins_configuration(self) -> Configuration | None:
 		"""La configuration, pour les plugins ; None si elle ne se lit pas."""
@@ -1374,7 +1390,9 @@ class MainWindow(QMainWindow):
 		output = (settings.output) or (audio.output)
 		if (settings.on_air != audio.device) or (output != audio.output):
 			text = _("the default crossfades and the on-air device")
-		self.audio = dataclasses.replace(audio, output=output, device=settings.on_air, preview=settings.preview)
+		self.audio = dataclasses.replace(
+			audio, output=output, device=settings.on_air, preview=settings.preview, inputs=settings.inputs
+		)
 		if self.preview is not None:
 			# La pré-écoute repart des nouveaux périphériques à sa prochaine ouverture.
 			self.preview.close()

@@ -372,6 +372,20 @@ Fonctionnalité: Vérifications de l'installation
 			| pipewire | non renseignée                           | aucun nœud                                           |
 			| alsa     | « hw:1,0 »                               | aucun nœud                                           |
 
+	Plan du scénario: Les entrées audio sont cachées aux sessions du poste, avec la carte de l'antenne
+		https://github.com/dascritch/machincast/issues/622 : chaque entrée choisie est au PipeWire du service, comme
+		l'antenne.
+
+		Quand je lance « python -m machincast.installation wireplumber-desktop » avec une configuration sur la sortie « <sortie> », l'antenne <antenne>, et les entrées « alsa_input.usb-studio » « alsa_input.pci.analog-stereo »
+		Alors la commande se termine sans erreur
+		Et le fragment WirePlumber désactive <nœuds>
+
+		Exemples:
+			| sortie   | antenne                        | nœuds                                                                                                 |
+			| pipewire | « alsa_output.usb-antenne »    | les nœuds « alsa_output.usb-antenne » « alsa_input.usb-studio » « alsa_input.pci.analog-stereo »    |
+			| pipewire | « dummy »                      | les nœuds « alsa_input.usb-studio » « alsa_input.pci.analog-stereo »                                 |
+			| alsa     | « hw:1,0 »                     | aucun nœud                                                                                            |
+
 	Scénario: Le WirePlumber du service ne cherche que les cartes son
 		Quand je lance « python -m machincast.installation wireplumber-service » avec la configuration de test
 		Alors la commande se termine sans erreur
