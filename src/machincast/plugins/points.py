@@ -105,8 +105,9 @@ CORE: dict[str, str] = {
 	"indexer.sound_detailed": (
 		"notified by Machin indexer when it has written what it found of a sound, with “sound”, “location”, "
 		"“previous_state”, “state”, “duration” in seconds, “artist”, “title”, “metadata”, “file_type”, "
-		"“detected_start” and “detected_end” in seconds, “audited” and “problem” "
-		"(https://github.com/dascritch/machincast/issues/590)"
+		"“detected_start” and “detected_end” in seconds, “audited”, “problem” and “loudness”, the integrated loudness "
+		"and the peak measured by a full audit, or None (https://github.com/dascritch/machincast/issues/590, "
+		"https://github.com/dascritch/machincast/issues/642)"
 	),
 	"log_incident": (
 		"notified in each binary for each serious incident: an entry of level “incident” of the log, or an error of "

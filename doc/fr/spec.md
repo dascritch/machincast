@@ -122,6 +122,7 @@ Le schéma est géré par migrations **yoyo-migrations**, appliquées aux deux b
 | `state` | État du sonore ([#66](https://github.com/dascritch/machincast/issues/66), [#69](https://github.com/dascritch/machincast/issues/69)) : `preview`, `active`, `disabled`, `expired`, `corrupt`, `unsupported` ([#121](https://github.com/dascritch/machincast/issues/121)) ou `missing` (voir ci-dessous). Seul un sonore `active` peut être joué. |
 | `mime_type` | Type MIME du fichier, lu par libmagic au dernier examen de l'indexeur ([#121](https://github.com/dascritch/machincast/issues/121)) ; NULL avant, et pour un stream. |
 | `hide_metadata` | Masquage de l'artiste et du titre au niveau du sonore. Vide = hérite du niveau inférieur. |
+| `properties` → `loudness` | La mesure du niveau du fichier par l'audit complet ([#642](https://github.com/dascritch/machincast/issues/642), [§ 6.1](#61-vérification-des-sonores-existants-hors-streams)) : `integrated`, la sonie intégrée EBU R128 en LUFS, et `peak`, la crête absolue en dBFS, au dixième près ; `null` sans mesure possible. |
 | `duration` | Calculée par l'indexeur. Vide pour un stream. |
 | `broadcast_start`, `broadcast_end` | Période de diffusion facultative (annonces limitées dans le temps). |
 | `file_modified_at`, `file_size` | Date de modification et taille du fichier au dernier passage de l'indexeur, pour détecter un changement de contenu. |
@@ -930,6 +931,11 @@ Deux modes ([#69](https://github.com/dascritch/machincast/issues/69)).
 	Un fichier sain enregistre ses silences dans `detected_start` et `detected_end`, `NULL` tous deux s'il n'atteint jamais le seuil, sauf ceux listés dans `edited_fields`.
 	Les silences d'un fichier défectueux, ou d'un fichier décodé par l'indexation rapide, ne changent pas.
 	Un nouveau seuil vaut donc pour les audits complets suivants, y compris l'analyse au dernier moment ([§ 5.1](#51-lecture-audio)).
+- Niveau, en audit complet seulement ([#642](https://github.com/dascritch/machincast/issues/642), `machincast.indexer.loudness`) : le son décodé passe, à 48 kHz en flottants (`audioresample`, `capsfilter`), par `level`, puis par la pondération K de l'ITU-R BS.1770 (deux `audioiirfilter`, aux coefficients de la recommandation).
+	La crête absolue est le plus grand échantillon avant la pondération, en dBFS, la référence de la saturation ; la sonie intégrée EBU R128, en LUFS, se calcule avec numpy, sur des blocs de 400 ms qui se recouvrent de 75 %, sous la porte absolue de −70 LUFS puis sous la porte relative, 10 LU sous la sonie des blocs retenus ; les canaux comptent 1, au-delà du troisième 1,41, le LFE d'un 5.1 rien.
+	Une sinusoïde de 1 kHz à −23 dBFS sur les deux canaux d'un stéréo, ou à −20 dBFS en mono, fait −23 LUFS (EBU Tech 3341).
+	Un fichier sain audité les range dans `properties` → `loudness`, au dixième près, sans toucher aux autres clés ; `integrated` est `null` pour un son plus court qu'un bloc ou qui n'atteint jamais la porte absolue, `peak` pour un silence numérique.
+	Un fichier défectueux, ou décodé par l'indexation rapide, garde sa mesure.
 - Fichier illisible ou endommagé : signalé sur STDERR, sonore `preview` ou `active` passé `corrupt`.
 - Fichier introuvable (supprimé ou déplacé) : signalé sur STDERR, sonore `preview`, `active` ou `corrupt` passé `missing`.
 	Un fichier déplacé sera réindexé comme nouveau sonore ; un fichier revenu sain rend son sonore `missing` actif, endommagé, `corrupt`.

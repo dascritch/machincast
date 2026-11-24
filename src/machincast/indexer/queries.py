@@ -191,6 +191,15 @@ class Verdict:
 	silence_threshold: float
 	missing: bool
 	"""Le fichier a disparu : la date de sa disparition, une seule fois."""
+	loudness: dict[str, Any] | None = None
+	"""La crête et la sonie mesurées à l'audit complet d'un fichier sain, rangées dans properties sous la clé
+	« loudness » (https://github.com/dascritch/machincast/issues/642) ; None : la mesure en place reste."""
+
+
+def _jsonb_or_none(value: dict[str, Any] | None) -> Jsonb | None:
+	if value is None:
+		return None
+	return Jsonb(value)
 
 
 def write_check(connection: Connection, sound: object, verdict: Verdict) -> None:
@@ -205,7 +214,9 @@ def write_check(connection: Connection, sound: object, verdict: Verdict) -> None
 		" detected_start = %s, detected_end = %s, audit_requested = audit_requested AND NOT %s,"
 		" audited_at = CASE WHEN %s THEN clock_timestamp() ELSE audited_at END,"
 		" audit_threshold = CASE WHEN %s THEN %s ELSE audit_threshold END,"
-		" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END"
+		" missing_at = CASE WHEN %s THEN COALESCE(missing_at, clock_timestamp()) END,"
+		" properties = CASE WHEN %s::jsonb IS NULL THEN properties"
+		" ELSE properties || jsonb_build_object('loudness', %s::jsonb) END"
 		" WHERE id = %s",
 		(
 			verdict.state,
@@ -224,6 +235,8 @@ def write_check(connection: Connection, sound: object, verdict: Verdict) -> None
 			verdict.audited,
 			verdict.silence_threshold,
 			verdict.missing,
+			_jsonb_or_none(verdict.loudness),
+			_jsonb_or_none(verdict.loudness),
 			sound,
 		),
 	)
