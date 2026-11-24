@@ -160,7 +160,7 @@ Fonctionnalité: Les couleurs des émissions, par genre, dans les calendriers et
 			| j'ajoute le genre « Jazz », « #000000 »    | Deux genres s'appellent « Jazz ».                    |
 			| j'ajoute le genre « ska », « vert »        | « vert » n'est pas une couleur #rrggbb, pour « ska ». |
 			| j'ajoute le genre « », « #000000 »         | Un genre n'a pas de nom.                             |
-			| j'écris « #12345 » pour « Fil antenne »    | « #12345 » n'est pas une couleur #rrggbb, pour « Fil antenne ». |
+			| j'écris « #abcde » pour « Fil antenne »    | « #abcde » n'est pas une couleur #rrggbb, pour « Fil antenne ». |
 
 	Scénario: Retirer un genre le retire des événements qui l'avaient
 		Étant donné le genre « jazz » de « Jazz à FIP »
