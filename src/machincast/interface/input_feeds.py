@@ -3,12 +3,13 @@ https://github.com/dascritch/machincast/issues/513).
 
 Enregistrer les Paramètres du service donne à chaque entrée audio nouvelle (audio.inputs) son feed, d'entrée audio, et
 un stream qui le suit, du nom de l'entrée ; une entrée renommée renomme son feed. Une entrée retirée garde son feed et
-son stream : la fiche du feed la signale (machincast.interface.feed_card). Un feed se reconnaît à son périphérique ; un
+son stream : la fiche du feed la signale (machincast.interface.feed_card). Un feed se reconnaît à son adresse, « input: » suivi du périphérique ; un
 nom déjà pris par un autre feed laisse l'entrée sans feed, ou son feed sous son ancien nom, et la barre d'état le dit.
 """
 
 from collections.abc import Sequence
 
+from machincast.audio import input_device
 from machincast.configuration import AudioInput
 from machincast.i18n import _
 from machincast.interface.card import Connection
@@ -22,8 +23,10 @@ def synchronise(connection: Connection, inputs: Sequence[AudioInput]) -> list[st
 	said: list[str] = []
 	with connection.transaction():
 		known: dict[str, tuple[int, str]] = {}
-		for identifier, name, device in queries.input_feeds(connection):
-			known[str(device)] = (int(str(identifier)), str(name))
+		for identifier, name, address in queries.input_feeds(connection):
+			device = input_device(address)
+			if device is not None:
+				known[device] = (int(str(identifier)), str(name))
 		for audio_input in inputs:
 			problem = _follow(connection, audio_input, known.get(audio_input.device))
 			if problem is not None:

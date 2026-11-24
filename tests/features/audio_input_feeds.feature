@@ -5,8 +5,8 @@ Fonctionnalité: Un feed et un stream par entrée audio, joués par Machin playe
 	afin de l'insérer comme source dans un événement, ou de couper l'antenne par elle, comme un stream.
 
 	https://github.com/dascritch/machincast/issues/623, ticket enfant de https://github.com/dascritch/machincast/issues/513.
-	Un feed d'entrée audio porte le périphérique de l'entrée à la place de l'adresse ; ses streams jouent l'adresse
-	« input: » suivie du périphérique, que Machin player capte. Le service de diffusion n'est pas installé : enregistrer
+	Un feed d'entrée audio a pour adresse « input: » suivi du périphérique de l'entrée, que Machin player capte ; seuls
+	les Paramètres du service donnent une telle adresse. Le service de diffusion n'est pas installé : enregistrer
 	les Paramètres du service ne réserve rien (audio_inputs.feature).
 
 	Contexte:
@@ -50,6 +50,16 @@ Fonctionnalité: Un feed et un stream par entrée audio, joués par Machin playe
 		Alors la fiche du feed d'entrée montre « Entrée audio : » « alsa_input.usb-studio », sans mémoire tampon ni test
 		Et son nom ne se change pas dans la fiche
 		Et la fiche n'avertit pas en haut
+
+	Scénario: La fiche d'un feed d'adresse refuse une adresse d'entrée audio
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre l'onglet « Feeds »
+		Et je clique sur « Nouveau feed »
+		Et je saisis le nom du feed « Studio pirate »
+		Et je saisis l'adresse du feed « input:alsa_input.usb-studio »
+		Et j'enregistre la fiche
+		Alors la fiche signale « Une adresse commençant par « input: » est réservée aux entrées audio des paramètres du service. »
+		Et aucun feed n'est sur l'entrée « alsa_input.usb-studio »
 
 	Scénario: Une entrée retirée des Paramètres du service garde son feed, que sa fiche signale
 		Étant donné le feed d'entrée « Studio A » sur « alsa_input.usb-studio », suivi de son stream

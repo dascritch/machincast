@@ -165,8 +165,7 @@ Pas de champ format ni fréquence d'échantillonnage : l'échantillonnage peut v
 
 | Champ | Description |
 | --- | --- |
-| `id`, `name`, `url` | Une URL de stream réutilisable, souvent fonctionnelle par intermittence ; vide pour un feed d'entrée audio. |
-| `device` | Feed d'entrée audio ([#623](https://github.com/dascritch/machincast/issues/623), `0013.audio-input-feeds`) : le périphérique d'une entrée de `audio.inputs`, unique, à la place de l'adresse ; un feed a l'un ou l'autre, jamais les deux (`feeds_url_or_device`). Ses streams jouent l'adresse `input:` suivie du périphérique (`audio.INPUT_ADDRESS`), que les requêtes composent par `COALESCE(m.url, 'input:' \|\| m.device)` ; annuler la migration la donne à `url`. |
+| `id`, `name`, `url` | Une URL de stream réutilisable, souvent fonctionnelle par intermittence. Un feed d'entrée audio ([#623](https://github.com/dascritch/machincast/issues/623)) a pour adresse `input:` suivi du périphérique d'une entrée de `audio.inputs` (`audio.INPUT_ADDRESS`), sans colonne ni migration de plus ; seuls les Paramètres du service donnent une telle adresse, que la fiche d'un feed refuse, et sa mémoire tampon ne sert pas. |
 | `buffer_duration` | Mémoire tampon de ses streams, de 2 à 10 secondes, 2 par défaut ([#351](https://github.com/dascritch/machincast/issues/351), `feeds_buffer_duration`) : le stream attend qu'elle soit pleine pour jouer ([§ 4.7](#47-streams)). |
 
 #### `banks`
@@ -525,7 +524,7 @@ Un stream n'est pas testé automatiquement ; l'interface permet de le tester à 
 
 Décidé avec le ticket [#16](https://github.com/dascritch/machincast/issues/16) (`machincast.player.broadcast`, `machincast.player.rundown`) :
 
-- Adresse : `stream_url`, ou l'`url` du feed, ou, pour un feed d'entrée audio, `input:` suivi de son périphérique.
+- Adresse : `stream_url`, ou l'`url` du feed, qui est, pour un feed d'entrée audio, `input:` suivi de son périphérique.
 	L'airplay recopie cette adresse dans `location`.
 - **Mémoire tampon** ([#351](https://github.com/dascritch/machincast/issues/351)) : le stream d'un feed joue avec la mémoire tampon du feed (`feeds.buffer_duration`, `Parameters.buffer`, `Track`) : playbin3 la tient (`buffer-duration`, drapeau `BUFFERING`) et en publie le remplissage (messages `BUFFERING`, en pour cent).
 	La voie démarre en pause, et ne joue qu'une fois la mémoire tampon pleine, ou, un flux plus lent que le temps réel ne la remplissant jamais, au bout de sa durée fois 1,5 (`PREFILL_MARGIN`) ; le délai de garde d'une voie bloquée ou gelée s'allonge de sa durée jusqu'au premier son.
@@ -1836,6 +1835,7 @@ Mise en œuvre ([#34](https://github.com/dascritch/machincast/issues/34), `machi
 - **Feed d'entrée audio** ([#623](https://github.com/dascritch/machincast/issues/623), `machincast.interface.input_feeds`) : enregistrer les Paramètres du service avec des entrées changées ([§ 8.11](#811-menu)) donne à chaque entrée nouvelle son feed, et un stream actif qui le suit, du nom de l'entrée ; une entrée renommée renomme son feed ; un nom pris par un autre feed laisse l'entrée sans feed, ou son feed sous son ancien nom, et la barre d'état dit « L'entrée audio « … » n'a pas de feed : un autre feed porte déjà ce nom. ».
 	Une entrée retirée garde son feed et son stream : sa fiche avertit en haut « Entrée audio retirée des paramètres du service : ses streams ne jouent plus rien. ».
 	La fiche d'un feed d'entrée montre « Entrée audio : » et son périphérique, en lecture seule, sans mémoire tampon ni test du flux ; son nom ne s'y change pas, son infobulle dit où ; la liste montre son adresse, `input:` suivi du périphérique.
+	La fiche d'un feed refuse une adresse qui commence par `input:` : « Une adresse commençant par « input: » est réservée aux entrées audio des paramètres du service. ».
 - **Suppression** : `deletion.question` lève `Prevented` pour un feed qu'un stream suit (la clé étrangère est `ON DELETE RESTRICT`) : la fiche nomme les streams, sans poser de question.
 	Sinon, la confirmation habituelle ([§ 8.9](#89-suppression)).
 

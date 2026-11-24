@@ -276,13 +276,6 @@ def fallback_column_back(context: Context) -> None:
 	assert found == (context.references["secours"],)
 
 
-@then(parsers.parse("le feed « {name} » a l'adresse « {url} »"))
-def feed_url(context: Context, name: str, url: str) -> None:
-	"""https://github.com/dascritch/machincast/issues/623"""
-	found = context.connection.execute("SELECT url FROM feeds WHERE name = %s", (name,)).fetchone()
-	assert found == (url,), found
-
-
 @then("la session de l'intranet sans code est invalide")
 def without_code_invalid(context: Context) -> None:
 	"""https://github.com/dascritch/machincast/issues/600"""

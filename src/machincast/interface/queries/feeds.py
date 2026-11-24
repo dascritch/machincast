@@ -5,12 +5,14 @@ from datetime import timedelta
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast.audio import INPUT_ADDRESS
+
 Connection = psycopg.Connection[TupleRow]
 
 
 def read_feed(connection: Connection, feed: int) -> TupleRow | None:
-	"""Nom, adresse, mémoire tampon et périphérique d'entrée audio du feed ; None s'il est absent."""
-	return connection.execute("SELECT name, url, buffer_duration, device FROM feeds WHERE id = %s", (feed,)).fetchone()
+	"""Nom, adresse et mémoire tampon du feed ; None s'il est absent."""
+	return connection.execute("SELECT name, url, buffer_duration FROM feeds WHERE id = %s", (feed,)).fetchone()
 
 
 def streams(connection: Connection, feed: int, default_title: str) -> list[TupleRow]:
@@ -54,17 +56,20 @@ def active_stream(connection: Connection, feed: int) -> TupleRow | None:
 
 
 # ─── Les feeds d'entrée audio (https://github.com/dascritch/machincast/issues/623) ───
+# Leur adresse est « input: » suivi du périphérique de l'entrée (machincast.audio.INPUT_ADDRESS).
 
 
 def input_feeds(connection: Connection) -> list[TupleRow]:
-	"""Les feeds d'entrée audio : identifiant, nom et périphérique."""
-	return connection.execute("SELECT id, name, device FROM feeds WHERE device IS NOT NULL ORDER BY id").fetchall()
+	"""Les feeds d'entrée audio : identifiant, nom et adresse."""
+	return connection.execute(
+		"SELECT id, name, url FROM feeds WHERE starts_with(url, %s) ORDER BY id", (INPUT_ADDRESS,)
+	).fetchall()
 
 
 def insert_input(connection: Connection, name: str, device: str) -> int:
-	"""Le feed d'une entrée audio, et un stream actif qui le suit, du nom de l'entrée."""
+	"""Le feed d'une entrée audio, à son adresse, et un stream actif qui le suit, du nom de l'entrée."""
 	created = connection.execute(
-		"INSERT INTO feeds (name, device) VALUES (%s, %s) RETURNING id", (name, device)
+		"INSERT INTO feeds (name, url) VALUES (%s, %s) RETURNING id", (name, INPUT_ADDRESS + device)
 	).fetchone()
 	assert created is not None
 	feed = int(str(created[0]))

@@ -54,7 +54,7 @@ def sound_name(connection: Connection, sound: int) -> TupleRow | None:
 def sound_metadata(connection: Connection, sound: int) -> TupleRow | None:
 	"""L'artiste, le titre et l'emplacement d'un sonore, comme les recopie l'airplay."""
 	return connection.execute(
-		"SELECT s.artist, s.title, COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device)) FROM sounds s"
+		"SELECT s.artist, s.title, COALESCE(s.location, s.stream_url, m.url) FROM sounds s"
 		" LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 		(sound,),
 	).fetchone()
@@ -63,11 +63,11 @@ def sound_metadata(connection: Connection, sound: int) -> TupleRow | None:
 def playing_parameters(connection: Connection, bank: int | None, sound: int) -> TupleRow | None:
 	"""Ce qu'il faut pour jouer un sonore, avec les crossfades et la détection de silence de la banque qui l'a fourni."""
 	return connection.execute(
-		"SELECT s.duration, s.crossfade_start, s.crossfade_end, s.type::text, COALESCE(s.stream_url, COALESCE(m.url, 'input:' || m.device)),"
-		" s.fallback_event_id, s.artist, s.title, COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device)),"
+		"SELECT s.duration, s.crossfade_start, s.crossfade_end, s.type::text, COALESCE(s.stream_url, m.url),"
+		" s.fallback_event_id, s.artist, s.title, COALESCE(s.location, s.stream_url, m.url),"
 		" s.silence_detection OR COALESCE(b.silence_detection, false), s.detected_start, s.detected_end,"
 		" b.crossfade_start_rule::text, b.crossfade_start, b.crossfade_end_rule::text, b.crossfade_end,"
-		" CASE WHEN m.device IS NULL THEN m.buffer_duration END"
+		" CASE WHEN NOT starts_with(m.url, 'input:') THEN m.buffer_duration END"
 		" FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id"
 		" LEFT JOIN banks b ON b.id = %s"
 		" WHERE s.id = %s",
@@ -345,7 +345,7 @@ def insert_play_start(
 	connection.execute(
 		"INSERT INTO airplay (play_id, line_type, logged_at, sound_id, bank_id, event_id, event_item_id,"
 		" sequence_id, sequence_item_id, lender_event_id, location, artist, title)"
-		" SELECT %s, 'start', %s, s.id, %s, %s, %s, %s, %s, %s, COALESCE(s.location, s.stream_url, COALESCE(m.url, 'input:' || m.device)),"
+		" SELECT %s, 'start', %s, s.id, %s, %s, %s, %s, %s, %s, COALESCE(s.location, s.stream_url, m.url),"
 		" s.artist, s.title FROM sounds s LEFT JOIN feeds m ON m.id = s.feed_id WHERE s.id = %s",
 		(play, start, bank, event, item, sequence, item_sequence, lender, sound),
 	)
