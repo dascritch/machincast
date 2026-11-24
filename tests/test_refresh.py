@@ -53,12 +53,12 @@ def note_play(interface: Context, empty_database: Connection, title: str, hour: 
 
 @then("l'airplay de l'onglet Antenne ne montre rien")
 def empty_airplay(interface: Context) -> None:
-	assert window(interface).home.airplay_model.rowCount() == 0
+	assert window(interface).home.sounds_model.rowCount() == 0
 
 
 @then(parsers.parse("l'airplay de l'onglet Antenne montre « {title} »"))
 def airplay(interface: Context, title: str) -> None:
-	model = window(interface).home.airplay_model
+	model = window(interface).home.sounds_model
 	line_list = []
 	for line in range(model.rowCount()):
 		line_list.append(model.item(line, TITLE).text())
@@ -67,7 +67,7 @@ def airplay(interface: Context, title: str) -> None:
 
 @when(parsers.parse("je double-clique sur « {title} » dans l'airplay de l'onglet Antenne"))
 def open_since_airplay(interface: Context, qtbot: QtBot, title: str) -> None:
-	open_in(qtbot, window(interface).home.ui.table_airplay, title)
+	open_in(qtbot, window(interface).home.ui.sounds_table, title)
 
 
 @then(parsers.parse("le nom interne de la fiche est « {name} »"))

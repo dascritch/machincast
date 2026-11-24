@@ -1475,7 +1475,6 @@ msgid "Save what the tab shows, as CSV, HTML or M3U"
 msgstr "Enregistrer ce que l'onglet montre, en CSV, en HTML ou en M3U"
 
 #: machincast/interface/airplay_tab.py
-#: machincast/interface/ui/default_screen.ui
 msgid ""
 "Double-click on a sound, an event, a sequence or a bank: open its card"
 msgstr ""
@@ -9313,20 +9312,18 @@ msgid "Test the stream connection"
 msgstr "Tester la connexion du flux"
 
 #: machincast/interface/ui/default_screen.ui
-msgid "Coming after the next sound"
-msgstr "À venir après le prochain sonore"
+msgid "Sounds: the next 5, on air, and the last 10"
+msgstr "Sonores : les 5 prochains, à l'antenne, et les 10 derniers"
 
 #: machincast/interface/ui/default_screen.ui
 msgid ""
-"The sounds planned after the next one, the furthest at the top. "
-"Double-click on a sound, an event, a sequence or a bank: open its card"
+"In the order of time: the furthest coming sound at the top, the sounds on "
+"air outlined in red, the oldest played sound at the bottom. Double-click on "
+"a sound, an event, a sequence or a bank: open its card"
 msgstr ""
-"Les sonores prévus après le prochain, le plus lointain en haut. Double-clic "
-"sur un sonore, un événement, une séquence ou une banque : ouvrir sa fiche"
-
-#: machincast/interface/ui/default_screen.ui
-msgid "Airplay: the last 10 sounds"
-msgstr "Airplay : les 10 derniers sonores"
+"Dans l'ordre du temps : le sonore à venir le plus lointain en haut, ceux à "
+"l'antenne entourés de rouge, le plus ancien passé en bas. Double-clic sur "
+"un sonore, un événement, une séquence ou une banque : ouvrir sa fiche"
 
 #: machincast/interface/ui/event_card.ui
 msgid "Required, and unique to this event"

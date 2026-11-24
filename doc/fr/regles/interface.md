@@ -80,7 +80,7 @@
 - Airplay ([#244](https://github.com/dascritch/machincast/issues/244)) : l'onglet Antenne et l'onglet Airplay lisent l'airplay par `read_airplay`, et en font les cellules par `play_cells` et `play_items` : une colonne ajoutée l'est aux deux, et aux exports (`export_airplay`).
 	L'onglet se relit sur le signal `reread_airplay` de l'onglet Antenne, jamais en boucle ; il s'en déconnecte à sa fermeture.
 	Un export passe par `protection.check_writing`.
-- Sonores à venir de l'onglet Antenne ([#228](https://github.com/dascritch/machincast/issues/228)) : la table `upcoming_table` reprend `AIRPLAY_COLUMNS`, dans le même ordre, et le rôle `ELEMENT` de ses cellules, pour que double-clic et menu contextuel passent par les mêmes chemins que l'airplay (`_open_cell`, `_line_menu`).
+- Tableau des sonores de l'onglet Antenne ([#228](https://github.com/dascritch/machincast/issues/228), [#617](https://github.com/dascritch/machincast/issues/617)) : un seul `sounds_table`, sur `AIRPLAY_COLUMNS`, réunit les sonores à venir et l'airplay ; le rôle `ITEM` de ses cellules et `LOCATION` de sa première colonne font passer double-clic et menu contextuel par les mêmes chemins pour toutes ses lignes (`_open_cell`, `sounds_menu`), et `KIND` dit la sorte de chaque ligne, que le liseré rouge des sonores à l'antenne lit (`OnAirOutline`).
 	Elle ne lit que la socket d'état, jamais la base.
 - Frises de l'onglet Antenne ([#230](https://github.com/dascritch/machincast/issues/230)) : la même `Timeline`, non interactive.
 	Le plan d'un sonore se lit avec la banque qui l'a fourni (`read_plan`), dont les règles passent par les fonctions de la diffusion ; il se lit une fois par sonore et par banque, jamais à chaque état de la socket.

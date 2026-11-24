@@ -209,7 +209,7 @@ On the On air tab, **right-clicking the frame of the next sound** offers ([#257]
 
 ## History and incidents
 
-Each play on air is noted in the **history**, the airplay: its start, its end, the duration broadcast, the artist and the title **as they were at the time of the play**, the event, the sequence and the bank, and whether it went without an incident. A sound cut short by an event, or interrupted by hand, is not an incident. The On air tab shows its last 10 plays, the [Airplay tab](prise-en-main.md#airplay-tab) the last hours, adjustable and exportable, and the card of a sound its last 50 plays.
+Each play on air is noted in the **history**, the airplay: its start, its end, the duration broadcast, the artist and the title **as they were at the time of the play**, the event, the sequence and the bank, and whether it went without an incident. A sound cut short by an event, or interrupted by hand, is not an incident. The On air tab shows its last 10 plays, under the coming sounds and the one on air, the [Airplay tab](prise-en-main.md#airplay-tab) the last hours, adjustable and exportable, and the card of a sound its last 50 plays.
 
 The broadcast also keeps a **log** of what it does. The **Incidents** tab shows its warnings and incidents, from the most recent to the oldest: time, level, nature, message, and the sound, bank and event concerned. The indexing, the maintenance and the purge of the database also note there an end in error, and a `probable crash` when their previous launch did not go to its end ([#341](https://github.com/dascritch/machincast/issues/341)): this is to be reported to the machine's administrator.
 

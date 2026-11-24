@@ -126,7 +126,7 @@ def list_menu(interface: Context, menu: Menu, title: str) -> None:
 @when(parsers.parse("j'ouvre le menu contextuel de la ligne « {title} » de l'airplay"))
 def airplay_menu(interface: Context, menu: Menu, title: str) -> None:
 	home = window(interface).home
-	model = home.airplay_model
+	model = home.sounds_model
 	row_list = []
 	for candidate_row in range(model.rowCount()):
 		found = False
@@ -137,7 +137,7 @@ def airplay_menu(interface: Context, menu: Menu, title: str) -> None:
 		if found:
 			row_list.append(candidate_row)
 	(row,) = row_list
-	_retain(menu, home.airplay_menu(model.index(row, 0)))
+	_retain(menu, home.sounds_menu(model.index(row, 0)))
 
 
 @when(parsers.parse("j'ouvre le menu contextuel de la ligne « {title} » des éléments"))

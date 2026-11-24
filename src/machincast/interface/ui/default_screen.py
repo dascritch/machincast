@@ -492,45 +492,23 @@ class Ui_DefaultScreen(object):
 
         self.arrangement.addLayout(self.sounds)
 
-        self.upcoming_frame = QGroupBox(DefaultScreen)
-        self.upcoming_frame.setObjectName(u"upcoming_frame")
-        self.upcoming_layout = QVBoxLayout(self.upcoming_frame)
-        self.upcoming_layout.setObjectName(u"upcoming_layout")
-        self.upcoming_table = QTableView(self.upcoming_frame)
-        self.upcoming_table.setObjectName(u"upcoming_table")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.upcoming_table.sizePolicy().hasHeightForWidth())
-        self.upcoming_table.setSizePolicy(sizePolicy1)
-        self.upcoming_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.upcoming_table.setAlternatingRowColors(True)
-        self.upcoming_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.upcoming_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.upcoming_table.horizontalHeader().setStretchLastSection(True)
-        self.upcoming_table.verticalHeader().setVisible(False)
+        self.sounds_frame = QGroupBox(DefaultScreen)
+        self.sounds_frame.setObjectName(u"sounds_frame")
+        self.sounds_layout = QVBoxLayout(self.sounds_frame)
+        self.sounds_layout.setObjectName(u"sounds_layout")
+        self.sounds_table = QTableView(self.sounds_frame)
+        self.sounds_table.setObjectName(u"sounds_table")
+        self.sounds_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.sounds_table.setAlternatingRowColors(True)
+        self.sounds_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.sounds_table.setSortingEnabled(False)
+        self.sounds_table.horizontalHeader().setStretchLastSection(True)
+        self.sounds_table.verticalHeader().setVisible(False)
 
-        self.upcoming_layout.addWidget(self.upcoming_table)
+        self.sounds_layout.addWidget(self.sounds_table)
 
 
-        self.arrangement.addWidget(self.upcoming_frame)
-
-        self.airplay_frame = QGroupBox(DefaultScreen)
-        self.airplay_frame.setObjectName(u"airplay_frame")
-        self.airplay_layout = QVBoxLayout(self.airplay_frame)
-        self.airplay_layout.setObjectName(u"airplay_layout")
-        self.table_airplay = QTableView(self.airplay_frame)
-        self.table_airplay.setObjectName(u"table_airplay")
-        self.table_airplay.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table_airplay.setAlternatingRowColors(True)
-        self.table_airplay.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table_airplay.horizontalHeader().setStretchLastSection(True)
-        self.table_airplay.verticalHeader().setVisible(False)
-
-        self.airplay_layout.addWidget(self.table_airplay)
-
-
-        self.arrangement.addWidget(self.airplay_frame)
+        self.arrangement.addWidget(self.sounds_frame)
 
 
         self.retranslateUi(DefaultScreen)
@@ -625,13 +603,9 @@ class Ui_DefaultScreen(object):
         self.preview_next.setToolTip(QCoreApplication.translate("DefaultScreen", u"Listen to the next sound on the pre-listen output, never on air", None))
 #endif // QT_CONFIG(tooltip)
         self.preview_next.setText(QCoreApplication.translate("DefaultScreen", u"Pre-listen", None))
-        self.upcoming_frame.setTitle(QCoreApplication.translate("DefaultScreen", u"Coming after the next sound", None))
+        self.sounds_frame.setTitle(QCoreApplication.translate("DefaultScreen", u"Sounds: the next 5, on air, and the last 10", None))
 #if QT_CONFIG(tooltip)
-        self.upcoming_table.setToolTip(QCoreApplication.translate("DefaultScreen", u"The sounds planned after the next one, the furthest at the top. Double-click on a sound, an event, a sequence or a bank: open its card", None))
-#endif // QT_CONFIG(tooltip)
-        self.airplay_frame.setTitle(QCoreApplication.translate("DefaultScreen", u"Airplay: the last 10 sounds", None))
-#if QT_CONFIG(tooltip)
-        self.table_airplay.setToolTip(QCoreApplication.translate("DefaultScreen", u"Double-click on a sound, an event, a sequence or a bank: open its card", None))
+        self.sounds_table.setToolTip(QCoreApplication.translate("DefaultScreen", u"In the order of time: the furthest coming sound at the top, the sounds on air outlined in red, the oldest played sound at the bottom. Double-click on a sound, an event, a sequence or a bank: open its card", None))
 #endif // QT_CONFIG(tooltip)
         pass
     # retranslateUi

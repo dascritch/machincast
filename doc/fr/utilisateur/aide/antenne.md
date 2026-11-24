@@ -15,7 +15,6 @@ Les numéros renvoient à l'image ; **Aide → Aide contextuelle**, ou <kbd>F1</
 8. **VU-mètre** (`vu_meter`) : le niveau réel de l'antenne, canal par canal, avec ses voyants **Saturation** et **Blanc** ; un clic ouvre le moniteur de l'antenne.
 9. **Prochain sonore** (`next_frame`) : celui qui passera ensuite, même tiré au hasard, et **Sain** s'il est prêt ; le clic droit propose sa pré-écoute, d'y sauter aussitôt, ou d'avancer l'événement suivant.
 10. **Pré-écoute du prochain sonore** (`preview_next`) : l'écoute au casque, sans toucher à l'antenne.
-11. **À venir après le prochain sonore** (`upcoming_frame`) : les 5 sonores suivants, le plus proche en bas ; un clic sur le titre replie l'encart.
-12. **Airplay** (`airplay_frame`) : les 10 derniers passages, du plus récent au plus ancien ; double-clic vers les fiches, clic droit pour la pré-écoute et l'emplacement.
+11. **Sonores** (`sounds_frame`) : un seul tableau, dans l'ordre du temps, le plus vieux en bas : les 5 prochains sonores, le plus lointain en haut, ceux à l'antenne, entourés de rouge, puis les 10 derniers passés ; double-clic vers les fiches, clic droit pour la pré-écoute et l'emplacement ; un clic sur le titre replie l'encart.
 
 Pour aller plus loin : [Antenne](../prise-en-main.md#antenne), [Piloter la diffusion](../antenne.md#piloter-la-diffusion) et [Interrompre l'antenne](../antenne.md#interrompre-lantenne).

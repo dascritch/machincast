@@ -757,21 +757,15 @@
     </layout>
    </item>
    <item>
-    <widget class="QGroupBox" name="upcoming_frame">
+    <widget class="QGroupBox" name="sounds_frame">
      <property name="title">
-      <string>Coming after the next sound</string>
+      <string>Sounds: the next 5, on air, and the last 10</string>
      </property>
-     <layout class="QVBoxLayout" name="upcoming_layout">
+     <layout class="QVBoxLayout" name="sounds_layout">
       <item>
-       <widget class="QTableView" name="upcoming_table">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
+       <widget class="QTableView" name="sounds_table">
         <property name="toolTip">
-         <string>The sounds planned after the next one, the furthest at the top. Double-click on a sound, an event, a sequence or a bank: open its card</string>
+         <string>In the order of time: the furthest coming sound at the top, the sounds on air outlined in red, the oldest played sound at the bottom. Double-click on a sound, an event, a sequence or a bank: open its card</string>
         </property>
         <property name="editTriggers">
          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
@@ -782,39 +776,8 @@
         <property name="selectionBehavior">
          <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
         </property>
-        <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
-        </property>
-        <attribute name="verticalHeaderVisible">
+        <property name="sortingEnabled">
          <bool>false</bool>
-        </attribute>
-        <attribute name="horizontalHeaderStretchLastSection">
-         <bool>true</bool>
-        </attribute>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="airplay_frame">
-     <property name="title">
-      <string>Airplay: the last 10 sounds</string>
-     </property>
-     <layout class="QVBoxLayout" name="airplay_layout">
-      <item>
-       <widget class="QTableView" name="table_airplay">
-        <property name="toolTip">
-         <string>Double-click on a sound, an event, a sequence or a bank: open its card</string>
-        </property>
-        <property name="editTriggers">
-         <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
-        </property>
-        <property name="alternatingRowColors">
-         <bool>true</bool>
-        </property>
-        <property name="selectionBehavior">
-         <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
         </property>
         <attribute name="verticalHeaderVisible">
          <bool>false</bool>
