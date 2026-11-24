@@ -15,30 +15,33 @@ from typing import Any
 import psycopg
 
 from machincast_timely_station_id import queries
-from machincast_timely_station_id.rule import Settings, due
+from machincast_timely_station_id.rule import Current, due
 from machincast_timely_station_id.texts import t
 
 log = logging.getLogger(__name__)
 
 
 class Station:
-	def __init__(self, settings: Settings) -> None:
-		self.settings = settings
+	def __init__(self, current: Current) -> None:
+		self.current = current
 		self.missing: set[str] = set()
 		"""Les banques introuvables déjà consignées."""
 
 	def answer(self, data: Mapping[str, Any]) -> int | None:
+		settings = self.current.settings
+		if settings is None:
+			return None
 		connection: queries.Connection = data["connection"]
 		try:
 			with connection.transaction():
 				if not queries.chosen(connection, int(data["event"])):
 					return None
-				identifiers = queries.banks(connection, self.settings.banks())
+				identifiers = queries.banks(connection, settings.banks())
 		except psycopg.Error as error:
 			log.error("timely_station_id: %s", error)
 			return None
-		self._note_missing(identifiers)
-		station = identifiers.get(self.settings.bank)
+		self._note_missing(settings.banks(), identifiers)
+		station = identifiers.get(settings.bank)
 		if station is None:
 			return None
 		known = list(identifiers.values())
@@ -52,12 +55,12 @@ class Station:
 		duration = data.get("duration")
 		if not isinstance(duration, timedelta):
 			duration = None
-		if due(self.settings, elapsed, duration):
+		if due(settings, elapsed, duration):
 			return station
 		return None
 
-	def _note_missing(self, identifiers: dict[str, int]) -> None:
-		for name in self.settings.banks():
+	def _note_missing(self, names: tuple[str, ...], identifiers: dict[str, int]) -> None:
+		for name in names:
 			if (name not in identifiers) and (name not in self.missing):
 				self.missing.add(name)
 				log.warning(t("timely_station_id: no bank “{name}”").format(name=name))

@@ -24,6 +24,31 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"A station ID at regular intervals, once its settings are in machincast.toml": (
 			"Un station ID à intervalles réguliers, une fois ses réglages dans machincast.toml"
 		),
+		"A station ID at regular intervals, in the events whose box “Regular station ID” is ticked. Machin player"
+		" takes these settings at its next start.": (
+			"Un station ID à intervalles réguliers, dans les événements dont la case « Station ID régulier » est"
+			" cochée. Machin player prend ces réglages à son prochain démarrage."
+		),
+		"A play of one of these banks counts as a station ID, for instance a seasonal jingle": (
+			"Un passage de l'une de ces banques compte comme un station ID, par exemple un jingle saisonnier"
+		),
+		"Before the song that would exceed the maximum, once the minimum is past": (
+			"Avant le morceau qui ferait dépasser le maximum, une fois le minimum passé"
+		),
+		"After the maximum, without moving any song forward": "Après le maximum, sans avancer aucun morceau",
+		"Save": "Enregistrer",
+		" min": " min",
+		"Bank of the station IDs": "Banque des station ID",
+		"Watched banks": "Banques surveillées",
+		"Minimum between two station IDs": "Minimum entre deux station ID",
+		"Maximum between two station IDs": "Maximum entre deux station ID",
+		"Placement": "Placement",
+		"The banks cannot be read: {error}": "Les banques ne peuvent être lues : {error}",
+		"— choose a bank —": "— choisir une banque —",
+		"The settings cannot be saved: {error}": "Les réglages ne peuvent être enregistrés : {error}",
+		"Saved. Restart the broadcast for Machin player to take them.": (
+			"Enregistré. Relancez la diffusion pour que Machin player les prenne."
+		),
 	},
 }
 

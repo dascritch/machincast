@@ -7,9 +7,11 @@ Un station ID environ tous les quarts d'heure, quelle que soit la durée des mor
 
 ## Installer
 
-Le cocher dans l'onglet « Plugins » des « Paramètres du service… », puis valider, et écrire ses réglages dans `machincast.toml`.
+Le cocher dans l'onglet « Plugins » des « Paramètres du service… », puis valider, et le régler dans sa fenêtre, menu « Plugins », « Station ID régulier » : la banque des station ID, les banques surveillées, l'écart minimal et maximal et le placement, enregistrés dans `machincast.toml`.
 Il n'a ni table ni colonne : le choix de chaque événement est dans sa colonne `properties`, sous la clé `timely_station_id`.
-Relancer ensuite la diffusion et l'interface, qui le chargent au démarrage.
+Relancer ensuite la diffusion et l'interface, qui le chargent au démarrage ; des réglages changés dans la fenêtre valent aussitôt dans l'interface, et pour Machin player à son prochain démarrage.
+
+Sa section, telle que la fenêtre l'écrit, ou à la main :
 
 ```toml
 [plugins]
@@ -38,6 +40,7 @@ Des réglages refusés sont consignés dans le journal de la diffusion (`Machin 
 | `manifest.json` | S'accroche à `Machin_player` et à `Machin_interface`, pour sa simulation et la fiche d'un événement. |
 | `src/machincast_timely_station_id/rule.py` | Ses réglages, et la règle qui fait passer un station ID avant un morceau. |
 | `src/machincast_timely_station_id/station.py` | Sa réponse au point « player.before_choice ». |
+| `src/machincast_timely_station_id/settings.py` | La fenêtre du plugin, menu « Plugins » : ses réglages, écrits dans `machincast.toml`. |
 | `src/machincast_timely_station_id/section.py` | La case « Station ID régulier » de la fiche d'un événement, par le point « interface.event_card ». |
 | `src/machincast_timely_station_id/queries.py` | La lecture et l'écriture de `properties`, sous la seule clé du plugin, et les banques par leur nom. |
 | `src/machincast_timely_station_id/texts.py` | Ses textes, et leur traduction. |

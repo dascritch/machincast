@@ -88,14 +88,14 @@ Fonctionnalité: Le station ID régulier : un station ID environ tous les quarts
 		Alors il s'abonne seulement à <points>
 
 		Exemples:
-			| binaire          | points                                            |
-			| Machin_player    | « player.before_choice »                          |
-			| Machin_interface | « player.before_choice », « interface.event_card » |
+			| binaire          | points                                                                       |
+			| Machin_player    | « player.before_choice »                                                     |
+			| Machin_interface | « player.before_choice », « interface.event_card », « interface.plugin_window » |
 
-	Scénario: Des réglages refusés sont consignés, et le plugin ne s'abonne qu'à la fiche
+	Scénario: Des réglages refusés sont consignés, et Machin player n'insère aucun station ID
 		Étant donné les réglages : minimum 20, maximum 15, placement « before »
-		Quand le plugin du station ID régulier s'enregistre dans « Machin_interface »
-		Alors il s'abonne seulement à « interface.event_card »
+		Quand le plugin du station ID régulier s'enregistre dans « Machin_player »
+		Alors il ne s'abonne à aucun point
 		Et le journal dit « timely_station_id : réglages refusés, aucun station ID inséré : minimum et maximum sont des minutes, le minimum pas au-dessus du maximum »
 
 	# ─── La fiche de l'événement ───────────────────────────
@@ -121,3 +121,44 @@ Fonctionnalité: Le station ID régulier : un station ID environ tous les quarts
 		Quand je décoche « Station ID régulier »
 		Et j'enregistre la fiche de l'événement
 		Alors les propriétés de « Continue » sont {}
+
+	# ─── La fenêtre du plugin ──────────────────────────────
+
+	Scénario: La fenêtre montre les banques, et les réglages en vigueur
+		Étant donné les réglages : minimum 12, maximum 18, placement « after », banques surveillées « Saison »
+		Et le plugin du station ID régulier, chargé dans « Machin_interface »
+		Quand j'ouvre la fenêtre du plugin
+		Alors la banque des station ID est « Station ID », parmi « — choisir une banque — », « Saison », « Station ID »
+		Et les banques surveillées cochées sont « Saison »
+		Et l'écart va de 12 à 18 minutes, placement « Après le maximum, sans avancer aucun morceau »
+
+	Scénario: Sans réglages, la fenêtre propose ceux par défaut, et demande la banque
+		Étant donné aucun réglage
+		Et le plugin du station ID régulier, chargé dans « Machin_interface »
+		Quand j'ouvre la fenêtre du plugin
+		Alors la banque des station ID est « — choisir une banque — », parmi « — choisir une banque — », « Saison », « Station ID »
+		Et l'écart va de 12 à 18 minutes, placement « Avant le morceau qui ferait dépasser le maximum, une fois le minimum passé »
+		Quand j'enregistre les réglages du plugin
+		Alors le message de la fenêtre dit « la banque des station ID manque : bank = "…" »
+		Et le fichier de configuration est inchangé
+
+	Scénario: Enregistrer écrit la section du plugin dans machincast.toml, sans toucher au reste du fichier
+		Étant donné aucun réglage
+		Et le plugin du station ID régulier, chargé dans « Machin_interface »
+		Quand j'ouvre la fenêtre du plugin
+		Et je choisis la banque « Station ID », surveille « Saison », de 10 à 20 minutes, placement « Après le maximum, sans avancer aucun morceau »
+		Et j'enregistre les réglages du plugin
+		Alors le message de la fenêtre dit « Enregistré. Relancez la diffusion pour que Machin player les prenne. »
+		Et le fichier de configuration a gardé son commentaire et ses autres sections
+		Et sa section [plugins.timely_station_id] est bank « Station ID », watched « Saison », minimum 10, maximum 20, placement « after »
+		Et l'infobulle de la case de la fiche dit aussitôt « Un station ID de la banque « Station ID », toutes les 10 à 20 minutes, quelle que soit la durée des morceaux »
+
+	Scénario: Un minimum au-dessus du maximum est refusé, et rien n'est écrit
+		Étant donné les réglages : minimum 12, maximum 18, placement « before »
+		Et le plugin du station ID régulier, chargé dans « Machin_interface »
+		Quand j'ouvre la fenêtre du plugin
+		Et je règle l'écart de 25 à 20 minutes
+		Et j'enregistre les réglages du plugin
+		Alors le message de la fenêtre dit « minimum et maximum sont des minutes, le minimum pas au-dessus du maximum »
+		Et le fichier de configuration est inchangé
+
