@@ -98,6 +98,15 @@ Au 27 octobre 2026, le défaut est référencé dans le suivi de MachinCast : [#
 
 Le défaut reste à signaler chez GStreamer, avec `tests/gstreamer_measures.py` pour le reproduire. Un signalement ouvert depuis, chez GStreamer ou ailleurs, s'ajoute à cette liste.
 
+## Mesurer le rythme du VU-mètre de l'antenne
+
+Après l'écoute de l'antenne sur la pré-écoute, le VU-mètre de l'onglet Antenne se rafraîchissait moins souvent ([#627](https://github.com/dascritch/machincast/issues/627)). Sur le poste, avec sa configuration, la mesure ouvre le moniteur de l'antenne, puis écoute l'antenne sur la pré-écoute, comme la fenêtre de pré-écoute, l'arrête et recommence. Pour chaque phase, elle donne les relevés du moniteur par seconde (20 attendus), le retard d'un minuteur de 50 ms de Qt, les fils du processus et les nœuds PipeWire de MachinCast ; rien ne joue à l'antenne :
+
+```bash
+.venv/bin/python -m tests.vu_measures                        # machincast.toml, 3 écoutes, phases de 5 secondes
+.venv/bin/python -m tests.vu_measures --config <fichier> --ecoutes 5 --duree 10
+```
+
 ## Mesurer la liste des périphériques audio
 
 Avec GStreamer 1.28.2, celui d'Ubuntu 26.04, lister les périphériques audio tuait parfois le processus ([#289](https://github.com/dascritch/machincast/issues/289)) : l'interface se fermait d'un coup à l'ouverture de la pré-écoute ou des préférences audio. La cause est chez GStreamer :
