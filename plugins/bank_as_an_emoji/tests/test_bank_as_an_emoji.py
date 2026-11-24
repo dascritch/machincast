@@ -16,9 +16,10 @@ from zoneinfo import ZoneInfo
 import machincast_bank_as_an_emoji
 import psycopg
 import pytest
-from machincast_bank_as_an_emoji import names
+from machincast_bank_as_an_emoji import names, picker, section
 from machincast_bank_as_an_emoji.section import EmojiSection
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 from tests.database_fixtures import sample_database_parameters
@@ -28,7 +29,6 @@ from machincast import plugins
 from machincast.clock import FixedClock
 from machincast.database import Role, open_connection
 from machincast.interface.bank_card import BankCard
-from machincast.interface.card import REPORTED
 
 scenarios(str(PLUGIN / "tests" / "features" / "bank_as_an_emoji.feature"))
 
@@ -41,6 +41,7 @@ class Context:
 	card: BankCard | None = None
 	connection: Connection | None = None
 	points: list[str] = field(default_factory=list)
+	launched: list[str] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -95,6 +96,24 @@ def loaded() -> None:
 	machincast_bank_as_an_emoji.register(_Plugin("Machin_interface"))  # type: ignore[arg-type]
 
 
+@given(parsers.re(r"le sélecteur d'emojis de KDE (?P<state>installé|absent)$"))
+def kde(context: Context, monkeypatch: pytest.MonkeyPatch, state: str) -> None:
+	"""plasma-emojier, installé ou non ; installé, son lancement est seulement noté."""
+	program = None
+	if state == "installé":
+		program = "/usr/bin/plasma-emojier"
+	monkeypatch.setattr(section, "emojier", lambda: program)
+
+	class Process:
+		@staticmethod
+		def startDetached(launched: str, _arguments: list[str]) -> bool:
+			context.launched.append(launched)
+			return True
+
+	monkeypatch.setattr(picker, "QProcess", Process)
+	QGuiApplication.clipboard().setText("avant le choix")
+
+
 @given(parsers.parse("la banque « {name} » supprimée"))
 def deleted(empty_database: Connection, name: str) -> None:
 	empty_database.execute("UPDATE banks SET deleted_at = now() WHERE internal_name = %s", (name,))
@@ -133,17 +152,48 @@ def shortcut(context: Context, qtbot: QtBot) -> None:
 	buddy.setFocus(Qt.FocusReason.ShortcutFocusReason)
 
 
-@when(parsers.re(r"je choisis l'emoji « ?(?P<emoji>[^»]*?) ?»$"))
+@when(parsers.parse("je choisis l'emoji « {emoji} »"))
 def choose(context: Context, emoji: str) -> None:
-	box = _section(context).emoji
-	index = box.findText(emoji)
-	assert index >= 0, emoji
-	box.setCurrentIndex(index)
+	_section(context).set_emoji(emoji)
 
 
-@when(parsers.parse("j'écris l'emoji « {emoji} »"))
-def write_emoji(context: Context, emoji: str) -> None:
-	_section(context).emoji.setEditText(emoji)
+@when("je clique sur le bouton de l'emoji")
+def click_emoji(context: Context) -> None:
+	_section(context).emoji.click()
+
+
+@when(parsers.re(r"(?:il copie|le presse-papiers reçoit) « (?P<text>[^»]+) »(?: dans le presse-papiers)?$"))
+def copied(text: str) -> None:
+	QGuiApplication.clipboard().setText(text)
+
+
+@when("le choix se termine, dix minutes après")
+def ended(context: Context) -> None:
+	kde = _section(context).kde
+	assert kde is not None
+	assert kde.timer.interval() == 10 * 60 * 1000
+	kde.timer.timeout.emit()
+
+
+@when(parsers.parse("je choisis « {emoji} » dans la grille"))
+def choose_in_grid(context: Context, emoji: str) -> None:
+	for button in _section(context).grid.buttons:
+		if button.text() == emoji:
+			button.click()
+			return
+	raise AssertionError(emoji)
+
+
+@when(parsers.parse("je colle « {text} » dans la grille, puis Entrée"))
+def paste(context: Context, text: str) -> None:
+	pasted = _section(context).grid.pasted
+	pasted.setText(text)
+	pasted.returnPressed.emit()
+
+
+@when("je clique sur « Retirer l'emoji »")
+def clear(context: Context) -> None:
+	_section(context).clear.click()
 
 
 @when(parsers.re(r"je remplace le nom interne éditable par « ?(?P<name>[^»]*?) ?»$"))
@@ -189,9 +239,29 @@ def split(name: str, emoji: str, rest: str) -> None:
 	assert names.joined(_strip(emoji), rest) == name
 
 
-@then(parsers.re(r"le sélecteur d'emoji montre « ?(?P<emoji>[^»]*?) ?»$"))
-def selector(context: Context, emoji: str) -> None:
-	assert _section(context).emoji.currentText() == emoji
+@then(parsers.parse("le bouton de l'emoji montre « {text} »"))
+def button(context: Context, text: str) -> None:
+	assert _section(context).emoji.text() == text
+
+
+@then("« Retirer l'emoji » est inactif")
+def clear_inactive(context: Context) -> None:
+	assert not _section(context).clear.isEnabled()
+
+
+@then("le sélecteur d'emojis de KDE est lancé")
+def launched(context: Context) -> None:
+	assert context.launched == ["/usr/bin/plasma-emojier"]
+
+
+@then("la grille d'emojis s'ouvre")
+def grid_open(context: Context) -> None:
+	assert _section(context).grid.isVisible()
+
+
+@then("la grille d'emojis est fermée")
+def grid_closed(context: Context) -> None:
+	assert not _section(context).grid.isVisible()
 
 
 @then(parsers.parse("le nom interne éditable est « {name} »"))
@@ -206,7 +276,7 @@ def hidden(context: Context) -> None:
 	assert _section(context).name.isVisible()
 
 
-@then("le sélecteur d'emoji est devant le nom interne, dans la ligne « Nom interne »")
+@then("le bouton de l'emoji est devant le nom interne, dans la ligne « Nom interne »")
 def in_row(context: Context) -> None:
 	card = _card(context)
 	section = _section(context)
@@ -241,12 +311,7 @@ def error(context: Context, text: str) -> None:
 	assert _card(context).error.text() == text
 
 
-@then(parsers.parse("le libellé « {caption} » est signalé"))
-def reported(context: Context, caption: str) -> None:
-	assert _card(context).ui.internal_name_caption.text() == f"{REPORTED}&{caption}"
-
-
-@then("le sélecteur d'emoji et le nom interne éditable sont figés")
+@then("le bouton de l'emoji et le nom interne éditable sont figés")
 def frozen(context: Context) -> None:
 	section = _section(context)
 	assert not section.emoji.isEnabled()

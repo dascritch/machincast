@@ -2367,6 +2367,9 @@ Guide du développeur : [Écrire un plugin](developpement/plugins.md).
 
 - Il s'accroche à `Machin_interface`, sans table ni colonne : l'emoji d'une banque est dans les premiers caractères de son nom interne, suivi d'une espace, « 🌟 Publicités » ; les tableaux d'airplay et des sonores à venir, qui montrent le nom interne, le montrent avec lui.
 - Un emoji est une suite de pictogrammes, avec leurs sélecteurs de variante, leurs teintes de peau, leurs liants et leurs étiquettes (`names.split`) ; un nom qui ne commence pas par un emoji suivi d'une espace n'en a pas.
-- Au point « interface.bank_card », sa section remplace, dans la ligne « Nom interne » de la fiche, le champ du nom interne par un sélecteur d'emoji, modifiable, suivi du nom sans son emoji ; le champ de la fiche, caché, garde le nom complet, que la fiche vérifie, copie et enregistre comme avant, et son libellé, son raccourci et ses signalements d'erreur passent au nom sans emoji.
-- Un emoji sans nom laisse le nom interne vide, que la fiche refuse ; un texte du sélecteur qui n'est pas un emoji refuse l'enregistrement : « « ab » n'est pas un emoji. ».
+- Au point « interface.bank_card », sa section remplace, dans la ligne « Nom interne » de la fiche, le champ du nom interne par le bouton de l'emoji (« Emoji… » sans emoji), « ✕ » qui le retire, puis le nom sans son emoji ; le champ de la fiche, caché, garde le nom complet, que la fiche vérifie, copie et enregistre comme avant, et son libellé, son raccourci et ses signalements d'erreur passent au nom sans emoji.
+- Le bouton lance, détaché, le sélecteur d'emojis de KDE, `plasma-emojier`, qui copie l'emoji choisi dans le presse-papiers et reste ouvert : pendant dix minutes, ou jusqu'au choix suivant, chaque emoji copié devient celui de la banque (`picker.KdePicker`) ; sous Wayland, il arrive quand la fiche retrouve le focus.
+	Sans `plasma-emojier`, ou s'il ne se lance pas, une grille des emojis proposés s'ouvre sous le bouton, avec un champ où coller tout autre emoji, validé par Entrée (`picker.EmojiGrid`).
+	Ce qui n'est pas un emoji, copié hors d'un choix ou collé, est ignoré.
+- Un emoji sans nom laisse le nom interne vide, que la fiche refuse.
 - Ses textes ont leur propre traduction (`machincast_bank_as_an_emoji.texts`) ; ses scénarios, dans `plugins/bank_as_an_emoji/tests/`, reprennent les fixtures du cœur.
