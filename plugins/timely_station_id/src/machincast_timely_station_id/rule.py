@@ -33,7 +33,7 @@ class Settings:
 	placement: str = BEFORE
 
 	def banks(self) -> tuple[str, ...]:
-		"""La banque jouée, puis celles qui annoncent aussi la station."""
+		"""La banque jouée, puis les autres identifiants de la station."""
 		return (self.bank, *self.watched)
 
 

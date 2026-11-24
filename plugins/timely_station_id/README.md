@@ -7,7 +7,7 @@ Un station ID environ tous les quarts d'heure, quelle que soit la durée des mor
 
 ## Installer
 
-Le cocher dans l'onglet « Plugins » des « Paramètres du service… », puis valider, et le régler dans sa fenêtre, menu « Plugins », « Station ID régulier » : la banque des station ID, les banques qui annoncent aussi la station, l'écart minimal et maximal et le placement, enregistrés dans `machincast.toml`.
+Le cocher dans l'onglet « Plugins » des « Paramètres du service… », puis valider, et le régler dans sa fenêtre, menu « Plugins », « Station ID régulier » : la banque des station ID, les autres identifiants de la station, l'écart minimal et maximal et le placement, enregistrés dans `machincast.toml`.
 Il n'a ni table ni colonne : le choix de chaque événement est dans sa colonne `properties`, sous la clé `timely_station_id`.
 Relancer ensuite la diffusion et l'interface, qui le chargent au démarrage ; des réglages changés dans la fenêtre valent aussitôt dans l'interface, et pour Machin player à son prochain démarrage.
 
@@ -20,7 +20,7 @@ enabled = ["timely_station_id"]
 [plugins.timely_station_id]
 # Le nom interne de la banque des station ID à jouer ; obligatoire.
 bank = "Station ID"
-# Les banques qui annoncent aussi la station (un jingle saisonnier qui dit le nom de la radio) : un de leurs
+# Les autres identifiants de la station, des banques (un jingle saisonnier qui dit le nom de la radio) : un de leurs
 # passages compte comme un station ID ; facultatif.
 watched = ["Jingles saisonniers"]
 # L'écart voulu entre deux station ID, en minutes ; 12 et 18 par défaut.
