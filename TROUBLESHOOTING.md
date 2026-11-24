@@ -76,6 +76,30 @@ The known failures of MachinCast, their causes, what to check, and the scenarios
 
 **Scenarios that watch for it**: `tests/features/locked_output.feature`, on a separate PipeWire and WirePlumber, on every test run; skipped if `pipewire` and `wireplumber` are not installed.
 
+## The on-air VU meter slows down after listening to the air
+
+**Symptom**: after listening to the air on the pre-listen, under PipeWire, the VU meter of the On air tab refreshes less often, a little less at each listening; the log notes « port de monitoring ralenti, rouvert ».
+
+**Cause** ([#627](https://github.com/dascritch/machincast/issues/627)): listening to the air links, with `pw-link`, the on-air card to the pre-listen card. When these two cards do not share the same sample rate, or the same clock, PipeWire has to match them each time a link is set or removed: the player and the monitoring port of the air drop out (**ERR** column of `pw-top`), and that port then gives only part of the sound. Playout itself can suffer from it.
+
+**What MachinCast does**: the monitor counts its readings; a port giving less than half of them over 2 seconds is reopened, without greying the VU meter, at most 3 times in a row. Relaying the sound through a pipeline, without a link, avoids the dropouts, but delays and sometimes distorts the pre-listen: the link stayed.
+
+**To do**: set **all the sound cards of the machine to the same sample rate**, preferably 48,000 Hz, PipeWire's default. The fragment `/etc/pipewire/pipewire.conf.d/50-frequence.conf` sets it, for the PipeWire of the session as for that of the playout service:
+
+```
+context.properties = {
+	default.clock.rate          = 48000
+	default.clock.allowed-rates = [ 48000 ]
+}
+```
+
+then restart PipeWire: `systemctl --user restart pipewire wireplumber`, and, with the service, `sudo systemctl restart machincast-pipewire.service machincast-wireplumber.service`, off air. A card that does not accept 48,000 Hz is set likewise to the rate it shares with the others.
+
+**To check**:
+
+- `pw-top`: the **RATE** column of the sound cards, which drive the graph, gives the same rate, and the **ERR** column no longer rises when the pre-listen of the air opens or closes.
+- The machine measurement: `.venv/bin/python -m tests.vu_measures` keeps 20 readings per second, before, during and after each listening ([development machine](doc/fr/developpement/poste.md)).
+
 ## Scenarios to run before a release
 
 Some scenarios run neither with `pytest` nor with `bin/Machin dev-test`: they are slow, or need a separate server. They are marked `@release`, and are run before each release ([#208](https://github.com/dascritch/machincast/issues/208)), and after any update of GStreamer or libsoup:
