@@ -53,3 +53,22 @@ Fonctionnalité: Périphériques de sortie du poste
 			GstPulseDevice	Casque	casque
 			GstAlsaDevice	Inconnu	sans identifiant
 			"""
+
+	Plan du scénario: Les entrées de carte son de la sortie configurée, sans les sources qui écoutent une sortie
+		https://github.com/dascritch/machincast/issues/622 : les entrées audio que MachinCast peut passer à l'antenne.
+
+		Étant donné les entrées et les sorties vues par GStreamer :
+			| type              | nom                 | node.name                      | internal-name                 | classe       |
+			| GstPipeWireDevice | Haut-parleurs       | alsa_output.pci.analog-stereo  |                               | Audio/Sink   |
+			| GstPipeWireDevice | Studio A            | alsa_input.usb-studio          |                               | Audio/Source |
+			| GstPulseDevice    | Studio A (Pulse)    |                                | alsa_input.usb-studio         | Audio/Source |
+			| GstPulseDevice    | Moniteur            |                                | alsa_output.pci.monitor       | Audio/Source |
+			| GstAlsaDevice     | Entrée HDA          |                                | hw:0                          | Audio/Source |
+		Alors les entrées de la sortie « <sortie> » sont <liste>
+
+		Exemples:
+			| sortie     | liste                                                  |
+			| pipewire   | « alsa_input.usb-studio » « Studio A »                 |
+			| pulseaudio | « alsa_input.usb-studio » « Studio A (Pulse) »         |
+			| alsa       | « hw:0 » « Entrée HDA »                                |
+			| dummy      | aucune                                                 |

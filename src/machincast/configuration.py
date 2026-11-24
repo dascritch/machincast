@@ -74,12 +74,24 @@ VIRTUAL_OUTPUTS: tuple[AudioOutput, ...] = ("pipewire", "pulseaudio")
 
 
 @dataclass(frozen=True)
+class AudioInput:
+	"""Une entrée de carte son que MachinCast peut passer à l'antenne (https://github.com/dascritch/machincast/issues/622) :
+	son périphérique, une source de la sortie audio (nœud PipeWire, source PulseAudio ou périphérique ALSA), et son
+	nom, celui de son feed."""
+
+	device: str
+	name: str
+
+
+@dataclass(frozen=True)
 class Audio:
 	output: AudioOutput
 	device: str | None
 	"""Périphérique d'antenne ; None tant qu'il n'est pas renseigné ; FACTICE pour l'entrée « sortie factice »."""
 	preview: str
 	"""Périphérique de pré-écoute ; FACTICE pour l'entrée « sortie factice », qui désactive la pré-écoute."""
+	inputs: tuple[AudioInput, ...] = ()
+	"""Les entrées audio, [[audio.inputs]], dans l'ordre du fichier."""
 
 	def on_air(self) -> tuple[AudioOutput, str | None]:
 		"""La sortie et le périphérique où joue l'antenne : la sortie factice, sans périphérique, sur l'entrée « sortie
@@ -362,7 +374,7 @@ class Configuration:
 # refusée, pour détecter les fautes de frappe.
 KEYS: dict[str, frozenset[str]] = {
 	"database": frozenset({"socket", "production", "test", "retention"}),
-	"audio": frozenset({"output", "device", "preview"}),
+	"audio": frozenset({"output", "device", "preview", "inputs"}),
 	"outputs": frozenset({"csv", "pls", "html"}),
 	"metadata": frozenset({"hide", "public_text"}),
 	"player": frozenset({"state_socket", "intranet_socket"}),
@@ -378,6 +390,10 @@ KEYS: dict[str, frozenset[str]] = {
 	"plugins": frozenset({"enabled", "directory"}),
 }
 """Dans [plugins], une section [plugins.<nom>] est aussi permise : les réglages d'un plugin."""
+
+
+INPUT_KEYS = ("device", "name")
+"""Les clés d'une entrée de audio.inputs (https://github.com/dascritch/machincast/issues/622)."""
 
 
 OLD_SECTIONS = {
@@ -746,6 +762,43 @@ class _Player:
 			directory = self.file_path("plugins", "directory")
 		return Plugins(enabled=tuple(names), directory=directory, settings=settings)
 
+	def inputs(self, on_air: str | None, preview: str) -> tuple[AudioInput, ...]:
+		"""La clé audio.inputs, facultative : une liste d'entrées, chacune un périphérique et un nom, sans les espaces
+		qui les entourent, l'un et l'autre une fois chacun, ni l'antenne ni la pré-écoute
+		(https://github.com/dascritch/machincast/issues/622)."""
+		given = self.document.get("audio", {}).get("inputs", [])
+		if not isinstance(given, list):
+			raise self.error(_("key audio.inputs: a list of inputs is expected, each with its device and its name"))
+		found: list[AudioInput] = []
+		for entry in given:
+			if not isinstance(entry, dict):
+				raise self.error(_("key audio.inputs: a list of inputs is expected, each with its device and its name"))
+			for key in entry:
+				if key not in INPUT_KEYS:
+					raise self.error(_("key audio.inputs: unknown key “{key}” in an input").format(key=key))
+			values = {}
+			for key in INPUT_KEYS:
+				value = entry.get(key)
+				if (not isinstance(value, str)) or (value.strip() == ""):
+					raise self.error(_("key audio.inputs: each input needs a non-empty “{key}”").format(key=key))
+				values[key] = value.strip()
+			audio_input = AudioInput(device=values["device"], name=values["name"])
+			for other in found:
+				if other.name == audio_input.name:
+					raise self.error(_("key audio.inputs: two inputs are named “{name}”").format(name=audio_input.name))
+				if other.device == audio_input.device:
+					raise self.error(_("key audio.inputs: “{device}” is given twice").format(device=audio_input.device))
+			if audio_input.device == preview:
+				raise self.error(
+					_("key audio.inputs: “{device}” is the pre-listen device").format(device=audio_input.device)
+				)
+			if audio_input.device == on_air:
+				raise self.error(
+					_("key audio.inputs: “{device}” is the on-air device").format(device=audio_input.device)
+				)
+			found.append(audio_input)
+		return tuple(found)
+
 	def file_path(self, section: str, key: str) -> Path:
 		"""Chemin absolu tel quel ; chemin relatif résolu depuis le répertoire du fichier de configuration."""
 		path = Path(self.text(section, key)).expanduser()
@@ -839,7 +892,7 @@ def load(path: Path | None = None) -> Configuration:
 	return Configuration(
 		path=path,
 		database=database,
-		audio=Audio(output=output, device=device, preview=preview),
+		audio=Audio(output=output, device=device, preview=preview, inputs=reader.inputs(device, preview)),
 		outputs=outputs,
 		metadata=Metadata(
 			hide=reader.boolean("metadata", "hide"),

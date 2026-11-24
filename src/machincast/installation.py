@@ -579,21 +579,40 @@ wireplumber.profiles = {{
 """
 
 
-def wireplumber_desktop(audio: Audio) -> str:
-	"""Le fragment du WirePlumber des sessions du poste : la carte de l'antenne y est cachée, elle est au service ; deux
-	PipeWire n'ouvrent pas la même carte en même temps. Sans antenne sur une carte PipeWire, il ne cache rien."""
+def hidden_nodes(audio: Audio) -> list[str]:
+	"""Les nœuds que les sessions du poste ne voient pas, sur la sortie PipeWire : la carte de l'antenne, puis les entrées
+	audio (https://github.com/dascritch/machincast/issues/622) ; aucun sur une autre sortie."""
+	if audio.output != "pipewire":
+		return []
+	found = []
 	output, device = audio.on_air()
-	head = f"""# MachinCast: the on-air card belongs to the broadcast service (https://github.com/dascritch/machincast/issues/381).
+	if (output == "pipewire") and (device is not None):
+		found.append(device)
+	for audio_input in audio.inputs:
+		found.append(audio_input.device)
+	return found
+
+
+def wireplumber_desktop(audio: Audio) -> str:
+	"""Le fragment du WirePlumber des sessions du poste : la carte de l'antenne et les entrées audio y sont cachées,
+	elles sont au service ; deux PipeWire n'ouvrent pas la même carte en même temps. Sans antenne sur une carte
+	PipeWire ni entrée, il ne cache rien. Il est réécrit, avec les entrées, par machincast.input_reservation."""
+	head = f"""# MachinCast: the on-air card and the audio inputs belong to the broadcast service
+# (https://github.com/dascritch/machincast/issues/381, https://github.com/dascritch/machincast/issues/622).
 {HEADER}
 """
-	if (output != "pipewire") or (device is None) or (audio.dummy_on_air()):
-		return head + "# No on-air card to hide.\n"
-	name = device.replace("\\", "\\\\").replace('"', '\\"')
+	nodes = hidden_nodes(audio)
+	if not nodes:
+		return head + "# No on-air card nor audio input to hide.\n"
+	matches = []
+	for device in nodes:
+		name = device.replace("\\", "\\\\").replace('"', '\\"')
+		matches.append(f'{{ node.name = "{name}" }}')
 	return (
 		head
 		+ f"""monitor.alsa.rules = [
 	{{
-		matches = [ {{ node.name = "{name}" }} ]
+		matches = [ {" ".join(matches)} ]
 		actions = {{ update-props = {{ node.disabled = true }} }}
 	}}
 ]

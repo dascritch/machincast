@@ -311,6 +311,14 @@ msgid "key plugins.enabled: a list of plugin names is expected"
 msgstr "clé plugins.enabled : une liste de noms de plugins est attendue"
 
 #: machincast/configuration.py
+msgid ""
+"key audio.inputs: a list of inputs is expected, each with its device and "
+"its name"
+msgstr ""
+"clé audio.inputs : une liste d'entrées est attendue, chacune avec son "
+"périphérique et son nom"
+
+#: machincast/configuration.py
 #, python-brace-format
 msgid "{path}: {message}"
 msgstr "{path} : {message}"
@@ -540,6 +548,16 @@ msgstr "clé plugins.enabled : « {name} » est donné deux fois"
 
 #: machincast/configuration.py
 #, python-brace-format
+msgid "key audio.inputs: “{device}” is the pre-listen device"
+msgstr "clé audio.inputs : « {device} » est le périphérique de pré-écoute"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid "key audio.inputs: “{device}” is the on-air device"
+msgstr "clé audio.inputs : « {device} » est le périphérique d'antenne"
+
+#: machincast/configuration.py
+#, python-brace-format
 msgid "unknown key {section}.{key}"
 msgstr "clé {section}.{key} inconnue"
 
@@ -547,6 +565,26 @@ msgstr "clé {section}.{key} inconnue"
 #, python-brace-format
 msgid "section [plugins.{key}]: “{key}” is not a plugin name"
 msgstr "section [plugins.{key}] : « {key} » n'est pas un nom de plugin"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid "key audio.inputs: unknown key “{key}” in an input"
+msgstr "clé audio.inputs : clé « {key} » inconnue dans une entrée"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid "key audio.inputs: each input needs a non-empty “{key}”"
+msgstr "clé audio.inputs : chaque entrée demande un « {key} » non vide"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid "key audio.inputs: two inputs are named “{name}”"
+msgstr "clé audio.inputs : deux entrées s'appellent « {name} »"
+
+#: machincast/configuration.py
+#, python-brace-format
+msgid "key audio.inputs: “{device}” is given twice"
+msgstr "clé audio.inputs : « {device} » est donné deux fois"
 
 #: machincast/crash.py
 msgid "wpctl not found"
@@ -1278,6 +1316,35 @@ msgstr "une autre indexation rapide est en cours sur cette base"
 msgid "another full audit is running on this database"
 msgstr "un autre audit complet est en cours sur cette base"
 
+#: machincast/input_reservation.py
+msgid "no audio input reserved for the broadcast service"
+msgstr "aucune entrée audio réservée au service de diffusion"
+
+#: machincast/input_reservation.py
+msgid ""
+"Reserves the audio inputs of the configuration for the broadcast service."
+msgstr ""
+"Réserve au service de diffusion les entrées audio de la configuration."
+
+#: machincast/input_reservation.py
+msgid "configuration of the broadcast service"
+msgstr "configuration du service de diffusion"
+
+#: machincast/input_reservation.py
+#: machincast/power_save.py
+msgid "root of the system, / by default"
+msgstr "racine du système, / par défaut"
+
+#: machincast/input_reservation.py
+#, python-brace-format
+msgid "audio inputs reserved for the broadcast service: {names}"
+msgstr "entrées audio réservées au service de diffusion : {names}"
+
+#: machincast/input_reservation.py
+#, python-brace-format
+msgid "audio inputs not reserved: {error}"
+msgstr "entrées audio non réservées : {error}"
+
 #: machincast/installation.py
 msgid "MachinCast installation steps, called by install.sh."
 msgstr "Étapes d'installation de MachinCast, appelées par install.sh."
@@ -1728,6 +1795,96 @@ msgstr "Mot de passe de {name} changé."
 #, python-brace-format
 msgid "unreadable intranet users: {error}"
 msgstr "comptes de l'intranet illisibles : {error}"
+
+#: machincast/interface/audio_inputs.py
+msgid "Audio inputs"
+msgstr "Entrées audio"
+
+#: machincast/interface/audio_inputs.py
+msgid ""
+"The sound card inputs that MachinCast can put on air, like a stream: a "
+"production studio, for instance. Each one becomes a feed, with its stream, "
+"under its name. With the broadcast service, they are reserved for it as "
+"soon as they are saved."
+msgstr ""
+"Les entrées de carte son que MachinCast peut passer à l'antenne, comme un "
+"stream : un studio de production, par exemple. Chacune devient un feed, "
+"avec son stream, sous son nom. Avec le service de diffusion, elles lui sont "
+"réservées dès leur enregistrement."
+
+#: machincast/interface/audio_inputs.py
+#: machincast/interface/preview.py
+#: machincast/interface/sound_cards.py
+#, python-brace-format
+msgid "{device} (not found)"
+msgstr "{device} (introuvable)"
+
+#: machincast/interface/audio_inputs.py
+msgid "Each audio input needs a name."
+msgstr "Chaque entrée audio demande un nom."
+
+#: machincast/interface/audio_inputs.py
+#, python-brace-format
+msgid "Two audio inputs are named “{name}”."
+msgstr "Deux entrées audio s'appellent « {name} »."
+
+#: machincast/interface/audio_inputs.py
+msgid "No other sound card input on this computer"
+msgstr "Aucune autre entrée de carte son sur ce poste"
+
+#: machincast/interface/audio_inputs.py
+msgid "Audio inputs reserved for the broadcast service."
+msgstr "Entrées audio réservées au service de diffusion."
+
+#: machincast/interface/audio_inputs.py
+msgid "Audio inputs not reserved: authentication refused."
+msgstr "Entrées audio non réservées : authentification refusée."
+
+#: machincast/interface/audio_inputs.py
+#, python-brace-format
+msgid "Audio inputs not reserved: {error}"
+msgstr "Entrées audio non réservées : {error}"
+
+#: machincast/interface/audio_inputs.py
+msgid ""
+"Audio inputs not reserved: pkexec missing, install the pkexec package."
+msgstr ""
+"Entrées audio non réservées : pkexec manque, installer le paquet pkexec."
+
+#: machincast/interface/audio_inputs.py
+#, python-brace-format
+msgid ""
+"Audio inputs reserved for the broadcast service; the WirePlumber of this "
+"session did not restart: {error}"
+msgstr ""
+"Entrées audio réservées au service de diffusion ; le WirePlumber de cette "
+"session n'a pas redémarré : {error}"
+
+#: machincast/interface/audio_inputs.py
+#: machincast/interface/control.py
+#: machincast/interface/power_save_switch.py
+#, python-brace-format
+msgid "exit code {code}"
+msgstr "code de sortie {code}"
+
+#: machincast/interface/audio_inputs.py
+#: machincast/interface/lists.py
+#: machincast/interface/ui/sound_card.ui
+#: machincast/intranet/templates/live.html.jinja
+msgid "Name"
+msgstr "Nom"
+
+#: machincast/interface/audio_inputs.py
+msgid "Input"
+msgstr "Entrée"
+
+#: machincast/interface/audio_inputs.py
+msgid "Add this input"
+msgstr "Ajouter cette entrée"
+
+#: machincast/interface/audio_inputs.py
+msgid "Remove the input"
+msgstr "Retirer l'entrée"
 
 #: machincast/interface/background_programming.py
 #: machincast/interface/calendar.py
@@ -2653,12 +2810,6 @@ msgstr ""
 #, python-brace-format
 msgid "{failure}: {error}"
 msgstr "{failure} : {error}"
-
-#: machincast/interface/control.py
-#: machincast/interface/power_save_switch.py
-#, python-brace-format
-msgid "exit code {code}"
-msgstr "code de sortie {code}"
 
 #: machincast/interface/control.py
 #, python-brace-format
@@ -4804,12 +4955,6 @@ msgid "State"
 msgstr "État"
 
 #: machincast/interface/lists.py
-#: machincast/interface/ui/sound_card.ui
-#: machincast/intranet/templates/live.html.jinja
-msgid "Name"
-msgstr "Nom"
-
-#: machincast/interface/lists.py
 #: machincast/interface/search.py
 msgid "Public name"
 msgstr "Nom public"
@@ -5336,12 +5481,6 @@ msgstr "installer gstreamer1.0-plugins-base et -good"
 #: machincast/interface/preview.py
 msgid "Pre-listen output changed for this session."
 msgstr "Sortie de pré-écoute changée pour cette session."
-
-#: machincast/interface/preview.py
-#: machincast/interface/sound_cards.py
-#, python-brace-format
-msgid "{device} (not found)"
-msgstr "{device} (introuvable)"
 
 #: machincast/interface/preview.py
 msgid "The broadcast device cannot be used for the pre-listen."
@@ -8583,10 +8722,6 @@ msgstr "snd_hda_intel n'est pas chargé : son réglage vaudra à son chargement"
 msgid "Keeps the sound cards of the on-air computer out of power saving."
 msgstr ""
 "Garde les cartes son du poste d'antenne hors de l'économie d'énergie."
-
-#: machincast/power_save.py
-msgid "root of the system, / by default"
-msgstr "racine du système, / par défaut"
 
 #: machincast/power_save.py
 #, python-brace-format
