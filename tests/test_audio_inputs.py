@@ -25,7 +25,7 @@ from machincast import audio, service
 from machincast.audio import Device
 from machincast.configuration import PROJECT_DIRECTORY, AudioInput, AudioOutput, Crossfades, load
 from machincast.interface import dialogs
-from machincast.interface.audio_inputs import NAME, AudioInputs, InputReservation
+from machincast.interface.audio_inputs import DEVICE, NAME, AudioInputs, InputReservation
 from machincast.interface.preferences import INTERFACE, SERVICE, PreferencesWindow, Settings, write
 from tests.database_fixtures import configuration_test
 from tests.interface_steps import Context, configuration_file, window
@@ -336,7 +336,9 @@ def block_rows(system: System, title: str, datatable: list[list[str]]) -> None:
 	rows = []
 	for row in range(block.table.rowCount()):
 		cells = []
-		for column in range(block.table.columnCount()):
+		# La troisième colonne, le VU-mètre de l'entrée (https://github.com/dascritch/machincast/issues/624), n'a pas de
+		# texte.
+		for column in (NAME, DEVICE):
 			cell = block.table.item(row, column)
 			assert cell is not None
 			cells.append(cell.text())

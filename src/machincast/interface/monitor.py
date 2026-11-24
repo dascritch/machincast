@@ -147,6 +147,42 @@ def monitor_source(audio: Audio) -> Gst.Element:
 	return _in_stereo(source, connection)
 
 
+INPUT_NOT_FOUND = _("Not found: this computer does not see this audio input.")
+"""Une entrée audio que le poste ne voit pas (https://github.com/dascritch/machincast/issues/624)."""
+
+
+def input_source(audio: Audio, device: str) -> Gst.Element:
+	"""L'élément qui donne le son d'une entrée audio, en stéréo (https://github.com/dascritch/machincast/issues/624) :
+	sous PipeWire, par le PipeWire du service quand il tourne, comme le moniteur de l'antenne, verrouillé sur l'entrée ;
+	sous PulseAudio ou ALSA, la source de la sortie ; le signal de test sur la sortie factice. Lève Indisponible pour
+	une entrée que le poste ne voit pas."""
+	Gst.init(None)
+	if audio.output == "dummy":
+		try:
+			return Gst.parse_bin_from_description(f"{DUMMY_SIGNAL} ! capsfilter caps={CHANNELS}", True)
+		except GLib.Error as error:
+			raise Unavailable(_("Unavailable: {message}").format(message=error.message)) from None
+	seen = False
+	for appliance in outputs.input_devices(audio.output):
+		if appliance.identifier == device:
+			seen = True
+	if not seen:
+		raise Unavailable(INPUT_NOT_FOUND)
+	if audio.output in ("pulseaudio", "alsa"):
+		source = _item(outputs.CAPTURES[audio.output].factory)
+		source.set_property("device", device)
+		outputs.present(source, outputs.INPUT_MONITORING)
+		return _in_stereo(source)
+	connection = _service_connection()
+	source = _item("pipewiresrc")
+	if connection is not None:
+		source.set_property("fd", connection.fileno())
+	source.set_property("target-object", device)
+	outputs.present(source, outputs.INPUT_MONITORING)
+	outputs.lock(source)
+	return _in_stereo(source, connection)
+
+
 def _service_connection() -> socket.socket | None:
 	"""La connexion au PipeWire du service, s'il tourne ; lève Indisponible s'il ne se joint pas."""
 	try:
@@ -250,7 +286,7 @@ class Monitor(QObject):
 			self.changed.emit()
 			return
 		try:
-			source = monitor_source(self.audio)
+			source = self.source(self.audio)
 		except Unavailable as error:
 			self._unavailable(str(error), action=error.action)
 			return
@@ -275,6 +311,10 @@ class Monitor(QObject):
 		self._piloted.to(Gst.State.PLAYING)
 		self._reading.start()
 		self.changed.emit()
+
+	def source(self, audio: Audio) -> Gst.Element:
+		"""Ce que le moniteur écoute : le port de monitoring de l'antenne."""
+		return monitor_source(audio)
 
 	def pause(self) -> None:
 		"""Ferme le port le temps de la veille de la session, sans le rouvrir."""
@@ -364,3 +404,21 @@ class Monitor(QObject):
 		if clipping:
 			self._clipping_since = now
 		self.clipping = (self._clipping_since is not None) and (now - self._clipping_since < CLIPPING_HOLD)
+
+
+class InputMonitor(Monitor):
+	"""Les niveaux d'une entrée audio (https://github.com/dascritch/machincast/issues/624), relevés tant qu'il tourne ;
+	une entrée introuvable le dit, et se réessaie, comme un port qui ne s'ouvre pas."""
+
+	def __init__(
+		self,
+		audio: Audio | None,
+		device: str,
+		parent: QObject | None = None,
+		clock: Callable[[], float] = time.monotonic,
+	) -> None:
+		super().__init__(audio, parent, clock)
+		self.device = device
+
+	def source(self, audio: Audio) -> Gst.Element:
+		return input_source(audio, self.device)

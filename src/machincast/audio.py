@@ -281,6 +281,8 @@ PREVIEW = Presentation("MachinCast interface", _("Pre-listen"))
 TRIAL = Presentation("MachinCast installation", _("Test sound"))
 MONITORING = Presentation("MachinCast interface", _("On-air monitoring"))
 CAPTURE = Presentation("MachinCast lecteur", _("Audio input"))
+INPUT_MONITORING = Presentation("MachinCast interface", _("Audio input monitoring"))
+"""Le VU-mètre et la pré-écoute d'une entrée audio (https://github.com/dascritch/machincast/issues/624)."""
 """Une entrée audio captée pour l'antenne (https://github.com/dascritch/machincast/issues/623)."""
 """L'écoute de l'antenne, pour le vumètre de l'interface (https://github.com/dascritch/machincast/issues/343)."""
 

@@ -126,6 +126,10 @@ msgid "Audio input"
 msgstr "Entrée audio"
 
 #: machincast/audio.py
+msgid "Audio input monitoring"
+msgstr "Écoute d'une entrée audio"
+
+#: machincast/audio.py
 msgid ""
 "audiotestsrc or audioconvert not found, install gstreamer1.0-plugins-base"
 msgstr ""
@@ -1846,6 +1850,23 @@ msgid "No other sound card input on this computer"
 msgstr "Aucune autre entrée de carte son sur ce poste"
 
 #: machincast/interface/audio_inputs.py
+msgid "🎧 Pre-listen"
+msgstr "🎧 Pré-écoute"
+
+#: machincast/interface/audio_inputs.py
+msgid "⏹ Stop the pre-listen"
+msgstr "⏹ Arrêter la pré-écoute"
+
+#: machincast/interface/audio_inputs.py
+msgid "Listens to the chosen input on the pre-listen output, never on air."
+msgstr ""
+"Écoute l'entrée choisie sur la sortie de pré-écoute, jamais à l'antenne."
+
+#: machincast/interface/audio_inputs.py
+msgid "The pre-listen output is the dummy output: nothing to hear."
+msgstr "La sortie de pré-écoute est la sortie factice : rien à entendre."
+
+#: machincast/interface/audio_inputs.py
 msgid "Audio inputs reserved for the broadcast service."
 msgstr "Entrées audio réservées au service de diffusion."
 
@@ -1872,6 +1893,10 @@ msgid ""
 msgstr ""
 "Entrées audio réservées au service de diffusion ; le WirePlumber de cette "
 "session n'a pas redémarré : {error}"
+
+#: machincast/interface/audio_inputs.py
+msgid "the input has closed."
+msgstr "l'entrée s'est fermée."
 
 #: machincast/interface/audio_inputs.py
 #: machincast/interface/control.py
@@ -1903,6 +1928,11 @@ msgstr "Ajouter cette entrée"
 #: machincast/interface/audio_inputs.py
 msgid "Remove the input"
 msgstr "Retirer l'entrée"
+
+#: machincast/interface/audio_inputs.py
+#, python-brace-format
+msgid "Pre-listen stopped: {problem}"
+msgstr "Pré-écoute arrêtée : {problem}"
 
 #: machincast/interface/background_programming.py
 #: machincast/interface/calendar.py
@@ -5172,6 +5202,10 @@ msgstr ""
 "Indisponible : le PipeWire du service de diffusion ne répond pas ({error}) "
 "; le compte doit être du groupe machincast, dans une session ouverte après "
 "./install.sh --service."
+
+#: machincast/interface/monitor.py
+msgid "Not found: this computer does not see this audio input."
+msgstr "Introuvable : le poste ne voit pas cette entrée audio."
 
 #: machincast/interface/monitor.py
 #, python-brace-format

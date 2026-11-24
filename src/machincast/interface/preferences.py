@@ -633,7 +633,9 @@ class PreferencesWindow(QDialog):
 			self._offer_power_save()
 		# Les entrées audio, dans les paramètres du service seulement (https://github.com/dascritch/machincast/issues/622).
 		if kind == SERVICE:
-			self.inputs = AudioInputs(output, all_.inputs, (all_.on_air, all_.preview), ui.page_audio)
+			self.inputs = AudioInputs(
+				output, all_.inputs, (all_.on_air, all_.preview), ui.page_audio, preview=all_.preview
+			)
 			ui.audio_layout.insertWidget(ui.audio_layout.indexOf(ui.device_group) + 1, self.inputs)
 			self.inputs.changed.connect(self._exclude)
 		self._keep_only(kind)
