@@ -43,5 +43,5 @@ def _follow(connection: Connection, audio_input: AudioInput, feed: tuple[int, st
 	if identifier is None:
 		queries.insert_input(connection, audio_input.name, audio_input.device)
 		return None
-	queries.rename(connection, identifier, audio_input.name)
+	queries.give_name(connection, identifier, audio_input.name)
 	return None

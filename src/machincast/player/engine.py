@@ -358,6 +358,8 @@ class Track:
 		return max(timedelta(0), timedelta(microseconds=nanoseconds / 1000) - self.offset)
 
 	def start(self) -> None:
+		"""Lance la voie : une entrée audio introuvable la met en erreur aussitôt ; un fichier rogné est d'abord borné ;
+		le stream d'un feed attend sa mémoire tampon, en pause."""
 		self.state = "playing"
 		self._started_to = self._clock()
 		self._advance_at = self._started_to

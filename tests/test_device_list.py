@@ -44,7 +44,8 @@ class FakeMonitor:
 		self.appliances = [object(), object()]
 
 	def add_filter(self, classes: str, caps: object) -> None:
-		assert classes == audio.OUTPUT_CLASS
+		# Les sorties, et les entrées (https://github.com/dascritch/machincast/issues/622).
+		assert classes in (audio.OUTPUT_CLASS, audio.INPUT_CLASS)
 
 	def start(self) -> bool:
 		self.calls.append("start")
