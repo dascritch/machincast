@@ -119,6 +119,8 @@ class AlternationSection(CardSection):
 		self.candidates.itemChanged.connect(self._candidates_changed)
 		self.creation.clicked.connect(self._create)
 		self.content.setVisible(False)
+		# Sans alternance, la section ne montre rien à côté de la liste de lecture : cachée, elle ne la décale pas.
+		self.setVisible(False)
 		self.shared_box = QGroupBox(t("Shared slot"))
 		self.shared_box.setObjectName("shared_slot")
 		self.shared_text = QLabel(self.shared_box)
@@ -384,6 +386,7 @@ class AlternationSection(CardSection):
 		self._allow()
 		on = self.enabled.isChecked()
 		self.content.setVisible(on)
+		self.setVisible(on)
 		self.replaces_items.emit(on)
 		self._changed()
 

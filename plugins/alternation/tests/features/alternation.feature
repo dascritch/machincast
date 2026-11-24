@@ -294,6 +294,17 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Quand je coche le jour « mercredi » de la récurrence de la fiche
 		Alors la case « Émissions en alternance » de la fiche se coche
 
+	Scénario: Sans alternance, la section est cachée et ne décale pas la liste de lecture de la fiche
+		Étant donné le poste à l'heure de Paris
+		Et l'horloge de l'interface au « 2026-11-23 10:00:00 »
+		Et la section des émissions en alternance, dans la fiche d'un événement
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche de l'événement « Matinale »
+		Alors la section des émissions en alternance est cachée, et la liste de lecture alignée sur le formulaire
+		Quand je coche le jour « mercredi » de la récurrence de la fiche
+		Et je coche « Émissions en alternance » dans la fiche
+		Alors la section des émissions en alternance remplace la liste de lecture
+
 	# ─── La fiche d'une émission de l'alternance ───────────
 
 	Scénario: La fiche d'une émission de l'alternance montre, à la place de l'encadré de sa grille, le créneau qu'elle partage, et ses émissions en tableau
