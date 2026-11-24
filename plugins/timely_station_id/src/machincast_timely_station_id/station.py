@@ -2,7 +2,7 @@
 (https://github.com/dascritch/machincast/issues/460, https://github.com/dascritch/machincast/issues/640).
 
 Dans un événement coché, avant chaque sonore choisi dans sa liste : si la règle (machincast_timely_station_id.rule)
-le demande, d'après le dernier passage de la banque des station ID ou d'une banque surveillée, prévus compris, la
+le demande, d'après le dernier passage de la banque des station ID ou d'une banque qui annonce aussi la station, prévus compris, la
 banque des station ID ; sinon rien. Un candidat fourni par l'une de ces banques passe tel quel : il est lui-même un
 station ID. Une banque introuvable est consignée une fois.
 """

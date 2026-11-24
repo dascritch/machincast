@@ -5,8 +5,8 @@ les événements choisis (https://github.com/dascritch/machincast/issues/460).
   (machincast_timely_station_id.station, https://github.com/dascritch/machincast/issues/640) : le station ID passe
   avant un sonore choisi, à l'antenne comme dans les sonores à venir.
 - Dans Machin interface, la case « Station ID régulier » de la fiche d'un événement
-  (machincast_timely_station_id.section), et la fenêtre du plugin, menu « Plugins », qui règle la banque, les banques
-  surveillées, l'écart et le placement (machincast_timely_station_id.settings).
+  (machincast_timely_station_id.section), et la fenêtre du plugin, menu « Plugins », qui règle la banque, les banques qui
+  annoncent aussi la station, l'écart et le placement (machincast_timely_station_id.settings).
 
 Ses réglages sont dans la section [plugins.timely_station_id] de machincast.toml (machincast_timely_station_id.rule) ;
 refusés, ils sont consignés, et aucun station ID n'est inséré.

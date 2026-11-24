@@ -28,7 +28,7 @@ from machincast_timely_station_id.rule import Settings, due, read_settings
 from machincast_timely_station_id.section import RegularSection, field_row
 from machincast_timely_station_id.settings import StationSettings
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QFormLayout, QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 from tests.database_fixtures import configuration_test, sample_database_parameters
@@ -168,7 +168,7 @@ def songs(empty_database: Connection, songs: str) -> None:
 @given(
 	parsers.re(
 		r"les réglages : minimum (?P<minimum>\d+), maximum (?P<maximum>\d+), placement « (?P<placement>[^»]+) »"
-		r"(?:, banques surveillées « (?P<watched>[^»]+) »)?(?:, banque « (?P<bank>[^»]+) »)?$"
+		r"(?:, banques qui annoncent aussi la station « (?P<watched>[^»]+) »)?(?:, banque « (?P<bank>[^»]+) »)?$"
 	)
 )
 def settings(
@@ -282,7 +282,7 @@ def open_window(context: Context, qtbot: QtBot) -> None:
 
 @when(
 	parsers.re(
-		r"je choisis la banque « (?P<bank>[^»]+) », surveille « (?P<watched>[^»]+) », de (?P<minimum>\d+) à"
+		r"je choisis la banque « (?P<bank>[^»]+) », coche « (?P<watched>[^»]+) » parmi celles qui annoncent aussi la station, de (?P<minimum>\d+) à"
 		r" (?P<maximum>\d+) minutes, placement « (?P<placement>[^»]+) »$"
 	)
 )
@@ -383,7 +383,17 @@ def bank_shown(context: Context, bank: str, banks: str) -> None:
 	assert (window.bank.currentText(), found) == (bank, NAME.findall(banks))
 
 
-@then(parsers.parse("les banques surveillées cochées sont {banks}"))
+@then(parsers.parse("elles s'intitulent « {caption} »"))
+def watched_caption(context: Context, caption: str) -> None:
+	window = _window(context)
+	form = window.findChild(QFormLayout)
+	assert isinstance(form, QFormLayout)
+	label = form.labelForField(window.watched)
+	assert isinstance(label, QLabel)
+	assert label.text() == caption
+
+
+@then(parsers.parse("les banques qui annoncent aussi la station cochées sont {banks}"))
 def watched_shown(context: Context, banks: str) -> None:
 	window = _window(context)
 	found = []

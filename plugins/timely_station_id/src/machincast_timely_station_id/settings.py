@@ -2,7 +2,7 @@
 (https://github.com/dascritch/machincast/issues/460, point « interface.plugin_window »,
 https://github.com/dascritch/machincast/issues/587).
 
-La banque des station ID, choisie parmi les banques non supprimées ; les banques surveillées, cochées ; l'écart minimal
+La banque des station ID, choisie parmi les banques non supprimées ; les banques qui annoncent aussi la station, cochées ; l'écart minimal
 et maximal entre deux station ID, en minutes ; le placement. « Enregistrer » vérifie les réglages, puis les écrit dans
 la section [plugins.timely_station_id] du fichier de configuration, qui garde ses commentaires et ses autres sections :
 la simulation et la fiche d'un événement les prennent aussitôt, Machin player à son prochain démarrage.
@@ -101,7 +101,10 @@ class StationSettings(QWidget):
 		self.watched = QListWidget(self)
 		self.watched.setObjectName("watched")
 		self.watched.setToolTip(
-			t("A play of one of these banks counts as a station ID, for instance a seasonal jingle")
+			t(
+				"These banks also say the name of the radio, for instance a seasonal jingle: a play of one of them counts"
+				" as a station ID"
+			)
 		)
 		self.minimum = self._spin("minimum")
 		self.maximum = self._spin("maximum")
@@ -127,7 +130,7 @@ class StationSettings(QWidget):
 		layout.addWidget(self.message)
 		form = QFormLayout()
 		form.addRow(t("Bank of the station IDs"), self.bank)
-		form.addRow(t("Watched banks"), self.watched)
+		form.addRow(t("Banks that also announce the station"), self.watched)
 		form.addRow(t("Minimum between two station IDs"), self.minimum)
 		form.addRow(t("Maximum between two station IDs"), self.maximum)
 		form.addRow(t("Placement"), self.placement)
