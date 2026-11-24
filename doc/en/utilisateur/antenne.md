@@ -130,6 +130,7 @@ A **stream** relays an audio feed over the Internet, an outside broadcast for in
 - **Reconnection**: as long as its event is on air, the broadcast tries the connection again every 5 seconds, without anything heard. As soon as the stream comes back, it takes back the air, and the `stream resumption` incident gives the duration of the failure.
 - **End of the event during the failure**: the reconnection is abandoned, and the broadcast goes on normally.
 - **Metadata**: the history notes the artist and the title of the stream in the database, never those the stream announces.
+- **Audio input** ([#623](https://github.com/dascritch/machincast/issues/623), [#625](https://github.com/dascritch/machincast/issues/625)): the stream of an audio input plays what arrives on the input, a studio for instance, until the end of its event; an unplugged input is a dropped stream. The On air tab shows its VU meter, on air or next.
 
 A **fallback event** is an event of `fallback` priority: it has no start, no end and no days, and only goes on air instead of a dropped stream, or at the end of the list of a show that switches to it ([Card of an event](grille.md#card-of-an-event), [#350](https://github.com/dascritch/machincast/issues/350)). Each stream designates its own in [its card](sonores.md#card-of-a-sound); the event that plays the stream can choose another, **Fallback of a dropped stream**, which prevails.
 

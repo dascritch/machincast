@@ -1913,6 +1913,7 @@ msgid "Name"
 msgstr "Nom"
 
 #: machincast/interface/audio_inputs.py
+#: machincast/interface/default_screen.py
 msgid "Input"
 msgstr "Entrée"
 
@@ -2869,6 +2870,11 @@ msgstr "Diffusion d'essai non arrêtée : {strerror}"
 #: machincast/interface/sound_card.py
 msgid "Stream test running…"
 msgstr "Test du flux en cours…"
+
+#: machincast/interface/default_screen.py
+#, python-brace-format
+msgid "Modulation of the audio input {device}"
+msgstr "Modulation de l'entrée audio {device}"
 
 #: machincast/interface/default_screen.py
 msgid "not healthy"

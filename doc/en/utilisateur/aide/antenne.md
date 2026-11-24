@@ -17,4 +17,6 @@ The numbers refer to the picture; **Help → Contextual help**, or <kbd>F1</kbd>
 10. **Pre-listen of the next sound** (`preview_next`) : listening on headphones, without touching the air.
 11. **Sounds** (`sounds_frame`) : a single table, in the order of time, the oldest at the bottom: the next 5 sounds, the furthest at the top, those on air, outlined in red, then the last 10 played; double-click towards the cards, right-click for the pre-listen and the location; a click on the title folds the box.
 
+For the stream of an audio input, on air or next, **Input** shows the VU meter of the input, instead of the buffer; an input not found says so ([#625](https://github.com/dascritch/machincast/issues/625)).
+
 To go further: [On air](../prise-en-main.md#on-air), [Controlling the broadcast](../antenne.md#controlling-the-broadcast) and [Interrupting the air](../antenne.md#interrupting-the-air).

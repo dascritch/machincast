@@ -17,12 +17,14 @@ import math
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QRect, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QColor, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
+	QFormLayout,
 	QLabel,
 	QLineEdit,
 	QMenu,
@@ -35,11 +37,13 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast.audio import input_device
 from machincast.clock import Clock
 from machincast.configuration import Audio
 from machincast.i18n import _, decimal, pgettext
 from machincast.interface import dialogs, display, expandable, icons, interruption, preferences
 from machincast.interface.airplay import LAST_LIST, DisplayedPlay, read_airplay
+from machincast.interface.audio_inputs import InputLevel
 from machincast.interface.calendar import long_date
 from machincast.interface.columns import Columns
 from machincast.interface.monitor import Monitor, port_name
@@ -73,6 +77,8 @@ COLLAPSED_PANELS = "accueil/encarts-replies"
 UPCOMING_LINES_AT_LEAST = 2
 """Lignes du tableau des sonores, au moins, sur un écran trop petit."""
 ONGOING_TRIAL = _("Stream test running…")
+INPUT_HEADING = _("Input")
+INPUT_TOOLTIP = _("Modulation of the audio input {device}")
 NOT_HEALTHY = _("not healthy")
 INCIDENT = _("yes")
 """La colonne Incident d'un passage qui en a eu un."""
@@ -205,6 +211,25 @@ class DefaultScreen(QWidget):
 		# déplacer de lecture.
 		self.ongoing_timeline = _set_timeline(ui.ongoing_timeline_place)
 		self.next_timeline = _set_timeline(ui.next_timeline_place)
+		# Le VU-mètre de l'entrée audio du sonore en cours, à la place de la mémoire tampon d'un stream, et du prochain
+		# sonore (https://github.com/dascritch/machincast/issues/625).
+		self.input_levels: dict[str, InputLevel] = {}
+		self._input_headings: dict[str, QLabel] = {}
+		for which, form, anchor in (
+			("ongoing", ui.ongoing_form, ui.ongoing_buffer),
+			("next", ui.next_form, ui.next_location),
+		):
+			heading = QLabel(INPUT_HEADING, self)
+			heading.setObjectName(f"{which}_input_heading")
+			level = InputLevel(audio, "", self)
+			level.setObjectName(f"{which}_input_level")
+			# PySide6 type getWidgetPosition comme un objet : un couple (ligne, rôle).
+			position = cast(tuple[int, QFormLayout.ItemRole], form.getWidgetPosition(anchor))
+			form.insertRow(position[0] + 1, heading, level)
+			heading.hide()
+			level.hide()
+			self.input_levels[which] = level
+			self._input_headings[which] = heading
 		# Écouter le prochain sonore, et tester le flux d'un stream (https://github.com/dascritch/machincast/issues/223).
 		ui.preview_next.setIcon(icons.icon("preview"))
 		ui.preview_next.clicked.connect(self._preview_next)
@@ -258,6 +283,8 @@ class DefaultScreen(QWidget):
 	def change_on_air(self, audio: Audio | None) -> None:
 		"""Le VU-mètre lit le port de monitoring de cette antenne, par exemple après les préférences."""
 		self.monitor.audio = audio
+		for level in self.input_levels.values():
+			level.monitor.audio = audio
 		tooltip = _("Unknown monitoring port.")
 		if audio is not None:
 			tooltip = _("Monitoring port: {port_name}. Click: listen to the on-air output on the pre-listen.").format(
@@ -311,6 +338,28 @@ class DefaultScreen(QWidget):
 		if action:
 			self._announced = unavailable
 
+	def _show_input(self, which: str, sound: DisplayedSound | None) -> None:
+		"""Pour le stream d'un feed d'entrée audio, le VU-mètre de l'entrée, qui l'écoute comme celui des Paramètres du
+		service ; caché, et sans écoute, pour tout autre sonore (https://github.com/dascritch/machincast/issues/625)."""
+		level = self.input_levels.get(which)
+		if level is None:
+			return
+		device = None
+		if (sound is not None) and (sound.stream):
+			device = input_device(sound.location)
+		level.setVisible(device is not None)
+		self._input_headings[which].setVisible(device is not None)
+		monitor = level.monitor
+		if device is None:
+			if monitor.active() or monitor.planned_retry():
+				monitor.halt()
+			monitor.device = ""
+			return
+		if (monitor.device != device) or ((not monitor.active()) and (not monitor.planned_retry())):
+			monitor.device = device
+			level.setToolTip(INPUT_TOOLTIP.format(device=device))
+			monitor.start()
+
 	def closeEvent(self, event: QCloseEvent) -> None:
 		self._clock.stop()
 		self._shape_reading.stop()
@@ -319,6 +368,8 @@ class DefaultScreen(QWidget):
 		self.stream_trial.halt()
 		self.client.shut_down()
 		self.monitor.halt()
+		for level in self.input_levels.values():
+			level.monitor.halt()
 		super().closeEvent(event)
 
 	def _show_hour(self) -> None:
@@ -369,6 +420,7 @@ class DefaultScreen(QWidget):
 		getattr(ui, f"{which}_location_heading").setVisible(stream)
 		if which == "ongoing":
 			_show_buffer(ui.ongoing_buffer, ui.ongoing_buffer_heading, sound)
+		self._show_input(which, sound)
 		getattr(ui, f"open_{which}_sound").setEnabled(sound is not None)
 		getattr(ui, f"open_{which}_event").setEnabled((sound is not None) and (sound.id_event is not None))
 		getattr(ui, f"open_{which}_sequence").setEnabled((sound is not None) and (sound.sequence_id is not None))
@@ -602,7 +654,9 @@ class DefaultScreen(QWidget):
 		efface le résultat du test précédent."""
 		ui = self.ui
 		display.set_preview(ui.preview_next, active=next_ is not None, tooltip=PREVIEW_NEXT)
-		stream = (next_ is not None) and (next_.stream)
+		# Une entrée audio ne se teste pas comme un flux : son VU-mètre la montre
+		# (https://github.com/dascritch/machincast/issues/625).
+		stream = (next_ is not None) and (next_.stream) and (input_device(next_.location) is None)
 		ui.test_next_stream.setVisible(stream)
 		ui.test_next_stream.setEnabled((stream) and (not self.stream_trial.ongoing()))
 		if next_ is None:

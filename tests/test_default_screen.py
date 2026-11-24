@@ -27,8 +27,10 @@ import machincast.interface.__main__ as module_interface
 import machincast.interface.application as module_application
 import machincast.interface.default_screen as screen_module
 import machincast.interface.error as error_module
+from machincast import audio as audio_module
+from machincast.audio import Device
 from machincast.clock import FixedClock
-from machincast.configuration import PROJECT_DIRECTORY
+from machincast.configuration import PROJECT_DIRECTORY, Audio
 from machincast.database import Role, open_connection
 from machincast.interface import dialogs, expandable
 from machincast.interface.application import translate
@@ -58,6 +60,8 @@ WAITING = 3000
 class Context:
 	directory: Path
 	clock: FixedClock | None = None
+	audio: Audio | None = None
+	"""La sortie que l'onglet Antenne écoute (https://github.com/dascritch/machincast/issues/625) ; aucune par défaut."""
 	socket: StateSocket | None = None
 	ongoing: dict[str, Any] | None = None
 	next_: dict[str, Any] | None = None
@@ -423,7 +427,7 @@ def open_(context: Context, empty_database: Connection, qtbot: QtBot, monkeypatc
 
 	monkeypatch.setattr(screen_module, "read_plan", read_plan_and_count)
 	context.connection = open_connection(*sample_database_parameters(), Role.INTERFACE)
-	context.screen = DefaultScreen(context.connection, context.path, context.clock)
+	context.screen = DefaultScreen(context.connection, context.path, context.clock, audio=context.audio)
 	context.screen.opened.connect(
 		lambda category, number, name: context.cards.append((SCENARIO.get(category, category), number, name))
 	)
@@ -1697,3 +1701,95 @@ def buffer_shown(context: Context, qtbot: QtBot, text: str, percent: int) -> Non
 		assert round(100 * bar.value() / bar.maximum()) == percent
 
 	qtbot.waitUntil(shown, timeout=3000)
+
+
+# ─── L'entrée audio du sonore en cours ou du prochain (https://github.com/dascritch/machincast/issues/625) ───
+
+
+@given(parsers.parse("l'onglet Antenne écoute la sortie « {output} », le poste voyant les entrées « {devices} »"))
+def listened_output(context: Context, monkeypatch: pytest.MonkeyPatch, output: str, devices: str) -> None:
+	context.audio = Audio(output=output, device=None, preview="preecoute-factice")  # type: ignore[arg-type]
+	seen = []
+	for device in re.findall(r"[^ ,]+", devices):
+		seen.append(Device(device, device))
+	monkeypatch.setattr(audio_module, "input_devices", lambda _output: seen)
+
+
+@given(
+	parsers.re(
+		r"le binaire lecture diffuse l'entrée « (?P<title>[^»]+) » sur « (?P<device>[^»]+) » dans « (?P<event>[^»]+) »,"
+		r" commencé à (?P<start>[\d:]+)"
+	)
+)
+def broadcasts_input(context: Context, title: str, device: str, event: str, start: str) -> None:
+	context.ongoing = {
+		"sound_id": 7,
+		"type": "stream",
+		"artist": None,
+		"title": title,
+		"event": event,
+		"start": a(start).isoformat(),
+		"duration": None,
+		"estimated_end": None,
+		"location": f"input:{device}",
+		"position": 30.0,
+		"progress": None,
+	}
+	publish(context)
+
+
+@given(parsers.parse("le prochain sonore est l'entrée « {title} » sur « {device} » dans « {event} »"))
+def next_input(context: Context, title: str, device: str, event: str) -> None:
+	context.next_ = {
+		"sound_id": 8,
+		"type": "stream",
+		"artist": None,
+		"title": title,
+		"event": event,
+		"estimated_start": None,
+		"duration": None,
+		"estimated_end": None,
+		"location": f"input:{device}",
+		"healthy": None,
+	}
+	publish(context)
+
+
+@then(
+	parsers.re(
+		r"le VU-mètre de l'entrée du (?P<which>sonore en cours|prochain sonore) montre bientôt sa modulation"
+		r"(?:, avec l'infobulle « (?P<tip>[^»]+) »)?$"
+	)
+)
+def input_modulation(context: Context, qtbot: QtBot, which: str, tip: str | None) -> None:
+	level = screen(context).input_levels[_which(which)]
+	qtbot.waitUntil(lambda: level.meter.levels != [], timeout=WAITING)
+	assert level.isVisibleTo(screen(context))
+	assert not level.unavailable.isVisibleTo(level)
+	if tip is not None:
+		assert level.toolTip() == tip
+
+
+@then(parsers.re(r"le (?P<which>sonore en cours|prochain sonore) n'a pas de VU-mètre d'entrée"))
+def without_input_level(context: Context, which: str) -> None:
+	level = screen(context).input_levels[_which(which)]
+	assert level.isHidden()
+	assert not level.monitor.active()
+
+
+@then(parsers.parse("à la place du VU-mètre de l'entrée du prochain sonore, l'onglet dit « {text} »"))
+def input_not_found(context: Context, qtbot: QtBot, text: str) -> None:
+	level = screen(context).input_levels["next"]
+	qtbot.waitUntil(lambda: level.unavailable.text() == text, timeout=WAITING)
+	assert not level.meter.isVisibleTo(level)
+
+
+@then("le flux du prochain sonore ne se teste pas")
+def no_stream_trial(context: Context) -> None:
+	assert screen(context).ui.test_next_stream.isHidden()
+
+
+def _which(text: str) -> str:
+	if text == "sonore en cours":
+		return "ongoing"
+	return "next"
