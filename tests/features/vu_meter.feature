@@ -206,6 +206,18 @@ Fonctionnalité: VU-mètre et bargraph de la sortie d'antenne
 		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
 		Et le VU-mètre de l'antenne est disponible
 
+	Scénario: Un port de monitoring ralenti est rouvert, sans être dit indisponible
+		https://github.com/dascritch/machincast/issues/627 : sous PipeWire, l'écoute de l'antenne qui s'ouvre et se ferme
+		sur sa carte fait des décrochages sur le port du moniteur, qui ne donne plus qu'une part du son. Moins de la
+		moitié des relevés attendus en 2 secondes : le port est rouvert, sans que le VU-mètre se dise indisponible.
+
+		Étant donné le signal de test « coupable » sur l'antenne factice
+		Quand la fenêtre de l'interface s'ouvre
+		Alors le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+		Quand le port de monitoring de l'antenne ne donne plus qu'un quart du son
+		Alors le port de monitoring de l'antenne est bientôt rouvert, sans être dit indisponible
+		Et le VU-mètre de l'antenne montre bientôt 2 canaux, entre -15 et -5 dB
+
 	Plan du scénario: Le port de monitoring de PipeWire et de PulseAudio est celui du périphérique de l'antenne, capté en stéréo
 		Quand je construis le port de monitoring de la sortie « <sortie> », périphérique « <peripherique> »
 		Alors c'est l'élément « <element> », avec <proprietes>

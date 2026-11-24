@@ -35,6 +35,7 @@ processus. Pendant la veille de la session (machincast.interface.screen_saver), 
 fermé, sans nouvel essai.
 """
 
+import logging
 import socket
 import time
 from collections.abc import Callable
@@ -50,6 +51,8 @@ from machincast import service  # noqa: E402
 from machincast.configuration import VIRTUAL_CARD, VIRTUAL_CARD_DESCRIPTION, Audio  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.interface import states  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 DUMMY_SIGNAL = "audiotestsrc is-live=true wave=sine volume=0.1"
 """Le port de monitoring de la sortie factice : un signal de test, que les scénarios choisissent."""
@@ -71,6 +74,18 @@ FREEZE_DELAY = 3.0
 FROZEN = _("Unavailable: the monitoring port has given nothing for {freeze_delay:g} seconds.").format(
 	freeze_delay=FREEZE_DELAY
 )
+SLOW_WINDOW = 2.0
+"""Secondes sur lesquelles se compte le rythme des relevés (https://github.com/dascritch/machincast/issues/627)."""
+SLOW_RATIO = 0.5
+"""Part des relevés attendus en deçà de laquelle le port est tenu pour ralenti : sous PipeWire, l'écoute de l'antenne
+qui s'ouvre et se ferme sur sa carte fait des décrochages (colonne ERR de pw-top) sur le port du moniteur, qui ne
+donne plus ensuite qu'une part du son, de moins en moins grande."""
+SLOW_SILENCE = 0.5
+"""Secondes sans relevé au-delà desquelles un port n'est plus ralenti, mais en train de se figer."""
+REOPENING = 600
+"""Millisecondes avant de rouvrir un port ralenti : le temps que le précédent libère la carte (RELEASE)."""
+SLOW_REOPENINGS = 3
+"""Réouvertures d'affilée d'un port ralenti, sans rythme retrouvé, au-delà desquelles il est laissé tel quel."""
 NOT_RELEASED = _("Unavailable: the previous monitoring port has not closed yet.")
 PAUSED = _("Paused: session locked or screen saver active.")
 CHANNELS = "audio/x-raw,channels=2"
@@ -254,6 +269,11 @@ class Monitor(QObject):
 		"""Dernier instant où un canal dépassait le seuil du blanc."""
 		self._clipping_since: float | None = None
 		self._read_off_levels: float | None = None
+		self._window_start: float | None = None
+		"""Le début de la fenêtre où se comptent les relevés, au premier relevé du port ouvert."""
+		self._window_readings = 0
+		self._reopenings = 0
+		"""Réouvertures d'affilée d'un port ralenti."""
 		"""Instant de l'ouverture du port, puis de son dernier relevé : pour constater un port gelé."""
 		self._reading = QTimer(self)
 		self._reading.setInterval(READING)
@@ -307,6 +327,7 @@ class Monitor(QObject):
 		self._piloted = states.Pilot(pipeline)
 		self.unavailable, self.action = None, False
 		self._sound_since = self._read_off_levels = self.clock()
+		self._window_start, self._window_readings = None, 0
 		# Ouvrir le port peut attendre le serveur audio : son pilote l'ouvre, et la relève dit s'il ne s'ouvre pas.
 		self._piloted.to(Gst.State.PLAYING)
 		self._reading.start()
@@ -372,10 +393,45 @@ class Monitor(QObject):
 			structure = message.get_structure()
 			if (message.src == self._level) and (structure is not None) and (structure.get_name() == "level"):
 				self._read_off_levels = self.clock()
+				self._count_reading()
 				self.note(list((structure.get_value("rms")) or ([])), list((structure.get_value("peak")) or ([])))
 		if (self._read_off_levels is not None) and (self.clock() - self._read_off_levels >= FREEZE_DELAY):
 			self._unavailable(FROZEN)
 			return
+		if self._slowed():
+			self._reopen()
+			return
+		self.changed.emit()
+
+	def _count_reading(self) -> None:
+		if self._window_start is None:
+			self._window_start = self.clock()
+		self._window_readings += 1
+
+	def _slowed(self) -> bool:
+		"""Une fenêtre de SLOW_WINDOW secondes vient de finir, avec moins de SLOW_RATIO des relevés attendus, le dernier
+		il y a moins de SLOW_SILENCE secondes ; une fenêtre au bon rythme remet à zéro les réouvertures d'affilée."""
+		if (self._window_start is None) or (self.clock() - self._window_start < SLOW_WINDOW):
+			return False
+		expected = SLOW_WINDOW / (LEVEL_INTERVAL / Gst.SECOND)
+		# Un port qui ne donne plus rien depuis un moment se fige : le gel le dit (FREEZE_DELAY), pas la lenteur.
+		still_giving = (self._read_off_levels is not None) and (self.clock() - self._read_off_levels < SLOW_SILENCE)
+		slowed = (still_giving) and (self._window_readings < SLOW_RATIO * expected)
+		self._window_start, self._window_readings = self.clock(), 0
+		if not slowed:
+			self._reopenings = 0
+		return slowed
+
+	def _reopen(self) -> None:
+		"""Un port ralenti se rouvre, sans être dit indisponible, au plus SLOW_REOPENINGS fois d'affilée
+		(https://github.com/dascritch/machincast/issues/627)."""
+		if self._reopenings >= SLOW_REOPENINGS:
+			self.changed.emit()
+			return
+		self._reopenings += 1
+		log.warning(_("monitoring port slowed down, reopened"))
+		self.halt()
+		self._retry.start(REOPENING)
 		self.changed.emit()
 
 	def note(self, levels: list[float], peaks: list[float]) -> None:
