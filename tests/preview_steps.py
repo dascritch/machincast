@@ -233,3 +233,9 @@ def without_button(interface: Context) -> None:
 		if "Pré-écoute" in button.text():
 			button_list.append(button.text())
 	assert button_list == []
+
+
+@then(parsers.re(r"la pré-écoute (?P<state>ne relève plus rien|relève son lecteur)"))
+def reading(interface: Context, state: str) -> None:
+	"""https://github.com/dascritch/machincast/issues/627 : la fenêtre fermée arrête son minuteur."""
+	assert preview_window(interface)._reading.isActive() == (state == "relève son lecteur")

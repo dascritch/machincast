@@ -177,6 +177,16 @@ Fonctionnalité: Pré-écoute d'un sonore
 		Et je ferme la fenêtre de pré-écoute
 		Alors la pré-écoute ne joue plus rien
 		Et la pré-écoute ne calcule plus de forme d'onde
+		Et la pré-écoute ne relève plus rien
+
+	Scénario: Rouverte, la fenêtre de pré-écoute relève de nouveau son lecteur
+		https://github.com/dascritch/machincast/issues/627 : fermée, elle n'occupe plus l'interface toutes les 50 ms.
+		Quand la fenêtre de l'interface s'ouvre
+		Et j'ouvre la fiche du sonore « Café à minuit »
+		Et je clique sur « Pré-écoute… »
+		Et je ferme la fenêtre de pré-écoute
+		Et je clique sur « Pré-écoute… »
+		Alors la pré-écoute relève son lecteur
 
 	Scénario: Un fichier introuvable est signalé
 		Étant donné le fichier du sonore « Jingle » supprimé
