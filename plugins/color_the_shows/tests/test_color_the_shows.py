@@ -20,7 +20,7 @@ from machincast_color_the_shows import queries, settings
 from machincast_color_the_shows.palette import LIFETIME, Palette
 from machincast_color_the_shows.section import SWATCH, GenreSection
 from machincast_color_the_shows.settings import COLOUR_COLUMN, NAME_COLUMN, ColoursSettings
-from PySide6.QtWidgets import QTableWidgetItem
+from PySide6.QtCore import Qt
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 from tests.database_fixtures import configuration_test, sample_database_parameters
@@ -268,12 +268,35 @@ def open_settings(base: Connection, context: Context, qtbot: QtBot, how: str | N
 
 
 @when(parsers.re(r"j'ajoute le genre « ?(?P<name>[^»]*?) ?», « (?P<colour>[^»]*) »"))
-def add_genre(context: Context, name: str, colour: str) -> None:
+def add_genre(context: Context, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, name: str, colour: str) -> None:
+	"""Le genre ajouté, son nom écrit, sa couleur choisie dans le sélecteur."""
 	window = _window(context)
 	window.commands["add"].click()
 	row = window.table.currentRow()
-	window.table.setItem(row, NAME_COLUMN, QTableWidgetItem(name))
-	window.table.setItem(row, COLOUR_COLUMN, QTableWidgetItem(colour))
+	named = window.table.item(row, NAME_COLUMN)
+	assert named is not None
+	named.setText(name)
+	_click_colour(qtbot, monkeypatch, window, row, colour)
+
+
+def _click_colour(
+	qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, window: ColoursSettings, row: int, colour: str | None
+) -> None:
+	"""Un clic sur la cellule de la couleur, et ce que le sélecteur rend : None s'il est abandonné."""
+	asked: list[str] = []
+
+	def chosen(_parent: object, current: str) -> str | None:
+		asked.append(current)
+		return colour
+
+	monkeypatch.setattr(settings, "choose_colour", chosen)
+	window.show()
+	qtbot.waitExposed(window)
+	item = window.table.item(row, COLOUR_COLUMN)
+	assert item is not None
+	place = window.table.visualItemRect(item).center()
+	qtbot.mouseClick(window.table.viewport(), Qt.MouseButton.LeftButton, pos=place)
+	assert len(asked) == 1, asked
 
 
 @when(parsers.parse("j'écris « {colour} » pour « {label} »"))
@@ -300,10 +323,24 @@ def choose_row(context: Context, name: str) -> None:
 	window.table.setCurrentCell(_row(window, name), NAME_COLUMN)
 
 
-@when(parsers.parse("je choisis « {colour} » dans le sélecteur de couleur"))
-def choose_colour(context: Context, monkeypatch: pytest.MonkeyPatch, colour: str) -> None:
+@when(
+	parsers.re(
+		r"je clique sur la couleur de « (?P<name>[^»]+) », et (?:choisis « (?P<colour>[^»]+) » dans le|abandonne le) sélecteur$"
+	)
+)
+def click_colour(
+	context: Context, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, name: str, colour: str | None
+) -> None:
+	window = _window(context)
+	_click_colour(qtbot, monkeypatch, window, _row(window, name), colour)
+
+
+@when(parsers.parse("j'appuie sur Entrée sur la couleur de « {name} », et choisis « {colour} » dans le sélecteur"))
+def enter_colour(context: Context, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, name: str, colour: str) -> None:
+	window = _window(context)
 	monkeypatch.setattr(settings, "choose_colour", lambda _parent, _current: colour)
-	_window(context).commands["choose"].click()
+	window.table.setCurrentCell(_row(window, name), COLOUR_COLUMN)
+	qtbot.keyClick(window.table, Qt.Key.Key_Return)
 
 
 @when(parsers.parse("je renomme « {first} » en « {second} », et « {other} » en « {last} »"))
@@ -473,6 +510,17 @@ def cell(context: Context, name: str, colour: str) -> None:
 	assert item is not None
 	assert item.background().color().name() == colour
 	assert item.foreground().color().name() == "#ffffff"
+
+
+@then(parsers.parse("seule la cellule du nom de « {name} » s'écrit"))
+def editable(context: Context, name: str) -> None:
+	window = _window(context)
+	row = _row(window, name)
+	named = window.table.item(row, NAME_COLUMN)
+	coloured = window.table.item(row, COLOUR_COLUMN)
+	assert (named is not None) and (coloured is not None)
+	assert named.flags() & Qt.ItemFlag.ItemIsEditable
+	assert not coloured.flags() & Qt.ItemFlag.ItemIsEditable
 
 
 @then(parsers.parse("la couleur « {label} » est « {colour} »"))

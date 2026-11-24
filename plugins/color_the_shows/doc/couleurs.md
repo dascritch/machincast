@@ -16,12 +16,12 @@ Un événement a un genre au plus.
 
 Menu **Plugins**, **Couleurs des émissions** :
 
-- le tableau des **Genres** : chaque nom et sa couleur, au format `#rrggbb`, à écrire dans la cellule, ou à choisir par **Choisir…**, la ligne choisie ;
+- le tableau des **Genres** : chaque nom, à écrire dans sa cellule, et sa couleur, à choisir dans le sélecteur de couleur, qu'ouvre un clic sur sa cellule, ou Entrée ou Espace ;
 - **Ajouter** crée la ligne « nouveau genre », à renommer ; **Retirer** enlève la ligne choisie ;
 - **Couleurs des événements sans genre** : celle du fil antenne, des émissions et des spéciales ;
 - **Enregistrer** écrit le tout.
 
-Un nom vide ou déjà pris, même avec d'autres majuscules, ou une couleur qui n'est pas `#rrggbb` est refusé : le message le dit, et rien n'est écrit.
+Un nom vide ou déjà pris, même avec d'autres majuscules, est refusé : le message le dit, et rien n'est écrit.
 Un genre retiré quitte les événements qui l'avaient : ils reprennent la couleur de leur priorité.
 
 Machin intranet relit les couleurs au plus toutes les 30 secondes.

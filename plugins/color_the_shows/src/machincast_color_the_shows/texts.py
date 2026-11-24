@@ -24,6 +24,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"Add": "Ajouter",
 		"Remove": "Retirer",
 		"Choose…": "Choisir…",
+		"Click to choose the colour": "Cliquer pour choisir la couleur",
 		"Colours of the events without genre": "Couleurs des événements sans genre",
 		"Background programming": "Fil antenne",
 		"Show": "Émission",

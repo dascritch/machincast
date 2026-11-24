@@ -2,7 +2,8 @@
 (https://github.com/dascritch/machincast/issues/628), dans la fenêtre du plugin, menu « Plugins » (point
 « interface.plugin_window », https://github.com/dascritch/machincast/issues/587).
 
-Le tableau des genres, chacun avec son nom et sa couleur « #rrggbb », qui s'écrit ou se choisit ; puis la couleur du
+Le tableau des genres, chacun avec son nom, qui s'écrit, et sa couleur, qui se choisit dans le sélecteur de couleur, d'un
+clic sur sa cellule, ou par Entrée ou Espace (https://github.com/dascritch/machincast/issues/628) ; puis la couleur du
 fil antenne, des émissions et des spéciales sans genre. « Enregistrer » vérifie les noms et les couleurs, puis écrit
 le tout dans une transaction, au rôle machincast_interface : un genre retiré quitte les événements qui l'avaient.
 """
@@ -12,8 +13,8 @@ from collections.abc import Callable
 from typing import Any
 
 import psycopg
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtGui import QColor, QKeyEvent
 from PySide6.QtWidgets import (
 	QAbstractItemView,
 	QColorDialog,
@@ -43,6 +44,8 @@ NAME_COLUMN = 0
 COLOUR_COLUMN = 1
 IDENTIFIER = Qt.ItemDataRole.UserRole
 NEW_COLOUR = "#999999"
+CHOOSING_KEYS = (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space)
+"""Les touches qui ouvrent le sélecteur de couleur, sur la cellule d'une couleur."""
 PRIORITIES = (
 	("background_programming", "Background programming"),
 	("show", "Show"),
@@ -112,6 +115,8 @@ class ColoursSettings(QWidget):
 		self._layout()
 		self.table.itemChanged.connect(self._painted)
 		self.table.itemSelectionChanged.connect(self._enable)
+		self.table.cellClicked.connect(self._clicked)
+		self.table.installEventFilter(self)
 		self._read()
 
 	def _button(self, name: str, text: str, slot: Callable[[], Any]) -> QPushButton:
@@ -130,7 +135,6 @@ class ColoursSettings(QWidget):
 		row = QHBoxLayout()
 		row.addWidget(self._button("add", "Add", self._add))
 		row.addWidget(self._button("remove", "Remove", self._remove))
-		row.addWidget(self._button("choose", "Choose…", self._choose_genre))
 		row.addStretch()
 		inner.addLayout(row)
 		layout.addWidget(genres)
@@ -182,7 +186,11 @@ class ColoursSettings(QWidget):
 		named = QTableWidgetItem(name)
 		named.setData(IDENTIFIER, identifier)
 		self.table.setItem(row, NAME_COLUMN, named)
-		self.table.setItem(row, COLOUR_COLUMN, QTableWidgetItem(colour))
+		coloured = QTableWidgetItem(colour)
+		# La couleur ne s'écrit pas : elle se choisit dans le sélecteur de couleur.
+		coloured.setFlags(coloured.flags() & ~Qt.ItemFlag.ItemIsEditable)
+		coloured.setToolTip(t("Click to choose the colour"))
+		self.table.setItem(row, COLOUR_COLUMN, coloured)
 		return row
 
 	# ─── Couleurs montrées ─────────────────────────────────
@@ -213,7 +221,6 @@ class ColoursSettings(QWidget):
 	def _enable(self) -> None:
 		chosen = self.table.currentRow() >= 0
 		self.commands["remove"].setEnabled(chosen)
-		self.commands["choose"].setEnabled(chosen)
 
 	def _add(self) -> None:
 		row = self._append(None, t("new genre"), NEW_COLOUR)
@@ -228,8 +235,24 @@ class ColoursSettings(QWidget):
 			self.table.removeRow(row)
 		self._enable()
 
-	def _choose_genre(self) -> None:
-		row = self.table.currentRow()
+	def _clicked(self, row: int, column: int) -> None:
+		if column == COLOUR_COLUMN:
+			self._choose_genre(row)
+
+	def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+		"""Entrée ou Espace, sur la cellule d'une couleur du tableau, ouvre le sélecteur de couleur."""
+		if (
+			(watched is self.table)
+			and (isinstance(event, QKeyEvent))
+			and (event.type() == QEvent.Type.KeyPress)
+			and (event.key() in CHOOSING_KEYS)
+			and (self.table.currentColumn() == COLOUR_COLUMN)
+		):
+			self._choose_genre(self.table.currentRow())
+			return True
+		return super().eventFilter(watched, event)
+
+	def _choose_genre(self, row: int) -> None:
 		item = self.table.item(row, COLOUR_COLUMN)
 		if item is None:
 			return

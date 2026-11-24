@@ -120,7 +120,7 @@ Fonctionnalité: Les couleurs des émissions, par genre, dans les calendriers et
 
 	Scénario: Ajouter un genre, changer une couleur de priorité, et enregistrer
 		Quand j'ouvre les réglages des couleurs
-		Et j'ajoute le genre « rock », « #AA0000 »
+		Et j'ajoute le genre « rock », « #aa0000 »
 		Et j'écris « #ffcc00 » pour « Spéciale »
 		Et j'enregistre les couleurs
 		Alors le message dit « Enregistré. »
@@ -133,12 +133,27 @@ Fonctionnalité: Les couleurs des émissions, par genre, dans les calendriers et
 			| talk   | #f2c14e |
 		Et la couleur de la priorité « special » est « #ffcc00 »
 
-	Scénario: Choisir une couleur dans le sélecteur
+	Scénario: Un clic sur la cellule d'une couleur ouvre le sélecteur de couleur
 		Quand j'ouvre les réglages des couleurs
-		Et je choisis la ligne « talk »
-		Et je choisis « #123456 » dans le sélecteur de couleur
-		Et j'enregistre les couleurs
+		Et je clique sur la couleur de « talk », et choisis « #123456 » dans le sélecteur
+		Alors la cellule de « talk » est sur « #123456 », en texte blanc
+		Quand j'enregistre les couleurs
 		Alors le genre « talk » est « #123456 »
+
+	Scénario: Entrée, sur la cellule d'une couleur, ouvre aussi le sélecteur
+		Quand j'ouvre les réglages des couleurs
+		Et j'appuie sur Entrée sur la couleur de « jazz », et choisis « #00aa00 » dans le sélecteur
+		Et j'enregistre les couleurs
+		Alors le genre « jazz » est « #00aa00 »
+
+	Scénario: Abandonner le sélecteur garde la couleur
+		Quand j'ouvre les réglages des couleurs
+		Et je clique sur la couleur de « talk », et abandonne le sélecteur
+		Alors le tableau des genres est « jazz #5b8def », « metal #3d3d3d », « reggae #e07b39 », « talk #f2c14e »
+
+	Scénario: La couleur d'un genre ne s'écrit pas : seul son nom s'écrit
+		Quand j'ouvre les réglages des couleurs
+		Alors seule la cellule du nom de « talk » s'écrit
 
 	Scénario: Deux genres peuvent échanger leurs noms
 		Quand j'ouvre les réglages des couleurs
@@ -158,7 +173,6 @@ Fonctionnalité: Les couleurs des émissions, par genre, dans les calendriers et
 			| réglage                                    | message                                              |
 			| j'ajoute le genre « jazz », « #000000 »    | Deux genres s'appellent « jazz ».                    |
 			| j'ajoute le genre « Jazz », « #000000 »    | Deux genres s'appellent « Jazz ».                    |
-			| j'ajoute le genre « ska », « vert »        | « vert » n'est pas une couleur #rrggbb, pour « ska ». |
 			| j'ajoute le genre « », « #000000 »         | Un genre n'a pas de nom.                             |
 			| j'écris « #abcde » pour « Fil antenne »    | « #abcde » n'est pas une couleur #rrggbb, pour « Fil antenne ». |
 
