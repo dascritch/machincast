@@ -14,6 +14,7 @@ il est borné pour que sa crête mesurée, gain compris, reste sous le plafond. 
 manuel compte ; sans crête mesurée, rien ne le borne.
 """
 
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -111,12 +112,9 @@ def applied(settings: Settings, measured: Measure, adjustment: float) -> float:
 	return round(gain, 1)
 
 
-def tenth_below(value: float) -> float:
-	"""Au dixième, sans dépasser la valeur : un ajustement qui garde la crête sous le plafond."""
-	tenths = int(value * 10)
-	if tenths > value * 10:
-		tenths -= 1
-	return tenths / 10
+def half_below(value: float) -> float:
+	"""Au demi-décibel, le pas du curseur, sans dépasser la valeur : un ajustement qui garde la crête sous le plafond."""
+	return math.floor(value * 2 + 1e-9) / 2
 
 
 def bank_values(properties: dict[str, Any]) -> tuple[float | None, float | None]:

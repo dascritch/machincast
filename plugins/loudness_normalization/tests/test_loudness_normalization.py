@@ -288,11 +288,18 @@ def _section(context: Context) -> LevelSection:
 	return context.section
 
 
-@when(parsers.re(r"je règle l'ajustement manuel à (?P<gain>-?[\d,]+) dB"))
+@when(parsers.re(r"je coche l'ajustement manuel et règle son curseur à (?P<gain>-?[\d,]+) dB"))
 def adjust(context: Context, gain: str) -> None:
 	value = _decibels(gain)
 	assert value is not None
-	_section(context).adjustment.setValue(value)
+	section = _section(context)
+	section.has_adjustment.setChecked(True)
+	section.adjustment.setValue(value)
+
+
+@when("je décoche l'ajustement manuel")
+def no_adjustment(context: Context) -> None:
+	_section(context).has_adjustment.setChecked(False)
 
 
 @when("la section s'enregistre")
@@ -413,10 +420,19 @@ def shows(context: Context, text: str) -> None:
 	assert text in lines, lines
 
 
-@then(parsers.re(r"l'ajustement manuel vaut (?P<value>-?[\d,]+) dB, au plus (?P<highest>-?[\d,]+) dB"))
-def adjustment(context: Context, value: str, highest: str) -> None:
-	spin = _section(context).adjustment
-	assert (spin.value(), spin.maximum()) == (_decibels(value), _decibels(highest))
+@then(
+	parsers.re(
+		r"l'ajustement manuel est (?P<state>coché|décoché), son curseur (?:grisé )?à « (?P<shown>[^»]+) »,"
+		r" au plus (?P<highest>-?[\d,]+) dB"
+	)
+)
+def adjustment(context: Context, state: str, shown: str, highest: str) -> None:
+	section = _section(context)
+	ticked = state == "coché"
+	assert section.has_adjustment.isChecked() == ticked
+	assert section.adjustment.isEnabled() == ticked
+	assert section.adjustment.value_label.text() == shown
+	assert section.adjustment.maximum() == _decibels(highest)
 
 
 @then("la fiche est modifiée")
@@ -489,6 +505,27 @@ def unticked(context: Context, label: str, shown: str) -> None:
 	assert not box.isChecked()
 	assert not slider.isEnabled()
 	assert slider.value_label.text() == shown
+
+
+def _bank_content(context: Context) -> tuple[QGroupBox, QWidget]:
+	group = _bank_section(context).group
+	content = group.findChild(QWidget, expandable.CONTENT)
+	assert content is not None
+	return group, content
+
+
+@then("son encart « Niveau » est déplié, et se replie d'un clic sur son titre")
+def bank_expanded(context: Context, qtbot: QtBot) -> None:
+	group, content = _bank_content(context)
+	assert not content.isHidden()
+	qtbot.mouseClick(group, Qt.MouseButton.LeftButton, pos=QPoint(12, 4))
+	assert content.isHidden()
+
+
+@then("son encart « Niveau » est replié")
+def bank_collapsed(context: Context) -> None:
+	_group, content = _bank_content(context)
+	assert content.isHidden()
 
 
 @then(parsers.parse("les propriétés de la banque sont {expected}"))

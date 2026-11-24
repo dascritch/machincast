@@ -21,11 +21,11 @@ from machincast_loudness_normalization.rule import (
 	Settings,
 	applied,
 	automatic,
+	half_below,
 	manual,
 	measure,
 	overridden,
 	strictest,
-	tenth_below,
 )
 from machincast_loudness_normalization.texts import t
 
@@ -72,7 +72,7 @@ def detailed(current: Current, connect: Callable[[], queries.Connection]) -> Cal
 				if (adjustment == 0) or (bound is None) or (now.peak is None) or (adjustment <= bound[1]):
 					return
 				settings, limit = bound
-				lowered = tenth_below(limit)
+				lowered = half_below(limit)
 				queries.write_manual(connection, sound, lowered)
 				message = t(
 					"“{location}”: its peak of {peak} dBFS would exceed the ceiling of {ceiling} dBFS with a gain of"

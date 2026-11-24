@@ -123,7 +123,7 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 		Et le sonore « a.flac », de propriétés {"loudness": {"integrated": -20.0, "peak": -2.0}, "loudness_normalization": {"gain": 1.5}}
 		Quand la section « Niveau » de ce sonore s'ouvre
 		Alors elle montre « Sonie −20,0 LUFS, crête −2,0 dBFS »
-		Et l'ajustement manuel vaut 1,5 dB, au plus 4,0 dB
+		Et l'ajustement manuel est coché, son curseur à « +1,5 dB », au plus 4,0 dB
 		Et elle montre « Gain appliqué : −1,5 dB (automatique −3,0 dB, cible −23,0 LUFS, plafond −1,0 dBFS) »
 
 	Scénario: Un sonore pas encore mesuré le dit, et son ajustement n'est borné qu'à 20 dB
@@ -131,19 +131,20 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 		Et le sonore « a.flac », de propriétés {}
 		Quand la section « Niveau » de ce sonore s'ouvre
 		Alors elle montre « Pas encore mesuré : l'audit complet de Machin indexer le mesure. »
-		Et l'ajustement manuel vaut 0,0 dB, au plus 20,0 dB
+		Et l'ajustement manuel est décoché, son curseur grisé à « +0,0 dB », au plus 20,0 dB
 
-	Scénario: L'ajustement manuel s'enregistre dans les propriétés du sonore ; à 0, la clé du plugin en part
+	Scénario: L'ajustement manuel s'enregistre dans les propriétés du sonore ; décoché, la clé du plugin en part
 		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
 		Et le sonore « a.flac », de propriétés {"loudness": {"integrated": -20.0, "peak": -10.0}}
 		Quand la section « Niveau » de ce sonore s'ouvre
-		Et je règle l'ajustement manuel à 2,5 dB
+		Et je coche l'ajustement manuel et règle son curseur à 2,5 dB
 		Alors la fiche est modifiée
 		Et elle montre « Gain appliqué : −0,5 dB (automatique −3,0 dB, cible −23,0 LUFS, plafond −1,0 dBFS) »
 		Quand la section s'enregistre
 		Alors ses propriétés sont {"loudness": {"integrated": -20.0, "peak": -10.0}, "loudness_normalization": {"gain": 2.5}}
-		Quand je règle l'ajustement manuel à 0 dB
-		Et la section s'enregistre
+		Quand je décoche l'ajustement manuel
+		Alors elle montre « Gain appliqué : −3,0 dB (automatique −3,0 dB, cible −23,0 LUFS, plafond −1,0 dBFS) »
+		Quand la section s'enregistre
 		Alors ses propriétés sont {"loudness": {"integrated": -20.0, "peak": -10.0}}
 
 	Scénario: Dans la fiche d'un sonore, l'encart « Niveau » est dépliable, sous l'encart « Fichier »
@@ -166,7 +167,7 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 		Et le sonore « a.flac », de propriétés {"loudness": {"integrated": -20.0, "peak": -10.0}}
 		Et la banque « Pubs », de propriétés {"loudness_normalization": {"target": -16.0, "ceiling": -6.0}}, qui contient ce sonore
 		Quand la section « Niveau » de ce sonore s'ouvre
-		Alors l'ajustement manuel vaut 0,0 dB, au plus 0,0 dB
+		Alors l'ajustement manuel est décoché, son curseur grisé à « +0,0 dB », au plus 0,0 dB
 		Et elle montre « Gain appliqué : −3,0 dB (automatique −3,0 dB, cible −23,0 LUFS, plafond −1,0 dBFS) »
 		Et elle montre « Dans la banque « Pubs » : Gain appliqué : +4,0 dB (automatique +4,0 dB, cible −16,0 LUFS, plafond −6,0 dBFS) »
 
@@ -178,6 +179,14 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 		Quand la section « Niveau » de cette banque s'ouvre
 		Alors « Sonie visée propre à la banque » est décochée, son curseur grisé sur « −23,0 LUFS »
 		Et « Plafond de crête propre à la banque » est décochée, son curseur grisé sur « −1,0 dBFS »
+
+	Scénario: Dans la fiche d'une banque, l'encart « Niveau » est repliable, ouvert par défaut, et reste replié
+		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
+		Et la banque « Pubs », de propriétés {}
+		Quand la section « Niveau » de cette banque s'ouvre
+		Alors son encart « Niveau » est déplié, et se replie d'un clic sur son titre
+		Quand la section « Niveau » de cette banque s'ouvre
+		Alors son encart « Niveau » est replié
 
 	Scénario: Cocher et régler une sonie visée propre à la banque l'enregistre dans ses propriétés ; décochée, elle en part
 		Étant donné les réglages : cible -23 LUFS, plafond -1 dBFS
