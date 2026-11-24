@@ -10,25 +10,30 @@ import json
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import machincast_color_the_shows
 import psycopg
 import pytest
 from machincast_color_the_shows import queries, settings
 from machincast_color_the_shows.palette import LIFETIME, Palette
-from machincast_color_the_shows.section import SWATCH, GenreSection
+from machincast_color_the_shows.section import SWATCH, GenreSection, field_row
 from machincast_color_the_shows.settings import COLOUR_COLUMN, NAME_COLUMN, ColoursSettings
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel
 from pytest_bdd import given, parsers, scenarios, then, when
 from pytestqt.qtbot import QtBot
 from tests.database_fixtures import configuration_test, sample_database_parameters
 
 from conftest import PLUGIN, Connection
 from machincast import plugins
+from machincast.clock import FixedClock
 from machincast.database import Role, open_connection
 from machincast.interface import calendar
+from machincast.interface.event_card import EventCard
 from machincast.shared.colours import event_colour
 from machincast.shared.grid import Priority
 
@@ -67,6 +72,7 @@ class Context:
 	connection: Connection | None = None
 	changes: list[None] = field(default_factory=list)
 	window: ColoursSettings | None = None
+	card: EventCard | None = None
 	points: list[str] = field(default_factory=list)
 
 
@@ -76,6 +82,8 @@ def context(qtbot: QtBot) -> Iterator[Context]:
 	yield found
 	if found.window is not None:
 		found.window.close()
+	if found.card is not None:
+		found.card.close()
 	if found.connection is not None:
 		found.connection.close()
 
@@ -233,6 +241,38 @@ def open_section(base: Connection, context: Context, qtbot: QtBot, name: str, lo
 	with context.connection.transaction():
 		context.section.read(identifier)
 	context.section.setProperty("event", identifier)
+
+
+@when(parsers.parse("j'ouvre la fiche de l'événement « {name} »"))
+def open_card(base: Connection, context: Context, qtbot: QtBot, name: str) -> None:
+	context.connection = _connect()
+	clock = FixedClock(datetime(2026, 11, 24, 10, tzinfo=ZoneInfo("Europe/Paris")))
+	context.card = EventCard(context.connection, _event(base, name)[0], clock)
+	qtbot.addWidget(context.card)
+	context.card.load()
+	context.card.show()
+
+
+def _card(context: Context) -> EventCard:
+	assert context.card is not None
+	return context.card
+
+
+def _card_section(context: Context) -> GenreSection:
+	found = _card(context).findChild(GenreSection, "color_the_shows")
+	assert isinstance(found, GenreSection)
+	return found
+
+
+@when(parsers.parse("je choisis le genre « {genre} » dans la fiche"))
+def choose_in_card(context: Context, genre: str) -> None:
+	box = _card_section(context).genre
+	box.setCurrentIndex(box.findText(genre))
+
+
+@when("j'enregistre la fiche de l'événement")
+def save_card(context: Context) -> None:
+	assert _card(context).save()
 
 
 @when(parsers.parse("je choisis le genre « {genre} »"))
@@ -462,6 +502,35 @@ def square(context: Context, genre: str, colour: str) -> None:
 	icon = box.itemIcon(box.findText(genre))
 	picture = icon.pixmap(SWATCH, SWATCH).toImage()
 	assert picture.pixelColor(SWATCH // 2, SWATCH // 2).name() == colour
+
+
+@then(parsers.parse("la ligne sous « {caption} » est « {genre_caption} », qui montre « {genre} »"))
+def row_under(context: Context, caption: str, genre_caption: str, genre: str) -> None:
+	card = _card(context)
+	section = _card_section(context)
+	form = card.ui.form
+	above = form.labelForField(card.ui.stream_fallback)
+	assert isinstance(above, QLabel)
+	assert above.text().replace("&", "") == caption
+	row = field_row(form, card.ui.stream_fallback) + 1
+	assert field_row(form, section.genre) == row
+	assert form.labelForField(section.genre) is section.caption
+	assert section.caption.text().replace("&", "") == genre_caption
+	assert section.genre.currentText() == genre
+	assert section.genre.isVisible()
+
+
+@then("la section du plugin est cachée : la liste de lecture n'est pas décalée")
+def section_hidden(context: Context) -> None:
+	card = _card(context)
+	section = _card_section(context)
+	assert section.isHidden()
+	assert card.ui.lists.indexOf(section) == 0
+
+
+@then("la fiche de l'événement est modifiée")
+def card_modified(context: Context) -> None:
+	assert _card(context).modified
 
 
 @then("la fiche est modifiée")

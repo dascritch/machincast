@@ -7,7 +7,7 @@ Le nom d'un bloc passe du noir au blanc quand sa couleur est sombre, pour rester
 ## Donner un genre à une émission
 
 1. Ouvrir la fiche de l'événement.
-2. Choisir son **Genre**, à côté de la liste de lecture : « aucun genre », ou l'un des genres, chacun avec un carré de sa couleur.
+2. Choisir son **Genre**, sous **Secours d'un stream tombé** : « aucun genre », ou l'un des genres, chacun avec un carré de sa couleur.
 3. Enregistrer : le calendrier prend la couleur aussitôt.
 
 Un événement a un genre au plus.

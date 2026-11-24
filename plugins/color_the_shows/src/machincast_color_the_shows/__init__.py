@@ -35,7 +35,7 @@ def register(plugin: Plugin) -> None:
 		from machincast_color_the_shows import section, settings
 
 		def card_section(data: Any) -> object:
-			return section.GenreSection(data["connection"], data["parent"], palette.forget)
+			return section.GenreSection(data["connection"], data["parent"], palette.forget, data.get("card"))
 
 		def window(data: Any) -> object:
 			return settings.ColoursSettings(configuration, data.get("parent"), saved=palette.forget)
