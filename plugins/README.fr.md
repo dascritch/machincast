@@ -10,4 +10,5 @@ Pour en écrire un : [doc/fr/developpement/plugins.md](../doc/fr/developpement/p
 - [bank_as_an_emoji](bank_as_an_emoji/README.md) : un emoji au début du nom interne d'une banque, choisi dans sa fiche ([#505](https://github.com/dascritch/machincast/issues/505)).
 - [cartwall](cartwall/README.md) : le cartouchier, des boutons tactiles dans Machin intranet qui agissent sur l'antenne ([#512](https://github.com/dascritch/machincast/issues/512)).
 - [color_the_shows](color_the_shows/README.md) : les couleurs des émissions par genre, ou par priorité, dans les calendriers et les tableaux d'airplay ([#628](https://github.com/dascritch/machincast/issues/628)).
+- [loudness_normalization](loudness_normalization/README.md) : la normalisation logicielle du niveau des sonores, EBU R128, sous un plafond de crête ([#43](https://github.com/dascritch/machincast/issues/43)).
 - [timely_station_id](timely_station_id/README.md) : un station ID environ tous les quarts d'heure, quelle que soit la durée des morceaux ([#460](https://github.com/dascritch/machincast/issues/460)).

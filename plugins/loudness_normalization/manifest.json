@@ -1,0 +1,13 @@
+{
+	"name": "loudness_normalization",
+	"version": "0.1.0",
+	"description": "Software normalisation of the loudness of the sounds, towards an EBU R128 target, never beyond a peak ceiling, with a manual adjustment per sound",
+	"machincast": ">=0.9",
+	"binaries": ["Machin_player", "Machin_indexer", "Machin_interface"],
+	"l10n": {
+		"fr": {
+			"name": "Normalisation du niveau",
+			"description": "La normalisation logicielle du niveau des sonores, vers une cible EBU R128, sans jamais dépasser un plafond de crête, avec un ajustement manuel par sonore"
+		}
+	}
+}
