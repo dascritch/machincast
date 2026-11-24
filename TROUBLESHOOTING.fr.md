@@ -100,6 +100,30 @@ Les pannes connues de MachinCast, leurs causes, ce qu'il faut vérifier, et les 
 
 **Scénarios qui le surveillent** : `tests/features/power_save.feature`, dans une racine du système à part, à chaque passage des tests.
 
+## Le VU-mètre de l'antenne ralentit après l'écoute du direct
+
+**Symptôme** : après une écoute de l'antenne sur la pré-écoute, sous PipeWire, le VU-mètre de l'onglet Antenne se rafraîchit moins souvent, de moins en moins à chaque écoute ; le journal note « port de monitoring ralenti, rouvert ».
+
+**Cause** ([#627](https://github.com/dascritch/machincast/issues/627)) : la pré-écoute du direct relie, par `pw-link`, la carte de l'antenne à celle de la pré-écoute. Quand ces deux cartes n'ont pas la même fréquence d'échantillonnage, ou pas la même horloge, PipeWire doit les accorder à chaque lien posé ou défait : le lecteur et le port du moniteur de l'antenne décrochent (colonne **ERR** de `pw-top`), et ce port ne donne plus ensuite qu'une part du son. La diffusion elle-même peut en souffrir.
+
+**Ce que fait MachinCast** : le moniteur compte ses relevés ; un port qui en donne moins de la moitié sur 2 secondes est rouvert, sans griser le VU-mètre, au plus 3 fois d'affilée. Relayer le son par un pipeline, sans lien, évite les décrochages, mais retarde et déforme parfois la pré-écoute : le lien est resté.
+
+**À faire** : mettre **toutes les cartes son du poste à la même fréquence d'échantillonnage**, de préférence 48 000 Hz, celle que PipeWire prend par défaut. Le fragment `/etc/pipewire/pipewire.conf.d/50-frequence.conf` la fixe, pour le PipeWire de la session comme pour celui du service de diffusion :
+
+```
+context.properties = {
+	default.clock.rate          = 48000
+	default.clock.allowed-rates = [ 48000 ]
+}
+```
+
+puis relancer PipeWire : `systemctl --user restart pipewire wireplumber`, et, avec le service, `sudo systemctl restart machincast-pipewire.service machincast-wireplumber.service`, hors antenne. Une carte qui n'accepte pas 48 000 Hz se règle de même à la fréquence qu'elle et les autres partagent.
+
+**À vérifier** :
+
+- `pw-top` : la colonne **RATE** des cartes son, qui mènent le graphe, donne la même fréquence, et la colonne **ERR** ne monte plus à l'ouverture ni à la fermeture de la pré-écoute du direct.
+- La mesure du poste : `.venv/bin/python -m tests.vu_measures` garde 20 relevés par seconde, avant, pendant et après chaque écoute ([poste de développement](doc/fr/developpement/poste.md)).
+
 ## Scénarios à lancer avant une version
 
 Certains scénarios ne tournent ni avec `pytest`, ni avec `bin/Machin dev-test` : ils sont lents, ou ont besoin d'un serveur à part. Ils sont marqués `@release`, et se lancent avant chaque version ([#208](https://github.com/dascritch/machincast/issues/208)), et après toute mise à jour de GStreamer ou de libsoup :
