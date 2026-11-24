@@ -74,5 +74,5 @@ def insert_input(connection: Connection, name: str, device: str) -> int:
 	return feed
 
 
-def rename(connection: Connection, identifier: int, name: str) -> None:
+def give_name(connection: Connection, identifier: int, name: str) -> None:
 	connection.execute("UPDATE feeds SET name = %s WHERE id = %s", (name, identifier))

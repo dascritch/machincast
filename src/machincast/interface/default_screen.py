@@ -351,7 +351,7 @@ class DefaultScreen(QWidget):
 		self._input_headings[which].setVisible(device is not None)
 		monitor = level.monitor
 		if device is None:
-			if monitor.active() or monitor.planned_retry():
+			if (monitor.active()) or (monitor.planned_retry()):
 				monitor.halt()
 			monitor.device = ""
 			return
@@ -762,6 +762,7 @@ class OnAirOutline(QStyledItemDelegate):
 	def paint(
 		self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex
 	) -> None:
+		"""La cellule, puis, pour un sonore à l'antenne, son morceau du liseré rouge."""
 		super().paint(painter, option, index)
 		if index.data(KIND) != ON_AIR:
 			return
