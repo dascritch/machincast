@@ -13,7 +13,7 @@ The numbers refer to the picture; **Help → Contextual help**, or <kbd>F1</kbd>
 6. **Fallback** (`end_fallback`) : the fallback that takes over, when the end of the list switches to a fallback.
 7. **Fallback of a dropped stream** (`stream_fallback`) : the fallback that plays when a stream of the list drops; **The fallback of each stream** keeps that of each stream.
 8. **Start** (`has_start`) : to tick, the moment the event starts; likewise for **End**.
-9. **Days** (`monday`) : the days of the week when the event comes back, from Monday to Sunday. Ticking a day moves the first occurrence forward to that day, unless it is already on it ([#606](https://github.com/dascritch/machincast/issues/606)).
+9. **Days** (`monday`) : the days of the week when the event comes back, from Monday to Sunday. Ticking a day sets the first occurrence on the first ticked day of its week, if not past yet, otherwise on the next one ([#606](https://github.com/dascritch/machincast/issues/606)).
 10. **Elements** (`items`) : the sounds, banks, sequences and feeds played, in order; drag and drop, cut, copy and paste reorder them.
 11. **➕ Add sounds…** (`add_sounds`) : adds sounds; the buttons next to it add banks, sequences and feeds.
 12. **➖ Remove the element** (`remove_item`) : removes the chosen elements.
