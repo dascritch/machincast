@@ -41,7 +41,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"Save": "Enregistrer",
 		" min": " min",
 		"Bank of the station IDs": "Banque des station ID",
-		"Banks that also announce the station": "Banques qui annoncent aussi la station",
+		"Other identifiers of the station": "Autres identifiants de la station",
 		"Minimum between two station IDs": "Minimum entre deux station ID",
 		"Maximum between two station IDs": "Maximum entre deux station ID",
 		"Placement": "Placement",
