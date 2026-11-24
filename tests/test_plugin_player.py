@@ -33,6 +33,8 @@ POINTS.remove("player.before_choice")
 # « player.sound_gain » est demandé avant chaque fichier joué (tests/features/sound_gain.feature,
 # https://github.com/dascritch/machincast/issues/643).
 POINTS.remove("player.sound_gain")
+# « player.sound_effects » aussi (tests/features/sound_effects.feature, https://github.com/dascritch/machincast/issues/644).
+POINTS.remove("player.sound_effects")
 
 
 @pytest.fixture

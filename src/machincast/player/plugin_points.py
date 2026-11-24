@@ -18,6 +18,10 @@ identifiants en entiers.
 SOUND_GAIN est demandé, lui (https://github.com/dascritch/machincast/issues/643) : avant de jouer un fichier, la
 diffusion demande aux plugins son gain, en dB (sound_gain) ; sans plugin, ou sans réponse, il joue tel quel. Un gain
 est borné à MAXIMUM_GAIN, ce que l'élément volume de GStreamer permet.
+
+SOUND_EFFECTS aussi (https://github.com/dascritch/machincast/issues/644) : avant de jouer un sonore, fichier ou stream,
+la diffusion demande aux plugins ses effets, une description d'éléments GStreamer (sound_effects), par exemple un
+compresseur LV2 ; celles de plusieurs plugins s'enchaînent, dans leur ordre de chargement.
 """
 
 import math
@@ -43,6 +47,7 @@ SEQUENCE_STOP = "player.sequence_stop"
 SOUND_START = "player.sound_start"
 SOUND_STOP = "player.sound_stop"
 SOUND_GAIN = "player.sound_gain"
+SOUND_EFFECTS = "player.sound_effects"
 MAXIMUM_GAIN = 20.0
 """Le plus grand gain, en dB : un volume de 10, le maximum de l'élément volume de GStreamer."""
 
@@ -147,25 +152,47 @@ def stopped_sound(
 	}
 
 
-def sound_gain(connection: Connection, points: Points | None, choice: Choice) -> float:
-	"""Le gain du fichier choisi, en dB, que répond le premier plugin abonné à SOUND_GAIN ; 0 sans réponse. Le plugin
-	reçoit la connexion de la diffusion, le sonore, sa banque, son événement et ses properties, la mesure de son niveau
-	comprise (https://github.com/dascritch/machincast/issues/642)."""
-	if (points is None) or (points.subscribers(SOUND_GAIN) == []):
-		return 0.0
+def _sound_data(connection: Connection, choice: Choice) -> dict[str, Any]:
+	"""Ce que les points SOUND_GAIN et SOUND_EFFECTS donnent du sonore : la connexion, le sonore, sa banque, son
+	événement et ses properties."""
 	with connection.transaction():
 		line = queries.sound_properties(connection, choice.sound)
 	properties: dict[str, Any] = {}
 	if (line is not None) and (isinstance(line[0], dict)):
 		properties = line[0]
-	data = {
+	return {
 		"connection": connection,
 		"sound": choice.sound,
 		"bank": choice.bank,
 		"event": choice.occurrence.event.id,
 		"properties": properties,
 	}
-	for _plugin, answer in points.collect(SOUND_GAIN, data):
+
+
+def sound_gain(connection: Connection, points: Points | None, choice: Choice) -> float:
+	"""Le gain du fichier choisi, en dB, que répond le premier plugin abonné à SOUND_GAIN ; 0 sans réponse. Le plugin
+	reçoit la connexion de la diffusion, le sonore, sa banque, son événement et ses properties, la mesure de son niveau
+	comprise (https://github.com/dascritch/machincast/issues/642)."""
+	if (points is None) or (points.subscribers(SOUND_GAIN) == []):
+		return 0.0
+	for _plugin, answer in points.collect(SOUND_GAIN, _sound_data(connection, choice)):
 		if (isinstance(answer, (int, float))) and (not isinstance(answer, bool)) and (math.isfinite(answer)):
 			return min(float(answer), MAXIMUM_GAIN)
 	return 0.0
+
+
+def sound_effects(connection: Connection, points: Points | None, choice: Choice, *, stream: bool) -> str | None:
+	"""Les effets du sonore choisi, les descriptions d'éléments GStreamer répondues par les plugins abonnés à
+	SOUND_EFFECTS, enchaînées dans leur ordre de chargement ; None sans réponse. Le plugin reçoit, en plus des données de
+	sound_gain, stream : vrai pour un stream."""
+	if (points is None) or (points.subscribers(SOUND_EFFECTS) == []):
+		return None
+	data = _sound_data(connection, choice)
+	data["stream"] = stream
+	found = []
+	for _plugin, answer in points.collect(SOUND_EFFECTS, data):
+		if (isinstance(answer, str)) and (answer.strip() != ""):
+			found.append(answer.strip())
+	if found == []:
+		return None
+	return " ! ".join(found)
