@@ -45,6 +45,7 @@ sonore. Le moteur ne lit l'heure que par la position des voies : il ne décide d
 (machincast.player.rundown) lui dit quoi jouer et quand couper.
 """
 
+import logging
 import math
 import time
 from collections.abc import Callable
@@ -57,7 +58,7 @@ import gi
 
 gi.require_version("Gst", "1.0")
 gi.require_version("GstController", "1.0")
-from gi.repository import Gst, GstController  # type: ignore[attr-defined]  # noqa: E402
+from gi.repository import GLib, Gst, GstController  # type: ignore[attr-defined]  # noqa: E402
 
 from machincast.audio import (  # noqa: E402
 	ON_AIR,
@@ -71,6 +72,8 @@ from machincast.audio import (  # noqa: E402
 from machincast.configuration import Audio, DeadAirSettings  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.shared.fades import envelope  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 TrackState = Literal["ready", "playing", "finished", "cut", "error"]
 
@@ -148,6 +151,24 @@ def entry_fade(previous_end_crossfade: timedelta, start_crossfade: timedelta) ->
 	return start_crossfade
 
 
+def _effects(description: str | None) -> Gst.Bin | None:
+	"""Les effets d'un sonore, en un bin dont l'entrée et la sortie sont celles de la description
+	(https://github.com/dascritch/machincast/issues/644) ; une description invalide est consignée, et la voie joue
+	sans elle."""
+	if (description is None) or (description.strip() == ""):
+		return None
+	try:
+		found = Gst.parse_bin_from_description(description, True)
+	except GLib.Error as error:
+		log.warning(
+			_("sound effects “{description}” refused: {error}").format(description=description, error=error.message)
+		)
+		return None
+	if not isinstance(found, Gst.Bin):
+		return None
+	return found
+
+
 def _nanoseconds(duration: timedelta) -> int:
 	return round(duration.total_seconds() * Gst.SECOND)
 
@@ -168,6 +189,9 @@ class TrackOptions:
 	buffer: timedelta | None = None
 	gain: float = 0.0
 	"""Le gain du sonore, en dB, avant son enveloppe de volume (https://github.com/dascritch/machincast/issues/643)."""
+	effects: str | None = None
+	"""Les effets du sonore, une description d'éléments GStreamer, entre son gain et son enveloppe de volume
+	(https://github.com/dascritch/machincast/issues/644) ; None : aucun."""
 
 
 class Track:
@@ -263,7 +287,14 @@ class Track:
 		plugged.add(volume)
 		plugged.add(output)
 		level.link(amplification)
-		amplification.link(volume)
+		self.effects = _effects(options.effects)
+		"""Les effets insérés dans la voie ; None sans effet, ou pour une description invalide, consignée."""
+		if self.effects is None:
+			amplification.link(volume)
+		else:
+			plugged.add(self.effects)
+			amplification.link(self.effects)
+			self.effects.link(volume)
 		volume.link(output)
 		entry = level.get_static_pad("sink")
 		assert entry is not None

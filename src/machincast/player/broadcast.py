@@ -1077,6 +1077,7 @@ class Broadcast:
 			gain = 0.0
 			if not parameters.stream:
 				gain = plugin_points.sound_gain(self.connection, self.points, following)
+			effects = plugin_points.sound_effects(self.connection, self.points, following, stream=parameters.stream)
 			track = self.engine.play(
 				path,
 				parameters.duration,
@@ -1088,6 +1089,7 @@ class Broadcast:
 					arrival=parameters.arrival_volume,
 					buffer=parameters.buffer,
 					gain=gain,
+					effects=effects,
 				),
 			)
 		play = self._begin(following, instant, parameters)

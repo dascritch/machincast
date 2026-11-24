@@ -163,6 +163,26 @@ def register(plugin):
 	plugin.on("player.sound_gain", gain)
 ```
 
+## Insérer un effet dans la voie d'un sonore
+
+([#644](https://github.com/dascritch/machincast/issues/644), `machincast.player.plugin_points.sound_effects`)
+
+Le point du cœur « player.sound_effects » est demandé par Machin player avant de jouer un sonore, fichier ou stream ; la simulation ne le demande pas.
+Ses données sont celles de « player.sound_gain », plus `stream`, vrai pour un stream.
+Le plugin répond une description d'éléments GStreamer, comme pour `gst-launch-1.0`, par exemple un compresseur ou un limiteur : elle est insérée dans la voie du sonore, après son gain et avant son enveloppe de volume (ses fondus).
+Les réponses de plusieurs plugins s'enchaînent, dans leur ordre de chargement ; une description invalide est consignée dans le journal, et le sonore joue sans elle.
+
+Un greffon LV2 installé sur le poste devient un élément de GStreamer, grâce à `gstreamer1.0-plugins-bad` : `gst-inspect-1.0 lv2` les liste, sous des noms comme `lv2-http---calf-sourceforge-net-plugins-Compressor`.
+GStreamer n'a pas d'hôte VST.
+
+```python
+def register(plugin):
+	plugin.on(
+		"player.sound_effects",
+		lambda data: "audiodynamic mode=compressor characteristics=soft-knee threshold=0.5 ratio=0.25",
+	)
+```
+
 ## Faire passer un sonore avant le prochain
 
 ([#640](https://github.com/dascritch/machincast/issues/640), `machincast.player.rundown`)

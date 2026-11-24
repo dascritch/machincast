@@ -70,6 +70,12 @@ CORE: dict[str, str] = {
 		"+20, applied before the volume envelope of the sound; without answer, the sound plays as it is "
 		"(https://github.com/dascritch/machincast/issues/643)"
 	),
+	"player.sound_effects": (
+		"asked by Machin player before it plays a sound, file or stream, with the data of “player.sound_gain” and "
+		"“stream”: the plugin answers a description of GStreamer elements, such as an LV2 compressor, inserted in the "
+		"track of the sound between its gain and its volume envelope; the answers of several plugins are chained, an "
+		"invalid description is logged and left out (https://github.com/dascritch/machincast/issues/644)"
+	),
 	"player.service_start": (
 		"notified by Machin player when its broadcast starts, with “instant” "
 		"(https://github.com/dascritch/machincast/issues/589)"

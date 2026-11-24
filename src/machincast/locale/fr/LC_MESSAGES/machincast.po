@@ -8042,6 +8042,11 @@ msgstr "le stream n'a pas démarré après sa mémoire tampon"
 
 #: machincast/player/engine.py
 #, python-brace-format
+msgid "sound effects “{description}” refused: {error}"
+msgstr "effets du sonore « {description} » refusés : {error}"
+
+#: machincast/player/engine.py
+#, python-brace-format
 msgid ""
 "{player}, volume or level not found, install gstreamer1.0-plugins-base and "
 "gstreamer1.0-plugins-good"
