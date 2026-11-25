@@ -352,3 +352,26 @@ def page_hidden(context: SimpleNamespace) -> None:
 	ui = context.page.ui
 	for item in (ui.on_air_level_caption, ui.on_air_level, ui.on_air_mute):
 		assert item.isHidden()
+
+
+IMPORT_THEN_INIT = """
+import machincast.interface.monitor
+import gi
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst
+Gst.init(None)
+print(Gst.ElementFactory.make("bin", None) is not None)
+"""
+"""Dans un processus à part : l'échec de GStreamer arrête le processus, et ne doit pas arrêter les scénarios."""
+
+
+@when("un processus importe le moniteur de l'antenne, puis initialise GStreamer")
+def import_then_init(context: SimpleNamespace) -> None:
+	context.result = subprocess.run(
+		[sys.executable, "-c", IMPORT_THEN_INIT], capture_output=True, text=True, timeout=60, check=False
+	)
+
+
+@then("ce processus se termine sans erreur")
+def ended_well(context: SimpleNamespace) -> None:
+	assert (context.result.returncode, context.result.stdout.strip()) == (0, "True"), context.result.stderr

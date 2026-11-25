@@ -44,6 +44,11 @@ import gi
 
 gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gst  # noqa: E402
+
+# Avant la déclaration de _ServiceBin, un type dérivé de Gst.Bin : déclaré plus tôt, il fait échouer l'initialisation de
+# GStreamer 1.24 sur « bin », et s'arrêter le processus (https://github.com/dascritch/machincast/issues/650).
+Gst.init(None)
+
 from PySide6.QtCore import QObject, QTimer, Signal  # noqa: E402
 
 from machincast import audio as outputs  # noqa: E402

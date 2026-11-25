@@ -68,3 +68,9 @@ Fonctionnalité: L'interface joint l'antenne sur le PipeWire du service de diffu
 	Scénario: L'infobulle du VU-mètre nomme le PipeWire du service
 		Étant donné un service dont le PipeWire refuse la connexion
 		Alors le port de monitoring de l'antenne « antenne » se nomme « PipeWire du service de diffusion, antenne »
+
+	Scénario: Le moniteur de l'antenne s'importe avant que GStreamer soit initialisé, sans l'arrêter
+		# https://github.com/dascritch/machincast/issues/650 : le bin qui garde la connexion au PipeWire du service est
+		# un type dérivé de Gst.Bin ; déclaré avant l'initialisation, il faisait échouer GStreamer 1.24 sur « bin ».
+		Quand un processus importe le moniteur de l'antenne, puis initialise GStreamer
+		Alors ce processus se termine sans erreur
