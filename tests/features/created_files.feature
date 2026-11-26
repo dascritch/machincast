@@ -43,7 +43,25 @@ Fonctionnalité: La liste des fichiers créés par MachinCast, les seuls qu'il t
 		Quand MachinCast écrit « station.toml »
 		Alors la liste a pour lignes le chemin absolu de « station.toml »
 
+	Scénario: Un compte qui ne peut que lire la liste renouvelle un fichier qu'elle a déjà, sans la rouvrir en écriture
+		https://github.com/dascritch/machincast/issues/652 : le serveur intranet, sous son compte hors du groupe du
+		service, renouvelle son certificat, qu'install.sh a inscrit d'avance.
+		Étant donné la liste des fichiers créés de la configuration « machincast.toml »
+		Et install.sh a inscrit d'avance le certificat et la clé générés du serveur intranet
+		Et la liste ne peut plus être que lue
+		Quand le certificat généré du serveur intranet écrit ses fichiers
+		Alors chacun de ses fichiers est dans la liste
+
 	# ─── install.sh ────────────────────────────────────────
+
+	Scénario: install.sh adopte les certificats de l'intranet, donnés par la configuration ou générés pour le compte
+		Étant donné le fichier de configuration valide « station.toml », sans liste imposée par les tests
+		Et le certificat « certificats/radio.pem » et la clé « certificats/radio.key » de l'intranet, donnés par « station.toml »
+		Et le certificat et la clé générés pour le compte par le serveur intranet
+		Alors les fichiers que « station.toml » désigne sont « station.toml », le certificat et la clé donnés, et ceux générés pour le compte
+
+	Scénario: install.sh inscrit d'avance le certificat et la clé que le serveur intranet génère dans son répertoire d'état
+		Alors install.sh inscrit d'avance, avec le service, le certificat et la clé du répertoire d'état du serveur intranet
 
 	Scénario: install.sh inscrit et retire des fichiers, et adopte ceux qui existent déjà
 		Étant donné la liste des fichiers créés de la configuration « machincast.toml »
@@ -71,6 +89,7 @@ Fonctionnalité: La liste des fichiers créés par MachinCast, les seuls qu'il t
 			| le rapport de l'audit complet           |
 			| la pré-écoute choisie dans l'interface  |
 			| les réglages des vues de l'interface    |
+			| le certificat généré du serveur intranet |
 
 	Plan du scénario: <écrivain> ne touche pas à un fichier qui existe hors de la liste
 		Étant donné la liste des fichiers créés de la configuration « machincast.toml »
@@ -84,6 +103,7 @@ Fonctionnalité: La liste des fichiers créés par MachinCast, les seuls qu'il t
 			| la simulation de Machin player                 |
 			| le rapport de l'audit complet                  |
 			| le retrait des réglages d'économie d'énergie   |
+			| le certificat généré du serveur intranet       |
 
 	Scénario: Des réglages des vues qui ne sont pas de MachinCast restent intacts : les vues se règlent le temps de la session
 		Étant donné la liste des fichiers créés de la configuration « machincast.toml »

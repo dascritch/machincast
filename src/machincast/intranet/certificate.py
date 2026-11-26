@@ -17,6 +17,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from machincast import created_files
 from machincast.i18n import _
 
 log = logging.getLogger(__name__)
@@ -90,8 +91,13 @@ def generate(pair: Pair, names: list[str], addresses: list[str]) -> None:
 	finally:
 		os.umask(mask)
 	key.chmod(0o600)
+	# Jamais un fichier qu'il n'a pas créé ; le certificat et sa clé sont à sauvegarder
+	# (https://github.com/dascritch/machincast/issues/652).
+	created_files.check(pair.key)
+	created_files.check(pair.certificate)
 	key.replace(pair.key)  # fichier de MachinCast : la clé générée, à sa place
 	certificate.replace(pair.certificate)  # fichier de MachinCast : le certificat généré, à sa place
+	created_files.record([pair.certificate, pair.key])
 	log.info(_("intranet certificate generated: {path}").format(path=pair.certificate))
 
 

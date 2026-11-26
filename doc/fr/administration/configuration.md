@@ -64,9 +64,9 @@ L'interface garde, pour chaque compte, la disposition des colonnes de chacun de 
 MachinCast tient la liste des fichiers qu'il a créés ([#652](https://github.com/dascritch/machincast/issues/652)) : `fichiers-machincast.txt`, à côté du fichier de configuration, un chemin complet par ligne, dans l'ordre alphabétique. Ce sont **les seuls fichiers qu'il modifie, remplace ou efface**, et ceux à **sauvegarder pour reprendre l'activité** sur un autre poste, avec une sauvegarde de la base :
 
 - la configuration et les réglages : `machincast.toml`, les réglages des vues de chaque compte (`vues.ini`), les unités, règles et fragments qu'installe `./install.sh --service` dans `/etc` et `/usr/share/polkit-1`, le raccourci de l'interface et son icône, les réglages des cartes son toujours éveillées ;
-- les données : les sorties de `Machin player` (le CSV de chaque jour, la playlist `.pls`, la page HTML), les fichiers de `Machin player --simulation`, les rapports de l'audit complet, les exports de l'interface (airplay, tableaux, simulation), les sauvegardes de la base de `Machin backup-db` et `Machin maintenance-db`, le document « Votre installation ».
+- les données : les sorties de `Machin player` (le CSV de chaque jour, la playlist `.pls`, la page HTML), les fichiers de `Machin player --simulation`, les rapports de l'audit complet, les exports de l'interface (airplay, tableaux, simulation), les sauvegardes de la base de `Machin backup-db` et `Machin maintenance-db`, le document « Votre installation », et **les certificats et clés de l'intranet**, ceux que désignent `intranet.certificate` et `intranet.key` comme ceux que génère `Machin intranet` (dans `/var/lib/machincast-intranet` avec le service, que la sauvegarde lit en administrateur).
 
-N'y sont pas : les logs (`/var/log/machincast`), les fichiers d'exécution (sockets, PID, rapports de plantage, fichiers temporaires, fichiers de l'onglet Simulation), l'environnement virtuel et le dépôt, ni le certificat que génère le serveur intranet, que son démarrage régénère.
+N'y sont pas : les logs (`/var/log/machincast`), les fichiers d'exécution (sockets, PID, rapports de plantage, fichiers temporaires, fichiers de l'onglet Simulation), l'environnement virtuel et le dépôt.
 
 **Un fichier qui existe hors de la liste n'est jamais touché**, même s'il porte le nom qu'attend MachinCast : une sortie posée sur un document de la radio, un export qui tomberait sur un fichier existant. L'écriture est refusée avec le message :
 
@@ -76,7 +76,7 @@ N'y sont pas : les logs (`/var/log/machincast`), les fichiers d'exécution (sock
 
 Pour une sortie de `Machin player`, c'est l'alerte `sortie inaccessible`, et la diffusion continue ; pour un export de l'interface, la barre d'état le dit ; pour `install.sh`, l'installation s'arrête en nommant le fichier. Des réglages des vues hors de la liste restent tels quels : les tableaux se règlent alors le temps de la session, et le journal le dit une fois. Pour que MachinCast reprenne un tel fichier, le déplacer, ou ajouter son chemin complet à la liste.
 
-À la mise à jour, `install.sh` ajoute à la liste les fichiers qu'une version d'avant la liste avait créés, s'ils existent, et les énumère : ceux que la configuration désigne, ceux qu'il installe. Avec le service de diffusion, la liste appartient au compte de MachinCast et au groupe `machincast`, en `0660` : le service y inscrit ses sorties.
+À la mise à jour, `install.sh` ajoute à la liste les fichiers qu'une version d'avant la liste avait créés, s'ils existent, et les énumère : ceux que la configuration désigne, ceux qu'il installe. Avec le service de diffusion, la liste appartient au compte de MachinCast et au groupe `machincast`, en `0660` : le service y inscrit ses sorties. Le serveur intranet, sous son propre compte, ne peut que la lire : `./install.sh --service` y inscrit d'avance le certificat et la clé qu'il génère.
 
 ## Plugins
 

@@ -61,6 +61,7 @@ from machincast.database import apply_migrations, url_yoyo  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.indexer.indexer import ONGOING_CODE  # noqa: E402
 from machincast.interface import columns  # noqa: E402
+from machincast.intranet import certificate, process  # noqa: E402
 from machincast.service import INDEXING_UNIT, TASKS_UNIT, UNIT  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
@@ -524,6 +525,8 @@ def tmpfiles(account: Account | None = None, listing: Path | None = None) -> str
 		# Les fichiers créés par MachinCast, que le service inscrit aussi : ses sorties
 		# (https://github.com/dascritch/machincast/issues/652).
 		lines.append(f"f {listing} 0660 {account.name} {SERVICE_ACCOUNT} -")
+		# Le serveur intranet, hors du groupe, la lit : il renouvelle son certificat, qu'install.sh y inscrit d'avance.
+		lines.append(f"a+ {listing} - - - - u:{INTRANET_ACCOUNT}:r--")
 	return "\n".join(lines) + "\n"
 
 
@@ -995,8 +998,8 @@ def _tmpfiles(configuration: Configuration) -> int:
 def designated(configuration: Configuration) -> list[Path]:
 	"""Les fichiers que la configuration désigne, créés par une version de MachinCast d'avant la liste des fichiers
 	créés, qu'install.sh adopte (https://github.com/dascritch/machincast/issues/652) : la configuration, les sorties de
-	Machin player, dont les CSV de chaque jour, les sauvegardes de la base, le document de l'installation et les
-	réglages des vues. Seuls ceux qui existent."""
+	Machin player, dont les CSV de chaque jour, les sauvegardes de la base, le document de l'installation, les
+	réglages des vues, et les certificats de l'intranet, donnés ou générés. Seuls ceux qui existent."""
 	outputs = configuration.outputs
 	found = [configuration.path, outputs.pls, outputs.html, outputs.csv]
 	for daily in sorted(outputs.csv.parent.glob(f"{outputs.csv.stem}-*{outputs.csv.suffix}")):
@@ -1005,6 +1008,12 @@ def designated(configuration: Configuration) -> list[Path]:
 		found.append(dump)
 	found.append(notes.document(configuration.interface.notes))
 	found.append(columns.file())
+	# Les certificats de l'intranet, donnés par la configuration ou générés pour le compte, sans le service.
+	intranet = configuration.intranet
+	if (intranet.certificate is not None) and (intranet.key is not None):
+		found.extend([intranet.certificate, intranet.key])
+	generated = certificate.default(process.state_directory())
+	found.extend([generated.certificate, generated.key])
 	existing = []
 	for path in found:
 		if path.is_file():

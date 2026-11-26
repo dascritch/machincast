@@ -13,12 +13,15 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
+import tomlkit
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from machincast import cli, created_files, power_save
+from machincast import cli, created_files, installation, power_save
+from machincast.configuration import load
 from machincast.created_files import NotCreatedByMachinCast
 from machincast.indexer import audit as audit_module
 from machincast.interface import columns, preview
+from machincast.intranet import certificate, process
 from machincast.player import outputs, simulation
 
 scenarios("created_files.feature")
@@ -213,13 +216,18 @@ def _writers(context: Context) -> dict[str, tuple[list[Path], Callable[[], objec
 	directory = context.directory
 	configuration = directory / "machincast.toml"
 	audit = directory / "audits" / f"machincast-audit-{START:%Y-%m-%dT%H:%M:%S}"
+	generated = certificate.default(directory / "intranet")
 	return {
 		"la page HTML de Machin player": (
 			[directory / "sorties" / "airplay.html"],
 			lambda: outputs._write(directory / "sorties" / "airplay.html", "<p>page</p>\n"),
 		),
 		"la simulation de Machin player": (
-			[directory / "simulation" / f"essai{extension}" for extension in (".csv", ".pls", ".html")],
+			[
+				directory / "simulation" / "essai.csv",
+				directory / "simulation" / "essai.pls",
+				directory / "simulation" / "essai.html",
+			],
 			lambda: simulation.export([], [], directory / "simulation", "essai", START, START + timedelta(hours=1)),
 		),
 		"le rapport de l'audit complet": (
@@ -233,6 +241,10 @@ def _writers(context: Context) -> dict[str, tuple[list[Path], Callable[[], objec
 		"les réglages des vues de l'interface": (
 			[directory / "vues.ini"],
 			lambda: _views(directory / "vues.ini"),
+		),
+		"le certificat généré du serveur intranet": (
+			[generated.certificate, generated.key],
+			lambda: certificate.generate(generated, ["poste-antenne"], ["127.0.0.1"]),
 		),
 		"le retrait des réglages d'économie d'énergie": (
 			[directory / path.relative_to("/") for path, _text in power_save.SETTINGS],
@@ -318,3 +330,75 @@ def views_aside(context: Context) -> None:
 	assert (context.directory / "vues.ini").read_text(encoding="utf-8") == FOREIGN
 	assert "colonnes=titre" in columns.FALLBACK.read_text(encoding="utf-8")
 	assert not created_files.listed(context.directory / "vues.ini")
+
+
+@given("install.sh a inscrit d'avance le certificat et la clé générés du serveur intranet")
+def certificate_beforehand(context: Context) -> None:
+	generated = certificate.default(context.directory / "intranet")
+	created_files.record([generated.certificate, generated.key])
+
+
+@given("la liste ne peut plus être que lue")
+def read_only(monkeypatch: pytest.MonkeyPatch) -> None:
+	"""Imitée : les tests tournent parfois en administrateur, que les droits du fichier n'arrêtent pas."""
+
+	def refused(listing: Path) -> object:
+		raise PermissionError(listing)
+
+	monkeypatch.setattr(created_files, "_locked", refused)
+
+
+@given(
+	parsers.parse(
+		"le certificat « {given_certificate} » et la clé « {given_key} » de l'intranet, donnés par « {name} »"
+	)
+)
+def given_certificates(context: Context, given_certificate: str, given_key: str, name: str) -> None:
+	path = context.directory / name
+	document = tomlkit.parse(path.read_text(encoding="utf-8"))
+	if "intranet" not in document:
+		document.add("intranet", tomlkit.table())
+	section = document["intranet"]
+	assert isinstance(section, tomlkit.items.Table)
+	section["certificate"] = given_certificate
+	section["key"] = given_key
+	path.write_text(tomlkit.dumps(document), encoding="utf-8")
+	for relative in (given_certificate, given_key):
+		(context.directory / relative).parent.mkdir(parents=True, exist_ok=True)
+		(context.directory / relative).write_text("certificat\n", encoding="utf-8")
+
+
+@given("le certificat et la clé générés pour le compte par le serveur intranet")
+def account_certificates(context: Context, monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.delenv("STATE_DIRECTORY", raising=False)
+	monkeypatch.setenv("XDG_STATE_HOME", str(context.directory / "etat"))
+	generated = certificate.default(process.state_directory())
+	generated.certificate.parent.mkdir(parents=True)
+	generated.certificate.write_text("certificat\n", encoding="utf-8")
+	generated.key.write_text("clé\n", encoding="utf-8")
+
+
+@then(
+	parsers.parse(
+		"les fichiers que « {name} » désigne sont « {same} », le certificat et la clé donnés, et ceux générés pour le"
+		" compte"
+	)
+)
+def designated(context: Context, name: str, same: str) -> None:
+	generated = certificate.default(process.state_directory())
+	assert installation.designated(load(context.directory / name)) == [
+		context.directory / same,
+		context.directory / "certificats" / "radio.pem",
+		context.directory / "certificats" / "radio.key",
+		generated.certificate,
+		generated.key,
+	]
+
+
+@then("install.sh inscrit d'avance, avec le service, le certificat et la clé du répertoire d'état du serveur intranet")
+def beforehand_in_install() -> None:
+	text = (ROOT / "install.sh").read_text(encoding="utf-8")
+	state = Path("/var/lib") / installation.INTRANET_STATE
+	expected = f'CERTIFICATS_INTRANET=("{state / certificate.CERTIFICATE}" "{state / certificate.KEY}")'
+	assert expected in text
+	assert '\tinscrire "${CERTIFICATS_INTRANET[@]}"\n' in text

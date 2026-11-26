@@ -134,9 +134,17 @@ def check(path: Path, listing: Path | None = None) -> None:
 
 
 def record(paths: Iterable[Path], listing: Path | None = None) -> None:
-	"""Inscrit les fichiers créés par MachinCast."""
+	"""Inscrit les fichiers créés par MachinCast. Déjà tous inscrits, la liste n'est pas rouverte en écriture : le
+	serveur intranet, qui ne peut que la lire, renouvelle ainsi son certificat, qu'install.sh y a inscrit d'avance."""
 	listing = (listing) or (LIST)
 	if listing is None:
+		return
+	paths = list(paths)
+	missing = False
+	for path in paths:
+		if not listed(path, listing):
+			missing = True
+	if not missing:
 		return
 	with _locked(listing) as file:
 		lines = _lines(file)

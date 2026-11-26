@@ -89,6 +89,10 @@ DOSSIER_D_EXECUTION_SERVICE="/run/machincast"
 # (https://github.com/dascritch/machincast/issues/549) : les mêmes noms dans machincast.installation.
 COMPTE_INTRANET="machincast-intranet"
 DOSSIER_D_EXECUTION_INTRANET="/run/machincast-intranet"
+# Le certificat et la clé que le serveur intranet génère dans son répertoire d'état, à sauvegarder : inscrits d'avance
+# dans la liste des fichiers créés, qu'il ne fait que lire (https://github.com/dascritch/machincast/issues/652). Les
+# mêmes noms dans machincast.installation (INTRANET_STATE) et machincast.intranet.certificate.
+CERTIFICATS_INTRANET=("/var/lib/machincast-intranet/certificate.pem" "/var/lib/machincast-intranet/key.pem")
 DOSSIER_DES_LOGS="/var/log/machincast"
 UNITE_PIPEWIRE="machincast-pipewire.service"
 UNITE_WIREPLUMBER="machincast-wireplumber.service"
@@ -1318,6 +1322,7 @@ installer_service() {
 	autoriser_le_service_en_base
 	creer_le_compte_de_l_intranet
 	autoriser_l_intranet_en_base
+	inscrire "${CERTIFICATS_INTRANET[@]}"
 	creer_l_accueil
 	traiter_les_sonores_personnels
 	# Le service ne dépend plus de la session du compte (https://github.com/dascritch/machincast/issues/381).

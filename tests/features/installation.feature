@@ -332,7 +332,7 @@ Fonctionnalité: Vérifications de l'installation
 		traverser /var/log/machincast, sans pouvoir le lister ni lire les autres journaux.
 		Quand je lance « python -m machincast.installation tmpfiles » avec la configuration de test
 		Alors la commande se termine sans erreur
-		Et sa sortie a, hors commentaires, les lignes, puis la liste des fichiers créés, au compte de MachinCast et au groupe du service, en 0660 :
+		Et sa sortie a, hors commentaires, les lignes, puis la liste des fichiers créés, au compte de MachinCast et au groupe du service, en 0660, lisible du serveur intranet :
 			| ligne                                                      |
 			| d /run/machincast 2770 machincast machincast -             |
 			| d /var/log/machincast 2770 machincast machincast -         |
