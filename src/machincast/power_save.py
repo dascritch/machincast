@@ -17,6 +17,7 @@ import subprocess
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from machincast import created_files
 from machincast import log as journal
 from machincast.i18n import _
 
@@ -94,15 +95,15 @@ def enable(root: Path) -> list[str]:
 	for path, text in SETTINGS:
 		file = _in(root, path)
 		file.parent.mkdir(parents=True, exist_ok=True)
-		file.write_text(text(), encoding="utf-8")
+		created_files.write_text(file, text())
 	return wake(root)
 
 
 def disable(root: Path) -> list[str]:
 	"""Retire les deux réglages : l'économie d'énergie revient au prochain redémarrage."""
 	for path, _text in SETTINGS:
-		# fichier de MachinCast : un réglage qu'il a lui-même écrit, dans /etc (SETTINGS).
-		_in(root, path).unlink(missing_ok=True)
+		# Un réglage qu'il a lui-même écrit, dans /etc (SETTINGS), et seulement s'il est dans la liste.
+		created_files.delete(_in(root, path))
 	_udevadm("control", "--reload")
 	return [_("settings removed: the power saving of the sound cards comes back at the next restart")]
 
@@ -120,7 +121,11 @@ def main(arguments: Sequence[str] | None = None) -> int:
 	)
 	analyser.add_argument("action", choices=list(ACTIONS))
 	analyser.add_argument("--root", type=Path, default=ROOT, help=_("root of the system, / by default"))
+	analyser.add_argument(
+		"--list", type=Path, default=None, dest="listing", help=_("list of the files created by MachinCast")
+	)
 	options = analyser.parse_args(arguments)
+	created_files.LIST = options.listing
 	try:
 		said = ACTIONS[options.action](options.root)
 	except (OSError, subprocess.SubprocessError) as error:

@@ -33,7 +33,7 @@ from pathlib import Path
 
 import psycopg
 
-from machincast import admin_queries
+from machincast import admin_queries, created_files
 from machincast.cli import launch
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Configuration, Database
@@ -138,6 +138,8 @@ def back_up(configuration: Configuration, directory: Path) -> Path:
 		raise BackupFailure(str(error)) from error
 	if result.returncode != 0:
 		raise BackupFailure(result.stderr.strip())
+	# Une sauvegarde à garder pour une reprise d'activité (https://github.com/dascritch/machincast/issues/652).
+	created_files.record([file])
 	size = file.stat().st_size / 1_000_000
 	log.info(_("backup done: {size} MB").format(size=decimal(f"{size:.1f}")))
 	return file

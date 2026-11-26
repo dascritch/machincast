@@ -13,7 +13,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QProcess, Signal
 from PySide6.QtWidgets import QCheckBox
 
-from machincast import access, power_save
+from machincast import access, created_files, power_save
 from machincast.i18n import _
 
 ENTRY = _("Sound cards always awake")
@@ -64,6 +64,9 @@ class PowerSaveSwitch(QObject):
 		arguments = [sys.executable, "-m", "machincast.power_save", self._verb]
 		if Path("/") != power_save.ROOT:
 			arguments += ["--root", str(power_save.ROOT)]
+		if created_files.LIST is not None:
+			# Ses réglages de /etc, dans la liste des fichiers créés (https://github.com/dascritch/machincast/issues/652).
+			arguments += ["--list", str(created_files.LIST)]
 		process = QProcess(self)
 		process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
 		process.finished.connect(self._finished)

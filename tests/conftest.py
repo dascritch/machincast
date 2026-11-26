@@ -104,6 +104,20 @@ def service_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture(autouse=True)
+def created_files_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+	"""La liste des fichiers créés, dans le répertoire du test, pour lui et les binaires qu'il lance : jamais à côté
+	d'une configuration du dépôt (https://github.com/dascritch/machincast/issues/652). Sans liste dans le processus du
+	test, rien n'y est vérifié, sauf dans les scénarios qui en posent une."""
+	from machincast import created_files
+
+	path = tmp_path / "liste-des-fichiers-crees.txt"
+	monkeypatch.setenv(created_files.ENVIRONMENT, str(path))
+	monkeypatch.setattr(created_files, "LIST", None)
+	monkeypatch.setattr(created_files, "CONFIGURATION", None)
+	return path
+
+
+@pytest.fixture(autouse=True)
 def view_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 	"""Les réglages des colonnes de l'interface, dans le répertoire du test : jamais ceux du compte qui lance les tests
 	(https://github.com/dascritch/machincast/issues/207)."""

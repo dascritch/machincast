@@ -306,13 +306,14 @@ Fonctionnalité: Mode simulation de Machin player
 
 	Plan du scénario: Les options de la simulation ne s'emploient qu'avec --simulation
 		Quand je lance Machin_player avec « <option> »
-		Alors il s'arrête avec le code 2, en signalant « --seed, --name et --directory ne s'emploient qu'avec --simulation »
+		Alors il s'arrête avec le code 2, en signalant « --seed, --name, --directory et --temporary ne s'emploient qu'avec --simulation »
 
 		Exemples:
 			| option                       |
 			| --seed 3                   |
 			| --name essai                  |
 			| --directory /tmp/simulation |
+			| --temporary                 |
 
 	Scénario: Sans base de données joignable, la simulation s'arrête avec le code 1
 		Quand je lance Machin_player avec « --simulation "2026-10-20 20:00" "2026-10-20 21:00" » et une socket inexistante

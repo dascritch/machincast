@@ -18,7 +18,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from machincast import i18n
+from machincast import created_files, i18n
 from machincast.configuration import PROJECT_DIRECTORY
 from machincast.i18n import N_, _
 
@@ -154,7 +154,8 @@ def rewrite(icon: Path | None) -> list[str]:
 	text = write(icon=icon)
 	places = []
 	for place, path in installed_list().items():
-		# Un raccourci de MachinCast, réécrit en place : ses droits restent, exécutable compris.
-		path.write_text(text, encoding="utf-8")
+		# Un raccourci de MachinCast, réécrit en place : ses droits restent, exécutable compris ; refusé hors de la liste
+		# des fichiers créés (https://github.com/dascritch/machincast/issues/652).
+		created_files.write_text(path, text)
 		places.append(PLACES[place])
 	return places

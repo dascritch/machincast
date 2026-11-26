@@ -218,6 +218,11 @@ Rien d'autre ne déplace jamais un sonore.
 	Chacune de ces lignes porte, sur la ligne ou celle du dessus, le commentaire `fichier de MachinCast :` suivi du fichier concerné.
 - Un scénario de [`protection.feature`](../../../tests/features/protection.feature) refuse, dans `src/`, `bin/Machin` et `install.sh`, toute suppression, tout renommage ou tout remplacement sans cette justification (`machincast.protection.unjustified`) : en Python, `.unlink(`, `.rmdir(`, `.rename(`, `os.remove`, `os.unlink`, `os.rmdir`, `os.removedirs`, `os.rename`, `os.renames`, `os.replace`, `shutil.rmtree` et `shutil.move` ; en bash, `rm`, `rmdir`, `mv`, `unlink` et `shred`.
 	`Path.replace` ne se distingue pas de `str.replace` : il est interdit, on écrit `os.replace` avec la justification.
+- **Fichiers créés** ([#652](https://github.com/dascritch/machincast/issues/652)) : MachinCast ne modifie, ne remplace ni n'efface que les fichiers de sa liste, `fichiers-machincast.txt`, à côté de la configuration (`machincast.created_files`).
+	Un fichier de configuration, de réglages ou de données à sauvegarder s'écrit par `created_files.write_text`, ou par `created_files.check` avant et `created_files.record` après ; il s'efface par `created_files.delete`.
+	Les logs et les fichiers d'exécution (sockets, PID, rapports de plantage, fichiers temporaires) n'y vont pas.
+	`install.sh` passe par `verifier_le_fichier`, `inscrire` et `desinscrire`.
+	Les tests posent leur liste dans leur répertoire (fixture `created_files_list`, variable `MACHINCAST_CREATED_FILES` pour les binaires qu'ils lancent), jamais à côté d'une configuration du dépôt.
 - Tout fichier écrit par MachinCast passe d'abord par `machincast.protection.check_writing`, qui lève `ProtectedSoundFile` pour un chemin à l'extension d'un fichier sonore (`SOUND_EXTENSIONS`, celles que l'indexeur enregistre).
 	La configuration refuse aussi ces chemins pour `outputs.*` et `player.state_socket`.
 - Les scénarios de protection vérifient, octet par octet, taille et date de modification comprises, que les fichiers d'une banque restent intacts après chaque changement de leur entrée, l'indexation rapide, l'audit complet, la diffusion et la simulation.

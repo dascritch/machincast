@@ -44,6 +44,7 @@ Machin player --simulation "2026-10-20 06:00" "2026-10-21 06:00" --seed 42 --nam
 | `--seed N` | Graine du hasard : la même graine donne la même simulation, tirages aléatoires compris. Sans graine, chaque simulation tire autrement. |
 | `--name NOM` | Nom des fichiers produits, sans extension ni `/`. Par défaut, `simulation-` suivi des dates de début et de fin, par exemple `simulation-2026-10-20T0600-2026-10-20T2200`. |
 | `--directory REPERTOIRE` | Répertoire où écrire les fichiers produits ([#37](https://github.com/dascritch/machincast/issues/37)). Par défaut, celui de `outputs.csv` de la configuration. L'écran de simulation de l'interface s'en sert pour son répertoire temporaire. |
+| `--temporary` | Fichiers produits temporaires : ils ne vont pas dans la [liste des fichiers créés par MachinCast](configuration.md#fichiers-créés-par-machincast) ([#652](https://github.com/dascritch/machincast/issues/652)). L'écran de simulation de l'interface s'en sert, avec `--directory`. Sans elle, les trois fichiers y sont inscrits, et un fichier du même nom qui n'y est pas n'est jamais remplacé : la simulation s'arrête avec le code 1. |
 
 - **Rien n'est écrit en base**, au sens strict : la simulation lit la base de production dans une transaction en lecture seule, où PostgreSQL refuse toute écriture. Elle part de l'état réel, c'est-à-dire la position dans chaque liste, le cycle de chaque banque aléatoire et le nombre de lectures de chaque sonore, puis tient ses propres passages en mémoire. Un sonore qui atteindrait son maximum de lectures pendant la simulation est noté expiré dans la simulation seulement.
 - **Aucun son n'est joué**, et la sortie audio n'est pas ouverte : une simulation peut tourner pendant la diffusion, sur le même poste. Elle ne dure que quelques secondes pour une journée.
@@ -56,7 +57,7 @@ Machin player --simulation "2026-10-20 06:00" "2026-10-21 06:00" --seed 42 --nam
 
   L'artiste et le titre y sont masqués comme sur la page publique (voir [Sorties de la diffusion](configuration.md#sorties-de-la-diffusion)), et l'emplacement de chaque fichier, donné partout, permet de vérifier ce qui sera joué. Un fichier du même nom est remplacé.
 - **Messages** : les alertes et incidents simulés s'affichent aussi au fil de l'eau sur la sortie d'erreur, datés et préfixés de `simulation :`. Le bilan, avec le nombre de passages, d'alertes et d'incidents et les chemins des fichiers, s'affiche à la fin.
-- **Codes de sortie** : 0 une fois la simulation finie, même avec des alertes ; 1 si la base est injoignable ou si les fichiers ne peuvent pas être écrits ; 2 pour une période ou un nom invalides, ou pour `--seed`, `--name` ou `--directory` sans `--simulation`.
+- **Codes de sortie** : 0 une fois la simulation finie, même avec des alertes ; 1 si la base est injoignable ou si les fichiers ne peuvent pas être écrits ; 2 pour une période ou un nom invalides, ou pour `--seed`, `--name`, `--directory` ou `--temporary` sans `--simulation`.
 
 ## État de la diffusion pour l'interface
 

@@ -18,6 +18,7 @@ import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 
+from machincast import created_files
 from machincast.cli import launch
 from machincast.configuration import Configuration
 from machincast.i18n import _, language
@@ -81,6 +82,8 @@ def create(path: Path) -> bool:
 	path.parent.mkdir(parents=True, exist_ok=True)
 	with path.open("x", encoding="utf-8") as written:
 		written.write(template_file().read_text(encoding="utf-8"))
+	# Le document de l'équipe, à sauvegarder (https://github.com/dascritch/machincast/issues/652).
+	created_files.record([path])
 	return True
 
 

@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from machincast import __version__, crash, plugins, runs
+from machincast import __version__, crash, created_files, plugins, runs
 from machincast.configuration import Configuration, InvalidConfiguration, default_file, load
 from machincast.i18n import _
 from machincast.log import configure as configure_log
@@ -65,6 +65,8 @@ def launch(
 	except InvalidConfiguration as error:
 		log.error(_("invalid configuration: {error}").format(error=error))
 		return INVALID_CONFIGURATION_CODE
+	# Les fichiers que le binaire crée, et les seuls qu'il touche (https://github.com/dascritch/machincast/issues/652).
+	created_files.use(configuration.path)
 	given = sys.argv[1:]
 	if arguments is not None:
 		given = list(arguments)

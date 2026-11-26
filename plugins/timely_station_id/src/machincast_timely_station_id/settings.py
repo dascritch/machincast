@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast import created_files
 from machincast.configuration import Configuration
 from machincast.database import Role, open_connection
 from machincast_timely_station_id import queries
@@ -67,7 +68,7 @@ def write_section(path: Path, section: dict[str, Any]) -> None:
 	for key, value in section.items():
 		table[key] = value
 	plugins[NAME] = table
-	path.write_text(tomlkit.dumps(document), encoding="utf-8")
+	created_files.write_text(path, tomlkit.dumps(document))
 
 
 def _minutes(value: int | float) -> int:

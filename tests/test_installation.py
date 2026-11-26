@@ -613,6 +613,18 @@ def written_section(written_list: tuple[str, str], name: str, datatable: list[li
 	_among(_section(written_list[0], name), _expected(rows))
 
 
+@then(
+	"sa sortie a, hors commentaires, les lignes, puis la liste des fichiers créés, au compte de MachinCast et au groupe"
+	" du service, en 0660 :"
+)
+def lines_then_created_files(
+	command: subprocess.CompletedProcess[str], datatable: list[list[str]], created_files_list: Path
+) -> None:
+	"""La liste des fichiers créés (https://github.com/dascritch/machincast/issues/652) : celle qu'imposent les tests."""
+	account = pwd.getpwuid(os.getuid()).pw_name
+	lines_without_comments(command, [*datatable, [f"f {created_files_list} 0660 {account} machincast -"]])
+
+
 @then("sa sortie a, hors commentaires, les lignes :")
 def lines_without_comments(command: subprocess.CompletedProcess[str], datatable: list[list[str]]) -> None:
 	_headers, *rows = datatable

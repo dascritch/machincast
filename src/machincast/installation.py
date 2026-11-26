@@ -16,6 +16,7 @@
 	python -m machincast.installation devices     --config machincast.toml   périphériques de sortie du poste
 	python -m machincast.installation on-air      --config machincast.toml   antenne utilisable par le service
 	python -m machincast.installation plugins     --config machincast.toml   install.sh des plugins activés
+	python -m machincast.installation created-files --config machincast.toml fichiers qu'elle désigne, à adopter
 
 devices n'est pas appelé par install.sh : il aide à trouver les identifiants à recopier dans audio.device
 et audio.preview (https://github.com/dascritch/machincast/issues/116). on-air l'est par install.sh --service, avant
@@ -48,7 +49,7 @@ from psycopg.rows import TupleRow
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
-from machincast import access, crash, personal, power_save, service  # noqa: E402
+from machincast import access, crash, created_files, notes, personal, power_save, service  # noqa: E402
 from machincast import audio as audio_outputs  # noqa: E402
 from machincast import log as log_directory  # noqa: E402
 from machincast import plugins as plugin_registry  # noqa: E402
@@ -59,6 +60,7 @@ from machincast.configuration import PROJECT_DIRECTORY, Audio, AudioOutput, Conf
 from machincast.database import apply_migrations, url_yoyo  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.indexer.indexer import ONGOING_CODE  # noqa: E402
+from machincast.interface import columns  # noqa: E402
 from machincast.service import INDEXING_UNIT, TASKS_UNIT, UNIT  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
@@ -500,9 +502,10 @@ WantedBy={PIPEWIRE_UNIT}
 """
 
 
-def tmpfiles() -> str:
+def tmpfiles(account: Account | None = None, listing: Path | None = None) -> str:
 	"""Les répertoires du service, recréés à chaque démarrage du poste : d'exécution, des logs et des rapports de
-	crash, au compte du service et à son groupe ; la socket et le journal du serveur intranet."""
+	crash, au compte du service et à son groupe ; la socket et le journal du serveur intranet ; la liste des fichiers
+	créés, au compte de MachinCast et au groupe du service, qui l'écrivent tous deux."""
 	lines = [
 		"# Directories of the MachinCast broadcast service (https://github.com/dascritch/machincast/issues/381).",
 		HEADER,
@@ -517,6 +520,10 @@ def tmpfiles() -> str:
 	# les autres journaux (https://github.com/dascritch/machincast/issues/578).
 	lines.append(f"f {INTRANET_LOG} 0660 {INTRANET_ACCOUNT} {SERVICE_ACCOUNT} -")
 	lines.append(f"a+ {log_directory.DIRECTORY} - - - - u:{INTRANET_ACCOUNT}:--x")
+	if (account is not None) and (listing is not None):
+		# Les fichiers créés par MachinCast, que le service inscrit aussi : ses sorties
+		# (https://github.com/dascritch/machincast/issues/652).
+		lines.append(f"f {listing} 0660 {account.name} {SERVICE_ACCOUNT} -")
 	return "\n".join(lines) + "\n"
 
 
@@ -980,8 +987,34 @@ def _wireplumber_unit(_configuration: Configuration) -> int:
 	return 0
 
 
-def _tmpfiles(_configuration: Configuration) -> int:
-	sys.stdout.write(tmpfiles())
+def _tmpfiles(configuration: Configuration) -> int:
+	sys.stdout.write(tmpfiles(Account.current(), (created_files.LIST) or (created_files.beside(configuration.path))))
+	return 0
+
+
+def designated(configuration: Configuration) -> list[Path]:
+	"""Les fichiers que la configuration désigne, créés par une version de MachinCast d'avant la liste des fichiers
+	créés, qu'install.sh adopte (https://github.com/dascritch/machincast/issues/652) : la configuration, les sorties de
+	Machin player, dont les CSV de chaque jour, les sauvegardes de la base, le document de l'installation et les
+	réglages des vues. Seuls ceux qui existent."""
+	outputs = configuration.outputs
+	found = [configuration.path, outputs.pls, outputs.html, outputs.csv]
+	for daily in sorted(outputs.csv.parent.glob(f"{outputs.csv.stem}-*{outputs.csv.suffix}")):
+		found.append(daily)
+	for dump in sorted(configuration.backup.directory.glob(f"{configuration.database.production}-*.dump")):
+		found.append(dump)
+	found.append(notes.document(configuration.interface.notes))
+	found.append(columns.file())
+	existing = []
+	for path in found:
+		if path.is_file():
+			existing.append(path)
+	return existing
+
+
+def _created_files(configuration: Configuration) -> int:
+	for path in designated(configuration):
+		sys.stdout.write(f"{path}\n")
 	return 0
 
 
@@ -1159,6 +1192,7 @@ def _forget_personal_sounds(configuration: Configuration) -> int:
 
 ACTIONS = {
 	"check": _check,
+	"created-files": _created_files,
 	"tasks-timer": _tasks_timer,
 	"tasks-unit": _tasks_unit,
 	"databases": _databases,

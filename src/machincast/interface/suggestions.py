@@ -34,6 +34,7 @@ from psycopg.rows import TupleRow
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QListWidgetItem, QWidget
 
+from machincast import created_files
 from machincast.configuration import Audio, AudioOutput
 from machincast.i18n import _
 from machincast.interface import background_programming
@@ -214,7 +215,7 @@ def save(path: Path, response: Response) -> None:
 		section_interface = document["interface"]
 		assert isinstance(section_interface, tomlkit.items.Table)
 		section_interface["suggestions"] = False
-	path.write_text(tomlkit.dumps(document), encoding="utf-8")
+	created_files.write_text(path, tomlkit.dumps(document))
 
 
 class SuggestionsWindow(QDialog):
