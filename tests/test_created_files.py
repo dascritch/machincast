@@ -21,8 +21,8 @@ from machincast.configuration import load
 from machincast.created_files import NotCreatedByMachinCast
 from machincast.indexer import audit as audit_module
 from machincast.interface import columns, preview
-from machincast.webserver import certificate, process
 from machincast.player import outputs, simulation
+from machincast.webserver import certificate, process
 
 scenarios("created_files.feature")
 
@@ -211,6 +211,14 @@ def ended(context: Context, code: int) -> None:
 START = datetime.fromisoformat("2026-11-26 20:00:00").astimezone()
 
 
+def _settings(root: Path) -> list[Path]:
+	"""Les réglages d'économie d'énergie, sous la racine du scénario."""
+	found = []
+	for path, _text in power_save.SETTINGS:
+		found.append(root / path.relative_to("/"))
+	return found
+
+
 def _writers(context: Context) -> dict[str, tuple[list[Path], Callable[[], object]]]:
 	"""Les fichiers de chaque écrivain, et ce qui les écrit."""
 	directory = context.directory
@@ -247,7 +255,7 @@ def _writers(context: Context) -> dict[str, tuple[list[Path], Callable[[], objec
 			lambda: certificate.generate(generated, ["poste-antenne"], ["127.0.0.1"]),
 		),
 		"le retrait des réglages d'économie d'énergie": (
-			[directory / path.relative_to("/") for path, _text in power_save.SETTINGS],
+			_settings(directory),
 			lambda: power_save.disable(directory),
 		),
 	}

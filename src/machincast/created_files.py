@@ -196,6 +196,8 @@ def delete(path: Path) -> None:
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
+	"""La commande d'install.sh : add, forget, adopt (écrit les fichiers adoptés) ou check (code 1 pour un fichier qui
+	existe hors de la liste)."""
 	analyser = argparse.ArgumentParser(prog="machincast.created_files", description=__doc__)
 	analyser.add_argument("--list", type=Path, required=True, dest="listing")
 	analyser.add_argument("action", choices=("add", "forget", "adopt", "check"))
