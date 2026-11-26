@@ -81,7 +81,9 @@ def retain(monkeypatch: pytest.MonkeyPatch, retained: threading.Event) -> None:
 	)
 )
 def already_audited(interface: Context, empty_database: Connection, title: str, threshold: str) -> None:
-	"""Sa date et sa taille sont celles du fichier, audité après sa dernière modification."""
+	"""Sa date et sa taille sont celles du fichier, audité après sa dernière modification, avec la mesure de son niveau :
+	sans elle, l'audit complet le reprend (https://github.com/dascritch/machincast/issues/646,
+	https://github.com/dascritch/machincast/issues/656)."""
 	line = empty_database.execute("SELECT location FROM sounds WHERE title = %s", (title,)).fetchone()
 	assert line is not None
 	location = line[0]
@@ -90,7 +92,9 @@ def already_audited(interface: Context, empty_database: Connection, title: str, 
 	modified_at, size = state
 	empty_database.execute(
 		"UPDATE sounds SET file_modified_at = %s, file_size = %s, checked_at = clock_timestamp(),"
-		" audited_at = clock_timestamp(), audit_threshold = %s WHERE title = %s",
+		" audited_at = clock_timestamp(), audit_threshold = %s,"
+		' properties = COALESCE(properties, \'{}\'::jsonb) || \'{"loudness": {"integrated": -20.0, "peak": -1.0}}\'::jsonb'
+		" WHERE title = %s",
 		(modified_at, size, float(threshold), title),
 	)
 
