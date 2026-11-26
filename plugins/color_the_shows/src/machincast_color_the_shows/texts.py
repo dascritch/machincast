@@ -15,9 +15,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 			" priorité."
 		),
 		"The genres of the shows, and the colours of the events without genre, in the calendar of Machin interface, the"
-		" one of Machin intranet and the tables of airplay.": (
+		" one of Machin webserver and the tables of airplay.": (
 			"Les genres des émissions, et les couleurs des événements sans genre, dans le calendrier de Machin interface,"
-			" celui de Machin intranet et les tableaux d'airplay."
+			" celui de Machin webserver et les tableaux d'airplay."
 		),
 		"Genres": "Genres",
 		"Name": "Nom",

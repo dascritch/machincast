@@ -382,5 +382,5 @@ Fonctionnalité: Les émissions en alternance : un événement méta joue, selon
 		Exemples:
 			| binaire          | points                                                  |
 			| Machin_player    | « grid.substitutions »                                  |
-			| Machin_intranet  | « grid.substitutions »                                  |
+			| Machin_webserver  | « grid.substitutions »                                  |
 			| Machin_interface | « grid.substitutions », « interface.event_card »        |

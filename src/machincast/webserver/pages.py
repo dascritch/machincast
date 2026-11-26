@@ -1,9 +1,9 @@
-"""Les pages de « Machin intranet », dans son gabarit, pour une session valide.
+"""Les pages de « Machin webserver », dans son gabarit, pour une session valide.
 
-- GET / : l'accueil en direct (machincast.intranet.home, https://github.com/dascritch/machincast/issues/541) ;
+- GET / : l'accueil en direct (machincast.webserver.home, https://github.com/dascritch/machincast/issues/541) ;
 - GET /calendar : le calendrier de la semaine, ?week=<un jour de la semaine>, avec la semaine précédente et la
-  suivante, en grille horaire (machincast.intranet.calendar, https://github.com/dascritch/machincast/issues/542,
-  machincast.intranet.hour_grid, https://github.com/dascritch/machincast/issues/580) ;
+  suivante, en grille horaire (machincast.webserver.calendar, https://github.com/dascritch/machincast/issues/542,
+  machincast.webserver.hour_grid, https://github.com/dascritch/machincast/issues/580) ;
 - GET /documentation : les liens vers la documentation de la version installée
   (https://github.com/dascritch/machincast/issues/542) ;
 - GET /static/* : la feuille de style et le script du gabarit, sans session.
@@ -24,12 +24,12 @@ from machincast.i18n import _
 
 # Sans Qt : machincast.interface.version ne lit que git, pour situer l'installation.
 from machincast.interface import version
-from machincast.intranet import agenda, calendar, home, live, rendering, template
-from machincast.intranet.app import Request, Response, Route, redirect
-from machincast.intranet.portal import Connect, Portal
-from machincast.intranet.queries import Connection
-from machincast.intranet.sessions import Session
 from machincast.shortcut import ICON
+from machincast.webserver import agenda, calendar, home, live, rendering, template
+from machincast.webserver.app import Request, Response, Route, redirect
+from machincast.webserver.portal import Connect, Portal
+from machincast.webserver.queries import Connection
+from machincast.webserver.sessions import Session
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def specification(address: str) -> str:
 
 def week_context(found: list[dict[str, Any]], first: date, now: datetime) -> dict[str, Any]:
 	"""Ce que calendar.html.jinja montre : l'agenda de la semaine de first, une seule couche d'événements à venir, en
-	grille horaire, tel qu'il est à now (machincast.intranet.agenda, https://github.com/dascritch/machincast/issues/599),
+	grille horaire, tel qu'il est à now (machincast.webserver.agenda, https://github.com/dascritch/machincast/issues/599),
 	et les liens vers la semaine précédente, celle d'aujourd'hui et la suivante."""
 	last = first + timedelta(days=calendar.WEEK - 1)
 	return {
@@ -106,7 +106,7 @@ class Pages:
 		"""Les pages des plugins dans le bandeau (https://github.com/dascritch/machincast/issues/588)."""
 		self.home_sections: HomeSections | None = None
 		"""Les sections des plugins sous l'accueil, et leur en-tête
-		(machincast.intranet.extensions.Extensions.home, https://github.com/dascritch/machincast/issues/512)."""
+		(machincast.webserver.extensions.Extensions.home, https://github.com/dascritch/machincast/issues/512)."""
 
 	def routes(self) -> dict[tuple[str, str], Route]:
 		return {

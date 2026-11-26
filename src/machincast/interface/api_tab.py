@@ -28,8 +28,8 @@ from machincast.interface.columns import Columns
 from machincast.interface.queries import api_users as queries
 from machincast.interface.ui.api_tab import Ui_ApiScreen
 from machincast.interface.ui.api_user import Ui_ApiUserDialog
-from machincast.intranet import sessions
 from machincast.shared import passwords, totp
+from machincast.webserver import sessions
 
 log = logging.getLogger(__name__)
 

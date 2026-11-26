@@ -34,8 +34,8 @@ cp machincast.exemple.toml machincast.toml   # puis l'adapter ; jamais versionn�
 sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
 sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
-	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_intranet NOLOGIN"
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_webserver NOLOGIN"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_webserver TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 
 # Toutes les vérifications ci-dessous d'un coup, avec un bilan par outil (venv non activé) : bin/Machin dev-test
 # Pour un ticket : bin/Machin dev-test --scenarios <fonctionnalités…> [wrapper] ; la suite complète, tous les 10

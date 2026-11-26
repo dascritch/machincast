@@ -7,7 +7,7 @@ occurrence couverte entièrement (`covered`) ; une session sautée (`skipped`) n
 
 En JSON, pour /api/v1/calendar, et en HTML hCalendar, pour /api/v1/calendar?format=html : chaque occurrence est un
 `vevent` (`h-event`), son nom en `summary`, ses heures en `dtstart` et `dtend`, sa priorité en `category`. La page
-/calendar les montre en grille horaire, toujours en hCalendar (machincast.intranet.hour_grid,
+/calendar les montre en grille horaire, toujours en hCalendar (machincast.webserver.hour_grid,
 https://github.com/dascritch/machincast/issues/580).
 
 Les heures sont celles du poste, avec leur décalage horaire.
@@ -19,9 +19,9 @@ from typing import Any
 from urllib.parse import parse_qs
 
 from machincast.i18n import _
-from machincast.intranet.queries import Connection
 from machincast.shared.colours import event_colour
 from machincast.shared.grid import DAY_NAMES, Planned, Priority, plan, read_grid
+from machincast.webserver.queries import Connection
 
 ONE_DAY = timedelta(days=1)
 WEEK = 7

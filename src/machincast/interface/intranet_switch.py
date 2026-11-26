@@ -3,14 +3,14 @@
 
 La page « Intranet » écrit intranet.enabled, port et validation dans machincast.toml, puis :
 
-- avec le service installé (install.sh --service), l'unité machincast-intranet.service les prend aussitôt :
+- avec le service installé (install.sh --service), l'unité machincast-webserver.service les prend aussitôt :
   systemctl restart pour l'allumer, ou pour qu'il prenne un nouveau réglage, systemctl stop pour l'éteindre ; la règle
-  polkit demande le mot de passe d'un administrateur. systemctl réussit dès que Machin intranet est lancé : l'unité
+  polkit demande le mot de passe d'un administrateur. systemctl réussit dès que Machin webserver est lancé : l'unité
   est suivie quelques secondes, comme celle de Machin player (https://github.com/dascritch/machincast/issues/376), et
   « allumé » ne s'annonce que si elle tourne encore ; sinon, son code de sortie et la dernière ligne de son journal ;
-- sans le service, Machin intranet se lance dans un terminal, comme la diffusion d'essai, sur la configuration de
+- sans le service, Machin webserver se lance dans un terminal, comme la diffusion d'essai, sur la configuration de
   l'interface, et l'y garde ouvert s'il s'arrête sur une erreur ; il s'arrête par SIGTERM, comme Ctrl-C, retrouvé par
-  le PID qu'il note (machincast.intranet.process). Un nouveau réglage l'arrête, puis le relance.
+  le PID qu'il note (machincast.webserver.process). Un nouveau réglage l'arrête, puis le relance.
 """
 
 import os
@@ -24,8 +24,8 @@ from machincast import service
 from machincast.clock import Clock, SystemClock
 from machincast.i18n import _
 from machincast.interface import control
-from machincast.intranet import process
 from machincast.service import INTRANET_UNIT, INTRANET_UNIT_FILE
+from machincast.webserver import process
 
 UNIT_FILE = INTRANET_UNIT_FILE
 SWITCHED_ON = _("Intranet server switched on: {addresses}")
@@ -40,25 +40,25 @@ NO_ANSWER = _("Intranet server unchanged: no authentication in the terminal wind
 NO_AUTHENTICATION = _(
 	"Intranet server unchanged: no way to ask for the password in this session; run “sudo systemctl {verb} {unit}”."
 )
-NOT_STARTED = _("Intranet server not started: Machin intranet stopped, exit code {code}.")
-NOT_STARTED_WITHOUT_CODE = _("Intranet server not started: Machin intranet stopped.")
+NOT_STARTED = _("Intranet server not started: Machin webserver stopped, exit code {code}.")
+NOT_STARTED_WITHOUT_CODE = _("Intranet server not started: Machin webserver stopped.")
 CODES = {
 	2: _("Its configuration is invalid."),
 	4: _("It is switched off in machincast.toml of the MachinCast directory, which the service reads."),
 	127: _("A program is missing: after an update of MachinCast, run ./install.sh again, which updates the service."),
 }
-"""Ce que veut dire le code de sortie de Machin intranet, ou de Machin qui le lance."""
-LAUNCHED = _("Machin intranet launched in a terminal, in test mode under your account: {addresses}")
+"""Ce que veut dire le code de sortie de Machin webserver, ou de Machin qui le lance."""
+LAUNCHED = _("Machin webserver launched in a terminal, in test mode under your account: {addresses}")
 TEST_MODE = _(
-	"Test mode: without the broadcast service, Machin intranet runs under your account, without the partitioning of "
+	"Test mode: without the broadcast service, Machin webserver runs under your account, without the partitioning of "
 	"the service; for a computer open to the network of the radio, install the service (./install.sh --service)."
 )
 """Ce que dit la page « Intranet » des paramètres sans le service (https://github.com/dascritch/machincast/issues/549) :
 la documentation de la sécurité dit ce qui diffère (doc/fr/administration/securite.md)."""
-WITHOUT_TERMINAL = _("No terminal found (konsole, x-terminal-emulator): run Machin intranet by hand.")
-STILL_RUNNING = _("Machin intranet still running (PID {pid}): stop it in its terminal, with Ctrl-C.")
+WITHOUT_TERMINAL = _("No terminal found (konsole, x-terminal-emulator): run Machin webserver by hand.")
+STILL_RUNNING = _("Machin webserver still running (PID {pid}): stop it in its terminal, with Ctrl-C.")
 STOP_WINDOW = 10.0
-"""Secondes pour que Machin intranet, lancé sans le service, s'arrête à SIGTERM."""
+"""Secondes pour que Machin webserver, lancé sans le service, s'arrête à SIGTERM."""
 STOP_STEP = 0.1
 """Secondes entre deux regards sur son PID pendant cette attente."""
 
@@ -74,18 +74,18 @@ STOPPED = _("Intranet server: stopped.")
 
 
 def running() -> bool:
-	"""Le serveur intranet tourne : son unité, avec le service ; sinon, le Machin intranet du compte."""
+	"""Le serveur intranet tourne : son unité, avec le service ; sinon, le Machin webserver du compte."""
 	if service_installed():
 		return service.read_startup(INTRANET_UNIT).running
 	return process.running_pid() is not None
 
 
 def command(configuration: Path | None) -> list[str]:
-	"""Machin intranet, sur la configuration de l'interface, son terminal gardé ouvert sur une erreur."""
+	"""Machin webserver, sur la configuration de l'interface, son terminal gardé ouvert sur une erreur."""
 	called = [str(control.MACHIN)]
 	if configuration is not None:
 		called += ["--config", str(configuration)]
-	return [*called, "intranet", "--keep-open"]
+	return [*called, "webserver", "--keep-open"]
 
 
 class IntranetSwitch(QObject):
@@ -217,7 +217,7 @@ class IntranetSwitch(QObject):
 		self._wait(pid, round(STOP_WINDOW / STOP_STEP), enabled=enabled, addresses=addresses)
 
 	def _wait(self, pid: int, remaining: int, *, enabled: bool, addresses: list[str]) -> None:
-		"""Attend que Machin intranet s'arrête, encore remaining fois, une fois par STOP_STEP."""
+		"""Attend que Machin webserver s'arrête, encore remaining fois, une fois par STOP_STEP."""
 		if process.running_pid() is None:
 			self._after_stop(enabled=enabled, addresses=addresses)
 			return

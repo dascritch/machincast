@@ -49,7 +49,7 @@ ROLES = {
 	"Machin_player": database.Role.PLAYBACK,
 	"Machin_indexer": database.Role.INDEXING,
 	"Machin_interface": database.Role.INTERFACE,
-	"Machin_intranet": database.Role.INTRANET,
+	"Machin_webserver": database.Role.INTRANET,
 }
 """Le rôle sous lequel chaque binaire vérifie les tables d'un plugin."""
 

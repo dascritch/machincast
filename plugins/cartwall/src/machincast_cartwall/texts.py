@@ -46,8 +46,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
 		"Up": "Monter",
 		"Down": "Descendre",
 		"No account of the API: create one in the tab “API”.": "Aucun compte de l'API : créez-en un dans l'onglet « API ».",
-		"The buttons of each account of the API, in the cartwall of Machin intranet.": (
-			"Les boutons de chaque compte de l'API, dans le cartouchier de Machin intranet."
+		"The buttons of each account of the API, in the cartwall of Machin webserver.": (
+			"Les boutons de chaque compte de l'API, dans le cartouchier de Machin webserver."
 		),
 		"A label is required.": "Un intitulé est demandé.",
 		"A colour is written #rrggbb.": "Une couleur s'écrit #rrggbb.",

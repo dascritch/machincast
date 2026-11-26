@@ -1,11 +1,11 @@
-"""Les pages, les routes d'API et les fichiers statiques que les plugins ajoutent à Machin intranet
+"""Les pages, les routes d'API et les fichiers statiques que les plugins ajoutent à Machin webserver
 (https://github.com/dascritch/machincast/issues/588, ticket enfant de https://github.com/dascritch/machincast/issues/348).
 
 Au démarrage, le serveur demande à chaque plugin chargé abonné au point POINT son Extension
 (machincast.plugins.points) :
 
 - ses pages, sous /plugins/<nom>/<chemin>, en GET, pour une session valide du rôle qu'elles demandent : leur corps
-  HTML, dans le gabarit « Machin intranet », dont le bandeau gagne celles qui ont un libellé (navigation) ;
+  HTML, dans le gabarit « Machin webserver », dont le bandeau gagne celles qui ont un libellé (navigation) ;
 - ses routes d'API, sous /api/v1/plugins/<nom>/<chemin>, en GET ou en POST, en JSON, pour une session valide, en
   cookie ou en « Authorization: Bearer », du rôle qu'elles demandent ; un rôle insuffisant reçoit 403 ;
 - ses fichiers statiques, sous /plugins/<nom>/static/<fichier>, ceux d'un seul répertoire, aux types de STATIC ;
@@ -13,10 +13,10 @@ Au démarrage, le serveur demande à chaque plugin chargé abonné au point POIN
   demandent, avec leurs feuilles de style et leurs scripts, sans page ni entrée au bandeau
   (https://github.com/dascritch/machincast/issues/512).
 
-Pages et routes passent par la même application (machincast.intranet.app) : mêmes en-têtes de sécurité, même
+Pages et routes passent par la même application (machincast.webserver.app) : mêmes en-têtes de sécurité, même
 politique de contenu, même refus d'un formulaire d'un autre site. Leurs fonctions reçoivent un Tools : la session, la
-base au rôle machincast_intranet, l'état de l'antenne, et les demandes à Machin player, au nom du compte de la session
-(machincast.intranet.live.ask, https://github.com/dascritch/machincast/issues/593).
+base au rôle machincast_webserver, l'état de l'antenne, et les demandes à Machin player, au nom du compte de la session
+(machincast.webserver.live.ask, https://github.com/dascritch/machincast/issues/593).
 """
 
 import asyncio
@@ -31,12 +31,12 @@ from typing import Any
 
 from machincast.clock import SystemClock
 from machincast.i18n import _
-from machincast.intranet import agenda, live, openapi, rendering, template
-from machincast.intranet.api import answer, error
-from machincast.intranet.app import Request, Response, Route, redirect
-from machincast.intranet.portal import Connect, Portal
-from machincast.intranet.queries import Connection
-from machincast.intranet.sessions import Session
+from machincast.webserver import agenda, live, openapi, rendering, template
+from machincast.webserver.api import answer, error
+from machincast.webserver.app import Request, Response, Route, redirect
+from machincast.webserver.portal import Connect, Portal
+from machincast.webserver.queries import Connection
+from machincast.webserver.sessions import Session
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class Tools:
 	state_socket: Path
 
 	async def database[T](self, action: Callable[[Connection], T]) -> T:
-		"""Une action sur la base, au rôle machincast_intranet, dans un fil à part."""
+		"""Une action sur la base, au rôle machincast_webserver, dans un fil à part."""
 
 		def run() -> T:
 			with self.connect() as connection:
@@ -82,13 +82,13 @@ class Tools:
 
 	async def agenda(self, first: date) -> list[dict[str, Any]]:
 		"""L'agenda de la semaine de first, une seule couche d'événements à venir, à reprendre à un autre usage ;
-		machincast.intranet.agenda.render l'écrit en grille horaire (https://github.com/dascritch/machincast/issues/599)."""
+		machincast.webserver.agenda.render l'écrit en grille horaire (https://github.com/dascritch/machincast/issues/599)."""
 		now = SystemClock().now()
 		return await self.database(lambda connection: agenda.week(connection, first, now))
 
 	def render(self, template_: str, /, **context: Any) -> str:
 		"""Un gabarit Jinja2, celui du plugin, dans son templates/, ou un de l'intranet
-		(machincast.intranet.rendering, https://github.com/dascritch/machincast/issues/597)."""
+		(machincast.webserver.rendering, https://github.com/dascritch/machincast/issues/597)."""
 		return rendering.render(template_, **context)
 
 	async def ask(self, request: dict[str, Any]) -> live.Answer:

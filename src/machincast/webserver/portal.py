@@ -11,7 +11,7 @@
   compte, et un compte n'a que deux sessions à valider à la fois : un mot de passe volé ne suffit pas à forcer le
   code (https://github.com/dascritch/machincast/issues/547).
 - POST /logout : la session devient invalide, son cookie s'efface.
-- GET / : l'accueil (machincast.intranet.home), pour une session valide ; sinon la mire, ou la page de validation.
+- GET / : l'accueil (machincast.webserver.home), pour une session valide ; sinon la mire, ou la page de validation.
 
 Chaque connexion, acceptée ou refusée, et chaque code, laisse une ligne au journal
 (https://github.com/dascritch/machincast/issues/578) : l'adresse du client entre crochets en tête du message, que
@@ -20,7 +20,7 @@ WARNING.
 
 Le cookie de session est Secure, HttpOnly, SameSite=Strict ; le même jeton sert l'API, en cookie ou en
 « Authorization: Bearer ». Les accès à la base passent par asyncio.to_thread : une connexion par requête, au rôle
-machincast_intranet.
+machincast_webserver.
 """
 
 import asyncio
@@ -36,9 +36,9 @@ from psycopg.rows import TupleRow
 from machincast.clock import Clock, SystemClock
 from machincast.configuration import Intranet as Settings
 from machincast.i18n import _
-from machincast.intranet import rendering, sessions
-from machincast.intranet.app import HTML, TITLE, Request, Response, Route, redirect, text
-from machincast.intranet.sessions import COOKIE, Session
+from machincast.webserver import rendering, sessions
+from machincast.webserver.app import HTML, TITLE, Request, Response, Route, redirect, text
+from machincast.webserver.sessions import COOKIE, Session
 
 Connection = psycopg.Connection[TupleRow]
 Connect = Callable[[], Connection]

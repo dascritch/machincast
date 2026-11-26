@@ -6,7 +6,7 @@ Fonctionnalité: API REST v1 de l'intranet, en lecture
 
 	https://github.com/dascritch/machincast/issues/540, ticket enfant de
 	https://github.com/dascritch/machincast/issues/524. Les requêtes passent directement à l'application ASGI
-	(tests/asgi_client.py), sur la base de test, au rôle machincast_intranet ; le jeton de la session en
+	(tests/asgi_client.py), sur la base de test, au rôle machincast_webserver ; le jeton de la session en
 	« Authorization: Bearer ». Les réponses sont en JSON : dates en ISO 8601, durées en secondes.
 
 	Contexte:

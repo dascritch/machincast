@@ -18,7 +18,6 @@ import psycopg
 import pytest
 from pytest_bdd import parsers, scenarios, then, when
 
-from machincast.intranet import live
 from machincast.player.interruptions import ADVANCED_EVENT, MANUAL_INSERTION, MANUAL_INTERRUPTION
 from machincast.player.state import (
 	IGNORED_REQUEST,
@@ -26,6 +25,7 @@ from machincast.player.state import (
 	cutoff_request_by_fallback,
 	from_user,
 )
+from machincast.webserver import live
 from tests.broadcast_steps import Bench, broadcast, clock
 from tests.log_texts import shown
 

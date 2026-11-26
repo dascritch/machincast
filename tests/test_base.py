@@ -653,7 +653,7 @@ def interface_without_queries() -> None:
 QUERY_MODULES = (
 	"player/queries.py",
 	"indexer/queries.py",
-	"intranet/queries.py",
+	"webserver/queries.py",
 	"interface/queries/",
 	"admin_queries.py",
 	"shared/queries.py",

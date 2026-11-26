@@ -5,7 +5,7 @@
 	"version": "0.1.0",
 	"description": "Touch buttons to drive the antenna from the intranet",
 	"machincast": ">=0.9",
-	"binaries": ["Machin_intranet", "Machin_interface"],
+	"binaries": ["Machin_webserver", "Machin_interface"],
 	"requires": {"plugins": {"autre": ">=1.0"}, "python": ["requests"], "programs": ["ffmpeg"], "tables": ["sounds"]},
 	"l10n": {"fr": {"name": "Cartouchier", "description": "Des boutons tactiles pour piloter l'antenne"}}
 }
@@ -37,7 +37,7 @@ NAME = re.compile(r"^[_\-a-zA-Z0-9]+$")
 """Le nom d'un plugin, celui de son répertoire."""
 DESCRIPTION = 200
 """Caractères d'une description courte, au plus."""
-BINARIES = frozenset({"Machin_player", "Machin_indexer", "Machin_interface", "Machin_intranet"})
+BINARIES = frozenset({"Machin_player", "Machin_indexer", "Machin_interface", "Machin_webserver"})
 """Les binaires où un plugin peut s'accrocher."""
 KEYS = frozenset({"name", "version", "description", "machincast", "binaries", "requires", "l10n"})
 REQUIREMENTS = frozenset({"plugins", "python", "programs", "tables"})

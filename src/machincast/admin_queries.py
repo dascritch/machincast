@@ -143,3 +143,15 @@ def forget_directory(connection: Connection, directory: str) -> None:
 def forget_file(connection: Connection, file: str) -> None:
 	"""Le sonore de ce fichier est supprimé ; le fichier n'est pas touché."""
 	connection.execute("UPDATE sounds SET deleted_at = now() WHERE deleted_at IS NULL AND location = %s", (file,))
+
+
+# ─── Script de pg_restore d'une sauvegarde (machincast.backup.Translation) ───
+
+FORMER_ROLES = {"machincast_intranet": "machincast_webserver"}
+"""Les rôles de groupe renommés depuis, et leur nouveau nom : Machin intranet, devenu Machin webserver
+(https://github.com/dascritch/machincast/issues/654)."""
+PRIVILEGES = ("GRANT ", "REVOKE ", "ALTER DEFAULT PRIVILEGES ")
+"""Les lignes de droits du script de pg_restore, les seules où un ancien nom de rôle est traduit."""
+COPY = "COPY "
+COPY_FROM_STDIN = "FROM stdin;"
+"""Le début et la fin de la ligne qui ouvre les données d'une table, jusqu'à « \\. »."""

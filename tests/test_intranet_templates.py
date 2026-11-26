@@ -2,7 +2,7 @@
 (https://github.com/dascritch/machincast/issues/597).
 
 Les répertoires templates/ des plugins sont imités dans le répertoire temporaire du scénario ;
-machincast.intranet.rendering.configure les donne à l'intranet, comme son démarrage le fait pour les plugins chargés.
+machincast.webserver.rendering.configure les donne à l'intranet, comme son démarrage le fait pour les plugins chargés.
 """
 
 from collections.abc import Iterator
@@ -12,7 +12,7 @@ import pytest
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import catalog
-from machincast.intranet import rendering
+from machincast.webserver import rendering
 from tests.test_intranet_api import Api, _page, application, ask_with, valid_session
 
 scenarios("intranet_templates.feature")

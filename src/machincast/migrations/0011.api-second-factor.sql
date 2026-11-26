@@ -19,8 +19,8 @@ CREATE TABLE api_browsers (
 CREATE INDEX api_browsers_user ON api_browsers (user_id);
 
 -- L'intranet retient un navigateur et note sa dernière connexion ; seule l'interface en oublie.
-GRANT SELECT, INSERT ON api_browsers TO machincast_intranet;
-GRANT UPDATE (used_at) ON api_browsers TO machincast_intranet;
+GRANT SELECT, INSERT ON api_browsers TO machincast_webserver;
+GRANT UPDATE (used_at) ON api_browsers TO machincast_webserver;
 GRANT SELECT, DELETE ON api_browsers TO machincast_interface;
 
 -- Ce que la session à valider attend encore : l'acceptation au pupitre, puis le code de l'application

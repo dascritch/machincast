@@ -49,8 +49,8 @@ from machincast.installation import (
 	tasks_unit,
 )
 from machincast.interface.application import application
-from machincast.intranet import __main__ as intranet_server
 from machincast.protection import SOUND_EXTENSIONS
+from machincast.webserver import __main__ as intranet_server
 from tests.database_fixtures import (
 	configuration_test,
 	sample_configuration_path,
@@ -552,7 +552,7 @@ def sh_task_names() -> None:
 
 @then("install.sh installe l'unité du serveur intranet, l'active, et la retire avec le service")
 def sh_intranet() -> None:
-	"""https://github.com/dascritch/machincast/issues/538 : l'unité tient Machin intranet éteint pour un arrêt voulu."""
+	"""https://github.com/dascritch/machincast/issues/538 : l'unité tient Machin webserver éteint pour un arrêt voulu."""
 	assert installation.INTRANET_DISABLED == intranet_server.DISABLED_CODE
 	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
 	for expected in (
@@ -624,7 +624,7 @@ def lines_then_created_files(
 	account = pwd.getpwuid(os.getuid()).pw_name
 	listing = [
 		[f"f {created_files_list} 0660 {account} machincast -"],
-		[f"a+ {created_files_list} - - - - u:machincast-intranet:r--"],
+		[f"a+ {created_files_list} - - - - u:machincast-webserver:r--"],
 	]
 	lines_without_comments(command, [*datatable, *listing])
 
@@ -1569,3 +1569,154 @@ def sh_plugins() -> None:
 	assert "installation plugins" in plugins_step
 	assert 'MACHINCAST_PYTHON="${VENV}/bin/python" "${script}" --config "${CONFIGURATION}"' in plugins_step
 	assert 'MACHINCAST_PYTHON="${VENV}/bin/python" "${script}" --simulation --config "${CONFIGURATION}"' in plugins_step
+
+
+# ─── Machin intranet, devenu Machin webserver (https://github.com/dascritch/machincast/issues/654) ───
+
+RENAMING_FUNCTIONS = (
+	"choisir_couleurs",
+	"etape",
+	"info",
+	"annonce",
+	"echec",
+	"executer",
+	"fichiers_crees",
+	"inscrire",
+	"desinscrire",
+	"verifier_le_fichier",
+	"renommer_machin_intranet",
+)
+
+
+@pytest.fixture
+def renaming(tmp_path: Path) -> SimpleNamespace:
+	return SimpleNamespace(tmp=tmp_path, former=False, result=None)
+
+
+def _renaming_paths(renaming: SimpleNamespace) -> dict[str, Path]:
+	return {
+		"<unité>": renaming.tmp / "machincast-intranet.service",
+		"<état>": renaming.tmp / "var-lib" / "machincast-intranet",
+		"<nouvel état>": renaming.tmp / "var-lib" / "machincast-webserver",
+		"<état du compte>": renaming.tmp / "state" / "machincast" / "intranet",
+		"<nouvel état du compte>": renaming.tmp / "state" / "machincast" / "webserver",
+	}
+
+
+@given("un poste où Machin intranet est installé, avec son unité, son compte et ses répertoires d'état")
+def former_intranet(renaming: SimpleNamespace) -> None:
+	paths = _renaming_paths(renaming)
+	paths["<unité>"].write_text("[Unit]\n", encoding="utf-8")
+	paths["<état>"].mkdir(parents=True)
+	paths["<état du compte>"].mkdir(parents=True)
+	renaming.former = True
+
+
+@given("un poste sans Machin intranet")
+def without_former_intranet(renaming: SimpleNamespace) -> None:
+	renaming.former = False
+
+
+@when("install.sh reprend Machin intranet, en simulation")
+def renaming_simulated(renaming: SimpleNamespace) -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	paths = _renaming_paths(renaming)
+	lines = [
+		"set -euo pipefail",
+		f'. "{PROJECT_DIRECTORY / "bin" / "i18n.bash"}"',
+		f'charger_messages "{PROJECT_DIRECTORY}"',
+		"SIMULATION=true",
+		"VERBEUX=false",
+		'COMPTE_INTRANET="machincast-webserver"',
+		'UNITE_INTRANET="machincast-webserver.service"',
+		'ANCIEN_COMPTE_INTRANET="machincast-intranet"',
+		'ANCIEN_ROLE_INTRANET="machincast_intranet"',
+		'ANCIENNE_UNITE_INTRANET="machincast-intranet.service"',
+		f'ANCIEN_FICHIER_UNITE_INTRANET="{paths["<unité>"]}"',
+		f'ANCIEN_ETAT_INTRANET="{paths["<état>"]}"',
+		f'ETAT_INTRANET="{paths["<nouvel état>"]}"',
+		f'ANCIEN_ETAT_DU_COMPTE="{paths["<état du compte>"]}"',
+		f'ETAT_DU_COMPTE="{paths["<nouvel état du compte>"]}"',
+		f'RACINE="{PROJECT_DIRECTORY}"',
+		# La liste des fichiers créés (https://github.com/dascritch/machincast/issues/652), que la simulation n'écrit pas.
+		f'LISTE_FICHIERS="{renaming.tmp / "fichiers-machincast.txt"}"',
+		f'CERTIFICATS_INTRANET=("{paths["<nouvel état>"] / "certificate.pem"}" "{paths["<nouvel état>"] / "key.pem"}")',
+		# Le compte et le groupe d'avant, imités : getent ne les trouve que sur un poste installé avant.
+		f'getent() {{ {str(renaming.former).lower()} && [[ "$2" == "machincast-intranet" ]]; }}',
+	]
+	for function in RENAMING_FUNCTIONS:
+		lines.append(_function(install, function) + "\n}")
+	lines.append("choisir_couleurs")
+	lines.append("renommer_machin_intranet")
+	renaming.result = subprocess.run(
+		["bash", "-c", "\n".join(lines)], capture_output=True, text=True, timeout=10, check=False
+	)
+	assert renaming.result.returncode == 0, renaming.result.stderr
+
+
+def _simulated(renaming: SimpleNamespace) -> list[str]:
+	shown = []
+	for line in renaming.result.stdout.splitlines():
+		if (line.strip().startswith("[simulation] sudo")) or (line.strip().startswith("[simulation] mv")):
+			shown.append(line.strip())
+	return shown
+
+
+@then("install.sh a montré, dans l'ordre :")
+def renaming_shown(renaming: SimpleNamespace, datatable: list[list[str]]) -> None:
+	_headers, *rows = datatable
+	expected = []
+	for (row,) in rows:
+		line = row.strip()
+		for name, path in _renaming_paths(renaming).items():
+			line = line.replace(name, str(path))
+		expected.append(line)
+	assert _simulated(renaming) == expected, renaming.result.stdout
+
+
+@then("install.sh n'a rien montré d'autre que les rôles PostgreSQL à renommer s'ils existent")
+def nothing_renamed(renaming: SimpleNamespace) -> None:
+	assert _simulated(renaming) == [
+		"[simulation] sudo -u postgres psql : ALTER ROLE machincast_intranet RENAME TO machincast_webserver, ALTER ROLE"
+		' "machincast-intranet" RENAME TO "machincast-webserver", s\'ils existent'
+	], renaming.result.stdout
+
+
+@then("install.sh reprend Machin intranet après la configuration, avant PostgreSQL")
+def renaming_order() -> None:
+	body = _function((PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8"), "principal")
+	assert (
+		body.index("preparer_configuration")
+		< body.index("renommer_machin_intranet")
+		< body.index("preparer_postgresql")
+	), body
+
+
+def _listed_line(shown: str, path: Path, action: str) -> bool:
+	"""Une ligne de la simulation qui nomme le fichier, retiré de la liste ou ajouté à elle."""
+	for line in shown.splitlines():
+		if (str(path) in line.split()) and (line.rstrip().endswith(action)):
+			return True
+	return False
+
+
+@then("install.sh a retiré de la liste l'ancienne unité et les anciens certificats, et y a inscrit les nouveaux")
+def renaming_listed(renaming: SimpleNamespace) -> None:
+	paths = _renaming_paths(renaming)
+	shown = renaming.result.stdout
+	listing = renaming.tmp / "fichiers-machincast.txt"
+	for removed in (
+		paths["<unité>"],
+		paths["<état>"] / "certificate.pem",
+		paths["<état du compte>"] / "key.pem",
+	):
+		assert _listed_line(shown, removed, f"retiré de {listing}"), shown
+	for added in (paths["<nouvel état>"] / "certificate.pem", paths["<nouvel état du compte>"] / "key.pem"):
+		assert _listed_line(shown, added, f"ajouté à {listing}"), shown
+	assert not listing.exists()
+
+
+@then("install.sh adopte l'ancienne unité de Machin intranet, avant de la retirer")
+def former_unit_adopted() -> None:
+	install = (PROJECT_DIRECTORY / "install.sh").read_text(encoding="utf-8")
+	assert '"${ANCIEN_FICHIER_UNITE_INTRANET}"' in _function(install, "adopter_les_fichiers")

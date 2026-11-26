@@ -5,7 +5,7 @@ Fonctionnalité: Les gabarits Jinja2 de l'intranet, surchargeables par un plugin
 	afin de pouvoir en surcharger ou en remplacer un depuis mon plugin.
 
 	https://github.com/dascritch/machincast/issues/597, ticket enfant de
-	https://github.com/dascritch/machincast/issues/596. Les gabarits sont dans machincast/intranet/templates/ ; un
+	https://github.com/dascritch/machincast/issues/596. Les gabarits sont dans machincast/webserver/templates/ ; un
 	plugin chargé en fournit un du même nom dans son templates/, le premier plugin l'emporte, et l'original reste
 	joignable sous « machincast/<nom> ».
 
@@ -48,7 +48,7 @@ Fonctionnalité: Les gabarits Jinja2 de l'intranet, surchargeables par un plugin
 	Scénario: Les textes des gabarits sont traduits, et relevés par le catalogue
 		Quand je demande à l'API « GET / », avec le jeton « jeton-de-regie »
 		Alors la page contient « <h2>Derniers sonores diffusés</h2> »
-		Et le catalogue relève « Last sounds on air » dans « machincast/intranet/templates/live.html.jinja »
+		Et le catalogue relève « Last sounds on air » dans « machincast/webserver/templates/live.html.jinja »
 
 	Scénario: Un plugin rend ses propres gabarits
 		Étant donné le plugin « affiche » qui fournit le gabarit « affiche.html.jinja » : « <p>{{ _("Next event") }} : {{ nom }}</p> »

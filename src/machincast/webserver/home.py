@@ -1,4 +1,4 @@
-"""L'accueil de « Machin intranet », en direct (https://github.com/dascritch/machincast/issues/541).
+"""L'accueil de « Machin webserver », en direct (https://github.com/dascritch/machincast/issues/541).
 
 Dans l'ordre : l'heure, le texte public en cours, l'événement en cours (début, fin, temps restant), l'événement
 suivant (début, fin), le sonore en cours (durée, temps restant), le sonore suivant (durée, attente avant son début),
@@ -13,7 +13,7 @@ Sans session, l'accueil mène à la mire ; une session à valider, à la page de
 from datetime import datetime
 from typing import Any
 
-from machincast.intranet import rendering
+from machincast.webserver import rendering
 
 EMPTY = "—"
 

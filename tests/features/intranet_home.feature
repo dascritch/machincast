@@ -1,5 +1,5 @@
 # language: fr
-Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
+Fonctionnalité: Gabarit « Machin webserver » et accueil en direct
 	En tant que membre de l'équipe connecté à l'intranet,
 	je veux une page d'accueil qui suit l'antenne en direct,
 	afin de savoir ce qui passe sans être au studio.
@@ -17,7 +17,7 @@ Fonctionnalité: Gabarit « Machin intranet » et accueil en direct
 		Et une session valide de « regie », de jeton « jeton-de-regie »
 		Et l'API de l'intranet sur la base de test, à « 2026-11-20 10:00:00 »
 
-	Scénario: L'accueil suit l'antenne, dans le gabarit « Machin intranet »
+	Scénario: L'accueil suit l'antenne, dans le gabarit « Machin webserver »
 		Étant donné les événements :
 			| name        | public_name | priority               | starts_at        | ends_at          | days |
 			| Fil de jour |             | background_programming |                  |                  |      |

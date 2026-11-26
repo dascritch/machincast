@@ -1,4 +1,4 @@
-/* Le gabarit « Machin intranet » (https://github.com/dascritch/machincast/issues/541) : minimaliste, lisible sur un
+/* Le gabarit « Machin webserver » (https://github.com/dascritch/machincast/issues/541) : minimaliste, lisible sur un
    thème clair comme sombre, sans ressource d'ailleurs. */
 :root {
 	color-scheme: light dark;
@@ -77,7 +77,7 @@ dt { color: var(--discret); }
 dd { margin: 0; }
 nav.semaines { display: flex; gap: 1rem; margin: 0 0 1rem; }
 /* La semaine en grille horaire, comme le calendrier de l'interface (https://github.com/dascritch/machincast/issues/580,
-   machincast.intranet.hour_grid) : les couleurs des priorités de machincast.interface.calendar.COLOURS. Les blocs se
+   machincast.webserver.hour_grid) : les couleurs des priorités de machincast.interface.calendar.COLOURS. Les blocs se
    placent par les attributs de leur SVG ; la feuille ne donne que leur aspect. */
 main:has(.calendrier) { max-width: 90rem; }
 .calendrier { border: 1px solid var(--cadre); border-radius: 6px; overflow: hidden; }

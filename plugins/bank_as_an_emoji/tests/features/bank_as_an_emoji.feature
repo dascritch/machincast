@@ -151,5 +151,5 @@ Fonctionnalité: La banque en emoji : un emoji au début du nom interne d'une ba
 		Exemples:
 			| binaire          | points                 |
 			| Machin_interface | « interface.bank_card » |
-			| Machin_intranet  | aucun point            |
+			| Machin_webserver  | aucun point            |
 			| Machin_player    | aucun point            |

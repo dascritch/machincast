@@ -12,7 +12,7 @@ Fonctionnalité: Les plugins dans l'interface : l'onglet « Plugins » et le men
 
 	Contexte:
 		Étant donné le plugin « horloge » 1.2.0, pour « Machin_interface », décrit « Speaks the time » et en français « Dit l'heure »
-		Et le plugin « cartes » 0.3, pour « Machin_intranet », décrit « Cards » et en français « Des cartes »
+		Et le plugin « cartes » 0.3, pour « Machin_webserver », décrit « Cards » et en français « Des cartes »
 		Et le plugin « cartes » demande le plugin « absent » >=1
 		Et le plugin « casse » dont le manifest a un JSON illisible
 

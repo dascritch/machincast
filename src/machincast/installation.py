@@ -61,8 +61,8 @@ from machincast.database import apply_migrations, url_yoyo  # noqa: E402
 from machincast.i18n import _  # noqa: E402
 from machincast.indexer.indexer import ONGOING_CODE  # noqa: E402
 from machincast.interface import columns  # noqa: E402
-from machincast.intranet import certificate, process  # noqa: E402
 from machincast.service import INDEXING_UNIT, TASKS_UNIT, UNIT  # noqa: E402
+from machincast.webserver import certificate, process  # noqa: E402
 
 EXECUTABLE = "machincast.installation"
 DESCRIPTION = _("MachinCast installation steps, called by install.sh.")
@@ -695,13 +695,13 @@ SyslogIdentifier=machincast-indexing
 """
 
 
-INTRANET_STATE = "machincast-intranet"
-"""Le répertoire d'état du serveur intranet, /var/lib/machincast-intranet : son certificat généré."""
-INTRANET_LOG = log_directory.DIRECTORY / "Machin_intranet.log"
-"""Le journal du serveur intranet (machincast.intranet.__main__.EXECUTABLE), préparé par tmpfiles à son compte : il ne
+INTRANET_STATE = "machincast-webserver"
+"""Le répertoire d'état du serveur intranet, /var/lib/machincast-webserver : son certificat généré."""
+INTRANET_LOG = log_directory.DIRECTORY / "Machin_webserver.log"
+"""Le journal du serveur intranet (machincast.webserver.__main__.EXECUTABLE), préparé par tmpfiles à son compte : il ne
 peut ni lister ni écrire /var/log/machincast (https://github.com/dascritch/machincast/issues/578)."""
 INTRANET_DISABLED = 4
-"""Le code de Machin intranet éteint (machincast.intranet.__main__.DISABLED_CODE)."""
+"""Le code de Machin webserver éteint (machincast.webserver.__main__.DISABLED_CODE)."""
 
 
 INTRANET_HARDENING = (
@@ -740,13 +740,13 @@ INTRANET_HARDENING = (
 """Ce que le serveur intranet, exposé au réseau, ne peut pas faire (https://github.com/dascritch/machincast/issues/549) :
 tout le système en lecture seule, sauf son répertoire d'état ; aucun répertoire personnel ; aucune capacité ; pas
 d'autres familles de sockets que Unix, IP et netlink (ip address, pour les adresses du poste) ; mesuré par
-systemd-analyze security machincast-intranet."""
+systemd-analyze security machincast-webserver."""
 
 
 def intranet_unit(directory: Path = PROJECT_DIRECTORY) -> str:
 	"""L'unité du serveur intranet (https://github.com/dascritch/machincast/issues/538), sous son propre compte,
-	machincast-intranet, hors du groupe du service de diffusion, dont le rôle PostgreSQL n'endosse que
-	machincast_intranet (https://github.com/dascritch/machincast/issues/549). Elle démarre avec le poste ; Machin intranet
+	machincast-webserver, hors du groupe du service de diffusion, dont le rôle PostgreSQL n'endosse que
+	machincast_webserver (https://github.com/dascritch/machincast/issues/549). Elle démarre avec le poste ; Machin webserver
 	s'arrête aussitôt, code 4, tant que intranet.enabled n'est pas vrai, sans que systemd le relance. La page
 	« Intranet » des paramètres du service la redémarre ou l'arrête, ce que permet la règle polkit. Son répertoire
 	d'état garde le certificat généré ; elle ne peut écrire nulle part ailleurs (INTRANET_HARDENING), sauf son journal
@@ -757,7 +757,7 @@ def intranet_unit(directory: Path = PROJECT_DIRECTORY) -> str:
 # intranet.enabled in machincast.toml, or in the interface: this unit does not change.
 
 [Unit]
-Description=MachinCast: intranet server, HTTPS only (Machin intranet)
+Description=MachinCast: intranet server, HTTPS only (Machin webserver)
 After=network-online.target postgresql.service
 Wants=network-online.target
 
@@ -771,13 +771,13 @@ StateDirectoryMode=0700
 # Son journal, que prépare tmpfiles ; sans lui, l'unité démarre quand même
 # (https://github.com/dascritch/machincast/issues/578).
 ReadWritePaths=-{INTRANET_LOG}
-ExecStart={directory}/bin/Machin intranet
+ExecStart={directory}/bin/Machin webserver
 SuccessExitStatus={INTRANET_DISABLED}
 RestartPreventExitStatus={INTRANET_DISABLED}
 Restart=on-failure
 RestartSec=10
 {hardening}
-SyslogIdentifier=machincast-intranet
+SyslogIdentifier=machincast-webserver
 
 [Install]
 WantedBy=multi-user.target

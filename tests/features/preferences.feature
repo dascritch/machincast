@@ -649,7 +649,7 @@ Fonctionnalité: Préférences de l'interface, et réglages des crossfades
 		Et j'allume l'intranet sur le port 9443, avec 15 minutes pour valider une connexion
 		Alors la page « Intranet » donne aux autres postes, pour l'intranet et son API, les liens « https://studio.radio.example:9443/ », « https://10.0.0.12:9443/ », « https://[fd00::12]:9443/ »
 
-	Plan du scénario: Sans le service, la page « Intranet » prévient que Machin intranet tourne en mode test, sous le compte
+	Plan du scénario: Sans le service, la page « Intranet » prévient que Machin webserver tourne en mode test, sous le compte
 		https://github.com/dascritch/machincast/issues/549 : sans son compte, ni le cloisonnement de son unité.
 		Étant donné l'unité du serveur intranet <unité>
 		Quand la fenêtre des paramètres du service s'ouvre sur l'intranet éteint

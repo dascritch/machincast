@@ -21,7 +21,7 @@ from machincast.configuration import load
 from machincast.created_files import NotCreatedByMachinCast
 from machincast.indexer import audit as audit_module
 from machincast.interface import columns, preview
-from machincast.intranet import certificate, process
+from machincast.webserver import certificate, process
 from machincast.player import outputs, simulation
 
 scenarios("created_files.feature")

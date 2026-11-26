@@ -29,7 +29,7 @@ Toutes les requêtes d'un binaire sont dans son module de requêtes : ce que cha
 | --- | --- |
 | `Machin_player` | `src/machincast/player/queries.py` |
 | `Machin_indexer` | `src/machincast/indexer/queries.py` |
-| `Machin_intranet` | `src/machincast/intranet/queries.py` : l'API et les sessions |
+| `Machin_webserver` | `src/machincast/webserver/queries.py` : l'API et les sessions |
 | `Machin_interface` | le paquet `src/machincast/interface/queries/`, un module par entité |
 | Administration : `Machin purge`, `Machin maintenance-db`, `Machin restore-db`, `Machin grant-read`, les sonores personnels d'`install.sh --service` | `src/machincast/admin_queries.py` |
 | Commun à plusieurs binaires : la grille, le démarrage précédent d'un binaire | `src/machincast/shared/queries.py` |
@@ -72,7 +72,7 @@ Toutes les requêtes d'un binaire sont dans son module de requêtes : ce que cha
 Le tableau des droits par binaire est dans [spec.md § 3.2](../spec.md#32-rôles-et-droits).
 Il est appliqué deux fois :
 
-1. en base, par les `GRANT` des migrations, `0001.initial-schema` d'abord, aux rôles `machincast_player`, `machincast_indexer` et `machincast_interface`, puis `0005.api-users` à `machincast_intranet`, le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)) ;
+1. en base, par les `GRANT` des migrations, `0001.initial-schema` d'abord, aux rôles `machincast_player`, `machincast_indexer` et `machincast_interface`, puis `0005.api-users` à `machincast_webserver`, le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)) ;
 2. dans le code : chaque binaire n'exécute que les requêtes autorisées à son rôle.
 
 Règles :

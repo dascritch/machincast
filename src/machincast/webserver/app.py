@@ -1,7 +1,7 @@
 """L'application web de l'intranet, en ASGI, servie par Hypercorn (https://github.com/dascritch/machincast/issues/538).
 
 Sans framework : des routes par méthode et par chemin, des réponses entières, et les en-têtes de sécurité sur chacune.
-Le serveur n'écoute qu'en HTTPS (machincast.intranet.__main__) : Strict-Transport-Security demande au navigateur de ne
+Le serveur n'écoute qu'en HTTPS (machincast.webserver.__main__) : Strict-Transport-Security demande au navigateur de ne
 jamais revenir en clair. Un formulaire envoyé d'une autre origine est refusé, comme un corps trop gros.
 """
 
@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from machincast.i18n import _
-from machincast.intranet import rendering
+from machincast.webserver import rendering
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ SECURITY_HEADERS = (
 HTML = "text/html; charset=utf-8"
 TEXT = "text/plain; charset=utf-8"
 JSON = "application/json"
-TITLE = "Machin intranet"
+TITLE = "Machin webserver"
 MAXIMUM_BODY = 64 * 1024
 """Octets d'un corps de requête, au plus : un formulaire de connexion n'en demande pas tant."""
 

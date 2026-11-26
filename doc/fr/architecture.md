@@ -151,7 +151,7 @@ flowchart TB
 		wrapper["Machin et install.sh<br/>bash<br/>point d'entrée, installation"]
 		player["Machin_player<br/>Python, GStreamer<br/>service systemd : joue la grille"]
 		indexer["Machin_indexer<br/>Python, GStreamer<br/>vérifie et indexe les sonores"]
-		outils["Machin_maintenance-db<br/>Machin_backup-db<br/>Machin_restore-db<br/>Machin_purge<br/>Machin_grant-read<br/>Machin_status<br/>Machin_intranet"]
+		outils["Machin_maintenance-db<br/>Machin_backup-db<br/>Machin_restore-db<br/>Machin_purge<br/>Machin_grant-read<br/>Machin_status<br/>Machin_webserver"]
 		base[("PostgreSQL<br/>base machincast")]
 		fichiers[("Fichiers sonores")]
 		sorties[/"Page publique,<br/>CSV, .pls"/]
@@ -184,7 +184,7 @@ Chaque binaire lit `machincast.toml` à son lancement et joint la base par socke
 | `Machin_interface` | Superviser l'antenne, éditer banques, séquences et événements, simuler, pré-écouter, piloter le service. | Base (rôle `machincast_interface`), socket d'état, systemd par polkit, PipeWire. |
 | `Machin` | Point d'entrée unique en ligne de commande ; suivi des logs ; outils de développement. | Shell, journal de systemd. |
 | `install.sh` | Installer, mettre à jour, installer ou retirer le service ; relançable. | `sudo` pour les seules étapes qui l'exigent. |
-| Outils | `Machin_maintenance-db` : sauvegarde, schéma et rôles, optimisation. `Machin_backup-db` et `Machin_restore-db` : export de la base, et réimportation dans une base neuve ([#347](https://github.com/dascritch/machincast/issues/347)). `Machin_purge` : péremption de l'airplay et du log, chaque jour à l'heure de `schedule.daily` avec le service. `Machin_grant-read` : lecture des sonores par le service. `Machin_status` : état du player, du serveur, nom de la radio, événement actuel et suivant, en une ligne ([#518](https://github.com/dascritch/machincast/issues/518)). `Machin_intranet` : l'intranet et son API, en HTTPS seulement, éteint par défaut ([#538](https://github.com/dascritch/machincast/issues/538)). | Base, ACL des répertoires de sonores. |
+| Outils | `Machin_maintenance-db` : sauvegarde, schéma et rôles, optimisation. `Machin_backup-db` et `Machin_restore-db` : export de la base, et réimportation dans une base neuve ([#347](https://github.com/dascritch/machincast/issues/347)). `Machin_purge` : péremption de l'airplay et du log, chaque jour à l'heure de `schedule.daily` avec le service. `Machin_grant-read` : lecture des sonores par le service. `Machin_status` : état du player, du serveur, nom de la radio, événement actuel et suivant, en une ligne ([#518](https://github.com/dascritch/machincast/issues/518)). `Machin_webserver` : l'intranet et son API, en HTTPS seulement, éteint par défaut ([#538](https://github.com/dascritch/machincast/issues/538)). | Base, ACL des répertoires de sonores. |
 | PostgreSQL | Tout l'état durable : sonores, banques, séquences, événements, airplay, log. | Socket Unix, authentification peer. |
 | `machincast.toml` | Configuration du poste : audio, sorties, masquage, seuils. Jamais versionné. | Lu par chaque binaire à son lancement ; écrit par les préférences de l'interface. |
 

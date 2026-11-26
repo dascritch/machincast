@@ -86,6 +86,29 @@ Fonctionnalité: Export et réimportation de la base de données
 		Et la commande a signalé « la base machincast_test n'est pas vide : une sauvegarde ne se réimporte que dans une base neuve, comme install.sh la crée »
 		Et la séquence « Fil du matin » est en base
 
+	Scénario: Les droits d'une sauvegarde d'avant Machin webserver passent au rôle machincast_webserver, jamais ses données
+		https://github.com/dascritch/machincast/issues/654 : Machin intranet est devenu Machin webserver, et son rôle de
+		groupe machincast_intranet, machincast_webserver. Le script que pg_restore tire d'une sauvegarde d'avant est
+		rejoué par psql, une ligne de droits traduite ; une ligne de COPY reste telle quelle.
+		Quand le script d'une sauvegarde d'avant est traduit :
+			"""
+			GRANT SELECT ON TABLE public.events TO machincast_intranet;
+			REVOKE ALL ON TABLE public.api_users FROM machincast_intranet;
+			COPY public.log (id, message) FROM stdin;
+			1	GRANT SELECT ON TABLE public.events TO machincast_intranet;
+			\.
+			GRANT USAGE ON SEQUENCE public.log_id_seq TO machincast_player;
+			"""
+		Alors le script rejoué est :
+			"""
+			GRANT SELECT ON TABLE public.events TO machincast_webserver;
+			REVOKE ALL ON TABLE public.api_users FROM machincast_webserver;
+			COPY public.log (id, message) FROM stdin;
+			1	GRANT SELECT ON TABLE public.events TO machincast_intranet;
+			\.
+			GRANT USAGE ON SEQUENCE public.log_id_seq TO machincast_player;
+			"""
+
 	Scénario: Un fichier introuvable est signalé
 		Étant donné la base de test vidée, comme install.sh vient de la créer
 		Quand je lance « Machin restore-db …/introuvable.dump »

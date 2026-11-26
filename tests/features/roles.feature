@@ -53,7 +53,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 		https://github.com/dascritch/machincast/issues/539 : il ouvre, valide et ferme leurs sessions, sans en supprimer.
 		https://github.com/dascritch/machincast/issues/540 : son API lit la programmation, l'airplay et le log, sans rien en écrire.
 
-		Alors le rôle "machincast_intranet" a exactement ces droits :
+		Alors le rôle "machincast_webserver" a exactement ces droits :
 			| table            | lire | inserer | modifier | supprimer |
 			| sounds           | oui  | non     | non      | non       |
 			| feeds            | oui  | non     | non      | non       |
@@ -78,9 +78,9 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 
 		Exemples:
 			| rôle                 | colonne     | verdict     |
-			| machincast_intranet  | accepted_at | ne peut pas |
-			| machincast_intranet  | state       | peut        |
-			| machincast_intranet  | attempts    | peut        |
+			| machincast_webserver  | accepted_at | ne peut pas |
+			| machincast_webserver  | state       | peut        |
+			| machincast_webserver  | attempts    | peut        |
 			| machincast_interface | accepted_at | peut        |
 
 	Scénario: Droits de l'interface
@@ -122,7 +122,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| machincast_indexer   | peut        |
 			| machincast_player    | peut        |
 			| machincast_interface | ne peut pas |
-			| machincast_intranet  | ne peut pas |
+			| machincast_webserver  | ne peut pas |
 
 	Scénario: Le binaire lecture enregistre un passage complet
 		Quand le rôle "machincast_player" enregistre le début et la fin d'un passage, puis une entrée de log
@@ -145,7 +145,7 @@ Fonctionnalité: Rôles PostgreSQL et droits par binaire
 			| machincast_player    |
 			| machincast_indexer |
 			| machincast_interface  |
-			| machincast_intranet   |
+			| machincast_webserver   |
 
 	Scénario: L'annulation des migrations ne supprime pas les rôles
 		Quand j'annule toutes les migrations

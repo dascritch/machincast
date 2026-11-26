@@ -1,14 +1,14 @@
 """L'API REST de l'intranet, version 1, en lecture seulement (https://github.com/dascritch/machincast/issues/540).
 
 Sous /api/v1, en GET seulement, pour une session valide, quel que soit le rôle du compte : son jeton en cookie, ou en
-« Authorization: Bearer » (machincast.intranet.portal). Sans session valide, 401 ; une autre méthode, 405 ; un
+« Authorization: Bearer » (machincast.webserver.portal). Sans session valide, 401 ; une autre méthode, 405 ; un
 élément inconnu, 404. Les réponses sont en JSON, en UTF-8 : dates en ISO 8601, durées en secondes.
 
-- /api/v1/live : l'antenne en direct (machincast.intranet.live) ;
+- /api/v1/live : l'antenne en direct (machincast.webserver.live) ;
 - /api/v1/calendar : les occurrences des événements des jours [from, to[, ?from=<date>&to=<date>, la semaine en
-  cours par défaut, en JSON, ou en HTML hCalendar avec ?format=html (machincast.intranet.calendar) ;
+  cours par défaut, en JSON, ou en HTML hCalendar avec ?format=html (machincast.webserver.calendar) ;
 - /api/v1/incidents : les incidents seulement, les plus récents en tête ;
-- /api/v1/openapi.json : le schéma OpenAPI 3.1 de l'API, routes des plugins comprises (machincast.intranet.openapi,
+- /api/v1/openapi.json : le schéma OpenAPI 3.1 de l'API, routes des plugins comprises (machincast.webserver.openapi,
   https://github.com/dascritch/machincast/issues/602) ;
 - /api/v1/events, /sequences, /banks, /sounds : une page de la liste, ?after=<id>&limit=<n> ; la réponse donne
   `next`, l'identifiant à passer en after pour la page suivante, ou null ;
@@ -31,10 +31,10 @@ from urllib.parse import parse_qs
 
 from machincast.clock import Clock, SystemClock
 from machincast.i18n import _
-from machincast.intranet import calendar, live, openapi, queries
-from machincast.intranet.app import JSON, Request, Response, Route, page
-from machincast.intranet.portal import Connect, Portal
-from machincast.intranet.queries import Connection
+from machincast.webserver import calendar, live, openapi, queries
+from machincast.webserver.app import JSON, Request, Response, Route, page
+from machincast.webserver.portal import Connect, Portal
+from machincast.webserver.queries import Connection
 
 PREFIX = "/api/v1/"
 CARD = re.compile(r"(?P<kind>events|sequences|banks|sounds)(?:/(?P<identifier>\d{1,18}))?")

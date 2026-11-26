@@ -1,10 +1,10 @@
-"""Le processus de Machin intranet, que l'interface retrouve pour l'arrêter
+"""Le processus de Machin webserver, que l'interface retrouve pour l'arrêter
 (https://github.com/dascritch/machincast/issues/544).
 
-Tant qu'il sert, Machin intranet note son PID dans son répertoire d'état, et l'efface en s'arrêtant. Lancé à la main
+Tant qu'il sert, Machin webserver note son PID dans son répertoire d'état, et l'efface en s'arrêtant. Lancé à la main
 ou par l'interface, sans le service, ce répertoire est celui du compte : l'interface, sous le même compte, y lit le
 PID de celui qu'elle doit arrêter. Un PID resté d'un arrêt brutal, ou repris par un autre programme, ne compte pas :
-seul compte un processus du même compte, lancé comme Machin intranet, et démarré avant l'écriture du fichier
+seul compte un processus du même compte, lancé comme Machin webserver, et démarré avant l'écriture du fichier
 (https://github.com/dascritch/machincast/issues/550).
 Sans dépendance à Hypercorn ni à Qt : l'interface l'importe.
 """
@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-PID_FILE = "machincast-intranet.pid"
+PID_FILE = "machincast-webserver.pid"
 
 
 def state_directory() -> Path:
@@ -25,7 +25,7 @@ def state_directory() -> Path:
 	base = os.environ.get("XDG_STATE_HOME", "")
 	if base == "":
 		base = str(Path.home() / ".local" / "state")
-	return Path(base) / "machincast" / "intranet"
+	return Path(base) / "machincast" / "webserver"
 
 
 @contextmanager
@@ -37,11 +37,11 @@ def recorded(directory: Path | None = None) -> Iterator[Path]:
 	try:
 		yield path
 	finally:
-		path.unlink(missing_ok=True)  # fichier de MachinCast : le PID de Machin intranet
+		path.unlink(missing_ok=True)  # fichier de MachinCast : le PID de Machin webserver
 
 
-EXECUTABLE = "Machin_intranet"
-MODULE = "machincast.intranet"
+EXECUTABLE = "Machin_webserver"
+MODULE = "machincast.webserver"
 TOLERANCE = 2.0
 """Secondes entre le démarrage du processus, arrondi au tic d'horloge, et l'écriture de son PID."""
 
@@ -60,7 +60,7 @@ def arguments(pid: int) -> list[str]:
 
 
 def runs_intranet(given: list[str]) -> bool:
-	"""Ces arguments sont ceux de Machin intranet : son exécutable, ou python -m machincast.intranet, élément par
+	"""Ces arguments sont ceux de Machin webserver : son exécutable, ou python -m machincast.webserver, élément par
 	élément, jamais par sous-chaîne (https://github.com/dascritch/machincast/issues/550)."""
 	for index, argument in enumerate(given):
 		if Path(argument).name == EXECUTABLE:
@@ -90,7 +90,7 @@ def started_at(pid: int) -> float | None:
 
 
 def _is_intranet(pid: int, path: Path) -> bool:
-	"""Le processus existe, au même compte, c'est Machin intranet, et il a démarré avant l'écriture du fichier de
+	"""Le processus existe, au même compte, c'est Machin webserver, et il a démarré avant l'écriture du fichier de
 	son PID : un PID resté d'un arrêt brutal, puis réattribué, ne compte pas."""
 	try:
 		owner = Path(f"/proc/{pid}").stat().st_uid
@@ -106,7 +106,7 @@ def _is_intranet(pid: int, path: Path) -> bool:
 
 
 def running_pid(directory: Path | None = None) -> int | None:
-	"""Le PID du Machin intranet qui sert, d'après son répertoire d'état ; None s'il ne tourne pas."""
+	"""Le PID du Machin webserver qui sert, d'après son répertoire d'état ; None s'il ne tourne pas."""
 	path = ((directory) or (state_directory())) / PID_FILE
 	try:
 		text = path.read_text(encoding="utf-8").strip()

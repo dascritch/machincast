@@ -28,29 +28,29 @@ C'est ce que met en place `./install.sh --service`, sur un poste dédié à l'an
 | --- | --- | --- | --- | --- |
 | **Le compte de MachinCast**, celui qui l'installe | L'interface, Machin indexer, les tâches régulières (purge, indexation, audit), la maintenance de la base | `machincast`, `systemd-journal` | Le dépôt, les banques, les logs du service | Ses fichiers de configuration, les sauvegardes ; il est propriétaire des bases de production et de test |
 | **`machincast`**, le service de diffusion | Machin player, son PipeWire et son WirePlumber | `machincast` | Le dépôt, `/home/machincast`, les banques dont `Machin grant-read` lui a donné la lecture | `/run/machincast`, `/var/log/machincast`, `/var/lib/machincast` |
-| **`machincast-intranet`**, le serveur intranet | Machin intranet | `machincast-intranet` seulement | Le dépôt et `machincast.toml`, la base au rôle `machincast_intranet`, sa socket de Machin player | `/var/lib/machincast-intranet`, son certificat, et rien d'autre |
+| **`machincast-webserver`**, le serveur intranet | Machin webserver | `machincast-webserver` seulement | Le dépôt et `machincast.toml`, la base au rôle `machincast_webserver`, sa socket de Machin player | `/var/lib/machincast-webserver`, son certificat, et rien d'autre |
 
-- `machincast` et `machincast-intranet` sont des comptes système, sans mot de passe ni shell : personne ne s'y connecte.
+- `machincast` et `machincast-webserver` sont des comptes système, sans mot de passe ni shell : personne ne s'y connecte.
 - Le compte de MachinCast rejoint le groupe `machincast`, pour lire les logs du service, pré-écouter l'antenne et piloter Machin player depuis l'interface. Il rejoint aussi `systemd-journal`, pour lire le journal du service.
-- **`machincast-intranet` n'est pas dans le groupe `machincast`.** Ce groupe donne le PipeWire du service, avec lequel on pourrait jouer du son à l'antenne sans passer par Machin player, ainsi que les logs, les rapports de crash et les sonores de `/home/machincast`. Le serveur intranet n'a besoin de rien de tout cela.
+- **`machincast-webserver` n'est pas dans le groupe `machincast`.** Ce groupe donne le PipeWire du service, avec lequel on pourrait jouer du son à l'antenne sans passer par Machin player, ainsi que les logs, les rapports de crash et les sonores de `/home/machincast`. Le serveur intranet n'a besoin de rien de tout cela.
 - `./install.sh --remove-service` retire les deux comptes système et leurs rôles dans la base.
 
 ## Les rôles dans la base
 
 MachinCast ne se connecte à PostgreSQL que par la socket Unix, en authentification **peer** : le compte système est le rôle de connexion, sans mot de passe.
 
-- Quatre **rôles de groupe**, sans connexion, un par programme : `machincast_player`, `machincast_indexer`, `machincast_interface` et `machincast_intranet`. Leurs droits, table par table, sont dans [Droits de chaque programme dans la base](configuration.md#droits-de-chaque-programme-dans-la-base).
+- Quatre **rôles de groupe**, sans connexion, un par programme : `machincast_player`, `machincast_indexer`, `machincast_interface` et `machincast_webserver`. Leurs droits, table par table, sont dans [Droits de chaque programme dans la base](configuration.md#droits-de-chaque-programme-dans-la-base).
 - Chaque compte peut **endosser** les rôles de ses programmes, **sans en hériter les droits** (`WITH INHERIT FALSE, SET TRUE`). Connecté, il n'a accès à rien ; chaque programme endosse son rôle dès la connexion.
 
 | Compte | Rôles qu'il peut endosser |
 | --- | --- |
 | Le compte de MachinCast | Les quatre, et il est propriétaire des bases |
 | `machincast` | `machincast_player` seulement |
-| `machincast-intranet` | `machincast_intranet` seulement |
+| `machincast-webserver` | `machincast_webserver` seulement |
 
 **Pourquoi des comptes séparés, et pas seulement des rôles.** Endosser un rôle borne les requêtes d'un programme qui se comporte bien. Mais un programme détourné, qui exécuterait du code arbitraire, pourrait quitter ce rôle et retrouver tous les droits de son compte. Le compte de MachinCast, propriétaire des bases, ne fait donc jamais tourner le serveur exposé au réseau.
 
-Le rôle `machincast_intranet` ne fait que lire, sauf les sessions de l'intranet, dont il ne modifie que les colonnes de la validation. Il ne peut pas accepter une connexion à la place du pupitre : seule l'interface le peut ([#547](https://github.com/dascritch/machincast/issues/547)).
+Le rôle `machincast_webserver` ne fait que lire, sauf les sessions de l'intranet, dont il ne modifie que les colonnes de la validation. Il ne peut pas accepter une connexion à la place du pupitre : seule l'interface le peut ([#547](https://github.com/dascritch/machincast/issues/547)).
 
 ## Les sockets de Machin player
 
@@ -59,7 +59,7 @@ Machin player publie son état et reçoit des demandes (couper l'antenne, interr
 | Socket | Répertoire, droits | Qui s'y connecte | Les demandes |
 | --- | --- | --- | --- |
 | `/run/machincast/lecture.sock`, la socket d'état | `2770`, groupe `machincast` ; la socket en `0660` | Machin player, l'interface du compte de MachinCast | Sans compte : une demande qui nomme un compte de l'API est ignorée |
-| `/run/machincast-intranet/intranet.sock`, la socket de l'intranet | `2750`, au compte `machincast` et au groupe `machincast-intranet` ; la socket en `0660` | Le seul serveur intranet | Chaque demande nomme le compte de l'API qui la fait, obligatoire |
+| `/run/machincast-webserver/intranet.sock`, la socket de l'intranet | `2750`, au compte `machincast` et au groupe `machincast-webserver` ; la socket en `0660` | Le seul serveur intranet | Chaque demande nomme le compte de l'API qui la fait, obligatoire |
 
 - Une socket ne sépare pas la lecture de l'écriture : qui peut s'y connecter peut aussi envoyer des demandes. C'est pourquoi le serveur intranet a sa socket à lui, plutôt qu'une place dans le groupe `machincast`.
 - Machin player ne croit le compte d'une demande que sur la socket de l'intranet, où personne d'autre ne se connecte. Le serveur intranet le tient de la session de la personne connectée.
@@ -71,7 +71,7 @@ Machin player publie son état et reçoit des demandes (couper l'antenne, interr
 
 - **Aucune redirection de port** vers le poste depuis la box ou le routeur de la radio, ni vers le port de l'intranet (8443 par défaut), ni vers un autre.
 - **Pour travailler à distance, passer par le VPN de la radio** : on rejoint d'abord son réseau, puis l'intranet, comme depuis un poste de la radio.
-- **Limiter l'écoute au réseau de la radio** : Machin intranet écoute par défaut sur toutes les adresses du poste (`intranet.address`, `0.0.0.0`). Sur un poste qui a plusieurs cartes réseau, ou une adresse publique, `intranet.address` se règle sur l'adresse du réseau de la radio. Un pare-feu du poste peut aussi n'accepter le port de l'intranet que de ce réseau, par exemple `sudo ufw allow from 192.168.1.0/24 to any port 8443 proto tcp`.
+- **Limiter l'écoute au réseau de la radio** : Machin webserver écoute par défaut sur toutes les adresses du poste (`intranet.address`, `0.0.0.0`). Sur un poste qui a plusieurs cartes réseau, ou une adresse publique, `intranet.address` se règle sur l'adresse du réseau de la radio. Un pare-feu du poste peut aussi n'accepter le port de l'intranet que de ce réseau, par exemple `sudo ufw allow from 192.168.1.0/24 to any port 8443 proto tcp`.
 - **PostgreSQL n'écoute pas pour MachinCast** : tous ses programmes s'y connectent par la socket Unix du poste. Rien n'oblige la base à écouter le réseau.
 
 **Le nombre d'utilisateurs est limité, par conception.** L'intranet et son API servent l'équipe de la radio, pas un public :
@@ -84,11 +84,11 @@ Il se gère donc comme les clés du studio : quelques comptes nominatifs, un par
 
 ## HTTPS seulement, même par une simple adresse IP
 
-**Toutes les communications avec Machin intranet sont chiffrées, en HTTPS, sans exception** ([#538](https://github.com/dascritch/machincast/issues/538)) : les pages, l'API, la connexion, ses cookies et ses jetons.
+**Toutes les communications avec Machin webserver sont chiffrées, en HTTPS, sans exception** ([#538](https://github.com/dascritch/machincast/issues/538)) : les pages, l'API, la connexion, ses cookies et ses jetons.
 
-- **Aucun port en clair.** Machin intranet n'écoute qu'en TLS ; une requête en HTTP clair sur son port ne reçoit aucune réponse HTTP. Il n'y a pas non plus de redirection du clair vers le chiffré, qui laisserait passer la première requête en clair.
-- **Même par une simple adresse IP.** Un réseau de radio n'a souvent ni nom de domaine interne ni autorité de certification. Sans certificat donné, Machin intranet en génère un, au nom du poste et de **chacune de ses adresses IP** : `https://10.0.0.12:8443/` est chiffré comme le serait un nom.
-- **Le premier contact se vérifie.** Ce certificat est auto-signé : le navigateur avertit à la première connexion. On compare alors l'empreinte qu'il affiche à celle que donne le journal de Machin intranet au démarrage (`intranet sur https://10.0.0.12:8443/, certificat 9B:21:…`), puis on l'accepte. Un certificat de l'autorité de certification de la radio, donné par `intranet.certificate` et `intranet.key`, évite cet avertissement.
+- **Aucun port en clair.** Machin webserver n'écoute qu'en TLS ; une requête en HTTP clair sur son port ne reçoit aucune réponse HTTP. Il n'y a pas non plus de redirection du clair vers le chiffré, qui laisserait passer la première requête en clair.
+- **Même par une simple adresse IP.** Un réseau de radio n'a souvent ni nom de domaine interne ni autorité de certification. Sans certificat donné, Machin webserver en génère un, au nom du poste et de **chacune de ses adresses IP** : `https://10.0.0.12:8443/` est chiffré comme le serait un nom.
+- **Le premier contact se vérifie.** Ce certificat est auto-signé : le navigateur avertit à la première connexion. On compare alors l'empreinte qu'il affiche à celle que donne le journal de Machin webserver au démarrage (`intranet sur https://10.0.0.12:8443/, certificat 9B:21:…`), puis on l'accepte. Un certificat de l'autorité de certification de la radio, donné par `intranet.certificate` et `intranet.key`, évite cet avertissement.
 - **Le navigateur ne revient jamais en clair.** Chaque réponse le lui demande (`Strict-Transport-Security`), et le cookie de session ne part que sur une connexion chiffrée (`Secure`).
 - **Pour un script qui appelle l'API**, on lui donne le certificat à croire (par exemple `curl --cacert cert.pem`), plutôt que de désactiver la vérification (`curl -k`), qui l'exposerait à une interception.
 
@@ -96,7 +96,7 @@ Pourquoi même sur le réseau de la radio : un Wi-Fi de locaux associatifs, un p
 
 ## Le serveur intranet, exposé au réseau
 
-Machin intranet est le seul programme de MachinCast qui écoute le réseau. Il est **éteint par défaut**, et s'allume dans **Fichier → Paramètres du service…**, page **Intranet** ([Serveur intranet](commandes.md#serveur-intranet--machin-intranet)).
+Machin webserver est le seul programme de MachinCast qui écoute le réseau. Il est **éteint par défaut**, et s'allume dans **Fichier → Paramètres du service…**, page **Intranet** ([Serveur intranet](commandes.md#serveur-intranet--machin-webserver)).
 
 **Le transport** : HTTPS seulement ([ci-dessus](#https-seulement-même-par-une-simple-adresse-ip)). Chaque réponse interdit aussi au navigateur d'afficher la page dans un cadre, de charger une ressource d'ailleurs ou de garder la page en cache, et un formulaire envoyé d'un autre site est refusé : l'intranet se fie d'abord à ce que le navigateur dit de la provenance du formulaire, qu'une page ne peut pas falsifier ([#571](https://github.com/dascritch/machincast/issues/571)).
 
@@ -108,21 +108,21 @@ Machin intranet est le seul programme de MachinCast qui écoute le réseau. Il e
 - **Les paramètres du service demandent un administrateur** ([#603](https://github.com/dascritch/machincast/issues/603)) : avec le service installé, **Fichier → Paramètres du service…** demande, par polkit, le mot de passe d'un administrateur, celui du compte s'il l'est ; sans lui, la fenêtre s'ouvre en consultation. Le niveau sonore de l'antenne, la carte son ou l'intranet ne se changent donc pas par mégarde au studio.
 - **Un navigateur validé est retenu** ([#601](https://github.com/dascritch/machincast/issues/601)) : la première connexion ne vaut qu'une fois par navigateur et par compte. L'onglet **API** compte les navigateurs connus de chaque compte et les oublie ; changer le mot de passe d'un compte, ou le désactiver, les oublie aussi.
 - **Le second facteur se règle** ([#601](https://github.com/dascritch/machincast/issues/601)), page **Intranet**, **Second facteur**, pour chaque connexion, même d'un navigateur connu : **Aucun**, par défaut, le mot de passe suffit ; **Application d'authentification**, le code à 6 chiffres d'une application comme FreeOTP, Aegis ou Google Authenticator, dont la clé se règle dans l'onglet **API** ; **Validation au pupitre**, à chaque connexion.
-- **La première connexion se règle** ([#600](https://github.com/dascritch/machincast/issues/600)), page **Intranet** des paramètres du service, **Première connexion** : **Validation au pupitre, avec un code**, par défaut, la plus sûre ; **Validation au pupitre**, sans code, quand le studio reconnaît à coup sûr qui se connecte ; **Aucune validation**, pour un poste d'essai seulement. En production, le serveur intranet installé en service, **Aucune validation** est grisée, et Machin intranet demande de toute façon le pupitre et son code.
+- **La première connexion se règle** ([#600](https://github.com/dascritch/machincast/issues/600)), page **Intranet** des paramètres du service, **Première connexion** : **Validation au pupitre, avec un code**, par défaut, la plus sûre ; **Validation au pupitre**, sans code, quand le studio reconnaît à coup sûr qui se connecte ; **Aucune validation**, pour un poste d'essai seulement. En production, le serveur intranet installé en service, **Aucune validation** est grisée, et Machin webserver demande de toute façon le pupitre et son code.
 - Cinq codes faux d'une même adresse ou d'un même compte font attendre un quart d'heure, et un compte n'a que deux connexions en attente à la fois : un mot de passe volé ne suffit pas à forcer le code.
 - Une session dure 12 heures par défaut. Changer le mot de passe d'un compte, ou le désactiver, met fin à toutes ses sessions, que sa réactivation ne fait pas revivre ([#548](https://github.com/dascritch/machincast/issues/548)).
 - Le cookie de session n'est jamais envoyé en clair, ni lu par un script de la page, ni envoyé depuis un autre site ; la base n'en garde que l'empreinte.
 
-**Le cloisonnement de l'unité** (`machincast-intranet.service`)
+**Le cloisonnement de l'unité** (`machincast-webserver.service`)
 
-- Tout le système est en lecture seule, le dépôt et `machincast.toml` compris ; seuls son répertoire d'état, `/var/lib/machincast-intranet`, et son journal, `/var/log/machincast/Machin_intranet.log`, s'écrivent.
+- Tout le système est en lecture seule, le dépôt et `machincast.toml` compris ; seuls son répertoire d'état, `/var/lib/machincast-webserver`, et son journal, `/var/log/machincast/Machin_webserver.log`, s'écrivent.
 - Aucun répertoire personnel n'est visible, aucun périphérique, aucune capacité du noyau ; dans `/proc`, seuls ses propres processus, sans les réglages ni l'état du noyau ([#556](https://github.com/dascritch/machincast/issues/556)).
 - Seules les sockets Unix, IP et netlink sont permises (netlink pour lire les adresses du poste), et seuls les appels système d'un service ordinaire, sans les appels privilégiés ; `capset` reste permis, que `ip` appelle pour lâcher ses capacités, même sans en avoir ([#556](https://github.com/dascritch/machincast/issues/556)) : il ne peut qu'en retirer.
-- `systemd-analyze security machincast-intranet` mesure ce cloisonnement.
+- `systemd-analyze security machincast-webserver` mesure ce cloisonnement.
 
 **Le journal** ([#578](https://github.com/dascritch/machincast/issues/578))
 
-Ses messages vont dans le journal du système, `journalctl -u machincast-intranet`, et dans `/var/log/machincast/Machin_intranet.log`, qu'un analyseur de journal peut suivre.
+Ses messages vont dans le journal du système, `journalctl -u machincast-webserver`, et dans `/var/log/machincast/Machin_webserver.log`, qu'un analyseur de journal peut suivre.
 `install.sh --service` prépare ce fichier au compte du serveur intranet et au groupe `machincast`, qui le lit ; logrotate le fait tourner avec les autres journaux.
 Le compte du serveur intranet ne fait que traverser `/var/log/machincast` : il ne peut ni le lister, ni lire les journaux de Machin player et des autres programmes.
 
@@ -136,7 +136,7 @@ Le mot de passe et le code n'y sont jamais ; le nom saisi y est coupé à 64 car
 2026-11-21T18:53:05+01:00 INFO [10.0.0.31] connexion à l'intranet de « regie » validée au pupitre
 ```
 
-Par exemple, pour que **fail2ban** bloque une adresse après cinq refus en un quart d'heure, comme l'intranet lui-même, mais pour une heure et sur tous les ports, un filtre `/etc/fail2ban/filter.d/machincast-intranet.conf` :
+Par exemple, pour que **fail2ban** bloque une adresse après cinq refus en un quart d'heure, comme l'intranet lui-même, mais pour une heure et sur tous les ports, un filtre `/etc/fail2ban/filter.d/machincast-webserver.conf` :
 
 ```ini
 [Definition]
@@ -144,19 +144,19 @@ failregex = ^\s*WARNING \[<HOST>\]
 ignoreregex =
 ```
 
-et une prison `/etc/fail2ban/jail.d/machincast-intranet.conf`, le port étant celui de `intranet.port` :
+et une prison `/etc/fail2ban/jail.d/machincast-webserver.conf`, le port étant celui de `intranet.port` :
 
 ```ini
-[machincast-intranet]
+[machincast-webserver]
 enabled  = true
 port     = 8443
-logpath  = /var/log/machincast/Machin_intranet.log
+logpath  = /var/log/machincast/Machin_webserver.log
 maxretry = 5
 findtime = 15m
 bantime  = 1h
 ```
 
-`fail2ban-regex /var/log/machincast/Machin_intranet.log /etc/fail2ban/filter.d/machincast-intranet.conf` vérifie le filtre sur le journal.
+`fail2ban-regex /var/log/machincast/Machin_webserver.log /etc/fail2ban/filter.d/machincast-webserver.conf` vérifie le filtre sur le journal.
 L'adresse est en tête du message dans toutes les langues de MachinCast : le filtre ne dépend pas de celle du poste.
 Après `install.sh --remove-service`, les journaux restent ; le droit de traverser `/var/log/machincast` qu'avait le compte du serveur intranet part avec `sudo rm -r /var/log/machincast`.
 
@@ -182,10 +182,10 @@ Sans `./install.sh --service`, sur un poste d'essai, tous les programmes tournen
 | | Avec le service | En mode test |
 | --- | --- | --- |
 | Machin player | Sous `machincast`, avec son PipeWire | Sous ton compte, dans un terminal |
-| Machin intranet | Sous `machincast-intranet`, unité cloisonnée | Sous ton compte, dans un terminal, sans cloisonnement |
+| Machin webserver | Sous `machincast-webserver`, unité cloisonnée | Sous ton compte, dans un terminal, sans cloisonnement |
 | Rôles dans la base | Un par compte | Ton compte endosse chacun d'eux, mais il est aussi propriétaire des bases |
-| Sockets de Machin player | Dans `/run/machincast` et `/run/machincast-intranet`, à leurs groupes | Dans `$XDG_RUNTIME_DIR/machincast`, privées à ton compte |
-| Messages | Journal du système, et `/var/log/machincast` pour Machin player et Machin intranet | Le terminal, et `/var/log/machincast` si ton compte peut y écrire |
+| Sockets de Machin player | Dans `/run/machincast` et `/run/machincast-webserver`, à leurs groupes | Dans `$XDG_RUNTIME_DIR/machincast`, privées à ton compte |
+| Messages | Journal du système, et `/var/log/machincast` pour Machin player et Machin webserver | Le terminal, et `/var/log/machincast` si ton compte peut y écrire |
 
 Le protocole des sockets est le même : le compte de l'API reste obligatoire sur la socket de l'intranet, et le log dit d'où vient chaque action. Le mode test sert à essayer MachinCast et l'intranet, **pas à ouvrir le poste au réseau de la radio**.
 

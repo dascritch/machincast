@@ -266,7 +266,7 @@ Fonctionnalité: Vérifications de l'installation
 		Alors « systemd-analyze verify » accepte ensemble « machincast.service », « machincast-pipewire.service » et « machincast-wireplumber.service »
 
 	Scénario: Le serveur intranet démarre avec le poste, et s'arrête aussitôt tant qu'il est éteint
-		https://github.com/dascritch/machincast/issues/538 : Machin intranet éteint s'arrête, code 4, sans que systemd le
+		https://github.com/dascritch/machincast/issues/538 : Machin webserver éteint s'arrête, code 4, sans que systemd le
 		relance.
 
 		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
@@ -274,7 +274,7 @@ Fonctionnalité: Vérifications de l'installation
 		Et l'unité de la commande a, dans la section « Service », entre autres :
 			| clé                      | valeur              |
 			| Type                     | exec                |
-			| StateDirectory           | machincast-intranet |
+			| StateDirectory           | machincast-webserver |
 			| StateDirectoryMode       | 0700                |
 			| SuccessExitStatus        | 4                   |
 			| RestartPreventExitStatus | 4                   |
@@ -288,17 +288,17 @@ Fonctionnalité: Vérifications de l'installation
 	Scénario: Le serveur intranet tourne sous son propre compte, et ne peut écrire que dans son répertoire d'état et son journal
 		https://github.com/dascritch/machincast/issues/549 : exposé au réseau, il n'est ni le compte de MachinCast,
 		propriétaire de la base et du dépôt, ni dans le groupe du service de diffusion, qui donne son PipeWire, ses logs
-		et les sonores de /home/machincast. Son rôle PostgreSQL n'endosse que machincast_intranet. Son journal,
-		Machin_intranet.log, préparé par tmpfiles (https://github.com/dascritch/machincast/issues/578) ; sans lui,
+		et les sonores de /home/machincast. Son rôle PostgreSQL n'endosse que machincast_webserver. Son journal,
+		Machin_webserver.log, préparé par tmpfiles (https://github.com/dascritch/machincast/issues/578) ; sans lui,
 		l'unité démarre quand même.
 
 		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
 		Alors la commande se termine sans erreur
 		Et l'unité de la commande a, dans la section « Service », entre autres :
 			| clé                     | valeur                                   |
-			| User                    | machincast-intranet                      |
-			| ReadWritePaths          | -/var/log/machincast/Machin_intranet.log |
-			| Group                   | machincast-intranet                      |
+			| User                    | machincast-webserver                      |
+			| ReadWritePaths          | -/var/log/machincast/Machin_webserver.log |
+			| Group                   | machincast-webserver                      |
 			| ProtectSystem           | strict                                   |
 			| ProtectHome             | yes                                      |
 			| PrivateTmp              | yes                                      |
@@ -309,7 +309,7 @@ Fonctionnalité: Vérifications de l'installation
 			| RestrictAddressFamilies | AF_UNIX AF_INET AF_INET6 AF_NETLINK      |
 			| MemoryDenyWriteExecute  | yes                                      |
 			| UMask                   | 0077                                     |
-		Et install.sh crée le compte « machincast-intranet », hors du groupe du service, et son rôle qui n'endosse que « machincast_intranet », et les retire avec le service
+		Et install.sh crée le compte « machincast-webserver », hors du groupe du service, et son rôle qui n'endosse que « machincast_webserver », et les retire avec le service
 
 	Scénario: Le filtre des appels système du serveur intranet laisse ip lâcher ses capacités
 		https://github.com/dascritch/machincast/issues/556 : « ~@privileged » interdit capset, que ip appelle au
@@ -323,8 +323,8 @@ Fonctionnalité: Vérifications de l'installation
 	Scénario: systemd accepte l'unité du serveur intranet
 		Étant donné l'outil « systemd-analyze » du poste
 		Quand je lance « python -m machincast.installation intranet-unit » avec la configuration de test
-		Et j'enregistre sa sortie en « machincast-intranet.service »
-		Alors « systemd-analyze verify » accepte « machincast-intranet.service »
+		Et j'enregistre sa sortie en « machincast-webserver.service »
+		Alors « systemd-analyze verify » accepte « machincast-webserver.service »
 
 	Scénario: Les répertoires du service sont recréés à chaque démarrage du poste, au groupe du service
 		https://github.com/dascritch/machincast/issues/578 : le journal du serveur intranet y est préparé, à son compte
@@ -337,9 +337,9 @@ Fonctionnalité: Vérifications de l'installation
 			| d /run/machincast 2770 machincast machincast -             |
 			| d /var/log/machincast 2770 machincast machincast -         |
 			| d /var/log/machincast/crash-dump 2770 machincast machincast - |
-			| d /run/machincast-intranet 2750 machincast machincast-intranet - |
-			| f /var/log/machincast/Machin_intranet.log 0660 machincast-intranet machincast - |
-			| a+ /var/log/machincast - - - - u:machincast-intranet:--x   |
+			| d /run/machincast-webserver 2750 machincast machincast-webserver - |
+			| f /var/log/machincast/Machin_webserver.log 0660 machincast-webserver machincast - |
+			| a+ /var/log/machincast - - - - u:machincast-webserver:--x   |
 
 	Scénario: Les logs tournent chaque semaine, sans couper les programmes qui y écrivent
 		Quand je lance « python -m machincast.installation logrotate » avec la configuration de test
@@ -408,13 +408,13 @@ Fonctionnalité: Vérifications de l'installation
 			| org.freedesktop.systemd1.manage-units  | ssh.service        | stop    | le compte            | rien            |
 			| org.freedesktop.systemd1.manage-units  | machincast.service | stop    | un autre compte      | rien            |
 			| org.freedesktop.systemd1.manage-unit-files | machincast.service | stop | le compte          | rien            |
-			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | start   | le compte | « auth_admin » |
-			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | stop    | le compte | « auth_admin » |
-			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | restart | le compte | « auth_admin » |
-			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | enable  | le compte | rien           |
+			| org.freedesktop.systemd1.manage-units  | machincast-webserver.service | start   | le compte | « auth_admin » |
+			| org.freedesktop.systemd1.manage-units  | machincast-webserver.service | stop    | le compte | « auth_admin » |
+			| org.freedesktop.systemd1.manage-units  | machincast-webserver.service | restart | le compte | « auth_admin » |
+			| org.freedesktop.systemd1.manage-units  | machincast-webserver.service | enable  | le compte | rien           |
 			| org.freedesktop.systemd1.manage-units  | machincast.service | restart | le compte, administrateur | « auth_self_keep » |
-			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | restart | le compte, administrateur | « auth_self_keep » |
-			| org.freedesktop.systemd1.manage-units  | machincast-intranet.service | enable  | le compte, administrateur | rien |
+			| org.freedesktop.systemd1.manage-units  | machincast-webserver.service | restart | le compte, administrateur | « auth_self_keep » |
+			| org.freedesktop.systemd1.manage-units  | machincast-webserver.service | enable  | le compte, administrateur | rien |
 			| org.freedesktop.systemd1.manage-units  | machincast.service | stop    | un autre compte, administrateur | rien |
 
 	Plan du scénario: La règle polkit demande le mot de passe d'un administrateur pour éteindre, redémarrer ou mettre en veille le poste, à tout compte, écran de connexion compris
@@ -738,6 +738,39 @@ Fonctionnalité: Vérifications de l'installation
 	Scénario: install.sh ne retire un répertoire que par retirer_repertoires
 		Alors install.sh ne lance « rm --recursive » que dans retirer_repertoires
 		Et les extensions des sonores d'install.sh sont celles de machincast.protection
+
+	# ─── Machin intranet, devenu Machin webserver (https://github.com/dascritch/machincast/issues/654) ───
+	# Les scénarios lancent sa fonction en simulation : getent et les répertoires d'état sont imités.
+
+	Scénario: Sur un poste installé avant le renommage, install.sh reprend Machin intranet sous le nom de Machin webserver
+		Étant donné un poste où Machin intranet est installé, avec son unité, son compte et ses répertoires d'état
+		Quand install.sh reprend Machin intranet, en simulation
+		Alors install.sh a montré, dans l'ordre :
+			| ligne                                                                                    |
+			| [simulation] sudo systemctl disable --now machincast-intranet.service                    |
+			| [simulation] sudo rm --force <unité>                                                     |
+			| [simulation] sudo systemctl daemon-reload                                                |
+			| [simulation] sudo usermod --login machincast-webserver --comment MachinCast web server machincast-intranet |
+			| [simulation] sudo groupmod --new-name machincast-webserver machincast-intranet           |
+			| [simulation] sudo mv <état> <nouvel état>                                                |
+			| [simulation] mv <état du compte> <nouvel état du compte>                                 |
+			| [simulation] sudo -u postgres psql : ALTER ROLE machincast_intranet RENAME TO machincast_webserver, ALTER ROLE "machincast-intranet" RENAME TO "machincast-webserver", s'ils existent |
+
+	Scénario: install.sh retire l'ancienne unité de la liste des fichiers créés, et y inscrit les certificats sous leur nouveau chemin
+		https://github.com/dascritch/machincast/issues/652 : adoptée comme les autres fichiers installés, l'ancienne unité
+		quitte la liste avec son fichier.
+		Étant donné un poste où Machin intranet est installé, avec son unité, son compte et ses répertoires d'état
+		Quand install.sh reprend Machin intranet, en simulation
+		Alors install.sh a retiré de la liste l'ancienne unité et les anciens certificats, et y a inscrit les nouveaux
+		Et install.sh adopte l'ancienne unité de Machin intranet, avant de la retirer
+
+	Scénario: Sur un poste neuf ou déjà repris, install.sh ne renomme rien, sauf les rôles qui porteraient encore l'ancien nom
+		Étant donné un poste sans Machin intranet
+		Quand install.sh reprend Machin intranet, en simulation
+		Alors install.sh n'a rien montré d'autre que les rôles PostgreSQL à renommer s'ils existent
+
+	Scénario: install.sh reprend Machin intranet avant de créer les rôles PostgreSQL
+		Alors install.sh reprend Machin intranet après la configuration, avant PostgreSQL
 
 	# ─── Réimportation d'une sauvegarde à la création de la base (https://github.com/dascritch/machincast/issues/347) ───
 	# Quand install.sh vient de créer la base de production, il propose de réimporter une sauvegarde d'une installation

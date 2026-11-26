@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlencode
 
-from machincast.intranet.app import Intranet
+from machincast.webserver.app import Intranet
 
 
 @dataclass

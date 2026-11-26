@@ -132,7 +132,7 @@ from machincast.interface.sound_card import SoundCard
 from machincast.interface.state import STOP, PlaybackState
 from machincast.interface.tab_manager import ON_AIR, ON_DEMAND, TabManager
 from machincast.interface.ui.main_window import Ui_MainWindow
-from machincast.intranet import network
+from machincast.webserver import network
 
 log = logging.getLogger(__name__)
 

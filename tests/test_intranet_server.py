@@ -21,11 +21,11 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast import log, service
 from machincast.configuration import Configuration, Intranet, InvalidConfiguration, load
-from machincast.intranet import __main__ as server
-from machincast.intranet import certificate, live, network, process
-from machincast.intranet.app import Intranet as App
-from machincast.intranet.app import Request, Response
 from machincast.player.state import StateSocket
+from machincast.webserver import __main__ as server
+from machincast.webserver import certificate, live, network, process
+from machincast.webserver.app import Intranet as App
+from machincast.webserver.app import Request, Response
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_configuration_path
 from tests.timestamp import without_timestamp
@@ -33,7 +33,7 @@ from tests.timestamp import without_timestamp
 scenarios("intranet_server.feature")
 
 NAME_MARKS = r"« ([^»]*) »"
-EXECUTABLE = Path(sys.executable).with_name("Machin_intranet")
+EXECUTABLE = Path(sys.executable).with_name("Machin_webserver")
 STARTUP = 20.0
 
 
@@ -108,7 +108,7 @@ FIRST_LOGINS = {"sans validation": "none", "au pupitre": "desk", "au pupitre, av
 """La sécurité de la première connexion, comme la disent les scénarios (https://github.com/dascritch/machincast/issues/600)."""
 
 
-@when(parsers.re(r"Machin intranet prend ses réglages, (?P<installation>installé en service|sans le service)"))
+@when(parsers.re(r"Machin webserver prend ses réglages, (?P<installation>installé en service|sans le service)"))
 def guarded(context: Context, caplog: pytest.LogCaptureFixture, installation: str) -> None:
 	assert context.configuration is not None
 	with caplog.at_level(logging.INFO):
@@ -252,7 +252,7 @@ def certificate_given(context: Context) -> None:
 	context.pair = given_pair
 
 
-@when("Machin intranet choisit son certificat")
+@when("Machin webserver choisit son certificat")
 def choose(context: Context, monkeypatch: pytest.MonkeyPatch) -> None:
 	monkeypatch.setenv("STATE_DIRECTORY", str(context.directory / "etat"))
 	before = context.pair.certificate.read_bytes()  # type: ignore[union-attr]
@@ -289,7 +289,7 @@ def _free_port() -> int:
 		return int(probe.getsockname()[1])
 
 
-@when(parsers.re(r"je lance Machin intranet avec l'intranet (?P<state>allumé|éteint)"))
+@when(parsers.re(r"je lance Machin webserver avec l'intranet (?P<state>allumé|éteint)"))
 def launch(context: Context, state: str) -> None:
 	context.port = _free_port()
 	enabled = "true"
@@ -314,7 +314,7 @@ def launch(context: Context, state: str) -> None:
 				return
 		except OSError:
 			time.sleep(0.1)
-	raise AssertionError("Machin intranet n'écoute pas")
+	raise AssertionError("Machin webserver n'écoute pas")
 
 
 def _request(context: Context, method: str, path: str) -> None:
@@ -371,13 +371,13 @@ def _stop(context: Context) -> int:
 	return context.process.returncode
 
 
-@when("Machin intranet reçoit SIGTERM")
+@when("Machin webserver reçoit SIGTERM")
 def terminate(context: Context) -> None:
 	assert context.process is not None
 	context.process.send_signal(signal.SIGTERM)
 
 
-@then(parsers.parse("Machin intranet s'arrête avec le code {code:d}"))
+@then(parsers.parse("Machin webserver s'arrête avec le code {code:d}"))
 def stopped(context: Context, code: int) -> None:
 	assert context.process is not None
 	output, _error = context.process.communicate(timeout=STARTUP)
@@ -441,7 +441,7 @@ def sockets_side_by_side(context: Context, intranet: str, state: str) -> None:
 	assert player.intranet_socket == player.state_socket.with_name(intranet)
 
 
-@then("un Machin player qui diffuse sur ces sockets donne son état à Machin intranet, par la socket de l'intranet")
+@then("un Machin player qui diffuse sur ces sockets donne son état à Machin webserver, par la socket de l'intranet")
 def shared_state(context: Context) -> None:
 	assert context.configuration is not None
 	player = context.configuration.player
@@ -454,15 +454,15 @@ def shared_state(context: Context) -> None:
 		sockets.shut_down()
 
 
-# ─── Le PID de Machin intranet (https://github.com/dascritch/machincast/issues/550) ───
+# ─── Le PID de Machin webserver (https://github.com/dascritch/machincast/issues/550) ───
 
 
-@then(parsers.re(r"des arguments « (?P<given>[^»]+) » (?P<verdict>sont|ne sont pas) ceux de Machin intranet"))
+@then(parsers.re(r"des arguments « (?P<given>[^»]+) » (?P<verdict>sont|ne sont pas) ceux de Machin webserver"))
 def recognised(given: str, verdict: str) -> None:
 	assert process.runs_intranet(given.split()) is (verdict == "sont")
 
 
-@given("un Machin intranet qui tourne, son PID noté", target_fixture="hand")
+@given("un Machin webserver qui tourne, son PID noté", target_fixture="hand")
 def hand_intranet(context: Context) -> Iterator[subprocess.Popen[bytes]]:
 	script = context.directory / process.EXECUTABLE
 	script.write_text("import time\nwhile True:\n\ttime.sleep(1)\n", encoding="utf-8")
@@ -489,7 +489,7 @@ def not_found(found: int | None) -> None:
 	assert found is None
 
 
-@when(parsers.parse("la boucle de Machin intranet rencontre l'exception « {given} »"), target_fixture="loop_journal")
+@when(parsers.parse("la boucle de Machin webserver rencontre l'exception « {given} »"), target_fixture="loop_journal")
 def loop_exception(caplog: pytest.LogCaptureFixture, given: str) -> list[str]:
 	"""Comme asyncio pour une exception qu'un rappel n'a pas rattrapée (https://github.com/dascritch/machincast/issues/572)."""
 	kind, _, message = given.partition(": ")
@@ -526,13 +526,13 @@ def failing_page(path: str, message: str) -> App:
 	return App({("GET", path): fails})
 
 
-@when(parsers.parse("je demande la page « {path} », le journal de Machin intranet configuré"), target_fixture="failed")
+@when(parsers.parse("je demande la page « {path} », le journal de Machin webserver configuré"), target_fixture="failed")
 def ask_failing(
 	failing: App, path: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> tuple[Answer, str]:
 	monkeypatch.setenv(log.ENVIRONMENT, str(tmp_path / "sans-logs"))
 	capsys.readouterr()
-	log.configure("Machin_intranet")
+	log.configure("Machin_webserver")
 	answer = call(failing, "GET", path)
 	return answer, capsys.readouterr().err
 

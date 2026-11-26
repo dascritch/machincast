@@ -25,7 +25,7 @@ Fonctionnalité: Maintenance de la base de données
 			| sauvegarde de la base machincast_test dans …/sauvegardes/machincast_test-2026-10-22T08-30-00.dump |
 			| sauvegarde faite                                                                              |
 			| schéma de la base machincast_test à jour                                                      |
-			| rôles machincast_player, machincast_indexer, machincast_interface, machincast_intranet endossables par le compte |
+			| rôles machincast_player, machincast_indexer, machincast_interface, machincast_webserver endossables par le compte |
 			| base machincast_test optimisée (VACUUM ANALYZE)                                               |
 			| maintenance terminée                                                                          |
 		Et la table « sounds » vient d'être nettoyée par VACUUM, et ses statistiques recalculées

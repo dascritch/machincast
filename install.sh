@@ -69,7 +69,7 @@ MINUTEUR_INDEXATION="machincast-indexing.timer"
 FICHIER_UNITE_TACHES="/etc/systemd/system/${UNITE_TACHES}"
 # Le serveur intranet (https://github.com/dascritch/machincast/issues/538), éteint tant que intranet.enabled n'est pas
 # vrai ; le même nom dans machincast.service.
-UNITE_INTRANET="machincast-intranet.service"
+UNITE_INTRANET="machincast-webserver.service"
 FICHIER_UNITE_INTRANET="/etc/systemd/system/${UNITE_INTRANET}"
 FICHIER_MINUTEUR_TACHES="/etc/systemd/system/machincast-tasks.timer"
 FICHIER_UNITE_INDEXATION="/etc/systemd/system/${UNITE_INDEXATION}"
@@ -87,12 +87,12 @@ DOSSIER_DU_COMPTE_SERVICE="/var/lib/machincast"
 DOSSIER_D_EXECUTION_SERVICE="/run/machincast"
 # Le compte du serveur intranet, hors du groupe du service, et le répertoire de la socket que Machin player lui réserve
 # (https://github.com/dascritch/machincast/issues/549) : les mêmes noms dans machincast.installation.
-COMPTE_INTRANET="machincast-intranet"
-DOSSIER_D_EXECUTION_INTRANET="/run/machincast-intranet"
+COMPTE_INTRANET="machincast-webserver"
+DOSSIER_D_EXECUTION_INTRANET="/run/machincast-webserver"
 # Le certificat et la clé que le serveur intranet génère dans son répertoire d'état, à sauvegarder : inscrits d'avance
 # dans la liste des fichiers créés, qu'il ne fait que lire (https://github.com/dascritch/machincast/issues/652). Les
-# mêmes noms dans machincast.installation (INTRANET_STATE) et machincast.intranet.certificate.
-CERTIFICATS_INTRANET=("/var/lib/machincast-intranet/certificate.pem" "/var/lib/machincast-intranet/key.pem")
+# mêmes noms dans machincast.installation (INTRANET_STATE) et machincast.webserver.certificate.
+CERTIFICATS_INTRANET=("/var/lib/machincast-webserver/certificate.pem" "/var/lib/machincast-webserver/key.pem")
 DOSSIER_DES_LOGS="/var/log/machincast"
 UNITE_PIPEWIRE="machincast-pipewire.service"
 UNITE_WIREPLUMBER="machincast-wireplumber.service"
@@ -127,7 +127,17 @@ CONFIGURATION="${RACINE}/machincast.toml"
 # (https://github.com/dascritch/machincast/issues/652) : le même nom dans machincast.created_files.
 LISTE_FICHIERS="${RACINE}/fichiers-machincast.txt"
 VENV="${RACINE}/.venv"
-ROLES=(player indexer interface intranet)
+ROLES=(player indexer interface webserver)
+# Machin intranet, devenu Machin webserver (https://github.com/dascritch/machincast/issues/654) : ses anciens noms, que
+# renommer_machin_intranet reprend sur un poste installé avant.
+ANCIEN_COMPTE_INTRANET="machincast-intranet"
+ANCIEN_ROLE_INTRANET="machincast_intranet"
+ANCIENNE_UNITE_INTRANET="machincast-intranet.service"
+ANCIEN_FICHIER_UNITE_INTRANET="/etc/systemd/system/${ANCIENNE_UNITE_INTRANET}"
+ANCIEN_ETAT_INTRANET="/var/lib/machincast-intranet"
+ETAT_INTRANET="/var/lib/machincast-webserver"
+ANCIEN_ETAT_DU_COMPTE="${XDG_STATE_HOME:-${HOME}/.local/state}/machincast/intranet"
+ETAT_DU_COMPTE="${XDG_STATE_HOME:-${HOME}/.local/state}/machincast/webserver"
 
 # Prérequis système : ce que pip ne peut pas fournir (https://github.com/dascritch/machincast/issues/51).
 # Même liste que AGENTS.md, sans les outils de développement.
@@ -228,7 +238,7 @@ to move MachinCast out of a personal directory, to /opt/machincast: the service 
 personal directories, whose rights never change. Machin player starts with the computer, under its
 own account %s, with its own PipeWire, and restarts after a crash. %s joins the group %s, which
 reads its logs (%s) and pre-listens to the on-air output; the on-air card is reserved for the
-service. The intranet server, switched off by default, runs under its own account, machincast-intranet,
+service. The intranet server, switched off by default, runs under its own account, machincast-webserver,
 outside that group. The sound files go in /home/machincast: those of the database in a personal directory
 are moved there, removed from the database, or left, not played, as chosen. A polkit rule lets it start, stop and
 restart with the password of an administrator, and asks for that password to power off, reboot or suspend the
@@ -583,7 +593,7 @@ adopter_les_fichiers() {
 	bureau="$(dossier_du_bureau)"
 	sortie="$(fichiers_crees adopt "${designes[@]}" "${FICHIER_UNITE}" "${FICHIER_REGLE}" \
 		"${FICHIER_POLITIQUE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}" "${FICHIER_MODPROBE}" "${FICHIER_USB}" \
-		"${FICHIER_UNITE_TACHES}" "${FICHIER_UNITE_INTRANET}" "${FICHIER_MINUTEUR_TACHES}" "${FICHIER_UNITE_INDEXATION}" \
+		"${FICHIER_UNITE_TACHES}" "${FICHIER_UNITE_INTRANET}" "${ANCIEN_FICHIER_UNITE_INTRANET}" "${FICHIER_MINUTEUR_TACHES}" "${FICHIER_UNITE_INDEXATION}" \
 		"${FICHIER_MINUTEUR_INDEXATION}" "${FICHIER_ANCIENNE_UNITE_PURGE}" "${FICHIER_ANCIEN_MINUTEUR_PURGE}" \
 		"${FICHIER_UNITE_PIPEWIRE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_TMPFILES}" "${FICHIER_LOGROTATE}" \
 		"${FICHIER_PROFIL}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_WIREPLUMBER_BUREAU}" \
@@ -659,7 +669,7 @@ preparer_postgresql() {
 			DECLARE
 				role text;
 			BEGIN
-				FOREACH role IN ARRAY ARRAY['machincast_player', 'machincast_indexer', 'machincast_interface', 'machincast_intranet'] LOOP
+				FOREACH role IN ARRAY ARRAY['machincast_player', 'machincast_indexer', 'machincast_interface', 'machincast_webserver'] LOOP
 					IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = role) THEN
 						EXECUTE format('CREATE ROLE %I NOLOGIN', role);
 					END IF;
@@ -667,7 +677,7 @@ preparer_postgresql() {
 			END;
 			$$;
 		SQL
-		info 'roles machincast_player, machincast_indexer, machincast_interface and machincast_intranet present'
+		info 'roles machincast_player, machincast_indexer, machincast_interface and machincast_webserver present'
 	fi
 	# Une base de production neuve peut reprendre celle d'une installation précédente, avant le schéma, qui lui applique
 	# ensuite les migrations qui lui manquent (https://github.com/dascritch/machincast/issues/347).
@@ -680,10 +690,10 @@ preparer_postgresql() {
 	# l'utilisateur postgres, qui peut attribuer les rôles quel que soit le compte qui les a créés. Sans héritage
 	# des droits : chaque binaire endosse son rôle par SET ROLE (doc/fr/spec.md § 3.2).
 	if "${SIMULATION}"; then
-		info '[simulation] sudo -u postgres psql: GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO %s WITH INHERIT FALSE, SET TRUE' "${UTILISATEUR}"
+		info '[simulation] sudo -u postgres psql: GRANT machincast_player, machincast_indexer, machincast_interface, machincast_webserver TO %s WITH INHERIT FALSE, SET TRUE' "${UTILISATEUR}"
 	else
 		sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --variable=nom="${UTILISATEUR}" <<-'SQL'
-			GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO :"nom" WITH INHERIT FALSE, SET TRUE;
+			GRANT machincast_player, machincast_indexer, machincast_interface, machincast_webserver TO :"nom" WITH INHERIT FALSE, SET TRUE;
 		SQL
 		info '%s can assume the roles %s' "${UTILISATEUR}" "${ROLES[*]}"
 	fi
@@ -965,6 +975,64 @@ creer_le_compte_du_service() {
 	fi
 }
 
+# Machin intranet est devenu Machin webserver (https://github.com/dascritch/machincast/issues/654). Sur un poste installé
+# avant, son unité s'arrête et part ; son compte, son groupe et ses rôles PostgreSQL prennent leur nouveau nom, en
+# gardant leurs droits ; son répertoire d'état, et le certificat qu'il y a généré, aussi. Relançable : seul ce qui
+# porte encore l'ancien nom change.
+renommer_machin_intranet() {
+	etape 'Machin webserver, formerly Machin intranet'
+	if [[ -e "${ANCIEN_FICHIER_UNITE_INTRANET}" ]]; then
+		# Adoptée par adopter_les_fichiers, elle est dans la liste des fichiers créés : elle en sort.
+		verifier_le_fichier "${ANCIEN_FICHIER_UNITE_INTRANET}"
+		executer sudo systemctl disable --now "${ANCIENNE_UNITE_INTRANET}"
+		executer sudo rm --force "${ANCIEN_FICHIER_UNITE_INTRANET}" # fichier de MachinCast : l'unité de Machin intranet
+		desinscrire "${ANCIEN_FICHIER_UNITE_INTRANET}"
+		executer sudo systemctl daemon-reload
+		annonce '%s removed: %s replaces it' "${ANCIENNE_UNITE_INTRANET}" "${UNITE_INTRANET}"
+	fi
+	if getent passwd "${ANCIEN_COMPTE_INTRANET}" >/dev/null && ! getent passwd "${COMPTE_INTRANET}" >/dev/null; then
+		executer sudo usermod --login "${COMPTE_INTRANET}" --comment 'MachinCast web server' "${ANCIEN_COMPTE_INTRANET}"
+		annonce 'account %s renamed %s' "${ANCIEN_COMPTE_INTRANET}" "${COMPTE_INTRANET}"
+	fi
+	if getent group "${ANCIEN_COMPTE_INTRANET}" >/dev/null && ! getent group "${COMPTE_INTRANET}" >/dev/null; then
+		executer sudo groupmod --new-name "${COMPTE_INTRANET}" "${ANCIEN_COMPTE_INTRANET}"
+	fi
+	if [[ -d "${ANCIEN_ETAT_INTRANET}" && ! -e "${ETAT_INTRANET}" ]]; then
+		# fichier de MachinCast : le répertoire d'état de Machin intranet, et son certificat généré, sous le nouveau nom
+		executer sudo mv "${ANCIEN_ETAT_INTRANET}" "${ETAT_INTRANET}"
+		# Le certificat et la clé, sous leur nouveau chemin dans la liste des fichiers créés.
+		desinscrire "${ANCIEN_ETAT_INTRANET}/certificate.pem" "${ANCIEN_ETAT_INTRANET}/key.pem"
+		inscrire "${CERTIFICATS_INTRANET[@]}"
+	fi
+	if [[ -d "${ANCIEN_ETAT_DU_COMPTE}" && ! -e "${ETAT_DU_COMPTE}" ]]; then
+		# fichier de MachinCast : le répertoire d'état du compte pour Machin intranet, sous le nouveau nom
+		executer mv "${ANCIEN_ETAT_DU_COMPTE}" "${ETAT_DU_COMPTE}"
+		desinscrire "${ANCIEN_ETAT_DU_COMPTE}/certificate.pem" "${ANCIEN_ETAT_DU_COMPTE}/key.pem"
+		inscrire "${ETAT_DU_COMPTE}/certificate.pem" "${ETAT_DU_COMPTE}/key.pem"
+	fi
+	if "${SIMULATION}"; then
+		info '[simulation] sudo -u postgres psql: ALTER ROLE %s RENAME TO machincast_webserver, ALTER ROLE "%s" RENAME TO "%s", if they exist' \
+			"${ANCIEN_ROLE_INTRANET}" "${ANCIEN_COMPTE_INTRANET}" "${COMPTE_INTRANET}"
+		return 0
+	fi
+	# Renommés, les rôles gardent leurs droits sur les deux bases et leurs appartenances.
+	sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 <<-'SQL' || echec 'roles of Machin intranet not renamed'
+		DO $$
+		BEGIN
+			IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast_intranet')
+				AND NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast_webserver') THEN
+				ALTER ROLE machincast_intranet RENAME TO machincast_webserver;
+			END IF;
+			IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast-intranet')
+				AND NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast-webserver') THEN
+				ALTER ROLE "machincast-intranet" RENAME TO "machincast-webserver";
+			END IF;
+		END;
+		$$;
+	SQL
+	info 'roles of Machin webserver under their new names'
+}
+
 # Le compte du serveur intranet et son groupe : distinct du compte du service, hors de son groupe, il ne lit ni les
 # sonores, ni le PipeWire du service, ni ses logs (https://github.com/dascritch/machincast/issues/549).
 creer_le_compte_de_l_intranet() {
@@ -973,28 +1041,28 @@ creer_le_compte_de_l_intranet() {
 		return
 	fi
 	executer sudo useradd --system --user-group --home-dir /nonexistent --no-create-home \
-		--shell /usr/sbin/nologin --comment 'MachinCast intranet server' "${COMPTE_INTRANET}"
+		--shell /usr/sbin/nologin --comment 'MachinCast web server' "${COMPTE_INTRANET}"
 }
 
 # Le rôle PostgreSQL du compte du serveur intranet : il se connecte par authentification peer, et n'endosse que le
-# rôle machincast_intranet, sans en hériter les droits (doc/fr/spec.md § 3.2).
+# rôle machincast_webserver, sans en hériter les droits (doc/fr/spec.md § 3.2).
 autoriser_l_intranet_en_base() {
 	if "${SIMULATION}"; then
-		info '[simulation] sudo -u postgres psql: CREATE ROLE "%s" LOGIN; GRANT machincast_intranet TO "%s" WITH INHERIT FALSE, SET TRUE' \
+		info '[simulation] sudo -u postgres psql: CREATE ROLE "%s" LOGIN; GRANT machincast_webserver TO "%s" WITH INHERIT FALSE, SET TRUE' \
 			"${COMPTE_INTRANET}" "${COMPTE_INTRANET}"
 		return
 	fi
 	sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 <<-'SQL'
 		DO $$
 		BEGIN
-			IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast-intranet') THEN
-				CREATE ROLE "machincast-intranet" LOGIN;
+			IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'machincast-webserver') THEN
+				CREATE ROLE "machincast-webserver" LOGIN;
 			END IF;
 		END;
 		$$;
-		GRANT machincast_intranet TO "machincast-intranet" WITH INHERIT FALSE, SET TRUE;
+		GRANT machincast_webserver TO "machincast-webserver" WITH INHERIT FALSE, SET TRUE;
 	SQL
-	info '%s can assume the role machincast_intranet' "${COMPTE_INTRANET}"
+	info '%s can assume the role machincast_webserver' "${COMPTE_INTRANET}"
 }
 
 # Le rôle PostgreSQL du compte du service : il se connecte par authentification peer, et n'endosse que le rôle de
@@ -1538,7 +1606,7 @@ retirer_service() {
 			info '[simulation] sudo -u postgres psql: DROP ROLE IF EXISTS "%s"' "${COMPTE_INTRANET}"
 		else
 			sudo -u postgres psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 \
-				--command='DROP ROLE IF EXISTS "machincast-intranet"'
+				--command='DROP ROLE IF EXISTS "machincast-webserver"'
 		fi
 		executer sudo userdel "${COMPTE_INTRANET}"
 		retirer_repertoires --sudo "${DOSSIER_D_EXECUTION_INTRANET}"
@@ -1619,6 +1687,7 @@ principal() {
 	installer_paquets
 	installer_venv
 	preparer_configuration
+	renommer_machin_intranet
 	preparer_postgresql
 	installer_plugins
 	autoriser_journal

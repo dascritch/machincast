@@ -1,11 +1,11 @@
 # language: fr
-Fonctionnalité: Les pages et les routes des plugins dans Machin intranet
+Fonctionnalité: Les pages et les routes des plugins dans Machin webserver
 	En tant que développeur d'un plugin,
-	je veux ajouter mes pages, mes routes d'API et mes fichiers statiques à Machin intranet,
+	je veux ajouter mes pages, mes routes d'API et mes fichiers statiques à Machin webserver,
 	afin de donner à l'équipe un outil sur mesure, derrière la même connexion et les mêmes rôles.
 
 	https://github.com/dascritch/machincast/issues/588, ticket enfant de
-	https://github.com/dascritch/machincast/issues/348. Au démarrage, Machin intranet demande à chaque plugin abonné
+	https://github.com/dascritch/machincast/issues/348. Au démarrage, Machin webserver demande à chaque plugin abonné
 	au point « intranet.extensions » son Extension : des pages sous /plugins/<nom>/, des routes sous
 	/api/v1/plugins/<nom>/, des fichiers statiques sous /plugins/<nom>/static/. Ici, le plugin « horloge » a une page
 	« Horloge », dans le bandeau, une page « Réglages », sans entrée au bandeau, pour les comptes « actions API », et une
@@ -112,12 +112,12 @@ Fonctionnalité: Les pages et les routes des plugins dans Machin intranet
 
 	Scénario: Un plugin qui ne répond pas une Extension est ignoré, et consigné
 		Étant donné le plugin « bavard » qui répond « bonjour » au point « intranet.extensions »
-		Quand Machin intranet rassemble les extensions des plugins
+		Quand Machin webserver rassemble les extensions des plugins
 		Alors le journal dit « plugin « bavard » : une extension de l'intranet est attendue »
 		Et seules les routes du plugin « horloge » sont ajoutées
 
 	Scénario: Une page au chemin invalide n'est pas ajoutée
 		Étant donné le plugin « bancal » qui ajoute une page « ../evasion »
-		Quand Machin intranet rassemble les extensions des plugins
+		Quand Machin webserver rassemble les extensions des plugins
 		Alors le journal dit « plugin « bancal » : « /plugins/bancal/../evasion » n'est pas un chemin de l'intranet »
 		Et seules les routes du plugin « horloge » sont ajoutées

@@ -1,6 +1,6 @@
-// L'accueil de « Machin intranet », en direct (https://github.com/dascritch/machincast/issues/541) : il relit
+// L'accueil de « Machin webserver », en direct (https://github.com/dascritch/machincast/issues/541) : il relit
 // /api/v1/live toutes les RELECTURE millisecondes, et tient ses décomptes à la seconde, à l'heure du serveur ; durées
-// et décomptes en HH:MM:SS, comme machincast.intranet.home.duration
+// et décomptes en HH:MM:SS, comme machincast.webserver.home.duration
 // (https://github.com/dascritch/machincast/issues/579). Sans JavaScript, la page montre ce qu'en a dit le serveur à
 // son chargement.
 "use strict";

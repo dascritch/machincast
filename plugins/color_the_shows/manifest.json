@@ -1,13 +1,13 @@
 {
 	"name": "color_the_shows",
 	"version": "0.1.0",
-	"description": "Colours of the shows by genre, in the calendar of Machin interface and Machin intranet and in the airplay tables",
+	"description": "Colours of the shows by genre, in the calendar of Machin interface and Machin webserver and in the airplay tables",
 	"machincast": ">=0.9",
-	"binaries": ["Machin_interface", "Machin_intranet"],
+	"binaries": ["Machin_interface", "Machin_webserver"],
 	"l10n": {
 		"fr": {
 			"name": "Couleurs des émissions",
-			"description": "Des couleurs d'émissions par genre, dans le calendrier de Machin interface et de Machin intranet, et dans les tableaux d'airplay"
+			"description": "Des couleurs d'émissions par genre, dans le calendrier de Machin interface et de Machin webserver, et dans les tableaux d'airplay"
 		}
 	}
 }

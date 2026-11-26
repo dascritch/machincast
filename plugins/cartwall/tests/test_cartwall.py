@@ -1,7 +1,7 @@
-"""Scénarios du cartouchier dans Machin intranet (https://github.com/dascritch/machincast/issues/512).
+"""Scénarios du cartouchier dans Machin webserver (https://github.com/dascritch/machincast/issues/512).
 
 Les requêtes passent directement à l'application ASGI de l'intranet (tests.asgi_client), avec le cartouchier ajouté
-par son Extension, sur la base de test, au rôle machincast_intranet. Machin player est imité par FakePlayer.
+par son Extension, sur la base de test, au rôle machincast_webserver. Machin player est imité par FakePlayer.
 """
 
 import json
@@ -37,11 +37,11 @@ from tests.test_plugin_intranet import assets
 from conftest import PLUGIN, Connection, identifier
 from machincast.clock import FixedClock
 from machincast.configuration import Intranet as Settings
-from machincast.intranet.app import Intranet
-from machincast.intranet.extensions import POINT, Extensions
-from machincast.intranet.pages import Pages
-from machincast.intranet.portal import Portal
 from machincast.plugins.points import Points
+from machincast.webserver.app import Intranet
+from machincast.webserver.extensions import POINT, Extensions
+from machincast.webserver.pages import Pages
+from machincast.webserver.portal import Portal
 
 scenarios(str(PLUGIN / "tests" / "features" / "cartwall.feature"))
 

@@ -30,5 +30,5 @@ CREATE TABLE cartwall__buttons (
 
 COMMENT ON TABLE cartwall__buttons IS 'Les boutons du cartouchier de chaque compte de l''API, dans l''ordre de position.';
 
-GRANT SELECT ON cartwall__buttons TO machincast_intranet;
+GRANT SELECT ON cartwall__buttons TO machincast_webserver;
 GRANT SELECT, INSERT, UPDATE, DELETE ON cartwall__buttons TO machincast_interface;

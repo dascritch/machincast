@@ -1,5 +1,5 @@
 """Les requêtes SQL du cartouchier (https://github.com/dascritch/machincast/issues/512) : les boutons d'un compte, au
-rôle machincast_intranet, pour la page et l'API ; leur réglage, au rôle machincast_interface."""
+rôle machincast_webserver, pour la page et l'API ; leur réglage, au rôle machincast_interface."""
 
 from dataclasses import dataclass
 from typing import Any

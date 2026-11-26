@@ -1,6 +1,6 @@
 # Le cartouchier
 
-Le cartouchier ajoute à l'accueil de Machin intranet, sous l'antenne en direct, les boutons du compte connecté, faits pour un écran tactile au studio ([#512](https://github.com/dascritch/machincast/issues/512)) : pas de page à part, ni d'entrée dans le bandeau.
+Le cartouchier ajoute à l'accueil de Machin webserver, sous l'antenne en direct, les boutons du compte connecté, faits pour un écran tactile au studio ([#512](https://github.com/dascritch/machincast/issues/512)) : pas de page à part, ni d'entrée dans le bandeau.
 
 ## Ce que montre l'accueil
 

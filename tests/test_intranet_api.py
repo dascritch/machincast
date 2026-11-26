@@ -3,7 +3,7 @@ son accueil en direct (https://github.com/dascritch/machincast/issues/541), et d
 (https://github.com/dascritch/machincast/issues/542).
 
 Les requêtes passent directement à l'application ASGI (tests.asgi_client), sur la base de test, au rôle
-machincast_intranet. Machin player est imité par une vraie socket d'état (machincast.player.state.StateSocket).
+machincast_webserver. Machin player est imité par une vraie socket d'état (machincast.player.state.StateSocket).
 """
 
 import html
@@ -25,13 +25,13 @@ from machincast.clock import FixedClock
 from machincast.configuration import PROJECT_DIRECTORY
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
-from machincast.intranet import agenda, home, sessions
-from machincast.intranet.api import ApiV1
-from machincast.intranet.app import Intranet
-from machincast.intranet.pages import Pages
-from machincast.intranet.portal import Portal
 from machincast.player.state import StateSocket
 from machincast.shortcut import ICON
+from machincast.webserver import agenda, home, sessions
+from machincast.webserver.api import ApiV1
+from machincast.webserver.app import Intranet
+from machincast.webserver.pages import Pages
+from machincast.webserver.portal import Portal
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import NAME, Connection, identifier
@@ -382,12 +382,12 @@ def templated(api: Api, title: str, radio: str, state: str, user: str) -> None:
 	assert _answer(api).status == 200, _answer(api).text()
 	text = _page(api)
 	# L'accueil a son propre titre, « MachinCast - » et la radio (https://github.com/dascritch/machincast/issues/598).
-	full = f"{title} — Machin intranet"
+	full = f"{title} — Machin webserver"
 	if title.startswith("MachinCast - "):
 		full = title
 	assert f"<title>{full}</title>" in text, text
 	assert f'<span class="radio">{radio}</span>' in text
-	assert '<span class="machin">Machin intranet</span>' in text
+	assert '<span class="machin">Machin webserver</span>' in text
 	assert _element(api, "etat") == state
 	assert f'<span class="discret">{user}</span>' in text
 
@@ -759,7 +759,7 @@ def clock_line(api: Api) -> None:
 
 @then("la feuille de style écrit le temps restant des sonores aussi grand que l'horloge")
 def large_countdowns() -> None:
-	sheet = (PROJECT_DIRECTORY / "src" / "machincast" / "intranet" / "static" / "intranet.css").read_text(
+	sheet = (PROJECT_DIRECTORY / "src" / "machincast" / "webserver" / "static" / "intranet.css").read_text(
 		encoding="utf-8"
 	)
 	clock = re.search(r"^\.heure \{[^}]*font-size: ([0-9.]+rem)", sheet, re.MULTILINE)

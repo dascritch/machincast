@@ -21,6 +21,7 @@ Codes de sortie : 0 si tout s'est bien passé, 1 sinon, 2 pour une configuration
 import argparse
 import logging
 import subprocess
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -128,6 +129,79 @@ def _copied_identifiers(script: str) -> list[str]:
 	return identifiers
 
 
+class Translation:
+	"""Traduit, ligne à ligne, le script de pg_restore d'une sauvegarde d'avant un renommage de rôle : seules ses
+	lignes de droits changent, jamais les données des COPY, même une valeur qui ressemblerait à un GRANT."""
+
+	def __init__(self) -> None:
+		self.copying = False
+
+	def line(self, text: str) -> str:
+		if self.copying:
+			if text.rstrip("\n") == "\\.":
+				self.copying = False
+			return text
+		if (text.startswith(admin_queries.COPY)) and (text.rstrip().endswith(admin_queries.COPY_FROM_STDIN)):
+			self.copying = True
+			return text
+		if text.startswith(admin_queries.PRIVILEGES):
+			for former, current in admin_queries.FORMER_ROLES.items():
+				text = text.replace(former, current)
+		return text
+
+
+def _replay(restore: str, psql: str, configuration: Configuration, file: Path) -> str | None:
+	"""Le script de pg_restore, traduit (Translation), rejoué par psql en une seule transaction : un échec laisse la
+	base vide. L'erreur, ou None."""
+	database = configuration.database
+	loading = [
+		psql,
+		"--no-psqlrc",
+		"--quiet",
+		"--single-transaction",
+		"--set=ON_ERROR_STOP=1",
+		f"--host={database.socket}",
+		f"--dbname={database.production}",
+		"--file=-",
+	]
+	with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors:
+		try:
+			dump = subprocess.Popen(
+				[restore, "--no-owner", "--file=-", str(file)],
+				stdin=subprocess.DEVNULL,
+				stdout=subprocess.PIPE,
+				stderr=errors,
+				text=True,
+			)
+			load = subprocess.Popen(loading, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=errors, text=True)
+		except OSError as error:
+			raise Refusal(str(error)) from error
+		codes = _pipe(dump, load)
+		if codes == (0, 0):
+			return None
+		errors.seek(0)
+		return (errors.read().strip()) or (_("pg_restore or psql ended with codes {codes}").format(codes=codes))
+
+
+def _pipe(dump: "subprocess.Popen[str]", load: "subprocess.Popen[str]") -> tuple[int, int]:
+	"""Le script de l'un, traduit ligne à ligne, à l'autre ; leurs codes de sortie."""
+	assert (dump.stdout is not None) and (load.stdin is not None)
+	translation = Translation()
+	try:
+		for text in dump.stdout:
+			load.stdin.write(translation.line(text))
+		load.stdin.close()
+	except BrokenPipeError:
+		# psql s'est arrêté sur une erreur, qu'il a écrite.
+		dump.kill()
+	try:
+		return (dump.wait(timeout=BACKUP_DELAY), load.wait(timeout=BACKUP_DELAY))
+	except subprocess.TimeoutExpired as error:
+		dump.kill()
+		load.kill()
+		raise Refusal(str(error)) from error
+
+
 def _known_migrations() -> set[str]:
 	known = set()
 	for migration in read_migrations(str(MIGRATION_DIRECTORY)):
@@ -166,21 +240,11 @@ def restore(configuration: Configuration, file: Path) -> None:
 		)
 	_check_empty(configuration)
 	log.info(_("restoring {file} into database {production}").format(file=file, production=database.production))
-	result = _read(
-		[
-			program,
-			"--no-owner",
-			"--single-transaction",
-			"--exit-on-error",
-			f"--host={database.socket}",
-			f"--dbname={database.production}",
-			str(file),
-		]
-	)
-	if result.returncode != 0:
+	error = _replay(program, _program("psql", configuration), configuration, file)
+	if error is not None:
 		raise Refusal(
 			_("restoring failed, database {production} left empty: {error}").format(
-				production=database.production, error=result.stderr.strip()
+				production=database.production, error=error
 			)
 		)
 	log.info(_("restoring done"))

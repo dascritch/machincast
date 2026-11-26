@@ -1,7 +1,7 @@
 """Le schéma OpenAPI 3.1 de l'API de l'intranet (https://github.com/dascritch/machincast/issues/602).
 
 /api/v1/openapi.json le donne à une session valide, comme le reste de l'API : chaque chemin de /api/v1, ses paramètres
-et ses réponses, puis les routes des plugins activés (machincast.intranet.extensions), chacune avec son plugin, en
+et ses réponses, puis les routes des plugins activés (machincast.webserver.extensions), chacune avec son plugin, en
 étiquette, et le rôle qu'elle demande. Le jeton se donne en « Authorization: Bearer », ou dans le cookie de la session.
 """
 
@@ -9,7 +9,7 @@ from typing import Any
 
 from machincast import __version__
 from machincast.i18n import _
-from machincast.intranet.sessions import COOKIE
+from machincast.webserver.sessions import COOKIE
 
 VERSION = "3.1.0"
 TITLE = "MachinCast API"
