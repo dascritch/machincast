@@ -124,6 +124,16 @@ puis relancer PipeWire : `systemctl --user restart pipewire wireplumber`, et, av
 - `pw-top` : la colonne **RATE** des cartes son, qui mènent le graphe, donne la même fréquence, et la colonne **ERR** ne monte plus à l'ouverture ni à la fermeture de la pré-écoute du direct.
 - La mesure du poste : `.venv/bin/python -m tests.vu_measures` garde 20 relevés par seconde, avant, pendant et après chaque écoute ([poste de développement](doc/fr/developpement/poste.md)).
 
+## Le menu « Onglets » s'ouvre vide, ou le menu « Diffusion » perd ses entrées
+
+**Symptôme** : le menu « Onglets » s'ouvre parfois vide ; la console de `Machin interface` se remplissait d'erreurs « RuntimeError: Internal C++ object (PySide6.QtGui.QAction) already deleted. », à chaque état de Machin player.
+
+**Cause** : sur un poste, Qt détruit ces entrées sans que l'interface le demande ; la cause n'est pas encore connue ([#658](https://github.com/dascritch/machincast/issues/658)). Les entrées du menu « Diffusion » se recréent au prochain état de Machin player, et celles du menu « Onglets » à sa prochaine ouverture : l'interface reste utilisable, sans flot d'erreurs.
+
+**À vérifier** :
+
+- La console, ou le journal de l'interface, consigne une fois « entrées du menu Diffusion détruites, recréées au prochain état de Machin player : », ou « entrées du menu Onglets détruites, recréées à sa prochaine ouverture : », suivi de la pile des appels de leur destruction. Copier ce message entier dans le ticket : il dit qui a détruit les entrées.
+
 ## Scénarios à lancer avant une version
 
 Certains scénarios ne tournent ni avec `pytest`, ni avec `bin/Machin dev-test` : ils sont lents, ou ont besoin d'un serveur à part. Ils sont marqués `@release`, et se lancent avant chaque version ([#208](https://github.com/dascritch/machincast/issues/208)), et après toute mise à jour de GStreamer ou de libsoup :

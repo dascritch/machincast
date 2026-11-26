@@ -65,3 +65,19 @@ Fonctionnalité: Titres des onglets et menu « Onglets »
 			| Séquences  | Maj+F4    | oui    |
 			| Banques    | Maj+F5    | non    |
 			| Incidents  | Maj+F6    | non    |
+
+	Scénario: Des entrées du menu « Onglets » détruites hors de l'interface sont consignées, puis recréées à son ouverture
+		https://github.com/dascritch/machincast/issues/658 : sur un poste, le menu « Onglets » s'ouvrait parfois vide. Le
+		journal consigne, une fois, la pile des appels de la destruction de ses entrées, pour en trouver la cause.
+
+		Quand la fenêtre de l'interface s'ouvre
+		Et les entrées du menu « Onglets » sont détruites, hors de l'interface
+		Alors le journal de l'interface a consigné la destruction des entrées du menu « Onglets », avec la pile des appels
+		Et le menu « Onglets » liste :
+			| onglet     | raccourci | cochée |
+			| Antenne    | Maj+F1    | oui    |
+			| Calendrier | Maj+F2    | non    |
+			| Événements | Maj+F3    | non    |
+			| Séquences  | Maj+F4    | non    |
+			| Banques    | Maj+F5    | non    |
+			| Incidents  | Maj+F6    | non    |

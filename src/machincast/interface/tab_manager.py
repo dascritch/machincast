@@ -11,6 +11,7 @@ la fenêtre sait seule, ouvrir un écran d'après sa clé, fermer ou retirer une
 """
 
 import logging
+import traceback
 from collections.abc import Callable
 
 import psycopg
@@ -181,6 +182,10 @@ class TabManager:
 		self.reopen_screen = reopen_screen
 		self.close_screen = close_screen
 		self.remove_card = remove_card
+		self.watched = True
+		"""Vrai tant que la destruction d'une entrée du menu « Onglets » est inattendue : faux pendant sa reconstruction,
+		et à la fermeture de la fenêtre (https://github.com/dascritch/machincast/issues/658)."""
+		self._reported = False
 		self.appending = True
 		"""Vrai pendant la construction de la fenêtre et la réouverture des onglets retenus : un onglet s'ajoute à la fin,
 		au lieu de s'ouvrir à droite de l'onglet ouvert."""
@@ -381,7 +386,10 @@ class TabManager:
 		l'onglet ouvert est coché (https://github.com/dascritch/machincast/issues/398). Le raccourci s'affiche après
 		une tabulation, sans être celui de l'entrée : Maj+F1 à Maj+F12 restent ceux de la fenêtre."""
 		tabs = self.tabs
+		watched = self.watched
+		self.watched = False
 		menu.clear()
+		self.watched = watched
 		for index in range(tabs.count()):
 			text = self.full_title(index).replace("&", "&&")
 			if index < TAB_SHORTCUTS:
@@ -391,11 +399,24 @@ class TabManager:
 			action.setChecked(index == tabs.currentIndex())
 			widget = tabs.widget(index)
 			action.triggered.connect(lambda _ticked=False, widget=widget: tabs.setCurrentWidget(widget))
+			action.destroyed.connect(self._lost)
 		# Tout à la fin (https://github.com/dascritch/machincast/issues/405).
 		menu.addSeparator()
 		close_all = menu.addAction(CLOSE_ALL)
 		close_all.setEnabled(self._closable() != [])
 		close_all.triggered.connect(self.close_closable)
+
+	def _lost(self) -> None:
+		"""Une entrée du menu « Onglets » détruite sans que l'interface le demande, qui laisse le menu vide : la pile des
+		appels, une fois, dit qui l'a détruite (https://github.com/dascritch/machincast/issues/658)."""
+		if (not self.watched) or (self._reported):
+			return
+		self._reported = True
+		log.warning(
+			_("entries of the Tabs menu destroyed, recreated at its next opening:\n{stack}").format(
+				stack="".join(traceback.format_stack())
+			)
+		)
 
 	def _closable(self) -> list[QWidget]:
 		"""Les onglets qui se ferment, dans leur ordre : fiches, listes à la demande, recherche, simulation et airplay ;
