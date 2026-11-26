@@ -1,8 +1,8 @@
 """Les couleurs des émissions : chaque événement prend la couleur de son genre, talk, jazz, metal, reggae…, ou celle de
-sa priorité, dans le calendrier de Machin interface, celui de Machin intranet et les tableaux d'airplay
+sa priorité, dans le calendrier de Machin interface, celui de Machin webserver et les tableaux d'airplay
 (https://github.com/dascritch/machincast/issues/628).
 
-- Dans Machin interface et Machin intranet, la réponse au point « grid.event_colour »
+- Dans Machin interface et Machin webserver, la réponse au point « grid.event_colour »
   (machincast_color_the_shows.palette, https://github.com/dascritch/machincast/issues/635).
 - Dans Machin interface, la section « Genre » de la fiche d'un événement (machincast_color_the_shows.section), et la
   fenêtre du plugin, menu « Plugins », qui règle les genres et les couleurs (machincast_color_the_shows.settings).
@@ -15,7 +15,7 @@ from machincast.plugins import Plugin
 from machincast_color_the_shows import queries
 from machincast_color_the_shows.palette import Palette
 
-ROLES = {"Machin_interface": Role.INTERFACE, "Machin_intranet": Role.INTRANET}
+ROLES = {"Machin_interface": Role.INTERFACE, "Machin_webserver": Role.INTRANET}
 
 
 def register(plugin: Plugin) -> None:

@@ -9,8 +9,8 @@ from pytestqt.qtbot import QtBot
 
 from machincast.interface import api_tab
 from machincast.interface.api_tab import Account, ApiUserDialog
-from machincast.intranet import sessions
 from machincast.shared import passwords
+from machincast.webserver import sessions
 from tests.interface_steps import NAME, Connection, Context, window
 from tests.intranet_steps import ROLES, screen
 

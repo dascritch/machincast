@@ -215,3 +215,17 @@ def wrapper_binary(binary: str, entry: str) -> None:
 		check=False,
 	)
 	assert binary in output.stdout.split(), output.stdout
+
+
+@when("le script d'une sauvegarde d'avant est traduit :", target_fixture="replayed")
+def translate(docstring: str) -> str:
+	translation = backup.Translation()
+	lines = []
+	for line in docstring.splitlines(keepends=True):
+		lines.append(translation.line(line))
+	return "".join(lines)
+
+
+@then("le script rejoué est :")
+def replayed_script(replayed: str, docstring: str) -> None:
+	assert replayed == docstring

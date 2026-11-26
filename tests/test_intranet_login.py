@@ -1,7 +1,7 @@
 """Scénarios de la connexion à l'intranet, validée au pupitre (https://github.com/dascritch/machincast/issues/539).
 
 Les requêtes passent directement à l'application ASGI (tests.asgi_client), sur la base de test, au rôle
-machincast_intranet.
+machincast_webserver.
 """
 
 import logging
@@ -20,11 +20,11 @@ from machincast.configuration import FirstLogin, SecondFactor
 from machincast.configuration import Intranet as Settings
 from machincast.database import Role, open_connection
 from machincast.interface.queries import api_users
-from machincast.intranet import sessions
-from machincast.intranet.app import Intranet
-from machincast.intranet.pages import Pages
-from machincast.intranet.portal import Portal, Throttle
 from machincast.shared import totp
+from machincast.webserver import sessions
+from machincast.webserver.app import Intranet
+from machincast.webserver.pages import Pages
+from machincast.webserver.portal import Portal, Throttle
 from tests.asgi_client import Answer, call
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import Connection
@@ -521,7 +521,7 @@ def remembers_only(throttle: tuple[Throttle, Moments], address: str) -> None:
 
 # ─── Le journal, pour un analyseur de journal (https://github.com/dascritch/machincast/issues/578) ───
 
-PORTAL_LOG = "machincast.intranet.portal"
+PORTAL_LOG = "machincast.webserver.portal"
 
 
 @pytest.fixture(autouse=True)

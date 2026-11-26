@@ -19,8 +19,8 @@ Détails : [spec.md § 7](../spec.md#7-wrapper-machin) et [§ 10](../spec.md#10-
 - Un nouveau binaire `Machin_<nom>` s'ajoute aussi au tableau `BINAIRES` du wrapper et à son aide complète : un test bats vérifie que `BINAIRES` correspond à `[project.scripts]` de `pyproject.toml`.
 	Un nom peut contenir un tiret, comme `Machin_maintenance-db` ([#127](https://github.com/dascritch/machincast/issues/127)).
 - `Machin status` ([#518](https://github.com/dascritch/machincast/issues/518)) est un binaire comme les autres, `Machin_status` : le wrapper ne fait que l'appeler.
-- `Machin intranet` ([#538](https://github.com/dascritch/machincast/issues/538)) aussi, `Machin_intranet` ; `install.sh --service` installe et active son unité, `machincast-intranet.service`, qui s'arrête aussitôt, code 4, tant que l'intranet est éteint.
-	Elle tourne sous le compte `machincast-intranet`, hors du groupe du service, que crée `install.sh --service` avec son rôle PostgreSQL, et que `--remove-service` retire ([#549](https://github.com/dascritch/machincast/issues/549)).
+- `Machin webserver` ([#538](https://github.com/dascritch/machincast/issues/538)) aussi, `Machin_webserver` ; `install.sh --service` installe et active son unité, `machincast-webserver.service`, qui s'arrête aussitôt, code 4, tant que l'intranet est éteint.
+	Elle tourne sous le compte `machincast-webserver`, hors du groupe du service, que crée `install.sh --service` avec son rôle PostgreSQL, et que `--remove-service` retire ([#549](https://github.com/dascritch/machincast/issues/549)).
 	Ses réponses vont sur la sortie standard, une ligne chacune, pour qu'un script les lise : tout autre message passe par le journal.
 	Une nouvelle réponse s'ajoute à `machincast.status`, avec ses scénarios (`status.feature`), sans toucher au wrapper.
 - `Machin banner` ([#517](https://github.com/dascritch/machincast/issues/517)) est écrit en bash dans le wrapper : il est lancé à chaque nouveau shell du service et doit rester rapide.

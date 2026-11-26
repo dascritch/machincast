@@ -126,6 +126,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 | Paquets système | Installe les paquets du [tableau des prérequis](#prérequis). | Paquets apt. |
 | Environnement virtuel Python | Crée `.venv` dans le répertoire de MachinCast, sans accès aux paquets Python du système, et y installe MachinCast et ses dépendances. | `.venv` dans le répertoire de MachinCast. |
 | Configuration | Copie `machincast.exemple.toml` en `machincast.toml` s'il n'existe pas. Un `machincast.toml` existant n'est jamais modifié. Ajoute à la [liste des fichiers créés par MachinCast](doc/fr/administration/configuration.md#fichiers-créés-par-machincast), `fichiers-machincast.txt`, ceux qu'une version d'avant la liste avait créés, s'ils existent, et les énumère ([#652](https://github.com/dascritch/machincast/issues/652)) : à la main, `python3 -m machincast.created_files --list fichiers-machincast.txt adopt FICHIER…`, avec `PYTHONPATH=src`. Ensuite, `install.sh` ne remplace ni ne retire aucun fichier hors de la liste, et y inscrit ceux qu'il installe. | `machincast.toml`, `fichiers-machincast.txt`. |
+| Machin webserver, autrefois Machin intranet | Sur un poste installé avant le renommage ([#654](https://github.com/dascritch/machincast/issues/654)) : arrête et retire `machincast-intranet.service`, renomme le compte système, son groupe et les rôles PostgreSQL de Machin intranet, qui gardent leurs droits, et déplace son répertoire d'état et son certificat ([Mettre à jour](#mettre-à-jour)). Rien sur un poste neuf. | Compte et groupe système, rôles PostgreSQL, `/var/lib/machincast-webserver`. |
 | PostgreSQL | En tant qu'utilisateur `postgres` : crée le rôle PostgreSQL du compte, **sans aucun droit particulier** sur le serveur ; crée les bases de production et de test nommées dans `machincast.toml`, dont le compte devient propriétaire ; crée les quatre rôles de groupe de MachinCast. Une base de production qu'il vient de créer peut reprendre une sauvegarde d'une installation précédente ([Réimporter une sauvegarde](#réimporter-une-sauvegarde)). Puis, avec le compte : applique le schéma aux deux bases. | Serveur PostgreSQL. |
 | Rôles | En tant qu'utilisateur `postgres` : autorise le compte à endosser les quatre rôles de MachinCast, sans en hériter les droits. | Serveur PostgreSQL. |
 | Journal système | Ajoute le compte au groupe `systemd-journal`, pour lire le journal du service. Effectif après le redémarrage du poste. | Groupes du compte. |
@@ -137,7 +138,7 @@ Depuis le répertoire de MachinCast, avec son propre compte :
 
 À la fin, il affiche `Installation terminée`. Le service de diffusion n'est installé que sur demande : voir [Service de diffusion](#service-de-diffusion).
 
-**Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_player` pour la diffusion, `machincast_indexer` pour l'indexation, `machincast_interface` pour l'interface graphique, `machincast_intranet` pour le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)). Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/fr/spec.md#32-rôles-et-droits).
+**Rôles PostgreSQL.** Chaque programme de MachinCast agit avec ses propres droits : `machincast_player` pour la diffusion, `machincast_indexer` pour l'indexation, `machincast_interface` pour l'interface graphique, `machincast_webserver` pour le serveur intranet ([#537](https://github.com/dascritch/machincast/issues/537)). Un compte de la radio se connecte avec son propre rôle PostgreSQL, qui ne donne accès à rien en lui-même : chaque programme endosse son rôle dès la connexion. Le détail est dans la [spécification, § 3.2](doc/fr/spec.md#32-rôles-et-droits).
 
 ## Adapter la configuration
 
@@ -254,7 +255,7 @@ Les anomalies (fichier endommagé, illisible ou introuvable) s'affichent sur la 
 
 **Le service** tourne sous son propre compte système, `machincast` ([#381](https://github.com/dascritch/machincast/issues/381)) : il n'a besoin d'aucune session ouverte, et redémarre au démarrage du poste sans connexion de personne. Il joue par son propre PipeWire, son rôle en base est `machincast_player` seul, et il ne fait que lire MachinCast et les banques. Il lance `bin/Machin player`, avec le `machincast.toml` du répertoire de MachinCast, et le relance 5 secondes après un plantage. Son arrêt envoie `SIGTERM`, qui termine proprement le passage en cours. Ses messages vont dans le journal du système, que suit `Machin logs`, et dans `/var/log/machincast/Machin_player.log` ; ses rapports de crash dans `/var/log/machincast/crash-dump`. Le compte qui installe les lit, membre du groupe `machincast`.
 
-**Le serveur intranet**, une fois allumé, tourne sous un autre compte système, `machincast-intranet` ([#549](https://github.com/dascritch/machincast/issues/549)), hors du groupe `machincast` : son rôle en base est `machincast_intranet` seul, il ne lit ni les sonores, ni le PipeWire du service, ni ses logs, et ne peut écrire que dans son répertoire d'état, `/var/lib/machincast-intranet`. Il suit l'antenne par une socket que Machin player lui réserve. Ses messages vont dans le journal du système : `journalctl -u machincast-intranet`.
+**Le serveur intranet**, une fois allumé, tourne sous un autre compte système, `machincast-webserver` ([#549](https://github.com/dascritch/machincast/issues/549)), hors du groupe `machincast` : son rôle en base est `machincast_webserver` seul, il ne lit ni les sonores, ni le PipeWire du service, ni ses logs, et ne peut écrire que dans son répertoire d'état, `/var/lib/machincast-webserver`. Il suit l'antenne par une socket que Machin player lui réserve. Ses messages vont dans le journal du système : `journalctl -u machincast-webserver`.
 
 **La lecture des sonores.** Le service ne lit jamais un répertoire personnel, et MachinCast ne change jamais les droits d'un répertoire personnel, ni des arborescences du système (`/etc`, `/usr`, `/media`, `/mnt`…). Les sonores vont dans `/home/machincast` ; une discothèque peut aussi être sous `/home/machincast`, `/opt`, `/srv` ou `/var`, dont la racine doit déjà se traverser, jamais changée, et hors des répertoires du système de `/var` (`lib`, `log`…) : `Machin grant-read` y donne la lecture. Sur un disque monté ailleurs, une banque est acceptée si le service la lit déjà ; hors de ces arborescences, `Machin grant-read` lui en donne la lecture, par des ACL, sans rien changer d'autre ([Commandes](doc/fr/administration/commandes.md#lecture-par-le-service-de-diffusion--machin-grant-read)). Ce que le service lit déjà est toujours accepté, même sous `/home` (un répertoire comme `/home/musiques`, ouvert à `machincast` par l'administrateur) ; l'interface du service refuse un sonore d'un répertoire personnel qu'il ne lit pas, et propose ailleurs d'en donner la lecture. Un fichier qu'il ne lit pas n'est pas joué, et le log le dit (`fichier illisible`).
 
@@ -314,7 +315,7 @@ COMPTE=programmation
 # Rôle PostgreSQL du compte, sans aucun droit particulier sur le serveur
 sudo -u postgres createuser "${COMPTE}"
 # Autorisation à endosser les quatre rôles de MachinCast, sans en hériter les droits
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_webserver TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
 # Lecture du journal du service, effective après le redémarrage du poste
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
@@ -327,7 +328,7 @@ Pour retirer l'accès d'un compte :
 
 ```bash
 COMPTE=programmation
-sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface, machincast_intranet FROM \"${COMPTE}\""
+sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface, machincast_webserver FROM \"${COMPTE}\""
 ```
 
 ## Mettre à jour
@@ -360,6 +361,8 @@ git pull
 **Purger la base.** `Machin purge` ([#268](https://github.com/dascritch/machincast/issues/268)) efface de la base de production l'airplay et le log plus vieux que la durée de péremption (`database.retention`, 60 jours par défaut), et les éléments supprimés depuis plus longtemps ; jamais un fichier. Le service de diffusion l'installe avec un minuteur, chaque jour à l'heure de `schedule.daily`, 10:00 par défaut, suivie de l'audit complet ; l'indexation rapide passe toutes les heures ([#455](https://github.com/dascritch/machincast/issues/455)) : une installation qui a déjà le service les reçoit en relançant `./install.sh`, qui propose de le mettre à jour et remplace l'ancien minuteur de midi. Détails : [Purge de la base](doc/fr/administration/commandes.md#purge-de-la-base--machin-purge).
 
 **Configuration en anglais** ([#357](https://github.com/dascritch/machincast/issues/357)). Les sections, clés et valeurs de `machincast.toml` sont en anglais : `[database]`, `[outputs]`, `[metadata]`, `[player]`, `[dead_air]`, `audio.output`, `audio.device`, `audio.preview`, `dummy` pour la sortie factice… Un ancien `machincast.toml` est refusé, en nommant la nouvelle section : le refaire depuis `machincast.exemple.toml`.
+
+**Machin webserver** ([#654](https://github.com/dascritch/machincast/issues/654)). `Machin intranet` s'appelle désormais `Machin webserver`, et l'ancien nom n'est plus reconnu. `./install.sh` reprend un poste installé avant : il arrête et retire l'unité `machincast-intranet.service`, renomme le compte système, son groupe et les rôles PostgreSQL `machincast-intranet` et `machincast_intranet` en `machincast-webserver` et `machincast_webserver`, qui gardent leurs droits, et déplace le répertoire d'état, avec le certificat généré, en `/var/lib/machincast-webserver` ; `./install.sh --service` installe ensuite `machincast-webserver.service`. Le journal `Machin_intranet.log` reste ; le nouveau est `Machin_webserver.log`. À la main : `sudo -u postgres psql -c 'ALTER ROLE machincast_intranet RENAME TO machincast_webserver'`. Une sauvegarde d'avant se réimporte telle quelle.
 
 **Noms anglais des commandes** ([#356](https://github.com/dascritch/machincast/issues/356)). `Machin lecture` s'appelle désormais `Machin player`, `Machin indexation` `Machin indexer`, `Machin dev-captures` `Machin dev-screenshots`, et leurs options sont en anglais (`--full-audit`, `--sound`, `--window`, `--force`, `--seed`, `--name`, `--directory`, `--backups`, `--keep-open`), comme celles d'`install.sh` (`--desktop`, `--no-desktop`, `--stop-programs`, `--leave-programs`, `--remove-service`) et les étapes de `python -m machincast.installation`. Les anciens noms ne sont plus reconnus : une installation existante se refait de zéro, `./install.sh --service` compris pour réécrire l'unité du service, qui lance `bin/Machin player`.
 
@@ -424,7 +427,7 @@ sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
 sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
-	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_intranet NOLOGIN"
+	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_webserver NOLOGIN"
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
 
@@ -433,7 +436,7 @@ Les quatre rôles de groupe appartiennent au serveur, pas à une base : ils serv
 **5. Rôles du compte.**
 
 ```bash
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_webserver TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 ```
 
 **6. Journal système.**

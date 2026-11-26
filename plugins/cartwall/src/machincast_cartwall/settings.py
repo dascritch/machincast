@@ -58,7 +58,7 @@ class ButtonsSettings(QWidget):
 		self.open_base = (connect) or (connector(configuration))
 		self.reachable = True
 		self.buttons: list[Button] = []
-		self.message = QLabel(t("The buttons of each account of the API, in the cartwall of Machin intranet."), self)
+		self.message = QLabel(t("The buttons of each account of the API, in the cartwall of Machin webserver."), self)
 		self.message.setObjectName("message")
 		self.message.setWordWrap(True)
 		self.account = QComboBox(self)
@@ -250,7 +250,7 @@ class ButtonsSettings(QWidget):
 		selected = self._base(change, None)
 		if not self.reachable:
 			return
-		self.message.setText(t("The buttons of each account of the API, in the cartwall of Machin intranet."))
+		self.message.setText(t("The buttons of each account of the API, in the cartwall of Machin webserver."))
 		self._read(selected)
 
 	def _current(self) -> Button | None:

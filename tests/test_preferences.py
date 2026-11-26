@@ -31,8 +31,8 @@ from machincast.interface.preferences import PreferencesWindow, Settings
 from machincast.interface.sound_card import SoundCard
 from machincast.interface.suggestions import Response
 from machincast.interface.window import MainWindow
-from machincast.intranet import network
 from machincast.shortcut import ICON
+from machincast.webserver import network
 from tests.database_fixtures import configuration_test
 from tests.interface_steps import NAME, Connection, Context, configuration_file, open_window, window
 from tests.modals import when_modal
@@ -1529,7 +1529,7 @@ def second_factor_restarts() -> None:
 @given(parsers.re(r"l'unité du serveur intranet (?P<state>installée|non installée)"))
 def intranet_unit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, state: str) -> None:
 	"""https://github.com/dascritch/machincast/issues/549"""
-	unit = tmp_path / "machincast-intranet.service"
+	unit = tmp_path / "machincast-webserver.service"
 	if state == "installée":
 		unit.write_text("[Unit]\n", encoding="utf-8")
 	monkeypatch.setattr(intranet_switch, "UNIT_FILE", unit)

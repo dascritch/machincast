@@ -1,7 +1,7 @@
 """Le certificat TLS de l'intranet (https://github.com/dascritch/machincast/issues/538).
 
 L'intranet n'écoute qu'en HTTPS, même joint par une simple adresse IP de sous-réseau. Sans certificat donné
-(intranet.certificate et intranet.key), Machin intranet en génère un auto-signé, par la commande openssl du système :
+(intranet.certificate et intranet.key), Machin webserver en génère un auto-signé, par la commande openssl du système :
 une clé EC P-256, valable 825 jours, au nom du poste, de son nom de domaine interne s'il en a un, et de chacune de ses
 adresses IP. Il est refait quand il ne couvre plus une adresse du poste, après un changement d'adresse en DHCP, ou
 qu'il expire dans moins de 30 jours. Un certificat donné n'est jamais touché.

@@ -75,7 +75,7 @@ Fonctionnalité: Les couleurs des émissions, par genre, dans les calendriers et
 		Exemples:
 			| binaire          | points                                                                         |
 			| Machin_interface | « grid.event_colour », « interface.event_card », « interface.plugin_window » |
-			| Machin_intranet  | « grid.event_colour »                                                          |
+			| Machin_webserver  | « grid.event_colour »                                                          |
 			| Machin_player    | aucun point                                                                    |
 
 	# ─── La section de la fiche ────────────────────────────

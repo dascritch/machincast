@@ -134,7 +134,7 @@ From the MachinCast directory, with your own account:
 
 At the end, it shows `Installation finished`. The playout service is only installed on request: see [Playout service](#playout-service).
 
-**PostgreSQL roles.** Each MachinCast program acts with its own rights: `machincast_player` for the broadcast, `machincast_indexer` for the indexing, `machincast_interface` for the graphical interface, `machincast_intranet` for the intranet server ([#537](https://github.com/dascritch/machincast/issues/537)). An account of the station connects with its own PostgreSQL role, which gives access to nothing by itself: each program assumes its role from the connection. The details are in the [specification, § 3.2](doc/fr/spec.md#32-rôles-et-droits) (French).
+**PostgreSQL roles.** Each MachinCast program acts with its own rights: `machincast_player` for the broadcast, `machincast_indexer` for the indexing, `machincast_interface` for the graphical interface, `machincast_webserver` for the intranet server ([#537](https://github.com/dascritch/machincast/issues/537)). An account of the station connects with its own PostgreSQL role, which gives access to nothing by itself: each program assumes its role from the connection. The details are in the [specification, § 3.2](doc/fr/spec.md#32-rôles-et-droits) (French).
 
 ## Adapting the configuration
 
@@ -249,7 +249,7 @@ Anomalies (damaged, unreadable or missing file) are shown on the error output wi
 
 **The service** runs under its own system account, `machincast` ([#381](https://github.com/dascritch/machincast/issues/381)): it needs no open session, and restarts at the machine's start without anyone logging in. It plays through its own PipeWire, its role in the database is `machincast_player` alone, and it only reads MachinCast and the banks. It runs `bin/Machin player`, with the `machincast.toml` of the MachinCast directory, and restarts it 5 seconds after a crash. Stopping it sends `SIGTERM`, which ends the current play cleanly. Its messages go to the system journal, which `Machin logs` follows, and to `/var/log/machincast/Machin_player.log`; its crash reports to `/var/log/machincast/crash-dump`. The installing account reads them, as a member of the `machincast` group.
 
-**The intranet server**, when switched on, runs under another system account, `machincast-intranet` ([#549](https://github.com/dascritch/machincast/issues/549)), outside the `machincast` group: its role in the database is `machincast_intranet` alone, it reads neither the sound files nor the PipeWire of the service nor its logs, and it can write only in its state directory, `/var/lib/machincast-intranet`. It follows the on-air output through a socket that Machin player keeps for it. Its messages go to the system journal: `journalctl -u machincast-intranet`.
+**The intranet server**, when switched on, runs under another system account, `machincast-webserver` ([#549](https://github.com/dascritch/machincast/issues/549)), outside the `machincast` group: its role in the database is `machincast_webserver` alone, it reads neither the sound files nor the PipeWire of the service nor its logs, and it can write only in its state directory, `/var/lib/machincast-webserver`. It follows the on-air output through a socket that Machin player keeps for it. Its messages go to the system journal: `journalctl -u machincast-webserver`.
 
 **Reading the sound files.** The service never reads a home directory, and MachinCast never changes the rights of a home directory, nor of the system trees (`/etc`, `/usr`, `/media`, `/mnt`…). The sounds go in `/home/machincast`; a library can also be below `/home/machincast`, `/opt`, `/srv` or `/var`, whose root must already be crossable, never changed, and outside the system directories of `/var` (`lib`, `log`…): `Machin grant-read` gives the reading there. On a disk mounted elsewhere, a bank is accepted if the service already reads it; outside these trees, `Machin grant-read` gives it read access, through ACLs, without changing anything else ([Commands](doc/en/administration/commandes.md#reading-by-the-playout-service-machin-grant-read)). What the service already reads is always accepted, even below `/home` (a directory such as `/home/musiques`, opened to `machincast` by the administrator); the interface of the service refuses a sound of a home directory that it does not read, and elsewhere offers to grant the reading. A file it does not read is not played, and the log says so (`unreadable file`).
 
@@ -309,7 +309,7 @@ COMPTE=programmation
 # PostgreSQL role of the account, without any particular right on the server
 sudo -u postgres createuser "${COMPTE}"
 # Authorisation to assume the three MachinCast roles, without inheriting their rights
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_webserver TO \"${COMPTE}\" WITH INHERIT FALSE, SET TRUE"
 # Reading the service journal, effective after the machine restarts
 sudo usermod --append --groups systemd-journal "${COMPTE}"
 ```
@@ -322,7 +322,7 @@ To remove the access of an account:
 
 ```bash
 COMPTE=programmation
-sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface, machincast_intranet FROM \"${COMPTE}\""
+sudo -u postgres psql -c "REVOKE machincast_player, machincast_indexer, machincast_interface, machincast_webserver FROM \"${COMPTE}\""
 ```
 
 ## Updating
@@ -419,7 +419,7 @@ sudo -u postgres createuser "$(id -un)"
 sudo -u postgres createdb --owner="$(id -un)" machincast
 sudo -u postgres createdb --owner="$(id -un)" machincast_test
 sudo -u postgres psql -c "CREATE ROLE machincast_player NOLOGIN" -c "CREATE ROLE machincast_indexer NOLOGIN" \
-	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_intranet NOLOGIN"
+	-c "CREATE ROLE machincast_interface NOLOGIN" -c "CREATE ROLE machincast_webserver NOLOGIN"
 .venv/bin/python -m machincast.installation migrate --config machincast.toml
 ```
 
@@ -428,7 +428,7 @@ The three group roles belong to the server, not to a database: they serve both d
 **5. Roles of the account.**
 
 ```bash
-sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_intranet TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
+sudo -u postgres psql -c "GRANT machincast_player, machincast_indexer, machincast_interface, machincast_webserver TO \"$(id -un)\" WITH INHERIT FALSE, SET TRUE"
 ```
 
 **6. System journal.**

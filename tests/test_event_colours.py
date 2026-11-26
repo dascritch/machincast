@@ -17,10 +17,10 @@ from machincast.clock import FixedClock
 from machincast.database import Role, open_connection
 from machincast.interface import calendar
 from machincast.interface.default_screen import EVENT_COLUMN, ITEM, stripe_colour
-from machincast.intranet import calendar as intranet_calendar
-from machincast.intranet import hour_grid
 from machincast.shared import colours
 from machincast.shared.grid import Priority, read_grid
+from machincast.webserver import calendar as intranet_calendar
+from machincast.webserver import hour_grid
 from tests.database_fixtures import sample_database_parameters
 from tests.interface_steps import Connection
 

@@ -6,7 +6,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 	afin d'ouvrir l'accès à distance à la demande, sans jamais l'exposer en clair.
 
 	https://github.com/dascritch/machincast/issues/538, ticket enfant de
-	https://github.com/dascritch/machincast/issues/524. Machin intranet (machincast.intranet) sert une application
+	https://github.com/dascritch/machincast/issues/524. Machin webserver (machincast.webserver) sert une application
 	ASGI par Hypercorn, en TLS seulement. Sans certificat donné, il en génère un auto-signé, par openssl, au nom du
 	poste et de chacune de ses adresses IP ; il le refait quand il ne couvre plus une adresse du poste.
 
@@ -61,10 +61,10 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 			| totp   | application d'authentification   |
 			| desk   | au pupitre                       |
 
-	Plan du scénario: En production, aucune validation n'est pas possible : Machin intranet demande le pupitre et son code
+	Plan du scénario: En production, aucune validation n'est pas possible : Machin webserver demande le pupitre et son code
 		https://github.com/dascritch/machincast/issues/600 : la production, c'est le serveur intranet installé en service.
 		Quand je charge la configuration de test, avec dans [intranet] : first_login = "<valeur>"
-		Et Machin intranet prend ses réglages, <installation>
+		Et Machin webserver prend ses réglages, <installation>
 		Alors la première connexion se valide « <validation> »
 		Et son journal <dit>
 
@@ -80,7 +80,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 
 	# ─── Certificat ────────────────────────────────────────
 
-	Scénario: Sans certificat, Machin intranet en génère un, au nom du poste et de chacune de ses adresses
+	Scénario: Sans certificat, Machin webserver en génère un, au nom du poste et de chacune de ses adresses
 		Quand le certificat de l'intranet est assuré pour les noms « studio », « studio.radio.lan » et les adresses « 10.0.0.12 », « 127.0.0.1 »
 		Alors un certificat a été généré
 		Et le certificat nomme « DNS:studio », « DNS:studio.radio.lan », « IP Address:10.0.0.12 » et « IP Address:127.0.0.1 »
@@ -100,7 +100,7 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 
 	Scénario: Un certificat donné dans la configuration n'est jamais touché
 		Étant donné un certificat donné dans la configuration de l'intranet
-		Quand Machin intranet choisit son certificat
+		Quand Machin webserver choisit son certificat
 		Alors il prend le certificat donné, sans en générer
 
 	Scénario: L'adresse à donner est celle d'écoute, ou, sur toutes les adresses, le nom de domaine interne et chaque adresse du poste
@@ -112,46 +112,46 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Étant donné le poste « studio », aux adresses « 10.0.0.12 »
 		Alors les adresses à donner pour « 0.0.0.0 », port 8443, sont « https://10.0.0.12:8443/ »
 
-	# ─── Le PID de Machin intranet (https://github.com/dascritch/machincast/issues/550) ───
+	# ─── Le PID de Machin webserver (https://github.com/dascritch/machincast/issues/550) ───
 
-	Plan du scénario: Machin intranet se reconnaît à ses arguments, élément par élément, jamais par sous-chaîne
-		Alors des arguments « <arguments> » <verdict> ceux de Machin intranet
+	Plan du scénario: Machin webserver se reconnaît à ses arguments, élément par élément, jamais par sous-chaîne
+		Alors des arguments « <arguments> » <verdict> ceux de Machin webserver
 
 		Exemples:
 			| arguments                                                                   | verdict     |
-			| /opt/machincast/.venv/bin/python /opt/machincast/.venv/bin/Machin_intranet  | sont        |
-			| /usr/bin/python3 -m machincast.intranet --config machincast.toml            | sont        |
-			| vim src/machincast/intranet/app.py                                          | ne sont pas |
-			| /usr/bin/python3 -m machincast.intranet.process                             | ne sont pas |
-			| less /var/log/Machin_intranet.log                                           | ne sont pas |
+			| /opt/machincast/.venv/bin/python /opt/machincast/.venv/bin/Machin_webserver  | sont        |
+			| /usr/bin/python3 -m machincast.webserver --config machincast.toml            | sont        |
+			| vim src/machincast/webserver/app.py                                          | ne sont pas |
+			| /usr/bin/python3 -m machincast.webserver.process                             | ne sont pas |
+			| less /var/log/Machin_webserver.log                                           | ne sont pas |
 			| grep -r intranet .                                                          | ne sont pas |
 
-	Scénario: Un Machin intranet d'un autre compte ne compte pas
-		Étant donné un Machin intranet qui tourne, son PID noté
+	Scénario: Un Machin webserver d'un autre compte ne compte pas
+		Étant donné un Machin webserver qui tourne, son PID noté
 		Quand l'interface le cherche sous un autre compte
 		Alors elle ne le trouve pas
 
 	# ─── Mode test, sans le service (https://github.com/dascritch/machincast/issues/549) ───
 
-	Scénario: En mode test, Machin player et Machin intranet, sous le même compte, s'accordent sur la socket de l'intranet
-		Sans le service, Machin intranet tourne sous le compte qui le lance, et lit la socket que lui ouvre le Machin
+	Scénario: En mode test, Machin player et Machin webserver, sous le même compte, s'accordent sur la socket de l'intranet
+		Sans le service, Machin webserver tourne sous le compte qui le lance, et lit la socket que lui ouvre le Machin
 		player de ce compte, à côté de sa socket d'état, privée au compte.
 		Étant donné un poste sans le service de diffusion, le répertoire d'exécution du compte dans un répertoire temporaire
 		Quand je charge la configuration de test, sans section [player]
 		Alors la socket de l'intranet est « intranet.sock », à côté de la socket d'état « lecture.sock »
-		Et un Machin player qui diffuse sur ces sockets donne son état à Machin intranet, par la socket de l'intranet
+		Et un Machin player qui diffuse sur ces sockets donne son état à Machin webserver, par la socket de l'intranet
 
 	# ─── Serveur ───────────────────────────────────────────
 
-	Scénario: Éteint, Machin intranet refuse de démarrer, et le dit
-		Quand je lance Machin intranet avec l'intranet éteint
-		Alors Machin intranet s'arrête avec le code 4
+	Scénario: Éteint, Machin webserver refuse de démarrer, et le dit
+		Quand je lance Machin webserver avec l'intranet éteint
+		Alors Machin webserver s'arrête avec le code 4
 		Et son journal dit « l'intranet est éteint : intranet.enabled, ou la page « Intranet » des paramètres du service »
 
 	Plan du scénario: Une connexion TLS que le navigateur a déjà fermée ne laisse pas de traceback au journal
 		https://github.com/dascritch/machincast/issues/572 : le navigateur envoie encore des données après sa
 		fermeture TLS ; Hypercorn ne rattrape pas l'erreur de wait_closed, qu'asyncio écrivait en exception non gérée.
-		Quand la boucle de Machin intranet rencontre l'exception « <exception> »
+		Quand la boucle de Machin webserver rencontre l'exception « <exception> »
 		Alors le journal de la boucle <verdict>
 
 		Exemples:
@@ -163,13 +163,13 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 	Scénario: Une page qui plante répond 500, et le journal donne le traceback de son erreur
 		https://github.com/dascritch/machincast/issues/574 : le journal ne disait que « intranet: request … failed ».
 		Étant donné une page « /panne » de l'intranet qui plante sur « base injoignable »
-		Quand je demande la page « /panne », le journal de Machin intranet configuré
+		Quand je demande la page « /panne », le journal de Machin webserver configuré
 		Alors la réponse est 500, « Erreur interne. »
 		Et la sortie d'erreur dit « intranet : la requête /panne a échoué », puis le traceback de « RuntimeError: base injoignable »
 
-	Scénario: Allumé, Machin intranet répond en HTTPS, avec ses en-têtes de sécurité
-		Quand je lance Machin intranet avec l'intranet allumé
-		Alors une requête HTTPS « GET /login » reçoit 200, une page « Machin intranet »
+	Scénario: Allumé, Machin webserver répond en HTTPS, avec ses en-têtes de sécurité
+		Quand je lance Machin webserver avec l'intranet allumé
+		Alors une requête HTTPS « GET /login » reçoit 200, une page « Machin webserver »
 		Et la réponse a les en-têtes :
 			| en-tête                   | valeur                                                          |
 			| strict-transport-security | max-age=31536000                                                |
@@ -184,10 +184,10 @@ Fonctionnalité: Serveur intranet en HTTPS, éteint par défaut, et son certific
 		Et une requête en HTTP clair ne reçoit aucune réponse HTTP
 		Et son journal donne l'adresse à donner et l'empreinte du certificat
 
-	Scénario: Machin intranet s'arrête proprement à SIGTERM, son PID noté le temps qu'il sert
+	Scénario: Machin webserver s'arrête proprement à SIGTERM, son PID noté le temps qu'il sert
 		https://github.com/dascritch/machincast/issues/544 : l'interface le retrouve par ce PID pour l'arrêter.
-		Quand je lance Machin intranet avec l'intranet allumé
+		Quand je lance Machin webserver avec l'intranet allumé
 		Alors son PID est noté dans son répertoire d'état
-		Quand Machin intranet reçoit SIGTERM
-		Alors Machin intranet s'arrête avec le code 0
+		Quand Machin webserver reçoit SIGTERM
+		Alors Machin webserver s'arrête avec le code 0
 		Et son PID n'est plus noté

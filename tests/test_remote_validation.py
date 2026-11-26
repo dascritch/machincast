@@ -10,7 +10,7 @@ from pytestqt.qtbot import QtBot
 
 from machincast.interface import api_tab
 from machincast.interface.remote_connections import RemoteConnections
-from machincast.intranet import sessions
+from machincast.webserver import sessions
 from tests.interface_steps import NAME, Connection, Context, window
 from tests.intranet_steps import screen
 

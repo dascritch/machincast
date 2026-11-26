@@ -1,4 +1,4 @@
-"""Le cartouchier dans Machin intranet (https://github.com/dascritch/machincast/issues/512), par le point
+"""Le cartouchier dans Machin webserver (https://github.com/dascritch/machincast/issues/512), par le point
 « intranet.extensions » (https://github.com/dascritch/machincast/issues/588).
 
 - Les boutons du compte, sous l'antenne en direct de l'accueil, sans page à part ni entrée au bandeau
@@ -16,8 +16,8 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-from machincast.intranet.app import Request
-from machincast.intranet.extensions import ACTIONS, Endpoint, Extension, HomeSection, Tools
+from machincast.webserver.app import Request
+from machincast.webserver.extensions import ACTIONS, Endpoint, Extension, HomeSection, Tools
 from machincast_cartwall import queries
 from machincast_cartwall.buttons import Button, as_json, request
 from machincast_cartwall.texts import t

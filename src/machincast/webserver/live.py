@@ -23,9 +23,9 @@ from typing import Any
 
 from machincast.clock import SystemClock
 from machincast.i18n import _, logged
-from machincast.intranet import queries
-from machincast.intranet.queries import Connection
 from machincast.shared.grid import Planned, plan, read_grid, wall_hour
+from machincast.webserver import queries
+from machincast.webserver.queries import Connection
 
 FOLLOWING = 5
 """Sonores à venir, le prochain compris."""

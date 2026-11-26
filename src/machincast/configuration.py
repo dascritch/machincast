@@ -321,8 +321,8 @@ class Intranet:
 	session: int = SESSION
 	"""Heures de validité d'une session validée."""
 	certificate: Path | None = None
-	"""Le certificat TLS, au format PEM ; sans lui, Machin intranet en génère un auto-signé
-	(machincast.intranet.certificate)."""
+	"""Le certificat TLS, au format PEM ; sans lui, Machin webserver en génère un auto-signé
+	(machincast.webserver.certificate)."""
 	key: Path | None = None
 	"""La clé privée du certificat donné, au format PEM."""
 	first_login: FirstLogin = "desk_code"

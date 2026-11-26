@@ -1,7 +1,7 @@
-"""Les gabarits Jinja2 de « Machin intranet » (https://github.com/dascritch/machincast/issues/597, ticket enfant de
+"""Les gabarits Jinja2 de « Machin webserver » (https://github.com/dascritch/machincast/issues/597, ticket enfant de
 https://github.com/dascritch/machincast/issues/596).
 
-Les pages de l'intranet viennent des fichiers de machincast/intranet/templates/, en Jinja2, le moteur Python le plus
+Les pages de l'intranet viennent des fichiers de machincast/webserver/templates/, en Jinja2, le moteur Python le plus
 proche de Twig : page.html.jinja, la page HTML, que layout.html.jinja étend du bandeau (banner.html.jinja) ; puis
 chaque page, qui étend layout.html.jinja.
 
@@ -26,7 +26,7 @@ from markupsafe import Markup
 from machincast.i18n import _, ngettext
 
 DIRECTORY = "templates"
-"""Le répertoire des gabarits, dans machincast/intranet/ comme dans chaque plugin."""
+"""Le répertoire des gabarits, dans machincast/webserver/ comme dans chaque plugin."""
 ORIGINAL = "machincast"
 """Le préfixe sous lequel un gabarit de MachinCast reste joignable, pour un plugin qui le surcharge en l'étendant."""
 
@@ -54,7 +54,7 @@ def plugin_directories(plugin_paths: Sequence[Path]) -> list[Path]:
 
 
 def _loader() -> BaseLoader:
-	machincast = PackageLoader("machincast.intranet", DIRECTORY)
+	machincast = PackageLoader("machincast.webserver", DIRECTORY)
 	loaders: list[BaseLoader] = []
 	for directory in _overrides:
 		loaders.append(FileSystemLoader(str(directory)))

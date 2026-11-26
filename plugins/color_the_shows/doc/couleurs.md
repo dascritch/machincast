@@ -24,4 +24,4 @@ Menu **Plugins**, **Couleurs des émissions** :
 Un nom vide ou déjà pris, même avec d'autres majuscules, est refusé : le message le dit, et rien n'est écrit.
 Un genre retiré quitte les événements qui l'avaient : ils reprennent la couleur de leur priorité.
 
-Machin intranet relit les couleurs au plus toutes les 30 secondes.
+Machin webserver relit les couleurs au plus toutes les 30 secondes.

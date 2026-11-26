@@ -1,8 +1,8 @@
 """Les lectures de l'API de l'intranet (https://github.com/dascritch/machincast/issues/540), au rôle
-machincast_intranet, qui ne fait que lire.
+machincast_webserver, qui ne fait que lire.
 
 Chaque fonction rend des objets prêts pour JSON : dictionnaires, listes, textes, nombres, dates, que l'API sérialise
-(machincast.intranet.api.dumps). Les listes se lisent par pages, triées par identifiant : `after` le dernier
+(machincast.webserver.api.dumps). Les listes se lisent par pages, triées par identifiant : `after` le dernier
 identifiant reçu, `limit` lignes au plus. Un élément supprimé n'est pas dans les listes ; sa fiche se lit encore,
 `deleted_at` renseigné.
 """
@@ -123,8 +123,8 @@ def previous_plays(connection: Connection, count: int = PLAYS) -> list[Row]:
 	)
 
 
-# ─── Sessions (machincast.intranet.sessions, https://github.com/dascritch/machincast/issues/539) ───
-# Sans transaction : machincast.intranet.sessions les ouvre, et y enchaîne ces requêtes.
+# ─── Sessions (machincast.webserver.sessions, https://github.com/dascritch/machincast/issues/539) ───
+# Sans transaction : machincast.webserver.sessions les ouvre, et y enchaîne ces requêtes.
 
 STATE_NOW = (
 	"CASE WHEN (s.state = 'pending' AND s.validate_before < clock_timestamp())"

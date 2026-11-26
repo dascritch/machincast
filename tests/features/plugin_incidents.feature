@@ -31,7 +31,7 @@ Fonctionnalité: log_incident, l'avertissement d'un incident grave
 			| Machin_player    |
 			| Machin_indexer   |
 			| Machin_interface |
-			| Machin_intranet  |
+			| Machin_webserver  |
 
 	Scénario: Un plugin qui échoue à prévenir ne crée pas d'incident à son tour
 		Étant donné un plugin « témoin » chargé dans « Machin_player », abonné à « log_incident »

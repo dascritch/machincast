@@ -261,7 +261,7 @@ def private_socket(bench: Bench) -> None:
 @given("la socket de l'intranet dans le répertoire que le service lui réserve, imité")
 def reserved_directory(bench: Bench, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 	"""Le répertoire de tmpfiles.d, imité : il existe déjà, au mode qu'il lui donne (2750)."""
-	reserved = tmp_path / "run" / "machincast-intranet"
+	reserved = tmp_path / "run" / "machincast-webserver"
 	reserved.mkdir(parents=True)
 	reserved.chmod(0o2750)
 	monkeypatch.setenv(service.INTRANET_RUNTIME_ENVIRONMENT, str(reserved))

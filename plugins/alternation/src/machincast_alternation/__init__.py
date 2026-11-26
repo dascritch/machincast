@@ -2,7 +2,7 @@
 qui se partagent son créneau (https://github.com/dascritch/machincast/issues/609, ticket enfant de
 https://github.com/dascritch/machincast/issues/606).
 
-- Dans chaque binaire qui lit la grille, Machin player, Machin interface et Machin intranet, l'émission qui joue
+- Dans chaque binaire qui lit la grille, Machin player, Machin interface et Machin webserver, l'émission qui joue
   chaque occurrence (machincast_alternation.rotation) : l'antenne, le calendrier, l'intranet et l'affichage public la
   jouent et la montrent.
 - Dans Machin interface, la fiche de l'événement méta choisit ses émissions, leur rotation, et les passages des

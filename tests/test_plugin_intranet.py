@@ -1,9 +1,9 @@
-"""Scénarios des pages, des routes d'API et des fichiers statiques des plugins dans Machin intranet
+"""Scénarios des pages, des routes d'API et des fichiers statiques des plugins dans Machin webserver
 (https://github.com/dascritch/machincast/issues/588).
 
 Le plugin « horloge » est imité par un abonné au point « intranet.extensions » d'un registre de points
 (machincast.plugins.points.Points) ; les requêtes passent directement à l'application ASGI (tests.asgi_client), sur la
-base de test, au rôle machincast_intranet, comme celles de tests/test_intranet_api.py, dont les étapes servent ici.
+base de test, au rôle machincast_webserver, comme celles de tests/test_intranet_api.py, dont les étapes servent ici.
 """
 
 import json
@@ -19,12 +19,12 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from machincast.clock import FixedClock
 from machincast.configuration import Intranet as Settings
-from machincast.intranet.api import ApiV1
-from machincast.intranet.app import Intranet, Request
-from machincast.intranet.extensions import POINT, Endpoint, Extension, Extensions, HomeSection, Page, Tools
-from machincast.intranet.pages import Pages
-from machincast.intranet.portal import Portal
 from machincast.plugins.points import Points
+from machincast.webserver.api import ApiV1
+from machincast.webserver.app import Intranet, Request
+from machincast.webserver.extensions import POINT, Endpoint, Extension, Extensions, HomeSection, Page, Tools
+from machincast.webserver.pages import Pages
+from machincast.webserver.portal import Portal
 from tests.asgi_client import call
 from tests.test_intranet_api import (
 	Api,
@@ -171,9 +171,9 @@ def lopsided(points: Points, name: str, path: str) -> None:
 	points.subscribe(name, POINT, lambda data: extension)
 
 
-@when("Machin intranet rassemble les extensions des plugins", target_fixture="gathered")
+@when("Machin webserver rassemble les extensions des plugins", target_fixture="gathered")
 def gather(api: Api, points: Points, caplog: pytest.LogCaptureFixture) -> dict[Any, Any]:
-	caplog.set_level(logging.ERROR, logger="machincast.intranet.extensions")
+	caplog.set_level(logging.ERROR, logger="machincast.webserver.extensions")
 	return _routes(api.socket_path, points)[0].routes()
 
 

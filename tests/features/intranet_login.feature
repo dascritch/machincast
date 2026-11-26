@@ -7,7 +7,7 @@ Fonctionnalité: Connexion à l'intranet, validée au pupitre par un code à 6 c
 
 	https://github.com/dascritch/machincast/issues/539, ticket enfant de
 	https://github.com/dascritch/machincast/issues/524. Les requêtes passent directement à l'application ASGI
-	(tests/asgi_client.py), sur la base de test, au rôle machincast_intranet ; 30 minutes pour valider, des sessions de
+	(tests/asgi_client.py), sur la base de test, au rôle machincast_webserver ; 30 minutes pour valider, des sessions de
 	12 heures.
 
 	Contexte:

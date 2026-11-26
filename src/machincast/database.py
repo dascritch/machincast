@@ -66,7 +66,7 @@ class Role(StrEnum):
 	PLAYBACK = "machincast_player"
 	INDEXING = "machincast_indexer"
 	INTERFACE = "machincast_interface"
-	INTRANET = "machincast_intranet"
+	INTRANET = "machincast_webserver"
 	"""Le serveur intranet et son API (https://github.com/dascritch/machincast/issues/537)."""
 
 

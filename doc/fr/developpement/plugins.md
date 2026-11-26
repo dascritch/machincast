@@ -47,7 +47,7 @@ MachinCast l'importe depuis `src/` quand il charge le plugin ; il n'est pas inst
 | `version` | Sa version, au format [PEP 440](https://peps.python.org/pep-0440/) : `1.2.0`. |
 | `description` | Sa description courte, en anglais, 200 caractères au plus. |
 | `machincast` | Les versions de MachinCast où il fonctionne, un spécificateur PEP 440 ; sans elle, toutes. |
-| `binaries` | Les binaires où il s'accroche : `Machin_player`, `Machin_indexer`, `Machin_interface`, `Machin_intranet`. Il n'est chargé que dans ceux-là. |
+| `binaries` | Les binaires où il s'accroche : `Machin_player`, `Machin_indexer`, `Machin_interface`, `Machin_webserver`. Il n'est chargé que dans ceux-là. |
 | `requires` | Tout est facultatif : les plugins demandés et leurs versions, les modules Python importables, les programmes du `PATH`, les tables de la base. |
 | `l10n` | Le nom et la description dans chaque langue de MachinCast. |
 
@@ -268,7 +268,7 @@ Appelés à chaque lecture de la grille, ils ne lisent pas la base.
 
 ([#635](https://github.com/dascritch/machincast/issues/635), `machincast.shared.colours`)
 
-Le point du cœur « grid.event_colour » est demandé quand un binaire colore un événement : le calendrier de Machin interface (ses blocs, et les cases de ses priorités), celui de Machin intranet (sa grille et son JSON) et les tableaux d'airplay, de l'onglet Antenne et de l'onglet Airplay.
+Le point du cœur « grid.event_colour » est demandé quand un binaire colore un événement : le calendrier de Machin interface (ses blocs, et les cases de ses priorités), celui de Machin webserver (sa grille et son JSON) et les tableaux d'airplay, de l'onglet Antenne et de l'onglet Airplay.
 Ses données : `event`, l'identifiant de l'événement, ou `None` pour la couleur d'une priorité, et `priority`, sa priorité, ou `None` quand l'appelant ne la connaît pas, dans un tableau d'airplay.
 Le plugin répond une couleur `#rrggbb`, ou `None` pour laisser celle du cœur ; la première couleur valide l'emporte, une autre réponse est ignorée.
 
@@ -329,7 +329,7 @@ Les points notifiés sont appelés dans le fil des plugins : ils ne touchent pas
 
 ## Les points d'entrée d'un nouveau plugin
 
-À la création de chaque plugin, la liste des points d'entrée qu'il propose est revue avec le responsable du projet ([#348](https://github.com/dascritch/machincast/issues/348)) : menu général, menu contextuel, section d'une fiche, vérification avant l'enregistrement, points de Machin player, de Machin indexer ou de Machin intranet, `log_incident`, et les points qu'il déclare pour d'autres plugins (`plugin.declare`).
+À la création de chaque plugin, la liste des points d'entrée qu'il propose est revue avec le responsable du projet ([#348](https://github.com/dascritch/machincast/issues/348)) : menu général, menu contextuel, section d'une fiche, vérification avant l'enregistrement, points de Machin player, de Machin indexer ou de Machin webserver, `log_incident`, et les points qu'il déclare pour d'autres plugins (`plugin.declare`).
 Un besoin qu'aucun point ne couvre est un ticket du cœur, qui ajoute son point à `points.CORE`, décrit.
 
 ## Ses réglages dans l'interface
@@ -349,8 +349,8 @@ Seul le plugin de la fenêtre est demandé (`Points.collect_from`) ; ses réglag
 
 ## Ses gabarits dans l'intranet
 
-Les pages de Machin intranet viennent de gabarits Jinja2, dans `src/machincast/intranet/templates/` ([#597](https://github.com/dascritch/machincast/issues/597)).
-Un plugin qui s'accroche à `Machin_intranet` en surcharge un en fournissant, dans son `templates/`, un fichier du même nom ; le premier plugin, dans l'ordre de `[plugins] enabled`, l'emporte.
+Les pages de Machin webserver viennent de gabarits Jinja2, dans `src/machincast/webserver/templates/` ([#597](https://github.com/dascritch/machincast/issues/597)).
+Un plugin qui s'accroche à `Machin_webserver` en surcharge un en fournissant, dans son `templates/`, un fichier du même nom ; le premier plugin, dans l'ordre de `[plugins] enabled`, l'emporte.
 Pour ajouter à l'original plutôt que le remplacer, le gabarit l'étend sous le nom `machincast/<nom>` :
 
 ```jinja
@@ -363,12 +363,12 @@ L'échappement est automatique ; une variable absente est une erreur. Une page d
 
 ## Ses pages dans l'intranet
 
-Un plugin qui s'accroche à `Machin_intranet` y ajoute ses pages, ses routes d'API et ses fichiers statiques ([#588](https://github.com/dascritch/machincast/issues/588)), en répondant au point demandé `intranet.extensions` une `machincast.intranet.extensions.Extension` :
+Un plugin qui s'accroche à `Machin_webserver` y ajoute ses pages, ses routes d'API et ses fichiers statiques ([#588](https://github.com/dascritch/machincast/issues/588)), en répondant au point demandé `intranet.extensions` une `machincast.webserver.extensions.Extension` :
 
 ```python
 from pathlib import Path
 
-from machincast.intranet.extensions import Endpoint, Extension, HomeSection, Page
+from machincast.webserver.extensions import Endpoint, Extension, HomeSection, Page
 
 STATIC = Path(__file__).parent / "static"
 
@@ -405,7 +405,7 @@ def register(plugin):
 - Le rôle demandé (`role`) est `consult`, par défaut, ou `actions` ; sans session, une page mène à la connexion et une route répond 401 ; un rôle insuffisant reçoit 403.
 - Les fichiers statiques sont ceux d'un seul répertoire (`static`), servis sous `/plugins/<nom>/static/`, aux types `.css`, `.js`, `.svg`, `.png`, `.woff2` et `.json`.
 	L'intranet refuse les styles et les scripts écrits dans la page : ils vont dans ces fichiers, que la page charge par `assets`.
-- `tools` donne la session (`tools.session.user`, `tools.session.role`), la base au rôle `machincast_intranet` (`await tools.database(fonction)`), le dernier état de l'antenne (`await tools.state()`) et les demandes à Machin player, au nom du compte, avec leur réponse (`await tools.ask(demande)`).
+- `tools` donne la session (`tools.session.user`, `tools.session.role`), la base au rôle `machincast_webserver` (`await tools.database(fonction)`), le dernier état de l'antenne (`await tools.state()`) et les demandes à Machin player, au nom du compte, avec leur réponse (`await tools.ask(demande)`).
 
 Détails : [spécification, § 14.3](../spec.md#143-les-pages-et-les-routes-dun-plugin-dans-lintranet).
 

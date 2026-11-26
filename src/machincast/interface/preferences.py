@@ -73,10 +73,10 @@ from machincast.interface.power_save_switch import PowerSaveSwitch
 from machincast.interface.sound_cards import SoundCards
 from machincast.interface.timeline import Plan, Timeline, demonstration_shape
 from machincast.interface.ui.preferences import Ui_PreferencesWindow
-from machincast.intranet import network
 from machincast.protection import check_writing
 from machincast.service import ABSENT, ServiceState
 from machincast.shared.fades import LABELS, POSITIONS, Position
+from machincast.webserver import network
 
 FRENCH = QLocale(QLocale.Language.French, QLocale.Country.France)
 """Les durées s'écrivent avec une virgule."""

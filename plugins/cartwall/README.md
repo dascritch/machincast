@@ -1,6 +1,6 @@
 # Cartouchier (cartwall)
 
-Des boutons tactiles dans Machin intranet, qui agissent sur l'antenne, réglés par compte de l'API dans Machin interface ([#512](https://github.com/dascritch/machincast/issues/512), plugin de [#348](https://github.com/dascritch/machincast/issues/348)).
+Des boutons tactiles dans Machin webserver, qui agissent sur l'antenne, réglés par compte de l'API dans Machin interface ([#512](https://github.com/dascritch/machincast/issues/512), plugin de [#348](https://github.com/dascritch/machincast/issues/348)).
 
 - Guide d'utilisation : [doc/cartouchier.md](doc/cartouchier.md).
 - Écrire un plugin : [doc/fr/developpement/plugins.md](../../doc/fr/developpement/plugins.md).
@@ -28,7 +28,7 @@ enabled = ["cartwall"]
 
 | Chemin | Rôle |
 | --- | --- |
-| `manifest.json` | S'accroche à `Machin_intranet` et `Machin_interface`. |
+| `manifest.json` | S'accroche à `Machin_webserver` et `Machin_interface`. |
 | `migrations/` | La table `cartwall__buttons` : les boutons de chaque compte, lus par l'intranet, réglés par l'interface. |
 | `src/machincast_cartwall/intranet.py` | Sa section sous l'accueil, les boutons du compte, et les routes `GET /api/v1/plugins/cartwall/buttons`, `POST /api/v1/plugins/cartwall/press`. |
 | `src/machincast_cartwall/settings.py` | Les boutons de chaque compte, dans la fenêtre du plugin, menu « Plugins » de l'interface. |

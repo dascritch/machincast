@@ -31,7 +31,7 @@ TASKS_TIMER = "machincast-tasks.timer"
 TASKS_TIMER_FILE = Path("/etc/systemd/system") / TASKS_TIMER
 """Le minuteur des tâches régulières, installé par install.sh --service, sauf avec --no-timers."""
 INDEXING_UNIT = "machincast-indexing.service"
-INTRANET_UNIT = "machincast-intranet.service"
+INTRANET_UNIT = "machincast-webserver.service"
 """Le serveur intranet (https://github.com/dascritch/machincast/issues/538) : le même nom dans install.sh."""
 INTRANET_UNIT_FILE = Path("/etc/systemd/system") / INTRANET_UNIT
 """Le serveur intranet installé en service : la production
@@ -45,12 +45,12 @@ RUNTIME = Path("/run/machincast")
 la socket de son PipeWire et sa socket d'état. tmpfiles.d le recrée à chaque démarrage du poste."""
 RUNTIME_ENVIRONMENT = "MACHINCAST_SERVICE_RUNTIME"
 """La variable d'environnement qui le remplace : les scénarios n'atteignent jamais le service du poste."""
-INTRANET_ACCOUNT = "machincast-intranet"
+INTRANET_ACCOUNT = "machincast-webserver"
 """Le compte système du serveur intranet, et son groupe, distinct de celui du service de diffusion et hors de son
 groupe (https://github.com/dascritch/machincast/issues/549) : les mêmes noms dans install.sh."""
-INTRANET_RUNTIME = Path("/run/machincast-intranet")
+INTRANET_RUNTIME = Path("/run/machincast-webserver")
 """Le répertoire de la socket que Machin player réserve au serveur intranet, au compte du service et au groupe
-machincast-intranet (2750) : tmpfiles.d le recrée à chaque démarrage du poste."""
+machincast-webserver (2750) : tmpfiles.d le recrée à chaque démarrage du poste."""
 INTRANET_RUNTIME_ENVIRONMENT = "MACHINCAST_INTRANET_RUNTIME"
 """La variable d'environnement qui le remplace, pour les scénarios."""
 PIPEWIRE_SOCKET = "pipewire-0"

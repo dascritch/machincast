@@ -97,7 +97,7 @@ class ColoursSettings(QWidget):
 		self.message = QLabel(
 			t(
 				"The genres of the shows, and the colours of the events without genre, in the calendar of Machin"
-				" interface, the one of Machin intranet and the tables of airplay."
+				" interface, the one of Machin webserver and the tables of airplay."
 			),
 			self,
 		)

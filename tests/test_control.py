@@ -23,8 +23,8 @@ from machincast.configuration import PROJECT_DIRECTORY, Intranet, load
 from machincast.installation import systemd_unit
 from machincast.interface import broadcast_status, control, dialogs, intranet_switch
 from machincast.interface.control import service_configuration
-from machincast.intranet import process
 from machincast.service import INTRANET_UNIT
+from machincast.webserver import process
 from tests.interface_steps import Context, configuration_file, window
 from tests.waiting import quiet
 
@@ -105,7 +105,7 @@ while True:
 HAND_INTRANET = """
 import signal, sys, time
 from pathlib import Path
-from machincast.intranet import process
+from machincast.webserver import process
 
 
 def stop(_signal_number, _frame):
@@ -118,8 +118,8 @@ with process.recorded(Path(sys.argv[1])):
 	while True:
 		time.sleep(1)
 """
-"""Un Machin intranet lancé sans le service : son PID noté, il s'arrête à SIGTERM ; lancé par un script nommé
-Machin_intranet, comme le vrai."""
+"""Un Machin webserver lancé sans le service : son PID noté, il s'arrête à SIGTERM ; lancé par un script nommé
+Machin_webserver, comme le vrai."""
 STATES = {"arrêté": "inactive", "en marche": "active", "en échec": "failed"}
 
 
@@ -169,7 +169,7 @@ def station(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Station
 	monkeypatch.setenv("MACHINCAST_TEST_SERVICE", str(fake.service))
 	monkeypatch.setenv("MACHINCAST_TEST_ESSAI", str(fake.trial_stop))
 	monkeypatch.setenv("MACHINCAST_TEST_ERREUR", "")
-	# Le PID d'un Machin intranet lancé sans le service : jamais celui du compte qui lance les tests.
+	# Le PID d'un Machin webserver lancé sans le service : jamais celui du compte qui lance les tests.
 	monkeypatch.setenv("STATE_DIRECTORY", str(fake.intranet_state))
 	yield fake
 	for launched in (fake.trial, fake.intranet):
@@ -580,19 +580,19 @@ def not_received(station: Station, qtbot: QtBot, call: str) -> None:
 # ─── Serveur intranet sans le service (https://github.com/dascritch/machincast/issues/544) ───
 
 
-@given(parsers.parse("Machin intranet qui s'arrête aussitôt lancé par son unité, avec le code {code:d}"))
+@given(parsers.parse("Machin webserver qui s'arrête aussitôt lancé par son unité, avec le code {code:d}"))
 def intranet_immediate_stop(monkeypatch: pytest.MonkeyPatch, code: int) -> None:
 	monkeypatch.setenv("MACHINCAST_TEST_ARRET", f"{code} failed failed")
 
 
 @given(parsers.parse("le journal de l'unité du serveur intranet qui finit par « {line} »"))
 def intranet_journal(tmp_path: Path, line: str) -> None:
-	(tmp_path / "journal").write_text(f"Started machincast-intranet.service\n{line}\n", encoding="utf-8")
+	(tmp_path / "journal").write_text(f"Started machincast-webserver.service\n{line}\n", encoding="utf-8")
 
 
-@given("un Machin intranet lancé sans le service")
+@given("un Machin webserver lancé sans le service")
 def hand_intranet(station: Station, qtbot: QtBot) -> None:
-	# Un script nommé comme l'exécutable de Machin intranet : c'est ainsi qu'il se reconnaît
+	# Un script nommé comme l'exécutable de Machin webserver : c'est ainsi qu'il se reconnaît
 	# (https://github.com/dascritch/machincast/issues/550).
 	script = station.commands.parent / process.EXECUTABLE
 	script.write_text(HAND_INTRANET, encoding="utf-8")
@@ -602,7 +602,7 @@ def hand_intranet(station: Station, qtbot: QtBot) -> None:
 	qtbot.waitUntil(lambda: process.running_pid() == station.intranet.pid, timeout=5000)  # type: ignore[union-attr]
 
 
-@given("un PID resté d'un Machin intranet arrêté brutalement")
+@given("un PID resté d'un Machin webserver arrêté brutalement")
 def stale_pid(station: Station) -> None:
 	ended = subprocess.Popen([sys.executable, "-c", "pass"])
 	ended.wait()
@@ -611,7 +611,7 @@ def stale_pid(station: Station) -> None:
 	assert process.running_pid() is None
 
 
-@then("le Machin intranet lancé sans le service a reçu SIGTERM, et ne tourne plus")
+@then("le Machin webserver lancé sans le service a reçu SIGTERM, et ne tourne plus")
 def hand_intranet_stopped(station: Station, qtbot: QtBot) -> None:
 	launched = station.intranet
 	assert launched is not None
@@ -620,11 +620,11 @@ def hand_intranet_stopped(station: Station, qtbot: QtBot) -> None:
 	assert process.running_pid() is None
 
 
-@then("le terminal a lancé bientôt Machin intranet sur la configuration de l'interface, gardé ouvert sur une erreur")
+@then("le terminal a lancé bientôt Machin webserver sur la configuration de l'interface, gardé ouvert sur une erreur")
 def intranet_in_terminal(interface: Context, station: Station, qtbot: QtBot) -> None:
 	qtbot.waitUntil(station.terminal.exists, timeout=5000)
 	arguments = station.terminal.read_text(encoding="utf-8").splitlines()
-	expected = ["-e", str(control.MACHIN), "--config", str(configuration_file(interface)), "intranet", "--keep-open"]
+	expected = ["-e", str(control.MACHIN), "--config", str(configuration_file(interface)), "webserver", "--keep-open"]
 	assert arguments == expected
 
 
@@ -633,7 +633,7 @@ SLEEPER = "import time\nwhile True:\n\ttime.sleep(1)\n"
 
 @given(
 	parsers.re(
-		r"(?P<kind>un éditeur ouvert sur « (?P<file>[^»]+) »|un Machin intranet démarré une heure après l'écriture du"
+		r"(?P<kind>un éditeur ouvert sur « (?P<file>[^»]+) »|un Machin webserver démarré une heure après l'écriture du"
 		r" fichier de son PID), dont le PID est resté dans le répertoire d'état de l'intranet"
 	)
 )
@@ -641,7 +641,7 @@ def reused_pid(station: Station, kind: str, file: str | None) -> None:
 	"""https://github.com/dascritch/machincast/issues/550"""
 	command = [sys.executable, "-c", SLEEPER, str(file)]
 	if file is None:
-		# Lancé comme Machin intranet, mais après l'écriture du fichier : ce PID-là n'est pas le sien.
+		# Lancé comme Machin webserver, mais après l'écriture du fichier : ce PID-là n'est pas le sien.
 		script = station.commands.parent / process.EXECUTABLE
 		script.write_text(SLEEPER, encoding="utf-8")
 		command = [sys.executable, str(script)]

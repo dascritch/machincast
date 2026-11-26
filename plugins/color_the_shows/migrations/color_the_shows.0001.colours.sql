@@ -29,5 +29,5 @@ INSERT INTO color_the_shows__genres (name, colour) VALUES
 	('metal', '#3d3d3d'),
 	('reggae', '#e07b39');
 
-GRANT SELECT ON color_the_shows__genres, color_the_shows__priorities TO machincast_intranet;
+GRANT SELECT ON color_the_shows__genres, color_the_shows__priorities TO machincast_webserver;
 GRANT SELECT, INSERT, UPDATE, DELETE ON color_the_shows__genres, color_the_shows__priorities TO machincast_interface;

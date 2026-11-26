@@ -48,7 +48,7 @@ Fonctionnalité: La normalisation du niveau : chaque sonore porté à la sonie v
 			| Machin_player    | « player.sound_gain »                              |
 			| Machin_indexer   | « indexer.sound_detailed »                         |
 			| Machin_interface | « interface.sound_card », « interface.bank_card », « interface.plugin_window » |
-			| Machin_intranet  | aucun point                                        |
+			| Machin_webserver  | aucun point                                        |
 
 	# ─── À l'antenne ───────────────────────────────────────
 

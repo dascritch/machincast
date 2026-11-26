@@ -27,8 +27,8 @@ Subscriber = Callable[[Mapping[str, Any]], object]
 
 CORE: dict[str, str] = {
 	"intranet.extensions": (
-		"asked by Machin intranet when it starts, without data: the plugin answers its pages, API routes and static "
-		"files, a machincast.intranet.extensions.Extension (https://github.com/dascritch/machincast/issues/588)"
+		"asked by Machin webserver when it starts, without data: the plugin answers its pages, API routes and static "
+		"files, a machincast.webserver.extensions.Extension (https://github.com/dascritch/machincast/issues/588)"
 	),
 	"grid.substitutions": (
 		"asked each time a binary reads the grid, without data: the plugin answers a "
@@ -36,7 +36,7 @@ CORE: dict[str, str] = {
 		"each of its occurrences (https://github.com/dascritch/machincast/issues/608)"
 	),
 	"grid.event_colour": (
-		"asked when a binary colours an event, in the calendar of Machin interface and of Machin intranet and in the "
+		"asked when a binary colours an event, in the calendar of Machin interface and of Machin webserver and in the "
 		"airplay tables, with “event”, its identifier, or None for the colour of a priority, and “priority”, or None "
 		"when unknown: the plugin answers a colour “#rrggbb”, or None to keep that of MachinCast "
 		"(https://github.com/dascritch/machincast/issues/635)"

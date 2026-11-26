@@ -2,7 +2,7 @@
 (https://github.com/dascritch/machincast/issues/599, ticket enfant de
 https://github.com/dascritch/machincast/issues/596).
 
-Des occurrences du calendrier (machincast.intranet.calendar.entries), l'agenda ne garde que ce qui passera à
+Des occurrences du calendrier (machincast.webserver.calendar.entries), l'agenda ne garde que ce qui passera à
 l'antenne :
 
 - une occurrence à l'horaire défini : ni un fil musical permanent, ni une occurrence sans fin, ni un secours ;
@@ -12,16 +12,16 @@ l'antenne :
 - seulement ce qui finit après maintenant : l'en cours, et l'à venir.
 
 Les morceaux ne se chevauchent jamais : une seule couche. L'agenda est un élément réutilisable : items donne ses
-morceaux, render son HTML (agenda.html.jinja, en grille horaire, machincast.intranet.hour_grid), que la page
+morceaux, render son HTML (agenda.html.jinja, en grille horaire, machincast.webserver.hour_grid), que la page
 /calendar inclut, et qu'un plugin peut reprendre à un autre usage, un export en PDF par exemple
-(machincast.intranet.extensions.Tools.agenda).
+(machincast.webserver.extensions.Tools.agenda).
 """
 
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from machincast.intranet import calendar, hour_grid, rendering
-from machincast.intranet.queries import Connection
+from machincast.webserver import calendar, hour_grid, rendering
+from machincast.webserver.queries import Connection
 
 
 def items(found: list[dict[str, Any]], now: datetime) -> list[dict[str, Any]]:

@@ -742,7 +742,7 @@ class Ui_PreferencesWindow(object):
 #if QT_CONFIG(tooltip)
         self.intranet_second_factor.setToolTip(QCoreApplication.translate("PreferencesWindow", u"What each connection goes through after the password, even from a known browser", None))
 #endif // QT_CONFIG(tooltip)
-        self.intranet_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Off by default. Switched on, Machin intranet serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is accepted at the studio desk, which then gives a 6-digit code, within the time set here.", None))
+        self.intranet_explanation.setText(QCoreApplication.translate("PreferencesWindow", u"Off by default. Switched on, Machin webserver serves the intranet and its API to the other computers of the network, in HTTPS only, even on a simple IP address; without a certificate given in machincast.toml, it generates a self-signed one. Only the accounts of the API tab connect, and each connection is accepted at the studio desk, which then gives a 6-digit code, within the time set here.", None))
         self.pages.setTabText(self.pages.indexOf(self.intranet_page), QCoreApplication.translate("PreferencesWindow", u"Intranet", None))
     # retranslateUi
 

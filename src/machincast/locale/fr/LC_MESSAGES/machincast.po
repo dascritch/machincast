@@ -211,6 +211,11 @@ msgstr "{name} introuvable, installer postgresql-client"
 
 #: machincast/backup.py
 #, python-brace-format
+msgid "pg_restore or psql ended with codes {codes}"
+msgstr "pg_restore ou psql s'est terminé avec les codes {codes}"
+
+#: machincast/backup.py
+#, python-brace-format
 msgid ""
 "database {production} is not empty: a backup is only restored into a new "
 "database, as install.sh creates it"
@@ -1675,12 +1680,12 @@ msgid "set"
 msgstr "réglée"
 
 #: machincast/interface/api_tab.py
-#: machincast/intranet/extensions.py
+#: machincast/webserver/extensions.py
 msgid "consult"
 msgstr "consulter"
 
 #: machincast/interface/api_tab.py
-#: machincast/intranet/extensions.py
+#: machincast/webserver/extensions.py
 msgid "API actions"
 msgstr "actions API"
 
@@ -1952,7 +1957,7 @@ msgstr "code de sortie {code}"
 #: machincast/interface/audio_inputs.py
 #: machincast/interface/lists.py
 #: machincast/interface/ui/sound_card.ui
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Name"
 msgstr "Nom"
 
@@ -2229,12 +2234,12 @@ msgid "Double-click: open the event"
 msgstr "Double-clic : ouvrir l'événement"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 msgid "Deleted event"
 msgstr "Événement supprimé"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 msgid "by another event"
 msgstr "par un autre événement"
 
@@ -2260,7 +2265,7 @@ msgstr "Décaler cette session…"
 
 #: machincast/interface/calendar.py
 #: machincast/interface/event_card.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 msgid "Skipped session"
 msgstr "Session sautée"
 
@@ -2341,7 +2346,7 @@ msgid "Week from Monday {start} to Sunday {day} {month} {year}"
 msgstr "Semaine du lundi {start} au dimanche {day} {month} {year}"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/calendar.py
+#: machincast/webserver/calendar.py
 msgid "skipped"
 msgstr "sauté"
 
@@ -2358,7 +2363,7 @@ msgid "Permanent background programming"
 msgstr "Fil musical permanent"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 msgid "Plays in full"
 msgstr "Joue en entier"
 
@@ -2393,12 +2398,12 @@ msgstr "{day} {month} {year}"
 
 #: machincast/interface/calendar.py
 #: machincast/interface/window.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 msgid " and "
 msgstr " et "
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 #, python-brace-format
 msgid "Plays {moments}; hidden the rest of the time {mask}"
 msgstr "Joue {moments} ; masqué le reste du temps {mask}"
@@ -2421,12 +2426,12 @@ msgstr ""
 "Décaler la session de « {name} » du {day_and_month} à {start:%H:%M} au :"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/templates/calendar.html.jinja
+#: machincast/webserver/templates/calendar.html.jinja
 msgid "Previous week"
 msgstr "Semaine précédente"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/templates/calendar.html.jinja
+#: machincast/webserver/templates/calendar.html.jinja
 msgid "Next week"
 msgstr "Semaine suivante"
 
@@ -2438,7 +2443,7 @@ msgstr ""
 "liste"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 #, python-brace-format
 msgid "Hidden in full {mask}"
 msgstr "Masqué en entier {mask}"
@@ -2502,7 +2507,7 @@ msgstr ""
 "{skipped} : « {reinstate} » au clic droit\n"
 
 #: machincast/interface/calendar.py
-#: machincast/intranet/hour_grid.py
+#: machincast/webserver/hour_grid.py
 #, python-brace-format
 msgid "from {schedule} to {schedule2}"
 msgstr "de {schedule} à {schedule2}"
@@ -2984,18 +2989,18 @@ msgstr ""
 "Écouter le prochain sonore sur la sortie de pré-écoute, jamais sur l'antenne"
 
 #: machincast/interface/default_screen.py
-#: machincast/intranet/template.py
+#: machincast/webserver/template.py
 msgid "Broadcasting"
 msgstr "En diffusion"
 
 #: machincast/interface/default_screen.py
-#: machincast/intranet/template.py
+#: machincast/webserver/template.py
 msgid "Dead air on air"
 msgstr "Blanc à l'antenne"
 
 #: machincast/interface/default_screen.py
 #: machincast/interface/preview.py
-#: machincast/intranet/template.py
+#: machincast/webserver/template.py
 #: machincast/interface/ui/default_screen.ui
 msgid "Stopped"
 msgstr "À l'arrêt"
@@ -3027,7 +3032,7 @@ msgstr "durée inconnue"
 #: machincast/interface/timeline.py
 #: machincast/player/simulation.py
 #: machincast/interface/ui/sound_card.ui
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Start"
 msgstr "Début"
 
@@ -3039,7 +3044,7 @@ msgstr "Début"
 #: machincast/interface/timeline.py
 #: machincast/player/simulation.py
 #: machincast/interface/ui/sound_card.ui
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "End"
 msgstr "Fin"
 
@@ -3048,7 +3053,7 @@ msgstr "Fin"
 #: machincast/interface/lists.py
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/sound_card.ui
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Duration"
 msgstr "Durée"
 
@@ -4397,7 +4402,7 @@ msgstr "Message"
 #: machincast/interface/search.py
 #: machincast/interface/ui/bank_card.ui
 #: machincast/interface/ui/sound_card.ui
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Sound"
 msgstr "Sonore"
 
@@ -4654,7 +4659,7 @@ msgid "No next event within seven days"
 msgstr "Aucun événement suivant dans les sept jours"
 
 #: machincast/interface/interruption.py
-#: machincast/intranet/live.py
+#: machincast/webserver/live.py
 msgid "Machin player is not broadcasting"
 msgstr "Machin player ne diffuse pas"
 
@@ -4880,49 +4885,49 @@ msgstr ""
 #: machincast/interface/intranet_switch.py
 #, python-brace-format
 msgid ""
-"Intranet server not started: Machin intranet stopped, exit code {code}."
+"Intranet server not started: Machin webserver stopped, exit code {code}."
 msgstr ""
-"Serveur intranet non démarré : Machin intranet s'est arrêté, code de sortie "
-"{code}."
+"Serveur intranet non démarré : Machin webserver s'est arrêté, code de "
+"sortie {code}."
 
 #: machincast/interface/intranet_switch.py
-msgid "Intranet server not started: Machin intranet stopped."
-msgstr "Serveur intranet non démarré : Machin intranet s'est arrêté."
+msgid "Intranet server not started: Machin webserver stopped."
+msgstr "Serveur intranet non démarré : Machin webserver s'est arrêté."
 
 #: machincast/interface/intranet_switch.py
 #, python-brace-format
 msgid ""
-"Machin intranet launched in a terminal, in test mode under your account: "
+"Machin webserver launched in a terminal, in test mode under your account: "
 "{addresses}"
 msgstr ""
-"Machin intranet lancé dans un terminal, en mode test sous votre compte : "
+"Machin webserver lancé dans un terminal, en mode test sous votre compte : "
 "{addresses}"
 
 #: machincast/interface/intranet_switch.py
 msgid ""
-"Test mode: without the broadcast service, Machin intranet runs under your "
+"Test mode: without the broadcast service, Machin webserver runs under your "
 "account, without the partitioning of the service; for a computer open to "
 "the network of the radio, install the service (./install.sh --service)."
 msgstr ""
-"Mode test : sans le service de diffusion, Machin intranet tourne sous votre "
-"compte, sans le cloisonnement du service ; pour un poste ouvert au réseau "
-"de la radio, installez le service (./install.sh --service)."
+"Mode test : sans le service de diffusion, Machin webserver tourne sous "
+"votre compte, sans le cloisonnement du service ; pour un poste ouvert au "
+"réseau de la radio, installez le service (./install.sh --service)."
 
 #: machincast/interface/intranet_switch.py
 msgid ""
-"No terminal found (konsole, x-terminal-emulator): run Machin intranet by "
+"No terminal found (konsole, x-terminal-emulator): run Machin webserver by "
 "hand."
 msgstr ""
 "Aucun terminal trouvé (konsole, x-terminal-emulator) : lancez Machin "
-"intranet à la main."
+"webserver à la main."
 
 #: machincast/interface/intranet_switch.py
 #, python-brace-format
 msgid ""
-"Machin intranet still running (PID {pid}): stop it in its terminal, with "
+"Machin webserver still running (PID {pid}): stop it in its terminal, with "
 "Ctrl-C."
 msgstr ""
-"Machin intranet tourne encore (PID {pid}) : arrêtez-le dans son terminal, "
+"Machin webserver tourne encore (PID {pid}) : arrêtez-le dans son terminal, "
 "par Ctrl-C."
 
 #: machincast/interface/intranet_switch.py
@@ -5036,26 +5041,26 @@ msgid "Anomaly: the line has a problem, which its tooltip tells"
 msgstr "Anomalie : la ligne a un problème, que dit son infobulle"
 
 #: machincast/interface/lists.py
-#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
+#: machincast/webserver/calendar.py
 msgid "breaking"
 msgstr "imprévu"
 
 #: machincast/interface/lists.py
-#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
+#: machincast/webserver/calendar.py
 msgid "special"
 msgstr "spécial"
 
 #: machincast/interface/lists.py
-#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
+#: machincast/webserver/calendar.py
 msgid "show"
 msgstr "émission"
 
 #: machincast/interface/lists.py
-#: machincast/intranet/calendar.py
 #: machincast/player/broadcast_types.py
+#: machincast/webserver/calendar.py
 msgid "background programming"
 msgstr "fil musical"
 
@@ -5541,7 +5546,7 @@ msgid "No validation"
 msgstr "Aucune validation"
 
 #: machincast/interface/preferences.py
-#: machincast/intranet/portal.py
+#: machincast/webserver/portal.py
 msgid "Validation at the desk"
 msgstr "Validation au pupitre"
 
@@ -6855,9 +6860,9 @@ msgstr ""
 "pu être lancé."
 
 #: machincast/interface/window.py
-#: machincast/intranet/api.py
-#: machincast/intranet/pages.py
-#: machincast/intranet/template.py
+#: machincast/webserver/api.py
+#: machincast/webserver/pages.py
+#: machincast/webserver/template.py
 msgid "Calendar"
 msgstr "Calendrier"
 
@@ -7043,9 +7048,9 @@ msgid "Open the {title} tab"
 msgstr "Ouvrir l'onglet {title}"
 
 #: machincast/interface/window.py
-#: machincast/intranet/pages.py
-#: machincast/intranet/template.py
-#: machincast/intranet/templates/documentation.html.jinja
+#: machincast/webserver/pages.py
+#: machincast/webserver/template.py
+#: machincast/webserver/templates/documentation.html.jinja
 msgid "Documentation"
 msgstr "Documentation"
 
@@ -7149,472 +7154,6 @@ msgid ""
 "database"
 msgstr ""
 "fiche {card_type} {identifier} oubliée : l'élément n'est plus en base"
-
-#: machincast/intranet/__main__.py
-msgid ""
-"Serves the intranet and its API of MachinCast, in HTTPS only, when it is "
-"switched on."
-msgstr ""
-"Sert l'intranet et l'API de MachinCast, en HTTPS seulement, une fois allumé."
-
-#: machincast/intranet/__main__.py
-msgid ""
-"Machin intranet stopped on an error: this window stays open, close it "
-"whenever you want."
-msgstr ""
-"Machin intranet s'est arrêté sur une erreur : cette fenêtre reste ouverte, "
-"fermez-la quand vous voulez."
-
-#: machincast/intranet/__main__.py
-msgid ""
-"the first login without validation is impossible in production: it is "
-"validated at the desk, with a code"
-msgstr ""
-"la première connexion sans validation est impossible en production : elle "
-"se valide au pupitre, avec un code"
-
-#: machincast/intranet/__main__.py
-msgid ""
-"keeps the terminal open after an error, until it is closed: for the window "
-"that the interface opens"
-msgstr ""
-"garde le terminal ouvert après une erreur, jusqu'à sa fermeture : pour la "
-"fenêtre qu'ouvre l'interface"
-
-#: machincast/intranet/__main__.py
-msgid ""
-"the intranet is switched off: intranet.enabled, or the « Intranet » page of "
-"the service settings"
-msgstr ""
-"l'intranet est éteint : intranet.enabled, ou la page « Intranet » des "
-"paramètres du service"
-
-#: machincast/intranet/__main__.py
-#, python-brace-format
-msgid "intranet on {addresses}, certificate {fingerprint}"
-msgstr "intranet sur {addresses}, certificat {fingerprint}"
-
-#: machincast/intranet/__main__.py
-#, python-brace-format
-msgid "no TLS certificate for the intranet: {error}"
-msgstr "aucun certificat TLS pour l'intranet : {error}"
-
-#: machincast/intranet/api.py
-#: machincast/intranet/extensions.py
-#: machincast/intranet/portal.py
-msgid "A valid session is required."
-msgstr "Une session valide est nécessaire."
-
-#: machincast/intranet/api.py
-msgid "Unknown path of the API."
-msgstr "Chemin inconnu de l'API."
-
-#: machincast/intranet/api.py
-#: machincast/intranet/openapi.py
-msgid "No such element."
-msgstr "Élément inconnu."
-
-#: machincast/intranet/api.py
-#, python-brace-format
-msgid "from and to are dates, from before to, at most {maximum} days apart."
-msgstr ""
-"from et to sont des dates, from avant to, à {maximum} jours au plus l'une "
-"de l'autre."
-
-#: machincast/intranet/api.py
-#, python-brace-format
-msgid "after is an identifier, and limit a number from 1 to {maximum}."
-msgstr "after est un identifiant, et limit un nombre de 1 à {maximum}."
-
-#: machincast/intranet/app.py
-msgid "Not found."
-msgstr "Introuvable."
-
-#: machincast/intranet/app.py
-msgid "Method not allowed."
-msgstr "Méthode non permise."
-
-#: machincast/intranet/app.py
-msgid "Request too large."
-msgstr "Requête trop grosse."
-
-#: machincast/intranet/app.py
-msgid "Form sent from another site."
-msgstr "Formulaire envoyé d'un autre site."
-
-#: machincast/intranet/app.py
-msgid "Internal error."
-msgstr "Erreur interne."
-
-#: machincast/intranet/app.py
-#, python-brace-format
-msgid "intranet: request {path} failed"
-msgstr "intranet : la requête {path} a échoué"
-
-#: machincast/intranet/calendar.py
-#: machincast/player/broadcast_types.py
-msgid "fallback"
-msgstr "secours"
-
-#: machincast/intranet/calendar.py
-msgid "covered"
-msgstr "couvert"
-
-#: machincast/intranet/calendar.py
-msgid "deleted"
-msgstr "supprimé"
-
-#: machincast/intranet/certificate.py
-#, python-brace-format
-msgid "intranet certificate generated: {path}"
-msgstr "certificat de l'intranet généré : {path}"
-
-#: machincast/intranet/extensions.py
-msgid "The answer of the plugin."
-msgstr "La réponse du plugin."
-
-#: machincast/intranet/extensions.py
-#: machincast/intranet/openapi.py
-msgid "No valid session."
-msgstr "Aucune session valide."
-
-#: machincast/intranet/extensions.py
-msgid "This account cannot act on the antenna."
-msgstr "Ce compte ne peut pas agir sur l'antenne."
-
-#: machincast/intranet/extensions.py
-#, python-brace-format
-msgid "Route of the plugin “{name}”, for the accounts “{role}”."
-msgstr "Route du plugin « {name} », pour les comptes « {role} »."
-
-#: machincast/intranet/extensions.py
-#, python-brace-format
-msgid "plugin “{name}”: “{path}” is not a path of the intranet"
-msgstr "plugin « {name} » : « {path} » n'est pas un chemin de l'intranet"
-
-#: machincast/intranet/extensions.py
-#, python-brace-format
-msgid "plugin “{name}”: its section of the home page failed: {error}"
-msgstr "plugin « {name} » : sa section de l'accueil a échoué : {error}"
-
-#: machincast/intranet/extensions.py
-#, python-brace-format
-msgid "plugin “{name}”: an intranet extension is expected"
-msgstr "plugin « {name} » : une extension de l'intranet est attendue"
-
-#: machincast/intranet/hour_grid.py
-#, python-brace-format
-msgid "{weekday}. {day:02d}/{month:02d}"
-msgstr "{weekday}. {day:02d}/{month:02d}"
-
-#: machincast/intranet/live.py
-msgid "Machin player did not answer"
-msgstr "Machin player n'a pas répondu"
-
-#: machincast/intranet/network.py
-#, python-brace-format
-msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
-msgstr "adresses du poste illisibles par iproute2, devinées : {error}"
-
-#: machincast/intranet/openapi.py
-msgid "Unreadable period."
-msgstr "Période illisible."
-
-#: machincast/intranet/openapi.py
-msgid "The card."
-msgstr "La fiche."
-
-#: machincast/intranet/openapi.py
-msgid ""
-"The page, and next, the identifier to give as after for the next page, or "
-"null."
-msgstr ""
-"La page, et next, l'identifiant à donner en after pour la page suivante, ou "
-"null."
-
-#: machincast/intranet/openapi.py
-msgid "The live broadcast"
-msgstr "L'antenne en direct"
-
-#: machincast/intranet/openapi.py
-msgid "The broadcast, now."
-msgstr "L'antenne, maintenant."
-
-#: machincast/intranet/openapi.py
-msgid "The occurrences of the events of the days [from, to["
-msgstr "Les occurrences des événements des jours [from, to["
-
-#: machincast/intranet/openapi.py
-msgid "The occurrences, in JSON, or in HTML hCalendar with format=html."
-msgstr "Les occurrences, en JSON, ou en HTML hCalendar avec format=html."
-
-#: machincast/intranet/openapi.py
-msgid "The incidents, the most recent first"
-msgstr "Les incidents, les plus récents en tête"
-
-#: machincast/intranet/openapi.py
-msgid "The incidents."
-msgstr "Les incidents."
-
-#: machincast/intranet/openapi.py
-msgid "This OpenAPI schema"
-msgstr "Ce schéma OpenAPI"
-
-#: machincast/intranet/openapi.py
-msgid "The schema."
-msgstr "Le schéma."
-
-#: machincast/intranet/openapi.py
-#, python-brace-format
-msgid "The card of one of the {kind}"
-msgstr "La fiche d'un des {kind}"
-
-#: machincast/intranet/openapi.py
-#, python-brace-format
-msgid "A page of the list of {kind}"
-msgstr "Une page de la liste des {kind}"
-
-#: machincast/intranet/openapi.py
-msgid "The identifier after which the page starts."
-msgstr "L'identifiant après lequel la page commence."
-
-#: machincast/intranet/openapi.py
-msgid "The number of elements of the page."
-msgstr "Le nombre d'éléments de la page."
-
-#: machincast/intranet/openapi.py
-msgid "The first day, by default the start of the current week."
-msgstr "Le premier jour, par défaut le début de la semaine en cours."
-
-#: machincast/intranet/openapi.py
-msgid "The day after the last one."
-msgstr "Le lendemain du dernier."
-
-#: machincast/intranet/openapi.py
-msgid "html, for HTML hCalendar."
-msgstr "html, pour du HTML hCalendar."
-
-#: machincast/intranet/pages.py
-#: machincast/intranet/template.py
-#: machincast/interface/ui/preferences.ui
-msgid "Home"
-msgstr "Accueil"
-
-#: machincast/intranet/pages.py
-#, python-brace-format
-msgid "Week from {first} to {last}"
-msgstr "Semaine du {first} au {last}"
-
-#: machincast/intranet/pages.py
-#, python-brace-format
-msgid "MachinCast version {version}."
-msgstr "MachinCast version {version}."
-
-#: machincast/intranet/pages.py
-#, python-brace-format
-msgid "icon {path} unreadable: the one of MachinCast instead"
-msgstr "icône {path} illisible : celle de MachinCast à la place"
-
-#: machincast/intranet/portal.py
-msgid ""
-"An action must be done at the studio desk: MachinCast shows there your "
-"name, your browser and your address. Once your connection is accepted "
-"there, the studio gives you a 6-digit code: enter it here."
-msgstr ""
-"Une action doit être faite au pupitre : MachinCast y montre votre nom, "
-"votre navigateur et votre adresse. Une fois votre connexion acceptée, le "
-"studio vous donne un code à 6 chiffres : saisissez-le ici."
-
-#: machincast/intranet/portal.py
-msgid "6-digit code"
-msgstr "Code à 6 chiffres"
-
-#: machincast/intranet/portal.py
-msgid ""
-"An action must be done at the studio desk: MachinCast shows there your "
-"name, your browser and your address. Once your connection is accepted "
-"there, this page goes on by itself."
-msgstr ""
-"Une action doit être faite au pupitre du studio : MachinCast y montre votre "
-"nom, votre navigateur et votre adresse. Une fois votre connexion acceptée "
-"là-bas, cette page continue d'elle-même."
-
-#: machincast/intranet/portal.py
-msgid "Second factor"
-msgstr "Second facteur"
-
-#: machincast/intranet/portal.py
-msgid "Enter the code that your authentication app shows for this account."
-msgstr ""
-"Saisissez le code que montre votre application d'authentification pour ce "
-"compte."
-
-#: machincast/intranet/portal.py
-msgid "The 6-digit code of your authentication app"
-msgstr "Le code à 6 chiffres de votre application d'authentification"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] intranet connection of “{name}”, to validate at the desk"
-msgstr ""
-"[{address}] connexion à l'intranet de « {name} », à valider au pupitre"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] intranet connection of “{name}” validated at the desk"
-msgstr "[{address}] connexion à l'intranet de « {name} » validée au pupitre"
-
-#: machincast/intranet/portal.py
-msgid "Connection"
-msgstr "Connexion"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection of “{name}”, waiting for the code of its "
-"authentication app"
-msgstr ""
-"[{address}] connexion à l'intranet de « {name} », en attente du code de son "
-"application d'authentification"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection of “{name}” validated by its authentication "
-"app"
-msgstr ""
-"[{address}] connexion à l'intranet de « {name} » validée par son "
-"application d'authentification"
-
-#: machincast/intranet/portal.py
-msgid ""
-"Connection not validated in time, or too many wrong codes: connect again."
-msgstr ""
-"Connexion non validée à temps, ou trop de codes faux : reconnectez-vous."
-
-#: machincast/intranet/portal.py
-msgid "Too many failed attempts: wait a quarter of an hour."
-msgstr "Trop d'essais refusés : attendez un quart d'heure."
-
-#: machincast/intranet/portal.py
-msgid "Unknown user, disabled account or wrong password."
-msgstr "Nom inconnu, compte désactivé ou mot de passe faux."
-
-#: machincast/intranet/portal.py
-msgid "Too many wrong codes: wait a quarter of an hour."
-msgstr "Trop de codes faux : attendez un quart d'heure."
-
-#: machincast/intranet/portal.py
-msgid ""
-"Your connection is not accepted at the desk yet: once the studio accepts "
-"it, it gives you the code."
-msgstr ""
-"Votre connexion n'est pas encore acceptée au pupitre : une fois qu'il "
-"l'aura acceptée, le studio vous donnera le code."
-
-#: machincast/intranet/portal.py
-msgid "Wrong code: ask again at the desk."
-msgstr "Code faux : redemandez-le au pupitre."
-
-#: machincast/intranet/portal.py
-msgid "Wrong code: enter the one that your authentication app shows."
-msgstr ""
-"Code faux : saisissez celui que montre votre application d'authentification."
-
-#: machincast/intranet/portal.py
-msgid ""
-"This account has no authentication app: have it set up at the studio, in "
-"the API tab."
-msgstr ""
-"Ce compte n'a pas d'application d'authentification : faites-la régler au "
-"studio, dans l'onglet API."
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection of “{name}”, without validation at the desk"
-msgstr ""
-"[{address}] connexion à l'intranet de « {name} », sans validation au pupitre"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection of “{name}” invalid: not validated in time, "
-"or too many wrong codes"
-msgstr ""
-"[{address}] connexion à l'intranet de « {name} » invalide : pas validée à "
-"temps, ou trop de codes faux"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection refused, user “{name}”: too many failed "
-"attempts, waiting a quarter of an hour"
-msgstr ""
-"[{address}] connexion à l'intranet refusée, compte « {name} » : trop "
-"d'essais refusés, attente d'un quart d'heure"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection refused, user “{name}”: unknown user, "
-"disabled account or wrong password"
-msgstr ""
-"[{address}] connexion à l'intranet refusée, compte « {name} » : nom "
-"inconnu, compte désactivé ou mot de passe faux"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection refused, user “{name}”: too many "
-"connections waiting for validation"
-msgstr ""
-"[{address}] connexion à l'intranet refusée, compte « {name} » : trop de "
-"connexions à valider"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"This account already has {count} connections waiting for validation: have "
-"them validated or refused at the desk, or wait for their delay."
-msgstr ""
-"Ce compte a déjà {count} connexions qui attendent leur validation : "
-"faites-les valider ou refuser au pupitre, ou attendez leur délai."
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] intranet connection of “{name}”, from a known browser"
-msgstr ""
-"[{address}] connexion à l'intranet de « {name} », depuis un navigateur connu"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] validation code refused, user “{name}”: too many wrong codes, "
-"waiting a quarter of an hour"
-msgstr ""
-"[{address}] code de validation refusé, compte « {name} » : trop de codes "
-"faux, attente d'un quart d'heure"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] wrong validation code, user “{name}”"
-msgstr "[{address}] code de validation faux, compte « {name} »"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid "[{address}] wrong code of the authentication app, user “{name}”"
-msgstr ""
-"[{address}] code faux de l'application d'authentification, compte « {name} »"
-
-#: machincast/intranet/portal.py
-#, python-brace-format
-msgid ""
-"[{address}] intranet connection refused, user “{name}”: no authentication "
-"app"
-msgstr ""
-"[{address}] connexion à l'intranet refusée, compte « {name} » : pas "
-"d'application d'authentification"
 
 #: machincast/maintenance.py
 msgid "Backs up, checks and optimises the MachinCast database."
@@ -8053,6 +7592,11 @@ msgstr "niveau moyen {level:.1f} dB"
 #, python-brace-format
 msgid "Next {rank}"
 msgstr "Suivant {rank}"
+
+#: machincast/player/broadcast_types.py
+#: machincast/webserver/calendar.py
+msgid "fallback"
+msgstr "secours"
 
 #: machincast/player/engine.py
 msgid ""
@@ -9280,6 +8824,467 @@ msgstr "l'événement suivant"
 msgid "database unreachable: {error}"
 msgstr "base de données injoignable : {error}"
 
+#: machincast/webserver/__main__.py
+msgid ""
+"Serves the intranet and its API of MachinCast, in HTTPS only, when it is "
+"switched on."
+msgstr ""
+"Sert l'intranet et l'API de MachinCast, en HTTPS seulement, une fois allumé."
+
+#: machincast/webserver/__main__.py
+msgid ""
+"Machin webserver stopped on an error: this window stays open, close it "
+"whenever you want."
+msgstr ""
+"Machin webserver s'est arrêté sur une erreur : cette fenêtre reste ouverte, "
+"fermez-la quand vous voulez."
+
+#: machincast/webserver/__main__.py
+msgid ""
+"the first login without validation is impossible in production: it is "
+"validated at the desk, with a code"
+msgstr ""
+"la première connexion sans validation est impossible en production : elle "
+"se valide au pupitre, avec un code"
+
+#: machincast/webserver/__main__.py
+msgid ""
+"keeps the terminal open after an error, until it is closed: for the window "
+"that the interface opens"
+msgstr ""
+"garde le terminal ouvert après une erreur, jusqu'à sa fermeture : pour la "
+"fenêtre qu'ouvre l'interface"
+
+#: machincast/webserver/__main__.py
+msgid ""
+"the intranet is switched off: intranet.enabled, or the « Intranet » page of "
+"the service settings"
+msgstr ""
+"l'intranet est éteint : intranet.enabled, ou la page « Intranet » des "
+"paramètres du service"
+
+#: machincast/webserver/__main__.py
+#, python-brace-format
+msgid "intranet on {addresses}, certificate {fingerprint}"
+msgstr "intranet sur {addresses}, certificat {fingerprint}"
+
+#: machincast/webserver/__main__.py
+#, python-brace-format
+msgid "no TLS certificate for the intranet: {error}"
+msgstr "aucun certificat TLS pour l'intranet : {error}"
+
+#: machincast/webserver/api.py
+#: machincast/webserver/extensions.py
+#: machincast/webserver/portal.py
+msgid "A valid session is required."
+msgstr "Une session valide est nécessaire."
+
+#: machincast/webserver/api.py
+msgid "Unknown path of the API."
+msgstr "Chemin inconnu de l'API."
+
+#: machincast/webserver/api.py
+#: machincast/webserver/openapi.py
+msgid "No such element."
+msgstr "Élément inconnu."
+
+#: machincast/webserver/api.py
+#, python-brace-format
+msgid "from and to are dates, from before to, at most {maximum} days apart."
+msgstr ""
+"from et to sont des dates, from avant to, à {maximum} jours au plus l'une "
+"de l'autre."
+
+#: machincast/webserver/api.py
+#, python-brace-format
+msgid "after is an identifier, and limit a number from 1 to {maximum}."
+msgstr "after est un identifiant, et limit un nombre de 1 à {maximum}."
+
+#: machincast/webserver/app.py
+msgid "Not found."
+msgstr "Introuvable."
+
+#: machincast/webserver/app.py
+msgid "Method not allowed."
+msgstr "Méthode non permise."
+
+#: machincast/webserver/app.py
+msgid "Request too large."
+msgstr "Requête trop grosse."
+
+#: machincast/webserver/app.py
+msgid "Form sent from another site."
+msgstr "Formulaire envoyé d'un autre site."
+
+#: machincast/webserver/app.py
+msgid "Internal error."
+msgstr "Erreur interne."
+
+#: machincast/webserver/app.py
+#, python-brace-format
+msgid "intranet: request {path} failed"
+msgstr "intranet : la requête {path} a échoué"
+
+#: machincast/webserver/calendar.py
+msgid "covered"
+msgstr "couvert"
+
+#: machincast/webserver/calendar.py
+msgid "deleted"
+msgstr "supprimé"
+
+#: machincast/webserver/certificate.py
+#, python-brace-format
+msgid "intranet certificate generated: {path}"
+msgstr "certificat de l'intranet généré : {path}"
+
+#: machincast/webserver/extensions.py
+msgid "The answer of the plugin."
+msgstr "La réponse du plugin."
+
+#: machincast/webserver/extensions.py
+#: machincast/webserver/openapi.py
+msgid "No valid session."
+msgstr "Aucune session valide."
+
+#: machincast/webserver/extensions.py
+msgid "This account cannot act on the antenna."
+msgstr "Ce compte ne peut pas agir sur l'antenne."
+
+#: machincast/webserver/extensions.py
+#, python-brace-format
+msgid "Route of the plugin “{name}”, for the accounts “{role}”."
+msgstr "Route du plugin « {name} », pour les comptes « {role} »."
+
+#: machincast/webserver/extensions.py
+#, python-brace-format
+msgid "plugin “{name}”: “{path}” is not a path of the intranet"
+msgstr "plugin « {name} » : « {path} » n'est pas un chemin de l'intranet"
+
+#: machincast/webserver/extensions.py
+#, python-brace-format
+msgid "plugin “{name}”: its section of the home page failed: {error}"
+msgstr "plugin « {name} » : sa section de l'accueil a échoué : {error}"
+
+#: machincast/webserver/extensions.py
+#, python-brace-format
+msgid "plugin “{name}”: an intranet extension is expected"
+msgstr "plugin « {name} » : une extension de l'intranet est attendue"
+
+#: machincast/webserver/hour_grid.py
+#, python-brace-format
+msgid "{weekday}. {day:02d}/{month:02d}"
+msgstr "{weekday}. {day:02d}/{month:02d}"
+
+#: machincast/webserver/live.py
+msgid "Machin player did not answer"
+msgstr "Machin player n'a pas répondu"
+
+#: machincast/webserver/network.py
+#, python-brace-format
+msgid "addresses of the computer unreadable by iproute2, guessed: {error}"
+msgstr "adresses du poste illisibles par iproute2, devinées : {error}"
+
+#: machincast/webserver/openapi.py
+msgid "Unreadable period."
+msgstr "Période illisible."
+
+#: machincast/webserver/openapi.py
+msgid "The card."
+msgstr "La fiche."
+
+#: machincast/webserver/openapi.py
+msgid ""
+"The page, and next, the identifier to give as after for the next page, or "
+"null."
+msgstr ""
+"La page, et next, l'identifiant à donner en after pour la page suivante, ou "
+"null."
+
+#: machincast/webserver/openapi.py
+msgid "The live broadcast"
+msgstr "L'antenne en direct"
+
+#: machincast/webserver/openapi.py
+msgid "The broadcast, now."
+msgstr "L'antenne, maintenant."
+
+#: machincast/webserver/openapi.py
+msgid "The occurrences of the events of the days [from, to["
+msgstr "Les occurrences des événements des jours [from, to["
+
+#: machincast/webserver/openapi.py
+msgid "The occurrences, in JSON, or in HTML hCalendar with format=html."
+msgstr "Les occurrences, en JSON, ou en HTML hCalendar avec format=html."
+
+#: machincast/webserver/openapi.py
+msgid "The incidents, the most recent first"
+msgstr "Les incidents, les plus récents en tête"
+
+#: machincast/webserver/openapi.py
+msgid "The incidents."
+msgstr "Les incidents."
+
+#: machincast/webserver/openapi.py
+msgid "This OpenAPI schema"
+msgstr "Ce schéma OpenAPI"
+
+#: machincast/webserver/openapi.py
+msgid "The schema."
+msgstr "Le schéma."
+
+#: machincast/webserver/openapi.py
+#, python-brace-format
+msgid "The card of one of the {kind}"
+msgstr "La fiche d'un des {kind}"
+
+#: machincast/webserver/openapi.py
+#, python-brace-format
+msgid "A page of the list of {kind}"
+msgstr "Une page de la liste des {kind}"
+
+#: machincast/webserver/openapi.py
+msgid "The identifier after which the page starts."
+msgstr "L'identifiant après lequel la page commence."
+
+#: machincast/webserver/openapi.py
+msgid "The number of elements of the page."
+msgstr "Le nombre d'éléments de la page."
+
+#: machincast/webserver/openapi.py
+msgid "The first day, by default the start of the current week."
+msgstr "Le premier jour, par défaut le début de la semaine en cours."
+
+#: machincast/webserver/openapi.py
+msgid "The day after the last one."
+msgstr "Le lendemain du dernier."
+
+#: machincast/webserver/openapi.py
+msgid "html, for HTML hCalendar."
+msgstr "html, pour du HTML hCalendar."
+
+#: machincast/webserver/pages.py
+#: machincast/webserver/template.py
+#: machincast/interface/ui/preferences.ui
+msgid "Home"
+msgstr "Accueil"
+
+#: machincast/webserver/pages.py
+#, python-brace-format
+msgid "Week from {first} to {last}"
+msgstr "Semaine du {first} au {last}"
+
+#: machincast/webserver/pages.py
+#, python-brace-format
+msgid "MachinCast version {version}."
+msgstr "MachinCast version {version}."
+
+#: machincast/webserver/pages.py
+#, python-brace-format
+msgid "icon {path} unreadable: the one of MachinCast instead"
+msgstr "icône {path} illisible : celle de MachinCast à la place"
+
+#: machincast/webserver/portal.py
+msgid ""
+"An action must be done at the studio desk: MachinCast shows there your "
+"name, your browser and your address. Once your connection is accepted "
+"there, the studio gives you a 6-digit code: enter it here."
+msgstr ""
+"Une action doit être faite au pupitre : MachinCast y montre votre nom, "
+"votre navigateur et votre adresse. Une fois votre connexion acceptée, le "
+"studio vous donne un code à 6 chiffres : saisissez-le ici."
+
+#: machincast/webserver/portal.py
+msgid "6-digit code"
+msgstr "Code à 6 chiffres"
+
+#: machincast/webserver/portal.py
+msgid ""
+"An action must be done at the studio desk: MachinCast shows there your "
+"name, your browser and your address. Once your connection is accepted "
+"there, this page goes on by itself."
+msgstr ""
+"Une action doit être faite au pupitre du studio : MachinCast y montre votre "
+"nom, votre navigateur et votre adresse. Une fois votre connexion acceptée "
+"là-bas, cette page continue d'elle-même."
+
+#: machincast/webserver/portal.py
+msgid "Second factor"
+msgstr "Second facteur"
+
+#: machincast/webserver/portal.py
+msgid "Enter the code that your authentication app shows for this account."
+msgstr ""
+"Saisissez le code que montre votre application d'authentification pour ce "
+"compte."
+
+#: machincast/webserver/portal.py
+msgid "The 6-digit code of your authentication app"
+msgstr "Le code à 6 chiffres de votre application d'authentification"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid "[{address}] intranet connection of “{name}”, to validate at the desk"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », à valider au pupitre"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid "[{address}] intranet connection of “{name}” validated at the desk"
+msgstr "[{address}] connexion à l'intranet de « {name} » validée au pupitre"
+
+#: machincast/webserver/portal.py
+msgid "Connection"
+msgstr "Connexion"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}”, waiting for the code of its "
+"authentication app"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », en attente du code de son "
+"application d'authentification"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}” validated by its authentication "
+"app"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} » validée par son "
+"application d'authentification"
+
+#: machincast/webserver/portal.py
+msgid ""
+"Connection not validated in time, or too many wrong codes: connect again."
+msgstr ""
+"Connexion non validée à temps, ou trop de codes faux : reconnectez-vous."
+
+#: machincast/webserver/portal.py
+msgid "Too many failed attempts: wait a quarter of an hour."
+msgstr "Trop d'essais refusés : attendez un quart d'heure."
+
+#: machincast/webserver/portal.py
+msgid "Unknown user, disabled account or wrong password."
+msgstr "Nom inconnu, compte désactivé ou mot de passe faux."
+
+#: machincast/webserver/portal.py
+msgid "Too many wrong codes: wait a quarter of an hour."
+msgstr "Trop de codes faux : attendez un quart d'heure."
+
+#: machincast/webserver/portal.py
+msgid ""
+"Your connection is not accepted at the desk yet: once the studio accepts "
+"it, it gives you the code."
+msgstr ""
+"Votre connexion n'est pas encore acceptée au pupitre : une fois qu'il "
+"l'aura acceptée, le studio vous donnera le code."
+
+#: machincast/webserver/portal.py
+msgid "Wrong code: ask again at the desk."
+msgstr "Code faux : redemandez-le au pupitre."
+
+#: machincast/webserver/portal.py
+msgid "Wrong code: enter the one that your authentication app shows."
+msgstr ""
+"Code faux : saisissez celui que montre votre application d'authentification."
+
+#: machincast/webserver/portal.py
+msgid ""
+"This account has no authentication app: have it set up at the studio, in "
+"the API tab."
+msgstr ""
+"Ce compte n'a pas d'application d'authentification : faites-la régler au "
+"studio, dans l'onglet API."
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}”, without validation at the desk"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », sans validation au pupitre"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection of “{name}” invalid: not validated in time, "
+"or too many wrong codes"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} » invalide : pas validée à "
+"temps, ou trop de codes faux"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: too many failed "
+"attempts, waiting a quarter of an hour"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : trop "
+"d'essais refusés, attente d'un quart d'heure"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: unknown user, "
+"disabled account or wrong password"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : nom "
+"inconnu, compte désactivé ou mot de passe faux"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: too many "
+"connections waiting for validation"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : trop de "
+"connexions à valider"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"This account already has {count} connections waiting for validation: have "
+"them validated or refused at the desk, or wait for their delay."
+msgstr ""
+"Ce compte a déjà {count} connexions qui attendent leur validation : "
+"faites-les valider ou refuser au pupitre, ou attendez leur délai."
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid "[{address}] intranet connection of “{name}”, from a known browser"
+msgstr ""
+"[{address}] connexion à l'intranet de « {name} », depuis un navigateur connu"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] validation code refused, user “{name}”: too many wrong codes, "
+"waiting a quarter of an hour"
+msgstr ""
+"[{address}] code de validation refusé, compte « {name} » : trop de codes "
+"faux, attente d'un quart d'heure"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid "[{address}] wrong validation code, user “{name}”"
+msgstr "[{address}] code de validation faux, compte « {name} »"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid "[{address}] wrong code of the authentication app, user “{name}”"
+msgstr ""
+"[{address}] code faux de l'application d'authentification, compte « {name} »"
+
+#: machincast/webserver/portal.py
+#, python-brace-format
+msgid ""
+"[{address}] intranet connection refused, user “{name}”: no authentication "
+"app"
+msgstr ""
+"[{address}] connexion à l'intranet refusée, compte « {name} » : pas "
+"d'application d'authentification"
+
 #: machincast/interface/ui/api_tab.ui
 msgid ""
 "The accounts that can connect to the intranet and to the API, once the "
@@ -9584,7 +9589,7 @@ msgid "Event on air"
 msgstr "Événement à l'antenne"
 
 #: machincast/interface/ui/default_screen.ui
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Current sound"
 msgstr "Sonore en cours"
 
@@ -9636,7 +9641,7 @@ msgid "Dead air"
 msgstr "Blanc"
 
 #: machincast/interface/ui/default_screen.ui
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Next sound"
 msgstr "Prochain sonore"
 
@@ -10263,14 +10268,14 @@ msgstr ""
 
 #: machincast/interface/ui/preferences.ui
 msgid ""
-"Off by default. Switched on, Machin intranet serves the intranet and its "
+"Off by default. Switched on, Machin webserver serves the intranet and its "
 "API to the other computers of the network, in HTTPS only, even on a simple "
 "IP address; without a certificate given in machincast.toml, it generates a "
 "self-signed one. Only the accounts of the API tab connect, and each "
 "connection is accepted at the studio desk, which then gives a 6-digit code, "
 "within the time set here."
 msgstr ""
-"Éteint par défaut. Allumé, Machin intranet sert l'intranet et son API aux "
+"Éteint par défaut. Allumé, Machin webserver sert l'intranet et son API aux "
 "autres postes du réseau, en HTTPS seulement, même sur une simple adresse IP "
 "; sans certificat donné dans machincast.toml, il en génère un auto-signé. "
 "Seuls les comptes de l'onglet API se connectent, et chaque connexion "
@@ -10627,64 +10632,64 @@ msgstr ""
 msgid "&Do not offer at launch again"
 msgstr "&Ne plus proposer au lancement"
 
-#: machincast/intranet/templates/banner.html.jinja
-#: machincast/intranet/templates/validation.html.jinja
+#: machincast/webserver/templates/banner.html.jinja
+#: machincast/webserver/templates/validation.html.jinja
 msgid "Disconnect"
 msgstr "Se déconnecter"
 
-#: machincast/intranet/templates/calendar.html.jinja
+#: machincast/webserver/templates/calendar.html.jinja
 msgid "This week"
 msgstr "Cette semaine"
 
-#: machincast/intranet/templates/documentation.html.jinja
+#: machincast/webserver/templates/documentation.html.jinja
 msgid "Broadcast guide"
 msgstr "Guide de l'antenne"
 
-#: machincast/intranet/templates/documentation.html.jinja
+#: machincast/webserver/templates/documentation.html.jinja
 msgid "Intranet and API specification"
 msgstr "Spécification de l'intranet et de l'API"
 
-#: machincast/intranet/templates/documentation.html.jinja
+#: machincast/webserver/templates/documentation.html.jinja
 msgid "OpenAPI schema of the API, plugins included"
 msgstr "Schéma OpenAPI de l'API, plugins compris"
 
-#: machincast/intranet/templates/forbidden.html.jinja
+#: machincast/webserver/templates/forbidden.html.jinja
 msgid "This page is for the accounts that can act on the antenna."
 msgstr "Cette page est réservée aux comptes qui peuvent agir sur l'antenne."
 
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Current event"
 msgstr "Événement en cours"
 
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Remaining"
 msgstr "Reste"
 
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Next event"
 msgstr "Événement suivant"
 
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Starts in"
 msgstr "Démarre dans"
 
-#: machincast/intranet/templates/live.html.jinja
+#: machincast/webserver/templates/live.html.jinja
 msgid "Last sounds on air"
 msgstr "Derniers sonores diffusés"
 
-#: machincast/intranet/templates/login.html.jinja
+#: machincast/webserver/templates/login.html.jinja
 msgid "User name"
 msgstr "Nom d'utilisateur"
 
-#: machincast/intranet/templates/login.html.jinja
+#: machincast/webserver/templates/login.html.jinja
 msgid "Password"
 msgstr "Mot de passe"
 
-#: machincast/intranet/templates/login.html.jinja
+#: machincast/webserver/templates/login.html.jinja
 msgid "Connect"
 msgstr "Se connecter"
 
-#: machincast/intranet/templates/validation.html.jinja
+#: machincast/webserver/templates/validation.html.jinja
 msgid "Validate"
 msgstr "Valider"
 
@@ -11199,7 +11204,7 @@ msgid ""
 "reads its logs (%s) and pre-listens to the on-air output; the on-air card "
 "is reserved for the\n"
 "service. The intranet server, switched off by default, runs under its own "
-"account, machincast-intranet,\n"
+"account, machincast-webserver,\n"
 "outside that group. The sound files go in /home/machincast: those of the "
 "database in a personal directory\n"
 "are moved there, removed from the database, or left, not played, as chosen. "
@@ -11326,7 +11331,7 @@ msgstr ""
 "le groupe %s, qui lit ses logs (%s) et pré-écoute l'antenne ; la carte de "
 "l'antenne est réservée\n"
 "au service. Le serveur intranet, éteint par défaut, tourne sous son propre "
-"compte, machincast-intranet,\n"
+"compte, machincast-webserver,\n"
 "hors de ce groupe. Les sonores vont dans /home/machincast : ceux de la base "
 "dans un répertoire personnel\n"
 "y sont déplacés, retirés de la base, ou laissés, sans passer à l'antenne, "
@@ -11639,10 +11644,10 @@ msgstr ""
 #: install.sh
 msgid ""
 "roles machincast_player, machincast_indexer, machincast_interface and "
-"machincast_intranet present"
+"machincast_webserver present"
 msgstr ""
 "rôles machincast_player, machincast_indexer, machincast_interface et "
-"machincast_intranet présents"
+"machincast_webserver présents"
 
 #: install.sh
 msgid "Roles"
@@ -11651,11 +11656,11 @@ msgstr "Rôles"
 #: install.sh
 msgid ""
 "[simulation] sudo -u postgres psql: GRANT machincast_player, "
-"machincast_indexer, machincast_interface, machincast_intranet TO %s WITH "
+"machincast_indexer, machincast_interface, machincast_webserver TO %s WITH "
 "INHERIT FALSE, SET TRUE"
 msgstr ""
 "[simulation] sudo -u postgres psql : GRANT machincast_player, "
-"machincast_indexer, machincast_interface, machincast_intranet TO %s WITH "
+"machincast_indexer, machincast_interface, machincast_webserver TO %s WITH "
 "INHERIT FALSE, SET TRUE"
 
 #: install.sh
@@ -11841,16 +11846,44 @@ msgid "%s already belongs to the %s group"
 msgstr "%s appartient déjà au groupe %s"
 
 #: install.sh
-msgid ""
-"[simulation] sudo -u postgres psql: CREATE ROLE \"%s\" LOGIN; GRANT "
-"machincast_intranet TO \"%s\" WITH INHERIT FALSE, SET TRUE"
-msgstr ""
-"[simulation] sudo -u postgres psql : CREATE ROLE \"%s\" LOGIN ; GRANT "
-"machincast_intranet TO \"%s\" WITH INHERIT FALSE, SET TRUE"
+msgid "Machin webserver, formerly Machin intranet"
+msgstr "Machin webserver, autrefois Machin intranet"
 
 #: install.sh
-msgid "%s can assume the role machincast_intranet"
-msgstr "%s peut endosser le rôle machincast_intranet"
+msgid "%s removed: %s replaces it"
+msgstr "%s retiré : %s le remplace"
+
+#: install.sh
+msgid "account %s renamed %s"
+msgstr "compte %s renommé %s"
+
+#: install.sh
+msgid ""
+"[simulation] sudo -u postgres psql: ALTER ROLE %s RENAME TO "
+"machincast_webserver, ALTER ROLE \"%s\" RENAME TO \"%s\", if they exist"
+msgstr ""
+"[simulation] sudo -u postgres psql : ALTER ROLE %s RENAME TO "
+"machincast_webserver, ALTER ROLE \"%s\" RENAME TO \"%s\", s'ils existent"
+
+#: install.sh
+msgid "roles of Machin intranet not renamed"
+msgstr "rôles de Machin intranet non renommés"
+
+#: install.sh
+msgid "roles of Machin webserver under their new names"
+msgstr "rôles de Machin webserver sous leurs nouveaux noms"
+
+#: install.sh
+msgid ""
+"[simulation] sudo -u postgres psql: CREATE ROLE \"%s\" LOGIN; GRANT "
+"machincast_webserver TO \"%s\" WITH INHERIT FALSE, SET TRUE"
+msgstr ""
+"[simulation] sudo -u postgres psql : CREATE ROLE \"%s\" LOGIN ; GRANT "
+"machincast_webserver TO \"%s\" WITH INHERIT FALSE, SET TRUE"
+
+#: install.sh
+msgid "%s can assume the role machincast_webserver"
+msgstr "%s peut endosser le rôle machincast_webserver"
 
 #: install.sh
 msgid ""

@@ -1,10 +1,10 @@
-"""Le gabarit « Machin intranet » (https://github.com/dascritch/machincast/issues/541).
+"""Le gabarit « Machin webserver » (https://github.com/dascritch/machincast/issues/541).
 
 Minimaliste : en haut, le nom de la radio, l'état de la diffusion, les liens vers les pages de l'intranet et « Se
 déconnecter » ; dessous, la page. Sa feuille de style et son script sont servis par l'intranet lui-même
 (/static/), la Content-Security-Policy n'acceptant aucune ressource d'ailleurs, ni script dans la page.
 
-Le gabarit et les pages sont des fichiers Jinja2, surchargeables par un plugin (machincast.intranet.rendering,
+Le gabarit et les pages sont des fichiers Jinja2, surchargeables par un plugin (machincast.webserver.rendering,
 https://github.com/dascritch/machincast/issues/597) : layout.html.jinja, le bandeau dans banner.html.jinja.
 """
 
@@ -13,8 +13,8 @@ from importlib import resources
 from typing import Any
 
 from machincast.i18n import _
-from machincast.intranet import rendering
-from machincast.intranet.app import HTML, TITLE, Request, Response
+from machincast.webserver import rendering
+from machincast.webserver.app import HTML, TITLE, Request, Response
 
 STATES = {"playing": _("Broadcasting"), "dead_air": _("Dead air on air"), "stopped": _("Stopped")}
 """L'état de la diffusion, comme l'écrit l'onglet Antenne de l'interface."""
@@ -89,5 +89,5 @@ async def static(request: Request) -> Response:
 	name = request.path.removeprefix("/static/")
 	if name not in STATIC:
 		return Response(404, b"", "text/plain; charset=utf-8")
-	content = resources.files("machincast.intranet").joinpath("static", name).read_bytes()
+	content = resources.files("machincast.webserver").joinpath("static", name).read_bytes()
 	return Response(200, content, STATIC[name])

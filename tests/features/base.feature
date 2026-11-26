@@ -117,7 +117,7 @@ Fonctionnalité: Socle de test
 
 	Scénario: Dans un répertoire des logs qu'il ne peut pas écrire, un exécutable écrit son fichier préparé pour lui
 		https://github.com/dascritch/machincast/issues/578 : le serveur intranet, sous son propre compte, ne peut ni
-		lister ni écrire /var/log/machincast ; install.sh --service y prépare Machin_intranet.log, qu'il peut écrire.
+		lister ni écrire /var/log/machincast ; install.sh --service y prépare Machin_webserver.log, qu'il peut écrire.
 		Étant donné le répertoire des logs créé, que l'exécutable ne peut pas écrire, avec « Machin_essai.log », qu'il peut écrire
 		Et les messages configurés pour l'exécutable "Machin_essai"
 		Quand le code émet une information « 3 sonores vérifiés » et une anomalie « fichier endommagé »

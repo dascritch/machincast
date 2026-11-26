@@ -31,4 +31,4 @@ CREATE TABLE api_sessions (
 CREATE INDEX api_sessions_user ON api_sessions (user_id);
 CREATE INDEX api_sessions_pending ON api_sessions (state) WHERE state = 'pending';
 
-GRANT SELECT, INSERT, UPDATE ON api_sessions TO machincast_interface, machincast_intranet;
+GRANT SELECT, INSERT, UPDATE ON api_sessions TO machincast_interface, machincast_webserver;

@@ -6,5 +6,5 @@
 
 ALTER TABLE api_sessions ADD COLUMN accepted_at timestamptz;
 
-REVOKE UPDATE ON api_sessions FROM machincast_intranet;
-GRANT UPDATE (state, code, attempts, validated_at, expires_at, ended_at) ON api_sessions TO machincast_intranet;
+REVOKE UPDATE ON api_sessions FROM machincast_webserver;
+GRANT UPDATE (state, code, attempts, validated_at, expires_at, ended_at) ON api_sessions TO machincast_webserver;

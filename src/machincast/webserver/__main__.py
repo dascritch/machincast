@@ -1,12 +1,12 @@
-"""Machin_intranet : le serveur intranet et son API, en HTTPS seulement (https://github.com/dascritch/machincast/issues/538).
+"""Machin_webserver : le serveur intranet et son API, en HTTPS seulement (https://github.com/dascritch/machincast/issues/538).
 
 Éteint par défaut : il refuse de démarrer tant que intranet.enabled n'est pas vrai, ce que règle la page « Intranet »
 des paramètres du service. Il écoute sur intranet.address et intranet.port, en TLS ; une connexion en clair n'obtient
 aucune réponse HTTP. Sans certificat donné, il utilise celui qu'il génère dans son répertoire d'état
-(machincast.intranet.certificate) : STATE_DIRECTORY sous systemd, ~/.local/state/machincast/intranet sinon.
+(machincast.webserver.certificate) : STATE_DIRECTORY sous systemd, ~/.local/state/machincast/webserver sinon.
 
 Il s'arrête proprement sur SIGTERM ou SIGINT. Tant qu'il sert, son PID est noté dans son répertoire d'état
-(machincast.intranet.process), où l'interface le retrouve pour l'arrêter. Avec --keep-open, pour le terminal que
+(machincast.webserver.process), où l'interface le retrouve pour l'arrêter. Avec --keep-open, pour le terminal que
 lance l'interface sans le service (https://github.com/dascritch/machincast/issues/544), un arrêt sur une erreur garde
 la fenêtre ouverte sur sa raison.
 """
@@ -31,28 +31,28 @@ from machincast.cli import launch
 from machincast.configuration import Configuration, Intranet
 from machincast.database import Role, open_connection
 from machincast.i18n import _
-from machincast.intranet import certificate, network, process, rendering
-from machincast.intranet.api import ApiV1
-from machincast.intranet.app import Intranet as Application
-from machincast.intranet.extensions import POINT, Extensions
-from machincast.intranet.pages import Pages
-from machincast.intranet.portal import Portal
 from machincast.maintenance import stay_open
 from machincast.service import INTRANET_UNIT_FILE
+from machincast.webserver import certificate, network, process, rendering
+from machincast.webserver.api import ApiV1
+from machincast.webserver.app import Intranet as Application
+from machincast.webserver.extensions import POINT, Extensions
+from machincast.webserver.pages import Pages
+from machincast.webserver.portal import Portal
 
 log = logging.getLogger(__name__)
 
-EXECUTABLE = "Machin_intranet"
+EXECUTABLE = "Machin_webserver"
 DESCRIPTION = _("Serves the intranet and its API of MachinCast, in HTTPS only, when it is switched on.")
 DISABLED_CODE = 4
 """Éteint dans la configuration : un autre code que celui d'une configuration invalide, 2, que systemd ne doit pas
 prendre pour un arrêt voulu."""
 FAILURE_CODE = 1
-STOPPED_ON_ERROR = _("Machin intranet stopped on an error: this window stays open, close it whenever you want.")
+STOPPED_ON_ERROR = _("Machin webserver stopped on an error: this window stays open, close it whenever you want.")
 
 
 def pair(settings: Intranet) -> certificate.Pair:
-	"""Le certificat donné, ou celui que Machin intranet génère, refait s'il ne couvre plus le poste."""
+	"""Le certificat donné, ou celui que Machin webserver génère, refait s'il ne couvre plus le poste."""
 	if (settings.certificate is not None) and (settings.key is not None):
 		return certificate.Pair(settings.certificate, settings.key)
 	generated = certificate.default(process.state_directory())
@@ -75,7 +75,7 @@ def server_configuration(settings: Intranet, chosen: certificate.Pair) -> Config
 	config.certfile = str(chosen.certificate)
 	config.keyfile = str(chosen.key)
 	config.accesslog = None
-	config.errorlog = logging.getLogger("machincast.intranet.server")
+	config.errorlog = logging.getLogger("machincast.webserver.server")
 	config.server_names = []
 	config.include_server_header = False
 	return config
@@ -97,7 +97,7 @@ def guarded(settings: Intranet, *, production: bool) -> Intranet:
 
 
 def application(configuration: Configuration) -> Application:
-	"""L'application de l'intranet, sur la base de production, au rôle machincast_intranet."""
+	"""L'application de l'intranet, sur la base de production, au rôle machincast_webserver."""
 	database = configuration.database
 
 	def connect() -> psycopg.Connection[TupleRow]:

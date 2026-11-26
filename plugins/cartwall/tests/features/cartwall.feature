@@ -1,5 +1,5 @@
 # language: fr
-Fonctionnalité: Le cartouchier : des boutons tactiles dans Machin intranet qui agissent sur l'antenne
+Fonctionnalité: Le cartouchier : des boutons tactiles dans Machin webserver qui agissent sur l'antenne
 	En tant que technicien radio,
 	je veux piloter quelques commandes simples vers Machin player, depuis une page web,
 	afin de faciliter la transition d'antenne avec les directs.
@@ -138,7 +138,7 @@ Fonctionnalité: Le cartouchier : des boutons tactiles dans Machin intranet qui 
 	# ─── Le plugin ─────────────────────────────────────────
 
 	Scénario: Le cartouchier s'accroche à l'intranet et à l'interface, chacun à son point
-		Quand le cartouchier s'enregistre dans « Machin_intranet »
+		Quand le cartouchier s'enregistre dans « Machin_webserver »
 		Alors il s'abonne seulement à « intranet.extensions »
 		Quand le cartouchier s'enregistre dans « Machin_interface »
 		Alors il s'abonne seulement à « interface.plugin_window »

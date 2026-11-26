@@ -24,8 +24,8 @@ from datetime import datetime
 import psycopg
 from psycopg.rows import TupleRow
 
-from machincast.intranet import queries
 from machincast.shared import passwords, totp
+from machincast.webserver import queries
 
 Connection = psycopg.Connection[TupleRow]
 

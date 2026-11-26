@@ -2,4 +2,4 @@
 -- sans rien en écrire.
 
 GRANT SELECT ON sounds, feeds, banks, bank_directories, bank_sounds, events, event_items, event_skips, sequences,
-	sequence_items, airplay, log TO machincast_intranet;
+	sequence_items, airplay, log TO machincast_webserver;

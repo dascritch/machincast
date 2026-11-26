@@ -25,10 +25,10 @@ from html import escape
 from typing import Any
 
 from machincast.i18n import _
-from machincast.intranet.calendar import ONE_DAY, PRIORITIES, WEEK, day_title, end_hour, hour, midnight, remark
 from machincast.shared.colours import BLACK, WHITE, mixed, readable_text
 from machincast.shared.grid import DAY_NAMES, RANKS, Priority
 from machincast.shared.side_by_side import columns
+from machincast.webserver.calendar import ONE_DAY, PRIORITIES, WEEK, day_title, end_hour, hour, midnight, remark
 
 HOUR_HEIGHT = 48
 """Pixels d'une heure de la grille."""
