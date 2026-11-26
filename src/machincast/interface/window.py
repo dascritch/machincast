@@ -506,9 +506,8 @@ class MainWindow(QMainWindow):
 			self.connection,
 			interruption.Requests(self.broadcast.interrupt, self.broadcast.cut_by_fallback, self.broadcast.insert),
 			self,
+			watched=True,
 		)
-		self.interruptions = self.on_air_menu.actions
-		self.cutoff_by_fallback = self.on_air_menu.fallback
 		self.broadcast_menu.aboutToShow.connect(self.broadcast.reread_fallback)
 		# Une entrée par plugin activé, relue à chaque ouverture (https://github.com/dascritch/machincast/issues/587) ;
 		# Alt+U l'ouvre, Alt+P restant au moniteur de l'antenne.
@@ -707,12 +706,25 @@ class MainWindow(QMainWindow):
 			return "—"
 		return f"{source.title} : {source.address}"
 
+	@property
+	def interruptions(self) -> dict[str, QAction]:
+		"""Les entrées du menu « Diffusion », recréées si Qt les a détruites
+		(https://github.com/dascritch/machincast/issues/658)."""
+		return self.on_air_menu.actions
+
+	@property
+	def cutoff_by_fallback(self) -> QAction:
+		return self.on_air_menu.fallback
+
 	def closeEvent(self, event: QCloseEvent) -> None:
 		"""Ferme la fenêtre, sauf si une fiche refuse de se fermer ; les onglets ouverts sont retenus et les écrans arrêtés."""
 		for card in self.cards():
 			if not card.can_close():
 				event.ignore()
 				return
+		# Ses entrées se détruisent avec elle : rien d'inattendu (https://github.com/dascritch/machincast/issues/658).
+		self.on_air_menu.watched = False
+		self.tab_manager.watched = False
 		self.tab_manager.retain_tabs()
 		for card in self.cards():
 			card.shut_down()

@@ -300,3 +300,17 @@ Fonctionnalité: Interrompre l'antenne depuis l'interface
 		Et je choisis « Couper l'événement par ce feed » au clic droit sur le feed « Studio mobile »
 		Alors Machin player a reçu la demande de couper l'antenne par le feed « Studio mobile »
 		Et la barre d'état a annoncé « Coupure par le feed « Studio mobile » demandée. »
+
+	Scénario: Des entrées du menu « Diffusion » détruites hors de l'interface se recréent à l'état suivant, et le journal dit d'où
+		https://github.com/dascritch/machincast/issues/658 : sur un poste, Qt détruisait ces entrées sans que l'interface
+		le demande, et chaque état de Machin player levait une erreur. Elles se recréent, sans erreur, et le journal
+		consigne, une fois, la pile des appels de leur destruction, pour en trouver la cause.
+
+		Étant donné Machin player diffuse « Café à minuit », de la séquence « Pub », dans « Matinale »
+		Quand la fenêtre de l'interface s'ouvre
+		Et l'interface a reçu l'état de Machin player
+		Et les entrées du menu « Diffusion » sont détruites, hors de l'interface
+		Et Machin player s'arrête
+		Et l'interface a reçu l'état de Machin player
+		Alors les entrées du menu « Diffusion » sont recréées, dans leurs sous-menus
+		Et le journal de l'interface a consigné leur destruction, avec la pile des appels

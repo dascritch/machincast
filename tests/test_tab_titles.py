@@ -1,5 +1,9 @@
 """Scénarios des titres des onglets et du menu « Onglets » (https://github.com/dascritch/machincast/issues/398)."""
 
+import logging
+
+import pytest
+from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtGui import QAction
 from pytest_bdd import parsers, scenarios, then, when
 
@@ -74,3 +78,22 @@ def choose(interface: Context, title: str) -> None:
 			action_list.append(candidate)
 	(action,) = action_list
 	action.trigger()
+
+
+@when("les entrées du menu « Onglets » sont détruites, hors de l'interface")
+def destroyed_tab_entries(interface: Context, caplog: pytest.LogCaptureFixture) -> None:
+	"""Comme sur le poste du ticket : Qt les détruit après leur création (https://github.com/dascritch/machincast/issues/658)."""
+	caplog.set_level(logging.WARNING, logger="machincast.interface.tab_manager")
+	for action in _tab_entries(interface):
+		action.deleteLater()
+	QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+@then("le journal de l'interface a consigné la destruction des entrées du menu « Onglets », avec la pile des appels")
+def tab_entries_lost(caplog: pytest.LogCaptureFixture) -> None:
+	warnings = []
+	for record in caplog.records:
+		if record.name == "machincast.interface.tab_manager":
+			warnings.append(record.getMessage())
+	assert len(warnings) == 1, warnings
+	assert "destroyed_tab_entries" in warnings[0], warnings[0]

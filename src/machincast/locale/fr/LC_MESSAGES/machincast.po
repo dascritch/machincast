@@ -4822,6 +4822,17 @@ msgstr ""
 
 #: machincast/interface/interruption.py
 #, python-brace-format
+msgid ""
+"entries of the Broadcast menu destroyed, recreated at the next state of "
+"Machin player:\n"
+"{stack}"
+msgstr ""
+"entrées du menu Diffusion détruites, recréées au prochain état de Machin "
+"player :\n"
+"{stack}"
+
+#: machincast/interface/interruption.py
+#, python-brace-format
 msgid "unreadable fallback events: {error}"
 msgstr "événements de secours illisibles : {error}"
 
@@ -6566,6 +6577,15 @@ msgstr "Rouvrir l'onglet fermé"
 #: machincast/interface/tab_manager.py
 msgid "Recently closed tabs"
 msgstr "Onglets fermés récemment"
+
+#: machincast/interface/tab_manager.py
+#, python-brace-format
+msgid ""
+"entries of the Tabs menu destroyed, recreated at its next opening:\n"
+"{stack}"
+msgstr ""
+"entrées du menu Onglets détruites, recréées à sa prochaine ouverture :\n"
+"{stack}"
 
 #: machincast/interface/tab_manager.py
 #, python-brace-format

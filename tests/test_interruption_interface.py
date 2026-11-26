@@ -4,6 +4,11 @@ Une vraie socket d'état (machincast.player.state.StateSocket), là où l'interf
 lecture imaginaire et reçoit les demandes de l'interface. Les étapes de la fenêtre sont dans tests/interface_steps.py.
 """
 
+import logging
+
+import pytest
+import shiboken6
+from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtGui import QAction
 from PySide6.QtNetwork import QLocalSocket
 from PySide6.QtWidgets import QMenu
@@ -168,8 +173,11 @@ def received_state(interface: Context, player: Player, qtbot: QtBot) -> None:
 	def up_to_date() -> bool:
 		every_one = True
 		for item, action in entries(interface).items():
+			# Détruites, elles se recréent à l'état reçu (https://github.com/dascritch/machincast/issues/658).
 			if not (
-				(action.isEnabled() == expected_list[item].active) and (action.toolTip() == expected_list[item].tooltip)
+				(shiboken6.isValid(action))
+				and (action.isEnabled() == expected_list[item].active)
+				and (action.toolTip() == expected_list[item].tooltip)
 			):
 				every_one = False
 				break
@@ -436,3 +444,47 @@ def feed_menu(interface: Context, name: str, datatable: list[list[str]]) -> None
 		if expected[2] == "":
 			obtained[2] = ""
 	assert obtained_list == expected_list
+
+
+# ─── Entrées détruites hors de l'interface (https://github.com/dascritch/machincast/issues/658) ───
+
+
+@when("les entrées du menu « Diffusion » sont détruites, hors de l'interface")
+def destroyed_entries(interface: Context, caplog: pytest.LogCaptureFixture) -> None:
+	"""Comme sur le poste du ticket : Qt les détruit, l'interface garde leurs enveloppes Python."""
+	caplog.set_level(logging.WARNING, logger="machincast.interface.interruption")
+	interface.destroyed = list(entries(interface).values())
+	for action in interface.destroyed:
+		action.deleteLater()
+	QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+@when("Machin player s'arrête")
+def stopping(player: Player) -> None:
+	publish(player, "stopped")
+
+
+@then("les entrées du menu « Diffusion » sont recréées, dans leurs sous-menus")
+def recreated(interface: Context) -> None:
+	on_air_menu = window(interface).on_air_menu
+	recreated_list = entries(interface)
+	assert set(recreated_list) == set(interruption.RESTARTS) | set(interruption.SKIPS) | {"event"}
+	for item, action in recreated_list.items():
+		assert shiboken6.isValid(action), item
+		assert action not in interface.destroyed
+	assert recreated_list["restart_sound"] in on_air_menu.menus["restart"].actions()
+	assert recreated_list["sound"] in on_air_menu.menus["skip"].actions()
+	assert recreated_list["event"] in on_air_menu.menus["cut"].actions()
+	assert window(interface).cutoff_by_fallback in on_air_menu.menus["cut"].actions()
+	assert not recreated_list["sound"].isEnabled()
+
+
+@then("le journal de l'interface a consigné leur destruction, avec la pile des appels")
+def destruction_logged(caplog: pytest.LogCaptureFixture) -> None:
+	warnings = []
+	for record in caplog.records:
+		if record.name == "machincast.interface.interruption":
+			warnings.append(record.getMessage())
+	assert len(warnings) == 1, warnings
+	assert "destroyed_entries" in warnings[0], warnings[0]
+	assert ("recreated" in warnings[0]) or ("recréées" in warnings[0]), warnings[0]

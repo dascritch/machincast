@@ -26,6 +26,7 @@ sous-menus des séquences et des banques ; « Couper » cet événement par un f
 """
 
 import logging
+import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -33,6 +34,7 @@ import psycopg
 from psycopg.rows import TupleRow
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMenu, QWidget
+from shiboken6 import isValid
 
 from machincast.i18n import _
 from machincast.interface import display, icons
@@ -371,16 +373,37 @@ def _named_list(connection: psycopg.Connection[TupleRow], category: str) -> list
 
 class OnAirMenu:
 	"""Les sous-menus « Recommencer », « Sauter », « Insérer après ce sonore » et « Couper », ajoutés à un menu ; leurs
-	entrées suivent l'état de Machin player (offer), comme celles du menu « Diffusion » avant eux."""
+	entrées suivent l'état de Machin player (offer), comme celles du menu « Diffusion » avant eux.
+
+	Celui du menu « Diffusion » est gardé (watched) : si Qt détruit ses entrées sans que l'interface le demande, le
+	journal consigne, une fois, la pile des appels de leur destruction, et elles se recréent à l'état suivant
+	(https://github.com/dascritch/machincast/issues/658)."""
 
 	def __init__(
-		self, menu: QMenu, connection: psycopg.Connection[TupleRow], requests: Requests, parent: QWidget | None = None
+		self,
+		menu: QMenu,
+		connection: psycopg.Connection[TupleRow],
+		requests: Requests,
+		parent: QWidget | None = None,
+		*,
+		watched: bool = False,
 	) -> None:
 		self.connection = connection
 		self.requests = requests
+		self.menu = menu
+		self.parent = parent
 		self.actions: dict[str, QAction] = {}
 		self.menus: dict[str, QMenu] = {}
 		self.state: PlaybackState | None = None
+		self.watched = watched
+		"""Vrai tant que la destruction d'une entrée est inattendue : faux pendant leur reconstruction, et à la
+		fermeture de la fenêtre."""
+		self._reported = False
+		self._build()
+
+	def _build(self) -> None:
+		menu = self.menu
+		parent = self.parent
 		restart = self._under(menu, RESTART_MENU, "restart", parent)
 		for item, text in RESTARTS.items():
 			self._entry(restart, item, text)
@@ -397,6 +420,42 @@ class OnAirMenu:
 		self.fallback = cut.addAction(BY_FALLBACK)
 		fallback = self.fallback
 		fallback.triggered.connect(lambda _ticked=False: ask_fallback(fallback, self.requests.fallback))
+		for action in [*self.actions.values(), fallback]:
+			action.destroyed.connect(self._lost)
+
+	def _lost(self) -> None:
+		"""Une entrée détruite sans que l'interface le demande : la pile des appels dit qui l'a détruite."""
+		if (not self.watched) or (self._reported):
+			return
+		self._reported = True
+		log.warning(
+			_("entries of the Broadcast menu destroyed, recreated at the next state of Machin player:\n{stack}").format(
+				stack="".join(traceback.format_stack())
+			)
+		)
+
+	def alive(self) -> bool:
+		"""Les entrées, leurs sous-menus et la coupure par le secours existent encore pour Qt."""
+		every_one = isValid(self.fallback)
+		for each in [*self.actions.values(), *self.menus.values(), self.sequences, self.banks]:
+			if not isValid(each):
+				every_one = False
+		return every_one
+
+	def _rebuild(self) -> None:
+		"""Les sous-menus, recréés à leur place ; ceux qui restent sont retirés du menu, puis détruits."""
+		watched = self.watched
+		self.watched = False
+		for under in self.menus.values():
+			if isValid(under):
+				if isValid(self.menu):
+					self.menu.removeAction(under.menuAction())
+				under.deleteLater()
+		self.actions.clear()
+		self.menus.clear()
+		self._build()
+		self.watched = watched
+		self._reported = False
 
 	def _under(self, menu: QMenu, title: str, icon: str, parent: QWidget | None) -> QMenu:
 		under = QMenu(title, parent)
@@ -413,7 +472,9 @@ class OnAirMenu:
 
 	def offer(self, state: PlaybackState, fallback: list[Fallback]) -> None:
 		"""Les entrées suivent ce qui est à l'antenne ; une entrée inactive dit pourquoi dans son infobulle. Insérer
-		demande un sonore à l'antenne."""
+		demande un sonore à l'antenne. Détruites hors de l'interface, elles se recréent d'abord."""
+		if not self.alive():
+			self._rebuild()
 		for item, proposal in offer(state).items():
 			action = self.actions[item]
 			action.setEnabled(proposal.active)
