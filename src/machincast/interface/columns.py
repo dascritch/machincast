@@ -31,6 +31,7 @@ import csv
 import io
 import logging
 import os
+import tempfile
 import weakref
 from collections.abc import Callable
 from pathlib import Path
@@ -48,6 +49,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast import created_files
 from machincast.i18n import _
 from machincast.protection import check_writing
 
@@ -78,6 +80,10 @@ def choose_file(parent: QWidget, offers: str) -> Path | None:
 	return Path(path)
 
 
+FALLBACK = Path(tempfile.gettempdir()) / f"machincast-{os.getuid()}" / FILE_NAME
+"""Les réglages des vues d'une session dont le fichier n'est pas de MachinCast : un fichier d'exécution."""
+
+
 def file() -> Path:
 	"""Les réglages des vues du compte : $XDG_CONFIG_HOME/machincast/vues.ini, ou ~/.config/machincast/vues.ini."""
 	if FILE is not None:
@@ -89,8 +95,25 @@ def file() -> Path:
 	return root / FILE_NAME
 
 
+_KEPT: set[Path] = set()
+"""Les fichiers des vues déjà vérifiés et inscrits dans la liste des fichiers créés, par ce processus."""
+
+
 def settings() -> QSettings:
-	return QSettings(str(file()), QSettings.Format.IniFormat)
+	"""Les réglages des vues, inscrits dans la liste des fichiers créés (https://github.com/dascritch/machincast/issues/652).
+	Un fichier qui existe hors de la liste n'est jamais touché : les vues se règlent alors, le temps de la session,
+	dans un fichier d'exécution du répertoire temporaire, et le log le dit une fois."""
+	path = file()
+	if path not in _KEPT:
+		try:
+			created_files.check(path)
+		except created_files.NotCreatedByMachinCast as error:
+			log.warning(_("view settings kept for this session only: {error}").format(error=error))
+			FALLBACK.parent.mkdir(parents=True, exist_ok=True)
+			return QSettings(str(FALLBACK), QSettings.Format.IniFormat)
+		created_files.record([path])
+		_KEPT.add(path)
+	return QSettings(str(path), QSettings.Format.IniFormat)
 
 
 def header(view: QAbstractItemView) -> QHeaderView:
@@ -294,7 +317,7 @@ class Columns(QObject):
 			path = path.with_name(f"{path.name}.csv")
 		try:
 			check_writing(path)
-			path.write_text(self.in_csv(), encoding="utf-8-sig", newline="")
+			created_files.write_text(path, self.in_csv(), encoding="utf-8-sig", newline="")
 		except OSError as error:
 			log.error(_("export of table {name} impossible: {error}").format(name=self.name, error=error))
 			self._announce(_("Export impossible: {error}").format(error=error))

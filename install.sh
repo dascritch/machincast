@@ -119,6 +119,9 @@ DOSSIER_APPLICATIONS="${XDG_DATA_HOME:-${HOME}/.local/share}/applications"
 # PulseAudio (machincast.audio.ICONE, https://github.com/dascritch/machincast/issues/296).
 ICONE_DU_THEME="${XDG_DATA_HOME:-${HOME}/.local/share}/icons/hicolor/512x512/apps/machincast.png"
 CONFIGURATION="${RACINE}/machincast.toml"
+# La liste des fichiers créés par MachinCast, à côté de sa configuration, les seuls qu'il modifie ou efface
+# (https://github.com/dascritch/machincast/issues/652) : le même nom dans machincast.created_files.
+LISTE_FICHIERS="${RACINE}/fichiers-machincast.txt"
 VENV="${RACINE}/.venv"
 ROLES=(player indexer interface intranet)
 
@@ -522,8 +525,72 @@ preparer_configuration() {
 		info '%s already exists: kept' "${CONFIGURATION}"
 	else
 		executer cp "${RACINE}/machincast.exemple.toml" "${CONFIGURATION}"
+		inscrire "${CONFIGURATION}"
 		annonce 'to adapt: audio output, devices, outputs (see doc/fr/spec.md § 9)'
 	fi
+	adopter_les_fichiers
+}
+
+# La liste des fichiers créés (machincast.created_files), par le python3 du système, comme machincast.programs.
+fichiers_crees() {
+	PYTHONPATH="${RACINE}/src" python3 -m machincast.created_files --list "${LISTE_FICHIERS}" "$@"
+}
+
+# Inscrit dans la liste des fichiers créés ceux qu'install.sh vient de créer.
+inscrire() {
+	if "${SIMULATION}"; then
+		info '[simulation] %s added to %s' "$*" "${LISTE_FICHIERS}"
+		return 0
+	fi
+	fichiers_crees add "$@" || echec '%s not added to %s' "$*" "${LISTE_FICHIERS}"
+}
+
+# Retire de la liste des fichiers créés ceux qu'install.sh vient d'effacer.
+desinscrire() {
+	if "${SIMULATION}"; then
+		info '[simulation] %s removed from %s' "$*" "${LISTE_FICHIERS}"
+		return 0
+	fi
+	fichiers_crees forget "$@" || echec '%s not removed from %s' "$*" "${LISTE_FICHIERS}"
+}
+
+# Échoue si le fichier existe sans être dans la liste des fichiers créés : install.sh n'y touche pas.
+verifier_le_fichier() {
+	if "${SIMULATION}" && [[ ! -e "${LISTE_FICHIERS}" ]]; then
+		return 0
+	fi
+	fichiers_crees check "$1" || echec '%s is not a file of MachinCast: move it, or add it to %s' "$1" "${LISTE_FICHIERS}"
+}
+
+# Les fichiers qu'une version d'avant la liste a créés entrent dans la liste
+# (https://github.com/dascritch/machincast/issues/652) : ceux que la configuration désigne (machincast.installation
+# created-files), ceux qu'install.sh installe, s'ils existent. Ensuite, tout autre fichier est refusé.
+adopter_les_fichiers() {
+	local designes=() sortie bureau
+	if "${SIMULATION}"; then
+		info '[simulation] files of MachinCast already there added to %s' "${LISTE_FICHIERS}"
+		return 0
+	fi
+	# Un chemin par ligne : un nom de fichier peut avoir des espaces, comme le document de l'installation.
+	sortie="$(installation created-files)" || echec 'machincast.installation created-files failed'
+	if [[ -n "${sortie}" ]]; then
+		mapfile -t designes <<<"${sortie}"
+	fi
+	bureau="$(dossier_du_bureau)"
+	sortie="$(fichiers_crees adopt "${designes[@]}" "${FICHIER_UNITE}" "${FICHIER_REGLE}" \
+		"${FICHIER_POLITIQUE}" "${FICHIER_LOGIND}" "${FICHIER_SYSTEME}" "${FICHIER_MODPROBE}" "${FICHIER_USB}" \
+		"${FICHIER_UNITE_TACHES}" "${FICHIER_UNITE_INTRANET}" "${FICHIER_MINUTEUR_TACHES}" "${FICHIER_UNITE_INDEXATION}" \
+		"${FICHIER_MINUTEUR_INDEXATION}" "${FICHIER_ANCIENNE_UNITE_PURGE}" "${FICHIER_ANCIEN_MINUTEUR_PURGE}" \
+		"${FICHIER_UNITE_PIPEWIRE}" "${FICHIER_UNITE_WIREPLUMBER}" "${FICHIER_TMPFILES}" "${FICHIER_LOGROTATE}" \
+		"${FICHIER_PROFIL}" "${FICHIER_WIREPLUMBER_SERVICE}" "${FICHIER_WIREPLUMBER_BUREAU}" \
+		"${DOSSIER_APPLICATIONS}/${RACCOURCI}" "${ICONE_DU_THEME}" "${bureau:-${HOME}}/${RACCOURCI}")" \
+		|| echec 'files of MachinCast not added to %s' "${LISTE_FICHIERS}"
+	if [[ -z "${sortie}" ]]; then
+		info 'no file of MachinCast to add to %s' "${LISTE_FICHIERS}"
+		return 0
+	fi
+	annonce 'files already created by MachinCast, now in %s:' "${LISTE_FICHIERS}"
+	printf '%s\n' "${sortie}" | sed 's/^/      /'
 }
 
 # Appelle machincast.installation, qui lit la configuration et applique le schéma. En simulation, tant que
@@ -709,8 +776,10 @@ installer_fichier() {
 		rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
 		return 1
 	fi
+	verifier_le_fichier "${destination}"
 	executer sudo install -D --mode=644 --owner=root --group=root "${redige}" "${destination}"
 	rm --force "${redige}" # fichier de MachinCast : unité ou règle rédigée, temporaire
+	inscrire "${destination}"
 	return 0
 }
 
@@ -730,8 +799,10 @@ installer_raccourci_en() {
 		rm --force "${redige}" # fichier de MachinCast : raccourci rédigé, temporaire
 		return 1
 	fi
+	verifier_le_fichier "${destination}"
 	executer install -D --mode="${droits}" "${redige}" "${destination}"
 	rm --force "${redige}" # fichier de MachinCast : raccourci rédigé, temporaire
+	inscrire "${destination}"
 	return 0
 }
 
@@ -772,7 +843,9 @@ installer_icone() {
 		info '%s is up to date' "${destination}"
 		return
 	fi
+	verifier_le_fichier "${destination}"
 	executer install -D --mode=644 "${source}" "${destination}"
+	inscrire "${destination}"
 }
 
 installer_raccourci() {
@@ -1393,7 +1466,9 @@ garder_les_cartes_eveillees() {
 retirer_fichier() {
 	local fichier="$1"
 	if [[ -e "${fichier}" ]]; then
+		verifier_le_fichier "${fichier}"
 		executer sudo rm --force "${fichier}" # fichier de MachinCast : installé par --service
+		desinscrire "${fichier}"
 		return 0
 	fi
 	info '%s missing' "${fichier}"

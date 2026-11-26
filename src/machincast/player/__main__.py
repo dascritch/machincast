@@ -15,7 +15,7 @@ from pathlib import Path
 
 import psycopg
 
-from machincast import audio, crash, plugins
+from machincast import audio, crash, created_files, plugins
 from machincast.audio import UnavailableAudioOutput
 from machincast.cli import INVALID_CONFIGURATION_CODE, launch
 from machincast.clock import SystemClock
@@ -93,14 +93,27 @@ def own_options(analyser: argparse.ArgumentParser) -> None:
 		metavar="REPERTOIRE",
 		help=_("directory of the outputs of the simulation (by default: the one of outputs.csv of the configuration)"),
 	)
+	simulation.add_argument(
+		"--temporary",
+		action="store_true",
+		help=_(
+			"temporary outputs, left out of the list of the files created by MachinCast, as for the simulation tab of"
+			" the interface"
+		),
+	)
 
 
 def run(configuration: Configuration, options: argparse.Namespace) -> int:
 	audio.identify(audio.ON_AIR, EXECUTABLE)
 	if options.simulation is not None:
 		return run_simulation(configuration, options)
-	if (options.seed is not None) or (options.name is not None) or (options.directory is not None):
-		log.error(_("--seed, --name and --directory are only used with --simulation"))
+	if (
+		(options.seed is not None)
+		or (options.name is not None)
+		or (options.directory is not None)
+		or (options.temporary)
+	):
+		log.error(_("--seed, --name, --directory and --temporary are only used with --simulation"))
 		return INVALID_CONFIGURATION_CODE
 	return run_broadcast(configuration)
 
@@ -111,6 +124,9 @@ def run_simulation(configuration: Configuration, options: argparse.Namespace) ->
 	if end <= start:
 		log.error(_("invalid simulation period: the end must follow the start"))
 		return INVALID_CONFIGURATION_CODE
+	if options.temporary:
+		# Des fichiers d'exécution, hors de la liste des fichiers créés (https://github.com/dascritch/machincast/issues/652).
+		created_files.use(None)
 	database = configuration.database
 	directory = configuration.outputs.csv.parent
 	if options.directory is not None:

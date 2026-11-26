@@ -28,6 +28,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast import created_files
 from machincast.clock import FixedClock
 from machincast.configuration import Crossfades, Metadata
 from machincast.conversion import boolean_or_none, integer_or_none, text_or_none
@@ -615,10 +616,14 @@ def export(
 	for extension in (".csv", ".pls", ".html"):
 		extension_list.append(directory / f"{name}{extension}")
 	csv_path, pls_path, html_path = extension_list
+	# Jamais un fichier qu'il n'a pas créé (https://github.com/dascritch/machincast/issues/652).
+	for path in extension_list:
+		created_files.check(path)
 	with csv_path.open("w", encoding="utf-8-sig", newline="") as file:
 		file.write(";".join(CSV_COLUMNS) + "\r\n")
 		for line in lines:
 			file.write(csv_line(line))
 	pls_path.write_text(playlist(list(reversed(lines))), encoding="utf-8")
 	html_path.write_text(simulation_page(lines, log, start, end), encoding="utf-8")
+	created_files.record(extension_list)
 	return csv_path, pls_path, html_path

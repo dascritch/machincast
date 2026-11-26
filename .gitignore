@@ -222,6 +222,7 @@ __marimo__/
 
 # project specific
 machincast.toml
+fichiers-machincast.txt
 /configuration-test-*.toml
 /sorties/
 /sauvegardes/

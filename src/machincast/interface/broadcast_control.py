@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QMenu
 
-from machincast import access, service
+from machincast import access, created_files, service
 from machincast.i18n import _
 from machincast.interface import control, dialogs, interruption, preferences
 from machincast.interface.state import STOP, PlaybackState
@@ -201,7 +201,7 @@ class BroadcastControl(QObject):
 		former, previous = restoring
 		assert self.window.configuration is not None
 		try:
-			self.window.configuration.write_text(former, encoding="utf-8")
+			created_files.write_text(self.window.configuration, former)
 		except OSError as error:
 			self.window.statusBar().showMessage(
 				_(

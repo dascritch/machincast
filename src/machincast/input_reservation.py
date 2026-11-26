@@ -19,6 +19,7 @@ import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 
+from machincast import created_files
 from machincast import log as journal
 from machincast.configuration import InvalidConfiguration, load
 from machincast.i18n import _
@@ -40,9 +41,10 @@ def reserve(configuration: Path, root: Path) -> list[str]:
 	"""Réécrit le fragment des sessions du poste avec les entrées de cette configuration, puis relance le WirePlumber
 	du service ; les messages à dire. Lève InvalidConfiguration, OSError ou SubprocessError."""
 	audio = load(configuration).audio
+	created_files.use(configuration)
 	fragment = root / DESKTOP_FRAGMENT.relative_to("/")
 	fragment.parent.mkdir(parents=True, exist_ok=True)
-	fragment.write_text(wireplumber_desktop(audio), encoding="utf-8")
+	created_files.write_text(fragment, wireplumber_desktop(audio))
 	subprocess.run(["systemctl", "restart", WIREPLUMBER_UNIT], check=True, timeout=SYSTEMCTL_DELAY)
 	if not audio.inputs:
 		return [_("no audio input reserved for the broadcast service")]

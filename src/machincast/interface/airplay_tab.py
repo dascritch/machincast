@@ -52,6 +52,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast import created_files
 from machincast.clock import Clock
 from machincast.configuration import Metadata
 from machincast.i18n import _, counted, ngettext
@@ -328,7 +329,7 @@ class AirplayScreen(QWidget):
 			encoding = "utf-8"
 			if extension == ".csv":
 				encoding = "utf-8-sig"
-			destination.write_text(content, encoding=encoding, newline="")
+			created_files.write_text(destination, content, encoding=encoding, newline="")
 		except (OSError, psycopg.Error) as error:
 			self.announces.emit(_("Export impossible: {error}").format(error=error))
 			return

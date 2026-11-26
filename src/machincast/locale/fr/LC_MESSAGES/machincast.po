@@ -744,6 +744,15 @@ msgstr "rapport de crash impossible à écrire dans {path} : {error}"
 msgid "pending crash report {path} not finished: {error}"
 msgstr "rapport de crash en cours {path} pas achevé : {error}"
 
+#: machincast/created_files.py
+#, python-brace-format
+msgid ""
+"{path}: not created by MachinCast, it is not in {listing}: MachinCast does "
+"not touch it"
+msgstr ""
+"{path} : pas créé par MachinCast, il n'est pas dans {listing} : MachinCast "
+"n'y touche pas"
+
 #: machincast/i18n.py
 #: machincast/interface/check.py
 msgid "; "
@@ -2714,6 +2723,11 @@ msgstr "Exporter ce tableau"
 #, python-brace-format
 msgid "Table exported to {path}."
 msgstr "Tableau exporté dans {path}."
+
+#: machincast/interface/columns.py
+#, python-brace-format
+msgid "view settings kept for this session only: {error}"
+msgstr "réglages des vues gardés le temps de la session seulement : {error}"
 
 #: machincast/interface/columns.py
 #, python-brace-format
@@ -7765,8 +7779,19 @@ msgstr ""
 "de la configuration)"
 
 #: machincast/player/__main__.py
-msgid "--seed, --name and --directory are only used with --simulation"
-msgstr "--seed, --name et --directory ne s'emploient qu'avec --simulation"
+msgid ""
+"temporary outputs, left out of the list of the files created by MachinCast, "
+"as for the simulation tab of the interface"
+msgstr ""
+"sorties temporaires, hors de la liste des fichiers créés par MachinCast, "
+"comme pour l'onglet Simulation de l'interface"
+
+#: machincast/player/__main__.py
+msgid ""
+"--seed, --name, --directory and --temporary are only used with --simulation"
+msgstr ""
+"--seed, --name, --directory et --temporary ne s'emploient qu'avec "
+"--simulation"
 
 #: machincast/player/__main__.py
 msgid "invalid simulation period: the end must follow the start"
@@ -8915,6 +8940,10 @@ msgstr "snd_hda_intel n'est pas chargé : son réglage vaudra à son chargement"
 msgid "Keeps the sound cards of the on-air computer out of power saving."
 msgstr ""
 "Garde les cartes son du poste d'antenne hors de l'économie d'énergie."
+
+#: machincast/power_save.py
+msgid "list of the files created by MachinCast"
+msgstr "liste des fichiers créés par MachinCast"
 
 #: machincast/power_save.py
 #, python-brace-format
@@ -11531,6 +11560,47 @@ msgstr "%s existe déjà : conservé"
 msgid "to adapt: audio output, devices, outputs (see doc/fr/spec.md § 9)"
 msgstr ""
 "à adapter : sortie audio, périphériques, sorties (voir doc/fr/spec.md § 9)"
+
+#: install.sh
+msgid "[simulation] %s added to %s"
+msgstr "[simulation] %s ajouté à %s"
+
+#: install.sh
+msgid "%s not added to %s"
+msgstr "%s non ajouté à %s"
+
+#: install.sh
+msgid "[simulation] %s removed from %s"
+msgstr "[simulation] %s retiré de %s"
+
+#: install.sh
+msgid "%s not removed from %s"
+msgstr "%s non retiré de %s"
+
+#: install.sh
+msgid "%s is not a file of MachinCast: move it, or add it to %s"
+msgstr ""
+"%s n'est pas un fichier de MachinCast : le déplacer, ou l'ajouter à %s"
+
+#: install.sh
+msgid "[simulation] files of MachinCast already there added to %s"
+msgstr "[simulation] fichiers de MachinCast déjà là ajoutés à %s"
+
+#: install.sh
+msgid "machincast.installation created-files failed"
+msgstr "échec de machincast.installation created-files"
+
+#: install.sh
+msgid "files of MachinCast not added to %s"
+msgstr "fichiers de MachinCast non ajoutés à %s"
+
+#: install.sh
+msgid "no file of MachinCast to add to %s"
+msgstr "aucun fichier de MachinCast à ajouter à %s"
+
+#: install.sh
+msgid "files already created by MachinCast, now in %s:"
+msgstr "fichiers déjà créés par MachinCast, désormais dans %s :"
 
 #: install.sh
 msgid "PostgreSQL"

@@ -43,6 +43,7 @@ from PySide6.QtCore import QLocale, QTime
 from PySide6.QtGui import QIcon, QStandardItemModel
 from PySide6.QtWidgets import QCheckBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QLabel, QVBoxLayout, QWidget
 
+from machincast import created_files
 from machincast import notes as notes_module
 from machincast import service as service_module
 from machincast.clock import Clock, SystemClock
@@ -486,7 +487,7 @@ def write(path: Path, settings: Settings) -> None:
 	dead_air["threshold"] = _count(settings.dead_air.threshold)
 	dead_air["fallback"] = settings.dead_air.fallback
 	_write_interface(document, settings)
-	path.write_text(tomlkit.dumps(document), encoding="utf-8")
+	created_files.write_text(path, tomlkit.dumps(document))
 
 
 def write_audio(

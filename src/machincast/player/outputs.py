@@ -42,6 +42,7 @@ from pathlib import Path
 import psycopg
 from psycopg.rows import TupleRow
 
+from machincast import created_files
 from machincast.configuration import Configuration, Metadata
 from machincast.configuration import Outputs as Paths
 from machincast.conversion import boolean_or_none, text_or_none
@@ -331,6 +332,8 @@ def csv_line(line: Line) -> str:
 def _write(path: Path, content: str) -> None:
 	"""Remplace le fichier d'un coup : un lecteur ne voit jamais de page à moitié écrite."""
 	check_writing(path)
+	# Jamais un fichier qu'il n'a pas créé (https://github.com/dascritch/machincast/issues/652).
+	created_files.check(path)
 	path.parent.mkdir(parents=True, exist_ok=True)
 	descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
 	try:
@@ -338,6 +341,7 @@ def _write(path: Path, content: str) -> None:
 			file.write(content)
 		os.chmod(temporary, 0o644)
 		os.replace(temporary, path)  # fichier de MachinCast : sortie, jamais un fichier sonore (check_writing)
+		created_files.record([path])
 	except BaseException:
 		Path(temporary).unlink(missing_ok=True)  # fichier de MachinCast : fichier temporaire de la sortie
 		raise
@@ -402,6 +406,7 @@ class Outputs:
 	@staticmethod
 	def _add(path: Path, line: Line) -> None:
 		check_writing(path)
+		created_files.check(path)
 		path.parent.mkdir(parents=True, exist_ok=True)
 		new = not path.exists()
 		file_encoding = "utf-8"
@@ -411,6 +416,8 @@ class Outputs:
 			if new:
 				file.write(";".join(CSV_COLUMNS) + "\r\n")
 			file.write(csv_line(line))
+		if new:
+			created_files.record([path])
 
 	def _output(
 		self, connection: psycopg.Connection[TupleRow], path: Path, instant: datetime, write: Callable[[], None]

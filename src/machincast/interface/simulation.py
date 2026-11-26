@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
+from machincast import created_files
 from machincast.clock import Clock
 from machincast.i18n import _, counted
 from machincast.interface import dialogs
@@ -190,6 +191,7 @@ class SimulationScreen(QWidget):
 			str(self.temporary),
 			"--name",
 			NAME,
+			"--temporary",
 		]
 		process = QProcess(self)
 		process.finished.connect(lambda code, _status: self._finish(process, code, (start, end)))
@@ -283,7 +285,10 @@ class SimulationScreen(QWidget):
 		destination = with_extension(path, extension)
 		try:
 			check_writing(destination)
+			# Jamais un fichier qu'il n'a pas créé (https://github.com/dascritch/machincast/issues/652).
+			created_files.check(destination)
 			shutil.copyfile(self.temporary / f"{NAME}{extension}", destination)
+			created_files.record([destination])
 		except OSError as error:
 			self._announce(_("Export impossible: {error}").format(error=error))
 			return

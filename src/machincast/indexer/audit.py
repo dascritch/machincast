@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from machincast import created_files
 from machincast.clock import Clock, SystemClock
 from machincast.i18n import _, current
 
@@ -48,6 +49,9 @@ def write(anomalies: list[Anomaly], report: str, start: datetime, directory: Pat
 	name = f"machincast-audit-{start.astimezone():%Y-%m-%dT%H:%M:%S}"
 	csv_path, html_path = directory / f"{name}.csv", directory / f"{name}.html"
 	date = _date(start)
+	# Jamais un fichier qu'il n'a pas créé (https://github.com/dascritch/machincast/issues/652).
+	created_files.check(csv_path)
+	created_files.check(html_path)
 	with csv_path.open("w", encoding="utf-8-sig", newline="") as file:
 		writing = csv.writer(file, delimiter=";", lineterminator="\r\n")
 		writing.writerow(COLUMNS)
@@ -55,6 +59,7 @@ def write(anomalies: list[Anomaly], report: str, start: datetime, directory: Pat
 			writing.writerow((date, anomaly.path, anomaly.verdict, anomaly.problem, anomaly.consequence))
 		writing.writerow((date, "", REPORT, report, ""))
 	html_path.write_text(page(anomalies, report, start), encoding="utf-8")
+	created_files.record([csv_path, html_path])
 	return csv_path, html_path
 
 

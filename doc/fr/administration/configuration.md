@@ -59,6 +59,25 @@ Une sortie impossible à écrire (dossier sans droit d'écriture, disque plein) 
 
 L'interface garde, pour chaque compte, la disposition des colonnes de chacun de ses tableaux : leur ordre, les colonnes cachées et les largeurs choisies ([#207](https://github.com/dascritch/machincast/issues/207), [Colonnes des tableaux](../utilisateur/listes.md#colonnes-des-tableaux)). Ce n'est pas un réglage du poste : il n'est pas dans `machincast.toml`, mais dans `~/.config/machincast/vues.ini` (ou `$XDG_CONFIG_HOME/machincast/vues.ini`), une section par tableau, comme `[liste-sonores]` ou `[fiche-banque-sonores]`. Supprimer ce fichier rend à tous les tableaux du compte leur disposition d'origine ; « Rétablir les colonnes », dans l'interface, le fait pour un seul. Une disposition gardée pour d'autres colonnes, par une version précédente de MachinCast, est oubliée.
 
+## Fichiers créés par MachinCast
+
+MachinCast tient la liste des fichiers qu'il a créés ([#652](https://github.com/dascritch/machincast/issues/652)) : `fichiers-machincast.txt`, à côté du fichier de configuration, un chemin complet par ligne, dans l'ordre alphabétique. Ce sont **les seuls fichiers qu'il modifie, remplace ou efface**, et ceux à **sauvegarder pour reprendre l'activité** sur un autre poste, avec une sauvegarde de la base :
+
+- la configuration et les réglages : `machincast.toml`, les réglages des vues de chaque compte (`vues.ini`), les unités, règles et fragments qu'installe `./install.sh --service` dans `/etc` et `/usr/share/polkit-1`, le raccourci de l'interface et son icône, les réglages des cartes son toujours éveillées ;
+- les données : les sorties de `Machin player` (le CSV de chaque jour, la playlist `.pls`, la page HTML), les fichiers de `Machin player --simulation`, les rapports de l'audit complet, les exports de l'interface (airplay, tableaux, simulation), les sauvegardes de la base de `Machin backup-db` et `Machin maintenance-db`, le document « Votre installation ».
+
+N'y sont pas : les logs (`/var/log/machincast`), les fichiers d'exécution (sockets, PID, rapports de plantage, fichiers temporaires, fichiers de l'onglet Simulation), l'environnement virtuel et le dépôt, ni le certificat que génère le serveur intranet, que son démarrage régénère.
+
+**Un fichier qui existe hors de la liste n'est jamais touché**, même s'il porte le nom qu'attend MachinCast : une sortie posée sur un document de la radio, un export qui tomberait sur un fichier existant. L'écriture est refusée avec le message :
+
+```text
+/home/xavier/machincast/sorties/airplay.html : pas créé par MachinCast, il n'est pas dans /home/xavier/machincast/fichiers-machincast.txt : MachinCast n'y touche pas
+```
+
+Pour une sortie de `Machin player`, c'est l'alerte `sortie inaccessible`, et la diffusion continue ; pour un export de l'interface, la barre d'état le dit ; pour `install.sh`, l'installation s'arrête en nommant le fichier. Des réglages des vues hors de la liste restent tels quels : les tableaux se règlent alors le temps de la session, et le journal le dit une fois. Pour que MachinCast reprenne un tel fichier, le déplacer, ou ajouter son chemin complet à la liste.
+
+À la mise à jour, `install.sh` ajoute à la liste les fichiers qu'une version d'avant la liste avait créés, s'ils existent, et les énumère : ceux que la configuration désigne, ceux qu'il installe. Avec le service de diffusion, la liste appartient au compte de MachinCast et au groupe `machincast`, en `0660` : le service y inscrit ses sorties.
+
 ## Plugins
 
 Un plugin ajoute une fonction à MachinCast ([#348](https://github.com/dascritch/machincast/issues/348)) : c'est un répertoire de `plugins/`, dans le répertoire de MachinCast.

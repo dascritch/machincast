@@ -53,7 +53,7 @@ from PySide6.QtGui import QCloseEvent, QShowEvent, QStandardItemModel  # noqa: E
 from PySide6.QtWidgets import QVBoxLayout, QWidget  # noqa: E402
 
 from machincast import audio as audio_outputs  # noqa: E402
-from machincast import service  # noqa: E402
+from machincast import created_files, service  # noqa: E402
 from machincast.audio import PLAYER, PREVIEW, create_output  # noqa: E402
 from machincast.configuration import Audio, AudioOutput, Crossfades  # noqa: E402
 from machincast.i18n import _, decimal  # noqa: E402
@@ -112,7 +112,7 @@ def write_preview(path: Path, identifier: str) -> None:
 	"""audio.preview dans le fichier de configuration, qui garde ses commentaires et ses autres réglages."""
 	document = tomlkit.parse(path.read_text(encoding="utf-8"))
 	preferences.write_audio(document, None, None, identifier)
-	path.write_text(tomlkit.dumps(document), encoding="utf-8")
+	created_files.write_text(path, tomlkit.dumps(document))
 
 
 def read_source(
